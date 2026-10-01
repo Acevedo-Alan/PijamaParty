@@ -6,23 +6,23 @@
 <title>Pijama Party Santa Fe</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#FAF6F1;
+    --bg:#FFF8F2;
     --surface:#FFFFFF;
-    --ink:#3A322D;
-    --ink-soft:#6B5B54;
-    --accent:#C17A56;
-    --accent-soft:#E8C4B8;
-    --rose:#D9AFAA;
-    --line:#E6DDD1;
-    --danger:#B5533F;
+    --ink:#26382F;
+    --ink-soft:#5B6B61;
+    --accent:#E65B43;
+    --accent-soft:#FFD0B8;
+    --rose:#F2A58E;
+    --line:#EADDCF;
+    --danger:#B84332;
     --radius-s:2px;
     --radius-m:4px;
     --maxw:1180px;
-    --ff-display:'Fraunces', Georgia, serif;
-    --ff-body:'Work Sans', -apple-system, sans-serif;
+    --ff-display:'Lora', Georgia, serif;
+    --ff-body:'Nunito Sans', -apple-system, sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   *:focus:not(:focus-visible){outline:none}
@@ -88,11 +88,9 @@
     height:64px;gap:10px;
   }
   .logo{
-    font-family:var(--ff-display);font-size:clamp(16px,4.6vw,20px);font-weight:600;
-    letter-spacing:.2px;white-space:nowrap;
-    overflow:hidden;text-overflow:ellipsis;
-    flex:1 1 auto;min-width:0;
+    display:flex;align-items:center;height:100%;flex:0 0 auto;min-width:0;
   }
+  .logo img{display:block;max-height:48px;width:auto;object-fit:contain}
   nav.cats{display:none;gap:28px;font-size:14px;flex:none}
   nav.cats a{color:var(--ink-soft);padding:4px 4px 8px;border-bottom:1px solid transparent}
   nav.cats a:hover,nav.cats a.active{color:var(--ink);border-color:var(--accent)}
@@ -185,13 +183,16 @@
   .mobile-nav-link .chev{width:15px;height:15px;stroke:var(--ink-soft);fill:none;stroke-width:1.6;flex:none}
 
   /* ---------- Hero ---------- */
-  .hero{
-    display:grid;grid-template-columns:1fr;
-    align-items:center;gap:0;
-  }
+  .hero{display:block;padding:0}
   .hero-media{
-    position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:var(--radius-m);
-    background:var(--surface);border:1px solid var(--line);
+    position:relative;width:100vw;margin-inline:calc(50% - 50vw);
+    aspect-ratio:16/7;min-height:440px;max-height:720px;overflow:hidden;
+    background:#526558;border:0;border-radius:0;
+  }
+  .hero-media::after{
+    content:'';position:absolute;inset:0;z-index:1;
+    background:linear-gradient(90deg,rgba(20,35,28,.72),rgba(20,35,28,.30) 55%,rgba(20,35,28,.05));
+    pointer-events:none;
   }
   .hero-carousel{position:relative;width:100%;height:100%}
   .hero-slide{
@@ -201,34 +202,93 @@
   }
   .hero-slide.active{opacity:1;pointer-events:auto;transform:translate3d(0,0,0) scale(1)}
   .hero-slide .ph{width:100%;height:100%;aspect-ratio:auto;border-radius:0;border:none}
+  .hero-slide img{object-position:center 48%}
   .hero-carousel-dots{
-    position:absolute;left:18px;bottom:16px;
-    display:flex;gap:6px;align-items:center;
+    position:absolute;z-index:3;right:clamp(20px,6vw,84px);bottom:28px;
+    display:flex;gap:8px;align-items:center;
   }
   .hero-carousel-dots button{
-    width:22px;height:2px;background:var(--ink-soft);opacity:.48;
+    width:24px;height:3px;background:#fff;opacity:.52;
     transition:background-color .35s ease,opacity .35s ease;
   }
-  .hero-carousel-dots button.active{opacity:1;background:var(--accent)}
+  .hero-carousel-dots button.active{opacity:1;background:#fff}
   @media(prefers-reduced-motion:reduce){
     .hero-slide,.hero-carousel-dots button{transition:none}
   }
-  .hero-copy{padding:36px 20px 40px}
-  .hero-eyebrow{font-size:13px;color:var(--accent);margin-bottom:10px;font-weight:500}
+  .hero-copy{position:absolute;z-index:2;inset:50% auto auto max(24px,calc((100vw - var(--maxw))/2 + 24px));transform:translateY(-50%);padding:0 20px;max-width:620px;color:#fff}
+  .hero-eyebrow{font-size:13px;color:#FFD0B8;margin-bottom:12px;font-weight:700;text-transform:uppercase}
   .hero h1{
     font-family:var(--ff-display);font-weight:500;
-    font-size:clamp(30px,6vw,52px);line-height:1.08;
-    max-width:11ch;
+    font-size:clamp(38px,6vw,72px);line-height:1.04;
+    max-width:12ch;
   }
-  .hero p{margin-top:16px;color:var(--ink-soft);max-width:42ch;font-size:15px}
+  .hero p{margin-top:18px;color:rgba(255,255,255,.92);max-width:42ch;font-size:16px}
   .hero-cta{
     margin-top:26px;display:inline-flex;align-items:center;gap:10px;
-    background:var(--ink);color:#fff;padding:14px 26px;
+    background:var(--accent);color:#fff;padding:14px 26px;
     border-radius:var(--radius-s);font-size:14px;font-weight:500;
   }
-  @media(min-width:860px){
-    .hero{grid-template-columns:1.1fr 1fr}
-    .hero-copy{padding:0 60px}
+  .category-explorer{padding-top:54px;padding-bottom:48px}
+  .category-heading{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:20px}
+  .category-heading .section-title{margin:0}
+  .category-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .category-card,.subcategory-card{
+    position:relative;display:block;width:100%;overflow:hidden;isolation:isolate;
+    color:#fff;text-align:left;background:#526558;aspect-ratio:5/4;min-height:220px;
+  }
+  .category-card img,.subcategory-card img{
+    position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;
+    transition:transform .55s cubic-bezier(.2,.7,.2,1);
+  }
+  .category-card::after,.subcategory-card::after{
+    content:'';position:absolute;inset:0;z-index:-1;
+    background:linear-gradient(0deg,rgba(17,32,25,.76),rgba(17,32,25,.04) 72%);
+  }
+  .category-card span,.subcategory-card span{
+    position:absolute;left:22px;bottom:20px;font-family:var(--ff-display);
+    font-size:clamp(24px,3vw,36px);line-height:1.1;
+  }
+  .category-card[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:-3px}
+  .category-card[aria-pressed="true"] span{color:#FFD0B8}
+  @media(hover:hover){.category-card:hover img,.subcategory-card:hover img{transform:scale(1.045)}}
+  .subcategory-panel{margin-top:32px;animation:viewFadeIn .35s ease both}
+  .subcategory-panel[hidden]{display:none}
+  .subcategory-heading{font-family:var(--ff-display);font-size:21px;font-weight:500;margin-bottom:14px}
+  .subcategory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .subcategory-card{aspect-ratio:4/3;min-height:160px}
+  .subcategory-card span{left:16px;bottom:15px;font-size:22px}
+  .subcategory-card[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:-3px}
+  .subcategory-card[aria-pressed="true"] span{color:#FFD0B8}
+  @media(max-width:700px){
+    .hero-media{aspect-ratio:4/5;min-height:520px;max-height:680px}
+    .hero-media::after{background:linear-gradient(0deg,rgba(20,35,28,.76),rgba(20,35,28,.24) 68%,rgba(20,35,28,.06))}
+    .hero-copy{inset:auto 12px 68px 12px;transform:none;padding:0 14px}
+    .hero h1{font-size:clamp(38px,10vw,58px)}
+    .hero p{font-size:14px}
+    .hero-carousel-dots{right:24px;bottom:34px}
+    .category-explorer{padding-top:38px;padding-bottom:30px}
+    .category-grid{gap:10px}
+    .category-card{aspect-ratio:3/4;min-height:170px}
+    .category-card span{left:12px;bottom:14px;font-size:21px}
+    .subcategory-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .subcategory-card{min-height:140px}
+  }
+  .kigurumi-banner{background:#F8E0D6}
+  .kigurumi-banner-inner{
+    max-width:var(--maxw);margin:0 auto;padding:36px 20px;
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,560px);
+    align-items:center;gap:32px;
+  }
+  .kigurumi-banner-copy{max-width:38ch}
+  .kigurumi-banner-copy .hero-eyebrow{color:var(--danger)}
+  .kigurumi-banner-copy h2{font-family:var(--ff-display);font-size:clamp(28px,3.4vw,44px);line-height:1.12;font-weight:500}
+  .kigurumi-banner-copy p{margin-top:14px;color:var(--ink-soft);font-size:15px}
+  .kigurumi-banner-copy a{margin-top:22px;display:inline-flex;align-items:center;gap:8px;color:var(--ink);font-size:14px;font-weight:700;border-bottom:1px solid var(--ink);padding-bottom:4px}
+  .kigurumi-banner-art{grid-column:2;width:100%;aspect-ratio:1;object-fit:contain}
+  @media(max-width:700px){
+    .kigurumi-banner-inner{grid-template-columns:1fr;grid-template-areas:"art" "copy";gap:12px;padding:24px 20px 32px}
+    .kigurumi-banner-art{grid-area:art;width:min(100%,430px);justify-self:center}
+    .kigurumi-banner-copy{grid-area:copy;text-align:center;margin:0 auto}
   }
 
   /* ---------- Section headers ---------- */
@@ -240,18 +300,6 @@
 
   /* ---------- Filters ---------- */
   .catalog{padding:52px 20px 70px}
-  .chip-bar{
-    display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;
-    margin:0 0 18px;padding-bottom:6px;
-  }
-  .chip-bar::-webkit-scrollbar{display:none}
-  .subcategory-chip{
-    flex:none;border:1px solid var(--line);background:var(--surface);
-    color:var(--ink);padding:8px 12px;border-radius:999px;
-    font-size:12.5px;display:inline-flex;align-items:center;gap:6px;
-  }
-  .subcategory-chip svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-  .subcategory-chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
   .filters-bar{
     display:flex;gap:10px;margin-bottom:18px;
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);
@@ -657,7 +705,9 @@
 
 <header class="site">
   <div class="wrap header-row">
-    <a href="#" class="logo" data-nav="catalogo">Pijama Party <span style="color:var(--accent)">Santa Fe</span></a>
+    <a href="#" class="logo" data-nav="catalogo">
+      <img src="logo-recortado.png" alt="Pijama Party">
+    </a>
     <nav class="cats">
       <a href="#" class="active" data-filter-publico="">Todo</a>
       <a href="#" data-filter-publico="mujer">Mujer</a>
@@ -691,12 +741,18 @@
 <!-- ============ VISTA: CATÁLOGO ============ -->
 <div class="view show" data-view="catalogo" id="view-catalogo">
 
-  <section class="hero wrap" style="padding-top:0">
+  <section class="hero">
     <div class="hero-media">
       <div class="hero-carousel" id="heroCarousel">
-        <div class="hero-slide active"><div class="ph ph-hero"><img loading="eager" fetchpriority="high" alt="Colección de pijamas para media estación"></div></div>
-        <div class="hero-slide"><div class="ph ph-1"><img loading="lazy" alt="Pijama satén en tonos suaves"></div></div>
-        <div class="hero-slide"><div class="ph ph-3"><img loading="lazy" alt="Pijama de polar para invierno"></div></div>
+        <div class="hero-slide active"><div class="ph ph-hero"><img src="https://images.unsplash.com/photo-1764337593385-e5b64452c1a7?auto=format&amp;fit=crop&amp;w=2000&amp;q=85" loading="eager" fetchpriority="high" alt="Mujer con conjunto de pijama floral"></div></div>
+        <div class="hero-slide"><div class="ph ph-1"><img src="https://images.unsplash.com/photo-1672710138523-e8edfc298107?auto=format&amp;fit=crop&amp;w=2000&amp;q=85" loading="lazy" alt="Pareja con pijamas de franela"></div></div>
+        <div class="hero-slide"><div class="ph ph-3"><img src="https://images.unsplash.com/photo-1783514508938-39b933a59cf8?auto=format&amp;fit=crop&amp;w=2000&amp;q=85" loading="lazy" alt="Niño jugando con pijama en casa"></div></div>
+      </div>
+      <div class="hero-copy">
+        <div class="hero-eyebrow">Nueva colección · Santa Fe</div>
+        <h1>Noches suaves, mañanas con calma</h1>
+        <p>Pijamas y ropa de descanso para bajar el ritmo y sentirte bien, todos los días.</p>
+        <a href="#catalog-anchor" class="hero-cta">Descubrí la colección <span aria-hidden="true">→</span></a>
       </div>
       <div class="hero-carousel-dots" aria-label="Selector de colección">
         <button type="button" class="hero-dot active" aria-label="Slide 1"></button>
@@ -704,19 +760,50 @@
         <button type="button" class="hero-dot" aria-label="Slide 3"></button>
       </div>
     </div>
-    <div class="hero-copy">
-      <div class="hero-eyebrow">Nueva colección — Media estación</div>
-      <h1>Noches suaves, mañanas con calma</h1>
-      <p>Pijamas y ropa de descanso en algodón, satén y polar. Diseñados para quedarse en casa con estilo.</p>
-      <a href="#" class="hero-cta" onclick="document.getElementById('catalog-anchor').scrollIntoView();return false">Ver colección →</a>
+  </section>
+
+  <section class="kigurumi-banner" aria-labelledby="kigurumiTitle">
+    <div class="kigurumi-banner-inner">
+      <div class="kigurumi-banner-copy">
+        <div class="hero-eyebrow">Pijama Party · Colección divertida</div>
+        <h2 id="kigurumiTitle">La noche se llena de personajes</h2>
+        <p>Una pijamada para jugar, soñar y descansar con mucha imaginación.</p>
+        <a href="#catalog-anchor">Descubrí la colección <span aria-hidden="true">→</span></a>
+      </div>
+      <img class="kigurumi-banner-art" src="logo%20(2).jpg" loading="lazy" alt="Ilustración de personajes con pijamas kigurumi alrededor del rótulo Pijama Party">
+    </div>
+  </section>
+
+  <section class="category-explorer wrap" aria-labelledby="categoryTitle">
+    <div class="category-heading">
+      <div>
+        <h2 class="section-title" id="categoryTitle">Elegí para quién</h2>
+        <p class="section-sub">Ropa cómoda para cada integrante de la familia.</p>
+      </div>
+    </div>
+    <div class="category-grid" id="primaryCategories">
+      <button type="button" class="category-card" data-audience="mujer" aria-pressed="false">
+        <img src="https://images.unsplash.com/photo-1764337593385-e5b64452c1a7?auto=format&amp;fit=crop&amp;w=900&amp;q=82" alt="" loading="lazy">
+        <span>Mujer</span>
+      </button>
+      <button type="button" class="category-card" data-audience="hombre" aria-pressed="false">
+        <img src="https://images.unsplash.com/photo-1604936509922-a0ae4fd19e3e?auto=format&amp;fit=crop&amp;w=900&amp;q=82" alt="" loading="lazy">
+        <span>Hombre</span>
+      </button>
+      <button type="button" class="category-card" data-audience="infantil" aria-pressed="false">
+        <img src="https://images.unsplash.com/photo-1783514508938-39b933a59cf8?auto=format&amp;fit=crop&amp;w=900&amp;q=82" alt="" loading="lazy">
+        <span>Niños</span>
+      </button>
+    </div>
+    <div class="subcategory-panel" id="subcategoryPanel" hidden>
+      <h3 class="subcategory-heading" id="subcategoryHeading">Explorá la colección</h3>
+      <div class="subcategory-grid" id="subcategoryGrid"></div>
     </div>
   </section>
 
   <section class="catalog wrap" id="catalog-anchor">
     <h2 class="section-title">Todos los productos</h2>
     <p class="section-sub">Filtrá por talle, color, temporada y más.</p>
-
-    <div class="chip-bar" id="subcategoryBar"></div>
 
     <div class="filters-bar">
       <select class="filter-select" id="f-publico">
@@ -1166,30 +1253,30 @@ const COLORS = {
 };
 
 const BASE_PRODUCTS = [
-  {id:'p1',nombre:'Pijama Satén Rosa Viejo',slug:'pijama-saten-rosa',material:'Satén',temporada:'verano',publico:'mujer',
+  {id:'p1',nombre:'Pijama Satén Rosa Viejo',slug:'pijama-saten-rosa',material:'Satén',temporada:'verano',publico:'mujer',coleccion:'playa',
    precio:24999,ph:'ph-1',desc:'Conjunto de dos piezas en satén liviano, con caída suave y terminaciones en bies contrastante.',
    variantes:[{talle:'S',color:'Rosa Viejo',stock:4},{talle:'M',color:'Rosa Viejo',stock:2},{talle:'L',color:'Rosa Viejo',stock:0},
               {talle:'S',color:'Beige',stock:5},{talle:'M',color:'Beige',stock:3}]},
-  {id:'p2',nombre:'Camisón Algodón Salvia',slug:'camison-algodon-salvia',material:'Algodón',temporada:'media_estacion',publico:'mujer',
+  {id:'p2',nombre:'Camisón Algodón Salvia',slug:'camison-algodon-salvia',material:'Algodón',temporada:'media_estacion',publico:'mujer',coleccion:'descanso',
    precio:18999,ph:'ph-2',desc:'Camisón de algodón 100% con breteles ajustables y bolsillo frontal. Fresco y liviano para media estación.',
    variantes:[{talle:'XS',color:'Salvia',stock:3},{talle:'S',color:'Salvia',stock:6},{talle:'M',color:'Salvia',stock:0},
               {talle:'S',color:'Crudo',stock:2}]},
-  {id:'p3',nombre:'Pijama Polar Hombre Chocolate',slug:'pijama-polar-hombre',material:'Polar',temporada:'invierno',publico:'hombre',
+  {id:'p3',nombre:'Pijama Polar Hombre Chocolate',slug:'pijama-polar-hombre',material:'Polar',temporada:'invierno',publico:'hombre',coleccion:'descanso',
    precio:27999,ph:'ph-3',desc:'Conjunto de polar antipilling, ideal para las noches más frías. Puños y tobillos con friso elástico.',
    variantes:[{talle:'M',color:'Chocolate',stock:7},{talle:'L',color:'Chocolate',stock:4},{talle:'XL',color:'Chocolate',stock:1}]},
-  {id:'p4',nombre:'Conjunto Algodón Infantil Terracota',slug:'conjunto-infantil-terracota',material:'Algodón',temporada:'invierno',publico:'infantil',
+  {id:'p4',nombre:'Conjunto Algodón Infantil Terracota',slug:'conjunto-infantil-terracota',material:'Algodón',temporada:'invierno',publico:'infantil',coleccion:'descanso',
    precio:15999,ph:'ph-4',desc:'Remera manga larga + pantalón en algodón peinado, estampa mínima. Suave para pieles sensibles.',
    variantes:[{talle:'XS',color:'Terracota',stock:5},{talle:'S',color:'Terracota',stock:5}]},
-  {id:'p5',nombre:'Short Pijama Modal Crudo',slug:'short-pijama-modal',material:'Modal',temporada:'verano',publico:'mujer',
+  {id:'p5',nombre:'Short Pijama Modal Crudo',slug:'short-pijama-modal',material:'Modal',temporada:'verano',publico:'mujer',coleccion:'playa',
     precio:16999,ph:'ph-5',desc:'Conjunto de musculosa y short en modal, textura fresca al tacto y gran elasticidad.',rating:4.8,reviewCount:37,
    variantes:[{talle:'S',color:'Crudo',stock:8},{talle:'M',color:'Crudo',stock:6},{talle:'L',color:'Crudo',stock:3}]},
-  {id:'p6',nombre:'Pijama Polar Salvia Unisex',slug:'pijama-polar-salvia',material:'Polar',temporada:'invierno',publico:'hombre',
+  {id:'p6',nombre:'Pijama Polar Salvia Unisex',slug:'pijama-polar-salvia',material:'Polar',temporada:'invierno',publico:'hombre',coleccion:'descanso',
    precio:26999,ph:'ph-6',desc:'Polar térmico de corte relajado, con capucha y bolsillo canguro. Para las noches de invierno.',
    variantes:[{talle:'M',color:'Salvia',stock:0},{talle:'L',color:'Salvia',stock:2},{talle:'XL',color:'Salvia',stock:5}]},
-  {id:'p7',nombre:'Bata Algodón Beige',slug:'bata-algodon-beige',material:'Algodón',temporada:'media_estacion',publico:'mujer',
+  {id:'p7',nombre:'Bata Algodón Beige',slug:'bata-algodon-beige',material:'Algodón',temporada:'media_estacion',publico:'mujer',coleccion:'descanso',
    precio:22999,ph:'ph-4',desc:'Bata larga de algodón con cinto anudado y bolsillos laterales. Ideal para las mañanas de casa.',
    variantes:[{talle:'S',color:'Beige',stock:4},{talle:'M',color:'Beige',stock:4},{talle:'L',color:'Beige',stock:1}]},
-  {id:'p8',nombre:'Pantuflas Beige',slug:'pantuflas-beige',material:'Algodón',temporada:'invierno',publico:'mujer',
+  {id:'p8',nombre:'Pantuflas Beige',slug:'pantuflas-beige',material:'Algodón',temporada:'invierno',publico:'mujer',coleccion:'descanso',
    precio:8999,ph:'ph-5',desc:'Pantuflas de algodón con suela antideslizante, para completar el look de descanso.',
    variantes:[{talle:'S/M',color:'Beige',stock:9},{talle:'L/XL',color:'Beige',stock:6}]},
 ];
@@ -1218,13 +1305,14 @@ let catalogRequestId = 0;
 const ITEMS_PER_PAGE = 8;
 
 async function fetchProducts(params={}){
-  const {publico='',talle='',color='',material='',temporada='',precio='',sort='relevancia',search='',page=1,limit=ITEMS_PER_PAGE} = params;
+  const {publico='',talle='',color='',material='',temporada='',coleccion='',precio='',sort='relevancia',search='',page=1,limit=ITEMS_PER_PAGE} = params;
   await new Promise(resolve=>setTimeout(resolve,250));
 
   let filtered = allProducts.filter(product=>{
     if(publico && product.publico!==publico) return false;
     if(material && product.material!==material) return false;
     if(temporada && product.temporada!==temporada) return false;
+    if(coleccion && product.coleccion!==coleccion) return false;
     if(talle && !product.variantes.some(variant=>variant.talle===talle)) return false;
     if(color && !product.variantes.some(variant=>variant.color===color)) return false;
     if(precio){
@@ -1247,24 +1335,11 @@ async function fetchProducts(params={}){
 }
 
 const SUBCATEGORIES = [
-  {label:'Ver todos', icon:'grid', filter:{}},
-  {label:'Pijamas Mujer', icon:'dress', filter:{publico:'mujer'}},
-  {label:'Pijamas Hombre', icon:'shirt', filter:{publico:'hombre'}},
-  {label:'Ropa de descanso Infantil', icon:'bear', filter:{publico:'infantil'}},
-  {label:'Pantuflas', icon:'slipper', filter:{publico:'mujer', material:'Algodón'}},
-  {label:'Batas', icon:'robe', filter:{publico:'mujer', material:'Algodón'}},
-  {label:'Temporada Invierno', icon:'snowflake', filter:{temporada:'invierno'}}
+  {id:'invierno',label:'Invierno',image:'https://images.unsplash.com/photo-1604936509922-a0ae4fd19e3e?auto=format&fit=crop&w=700&q=82',filter:{temporada:'invierno'}},
+  {id:'verano',label:'Verano',image:'https://images.unsplash.com/photo-1764337593385-e5b64452c1a7?auto=format&fit=crop&w=700&q=82',filter:{temporada:'verano'}},
+  {id:'descanso',label:'Descanso',image:'https://images.unsplash.com/photo-1672710144980-ec52254a9ab2?auto=format&fit=crop&w=700&q=82',filter:{coleccion:'descanso'}},
+  {id:'playa',label:'Playa',image:'https://images.unsplash.com/photo-1764337593385-e5b64452c1a7?auto=format&fit=crop&w=700&q=82',filter:{coleccion:'playa',temporada:'verano'}}
 ];
-
-const CATEGORY_ICONS = {
-  grid:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
-  dress:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 4 3 3-2 2v9H9v-9l-2-2 3-3-1-4Z"/><path d="M9 3c0 2 1.3 3 3 3s3-1 3-3"/></svg>',
-  shirt:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3 4 2 4-2 5 2 2 6-4 1-1-3v11H6V9l-1 3-4-1 2-6 5-2Z"/><path d="M9 4c0 2 1 3 3 3s3-1 3-3"/></svg>',
-  bear:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M9.5 12h.01M14.5 12h.01M10 16c1.2 1 2.8 1 4 0"/></svg>',
-  slipper:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16c3 0 4.6-1.2 6-4l2-4c1-2 3.8-2.2 5-.2l2.5 4.5c.8 1.4 1.8 2.2 3.5 2.7V20H3v-4Z"/><path d="M3 16h19"/></svg>',
-  robe:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3-4 2-2 7 4 1 1-3v11h10V10l1 3 4-1-2-7-4-2-4 3-4-3Z"/><path d="M8 3c0 2 1.5 3 4 3s4-1 4-3M8 14h8"/></svg>',
-  snowflake:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18M9 4l3 3 3-3M9 20l3-3 3 3M3 9l4-1 1-4M21 15l-4 1-1 4M17 4l1 4 4 1M7 20l-1-4-4-1"/></svg>'
-};
 
 /* =======================================================
    ESTADO
@@ -1276,6 +1351,7 @@ let currentSize = null;
 let couponApplied = null;
 let gridViewMode = 'grid';
 let catalogSort = 'relevancia';
+let selectedSubcategory = '';
 let searchDebounce = null;
 let drawerOpener = null;
 let mobileMenuOpener = null;
@@ -1430,41 +1506,38 @@ function getTotalStock(product){
   return product.variantes.reduce((sum, v)=>sum + v.stock, 0);
 }
 
-function renderSubcategoryChips(){
-  const bar = document.getElementById('subcategoryBar');
-  if(!bar) return;
+function renderSubcategoryCards(){
+  const audience = document.getElementById('f-publico').value;
+  const panel = document.getElementById('subcategoryPanel');
+  const grid = document.getElementById('subcategoryGrid');
+  panel.hidden = !audience;
+  document.querySelectorAll('.category-card').forEach(button=>{
+    button.setAttribute('aria-pressed',String(button.dataset.audience===audience));
+  });
+  if(!audience){
+    grid.replaceChildren();
+    return;
+  }
 
-  bar.innerHTML = SUBCATEGORIES.map((item, index)=>`
-    <button type="button" class="subcategory-chip ${index===0?'active':''}" data-subcategory="${index}">
-      ${CATEGORY_ICONS[item.icon]}<span>${item.label}</span>
+  document.getElementById('subcategoryHeading').textContent = `${PUBLICO_LABEL[audience] || 'Colección'} · explorá por estilo`;
+  grid.innerHTML = SUBCATEGORIES.map(item=>`
+    <button type="button" class="subcategory-card" data-subcategory="${item.id}" aria-pressed="${selectedSubcategory===item.id}">
+      <img src="${item.image}" alt="" loading="lazy">
+      <span>${item.label}</span>
     </button>
   `).join('');
-
-  bar.querySelectorAll('.subcategory-chip').forEach(btn=>{
-    btn.addEventListener('click', () => {
-      const index = Number(btn.dataset.subcategory);
-      const item = SUBCATEGORIES[index];
-      const isActive = isSubcategoryActive(item.filter);
-      if(index === 0 || isActive){
-        document.getElementById('f-publico').value = '';
-        document.getElementById('f-temporada').value = '';
-        document.getElementById('f-material').value = '';
-      } else {
-        document.getElementById('f-publico').value = item.filter.publico || '';
-        document.getElementById('f-temporada').value = item.filter.temporada || '';
-        document.getElementById('f-material').value = item.filter.material || '';
-      }
+  grid.querySelectorAll('.subcategory-card').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const item = SUBCATEGORIES.find(category=>category.id===button.dataset.subcategory);
+      selectedSubcategory = selectedSubcategory===item.id ? '' : item.id;
+      document.getElementById('f-temporada').value = selectedSubcategory ? item.filter.temporada || '' : '';
+      document.getElementById('f-material').value = '';
+      renderSubcategoryCards();
       renderGrid(1);
       syncCatalogControls();
+      document.getElementById('catalog-anchor').scrollIntoView({behavior:'smooth'});
     });
   });
-}
-
-function isSubcategoryActive(filter){
-  const publico = document.getElementById('f-publico').value;
-  const temporada = document.getElementById('f-temporada').value;
-  const material = document.getElementById('f-material').value;
-  return (filter.publico || '') === publico && (filter.temporada || '') === temporada && (filter.material || '') === material;
 }
 
 function syncCatalogControls(){
@@ -1479,10 +1552,11 @@ function syncCatalogControls(){
     a.classList.toggle('active', isActive);
   });
 
-  document.querySelectorAll('.subcategory-chip').forEach(btn=>{
-    const index = Number(btn.dataset.subcategory);
-    const filter = SUBCATEGORIES[index].filter;
-    btn.classList.toggle('active', isSubcategoryActive(filter));
+  document.querySelectorAll('.category-card').forEach(button=>{
+    button.setAttribute('aria-pressed',String(button.dataset.audience===publico));
+  });
+  document.querySelectorAll('.subcategory-card').forEach(button=>{
+    button.setAttribute('aria-pressed',String(button.dataset.subcategory===selectedSubcategory));
   });
 }
 
@@ -1515,6 +1589,7 @@ async function renderGrid(page=1){
     color:document.getElementById('f-color').value,
     material:document.getElementById('f-material').value,
     temporada:document.getElementById('f-temporada').value,
+    coleccion:['descanso','playa'].includes(selectedSubcategory) ? selectedSubcategory : '',
     precio:document.getElementById('f-precio').value,
     search:document.getElementById('catalogSearch').value.trim(),
     sort:document.getElementById('sortBy').value,
@@ -1656,7 +1731,14 @@ async function changePage(page){
 }
 
 ['f-publico','f-talle','f-color','f-material','f-temporada','f-precio'].forEach(id=>{
-  document.getElementById(id).addEventListener('change',()=>renderGrid(1));
+  document.getElementById(id).addEventListener('change',()=>{
+    if(['f-publico','f-material','f-temporada'].includes(id)){
+      selectedSubcategory = '';
+      renderSubcategoryCards();
+    }
+    renderGrid(1);
+    syncCatalogControls();
+  });
 });
 
 function populateColorFilter(){
@@ -1728,16 +1810,41 @@ function initHeroCarousel(){
   }, 4200);
 }
 
+function initCollectionLinks(){
+  document.querySelectorAll('.hero-cta, .kigurumi-banner-copy a').forEach(link=>{
+    link.addEventListener('click',event=>{
+      event.preventDefault();
+      document.getElementById('catalog-anchor').scrollIntoView({behavior:'smooth'});
+    });
+  });
+}
+
 function applyCategoryFilter(publico, temporada, historyAction='push'){
   document.getElementById('f-publico').value = publico;
   document.getElementById('f-temporada').value = temporada;
   document.getElementById('f-material').value = '';
+  selectedSubcategory = SUBCATEGORIES.find(item=>temporada && item.filter.temporada===temporada)?.id || '';
+  renderSubcategoryCards();
   renderGrid();
   syncCatalogControls();
   closeMobileMenu();
   goTo('catalogo', {historyAction});
   document.getElementById('catalog-anchor').scrollIntoView({behavior:'smooth'});
 }
+
+document.querySelectorAll('.category-card').forEach(button=>{
+  button.addEventListener('click',()=>{
+    const audience = document.getElementById('f-publico');
+    audience.value = audience.value===button.dataset.audience ? '' : button.dataset.audience;
+    document.getElementById('f-temporada').value = '';
+    document.getElementById('f-material').value = '';
+    selectedSubcategory = '';
+    renderSubcategoryCards();
+    renderGrid(1);
+    syncCatalogControls();
+    document.getElementById('catalog-anchor').scrollIntoView({behavior:'smooth'});
+  });
+});
 
 function clearCatalogFilters(){
   ['f-publico','f-talle','f-color','f-material','f-temporada','f-precio'].forEach(id=>{
@@ -1746,6 +1853,8 @@ function clearCatalogFilters(){
   document.getElementById('catalogSearch').value = '';
   document.getElementById('sortBy').value = 'relevancia';
   catalogSort = 'relevancia';
+  selectedSubcategory = '';
+  renderSubcategoryCards();
   renderGrid(1);
   syncCatalogControls();
 }
@@ -2360,11 +2469,12 @@ updateBackToTop();
    INIT
 ======================================================= */
 async function initStore(){
-  renderSubcategoryChips();
+  renderSubcategoryCards();
   populateColorFilter();
   loadCart();
   loadWishlist();
   initHeroCarousel();
+  initCollectionLinks();
 
   try{
     await renderGrid(1);
