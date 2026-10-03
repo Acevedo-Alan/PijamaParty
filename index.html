@@ -31,8 +31,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   *:focus:not(:focus-visible){outline:none}
   *:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
-  html{scroll-behavior:smooth;overflow-x:hidden;max-width:100%;scroll-padding-top:calc(64px + env(safe-area-inset-top,0px))}
-  ::-webkit-scrollbar{width:8px;height:8px}
+html{scroll-behavior:smooth;overflow-x:clip;max-width:100%;scroll-padding-top:calc(64px + env(safe-area-inset-top,0px))}  ::-webkit-scrollbar{width:8px;height:8px}
   ::-webkit-scrollbar-track{background:var(--bg)}
   ::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
   ::-webkit-scrollbar-thumb:hover{background:var(--ink-soft)}
@@ -46,7 +45,7 @@
     font-weight:500;
     -webkit-font-smoothing:antialiased;
     padding-bottom:0;
-    overflow-x:hidden;
+    overflow-x:clip;
     max-width:100%;
   }
   body.no-scroll{overflow:hidden}
