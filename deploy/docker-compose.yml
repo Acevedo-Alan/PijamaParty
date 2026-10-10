@@ -56,10 +56,14 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_APP_USER: tienda_app
       TRUSTED_PROXY_REGEX: 172\.30\.0\.10
+      # UC-04: the first administrator, created at startup only when none exists (password: Docker secret below)
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+      ADMIN_NAME: ${ADMIN_NAME:?set ADMIN_NAME in .env}
       # Docker secrets, mounted as files, become properties (e.g. ${DB_APP_PASSWORD}).
       SPRING_CONFIG_IMPORT: configtree:/run/secrets/
     secrets:
       - DB_APP_PASSWORD
+      - ADMIN_INITIAL_PASSWORD
     volumes:
       - uploads:/srv/uploads
     networks: [edge, data]
@@ -154,3 +158,5 @@ secrets:
     file: ./secrets/DB_APP_PASSWORD
   DB_BACKUP_PASSWORD:
     file: ./secrets/DB_BACKUP_PASSWORD
+  ADMIN_INITIAL_PASSWORD:
+    file: ./secrets/ADMIN_INITIAL_PASSWORD

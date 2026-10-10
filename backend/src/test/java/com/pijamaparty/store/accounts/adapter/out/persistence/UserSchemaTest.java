@@ -38,7 +38,7 @@ class UserSchemaTest {
     private static final String INSERT_USER = """
         insert into app_user (id, email, email_verified, password_hash, name, role, failed_login_attempts,
                               created_at, updated_at)
-        values (?, ?, true, '{bcrypt}test-only-hash', 'Test', ?, 0, now(), now())
+        values (?, ?, true, '{bcrypt}$2a$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'Test', ?, 0, now(), now())
         """;
     private static final List<Actor> ALL_ACTORS = List.of(CUSTOMER_A, CUSTOMER_B, GUEST, ADMIN, SYSTEM);
 
@@ -141,7 +141,7 @@ class UserSchemaTest {
     @Test
     void givenTheSystem_whenChangingAPasswordEmailOrRole_thenItIsRejected() {
         for (String update : List.of(
-                "update app_user set password_hash = '{bcrypt}other' where id = ?",
+                "update app_user set password_hash = '{bcrypt}$2a$12$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' where id = ?",
                 "update app_user set email = 'evil@example.com' where id = ?",
                 "update app_user set role = 'CUSTOMER' where id = ?",
                 "update app_user set email_verified = false where id = ?",

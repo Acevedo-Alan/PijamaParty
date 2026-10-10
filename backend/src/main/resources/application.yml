@@ -51,6 +51,8 @@ server:
     include-message: never
   servlet:
     session:
+      # UC-04, RNF-24: the back office session expires after 60 minutes of inactivity (Spring Session JDBC)
+      timeout: 60m
       cookie:
         # RNF-29.1; the session id changes on login (Spring Security session fixation protection)
         http-only: true
@@ -58,6 +60,12 @@ server:
         same-site: lax
 
 store:
+  # UC-04: the first administrator, created at startup only when none exists (ADMIN_INITIAL_PASSWORD is a Docker
+  # secret in production, read through the configtree import). Ignored once an administrator exists.
+  admin:
+    email: ${ADMIN_EMAIL:}
+    name: ${ADMIN_NAME:}
+    initial-password: ${ADMIN_INITIAL_PASSWORD:}
   saturation:
     # RNF-21: Retry-After of the 503 sent when a pool is exhausted
     retry-after: 5s

@@ -9,6 +9,7 @@ per secret, containing only the value (no newline is needed):
 | `DB_OWNER_PASSWORD` | `tienda_owner`: the `migrate` container (Flyway) |
 | `DB_APP_PASSWORD` | `tienda_app`: the `api` container |
 | `DB_BACKUP_PASSWORD` | `tienda_backup`: `pg_dump` (T-E0-10) |
+| `ADMIN_INITIAL_PASSWORD` | `api`: password of the first administrator (UC-04), 12 characters to 72 bytes. Used only at the first start, when no administrator exists; with `ADMIN_EMAIL` and `ADMIN_NAME` in `.env`. After that first start, overwrite the file with a random value: changing it never changes the administrator's password |
 
 Generate each one with a password manager or `openssl rand -base64 32`. The role passwords are set when the database
 volume is created; changing a file later does not change the role password (use `ALTER ROLE`).
