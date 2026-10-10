@@ -126,7 +126,7 @@ Es una defensa en profundidad: no reemplaza la autorización de la aplicación, 
 | `pedido`, `pedido_item` | Lee los propios y corrige su email | Lee el pedido de su token y corrige su email | Lee y actualiza el estado | Crea y actualiza |
 | `pago`, `pago_evento` | – | – | Lee | Crea y actualiza |
 | `direccion` | Todo sobre las propias | – | Lee | – |
-| `usuario` | Lee y actualiza el propio | – | Lee el propio | Lee para autenticar |
+| `usuario` | Lee y actualiza el propio | – | Lee el propio | Crea el administrador inicial, lee para autenticar y actualiza intentos fallidos y bloqueo |
 | `identidad_externa` | Lee y desvincula las propias | – | – | Crea y lee para autenticar |
 | `solicitud_arrepentimiento` | – | – | Lee y resuelve | Crea (validando pedido y email) |
 | `carrito`, `carrito_item` | Los propios | Los de su token de carrito | – | Limpieza |

@@ -135,7 +135,7 @@
 **Design notes**
 - Inbound port: `SignInAdministrator`; sealed result `SignedIn`, `InvalidCredentials`, `Locked(until)`.
 - Outbound ports: `UserRepository`, `PasswordHasher` (BCrypt or Argon2 adapter), `LoginAttemptRegistry`, `SessionIssuer`; optional `TotpVerifier`.
-- The account lock rule lives in the `User` aggregate (`registerFailedAttempt(now)`), with time from the injected `Clock`.
+- The account lock rule lives in the `User` aggregate (`registerFailedAttempt(now)`), with time from the injected `Clock`. `app_user` stores it in `failed_login_attempts` and `locked_until`. Sign-in runs without a signed-in actor, so reading the user and recording attempts happen as `SYSTEM`; RLS lets `SYSTEM` create the initial administrator, read users and update them (RNF-27).
 - Endpoints: `POST /api/admin/auth/login`, `POST /api/admin/auth/logout`, `GET /api/admin/auth/me`. Session cookie `HttpOnly`, `Secure`, `SameSite=Lax`, CSRF protection on.
 
 ---
@@ -179,6 +179,7 @@
 
 **Business rules**
 - No two variants of a product share the same size and color.
+- Sizes and colors are free text per product. They are shown in the order the administrator entered them when generating the matrix (`size_position`, `color_position` on the variant).
 - The SKU is unique across the shop.
 - A product without at least one priced variant cannot be published.
 - Photos: JPG, PNG or WebP up to 10 MB, at most 8 per product (proposed). The device shrinks each photo (max 1600 px per side) before upload.
@@ -217,6 +218,7 @@
 **Business rules**
 - Stock never goes negative.
 - Every stock change creates a movement (append-only).
+- A movement has a fixed type (`INITIAL_LOAD`, `ADJUSTMENT`, and from E3 `RESERVATION`, `DEDUCTION`, `RELEASE`), a signed quantity and an optional free-text note from the administrator (at most 200 characters). The history shows the note as the reason.
 - On mobile, the screen offers − and + buttons as well as a numeric field.
 
 **Acceptance criteria**

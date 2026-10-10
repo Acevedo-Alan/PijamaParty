@@ -19,14 +19,15 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 
 | Entidad | Campos clave |
 |---|---|
-| Categoria | id, nombre, slug, activa |
+| Categoria | id, nombre, slug, orden, activa |
 | Producto | id, nombre, slug, descripcion, material, temporada, publico, categoriaId, activo |
-| Variante | id, productoId, sku, talle, color, precioCentavos, stock, stockReservado, activa |
+| Variante | id, productoId, sku, talle, ordenTalle, color, ordenColor, precioCentavos?, activa (el orden de talles y colores es el de carga en el producto) |
+| NivelStock | varianteId, enMano (módulo de inventario; la reserva se suma en E3) |
 | Imagen | id, productoId, varianteId?, url, placeholder, orden |
-| MovimientoStock | id, varianteId, tipo, cantidad, motivo, pedidoId?, usuarioId?, fecha |
+| MovimientoStock | id, varianteId, tipo (CARGA_INICIAL, AJUSTE, RESERVA, DESCUENTO, LIBERACION), cantidad (con signo), nota? (texto libre del administrador), pedidoId?, usuarioId?, fecha |
 | Carrito / CarritoItem | id, token, usuarioId?, cuponId?, items(varianteId, cantidad) |
 | Cupon | id, codigo, tipo, valor, vigenciaDesde/Hasta, usosMax, usosActuales, minimoCompra, automatico, regla, activo |
-| Usuario | id, email, emailVerificado, passwordHash?, nombre, rol (CLIENTE / ADMIN) |
+| Usuario | id, email, emailVerificado, passwordHash?, nombre, rol (CLIENTE / ADMIN), intentosFallidos, bloqueadoHasta? |
 | IdentidadExterna | id, usuarioId, proveedor (GOOGLE / FACEBOOK), sujeto, email, creadoEn |
 | Direccion | id, usuarioId, calle, numero, piso, depto, ciudad, provincia, codigoPostal, principal |
 | Pedido | id, numero, usuarioId?, email, nombre, telefono, dni, direccionEnvio (copia), subtotal, descuento, envio, total, estado, cuponCodigo, tokenSeguimiento, creadoEn, entregadoEn |
@@ -82,6 +83,9 @@ PAGADO | PREPARANDO → CANCELADO
 | Guardar DNI en la cuenta del cliente | Pendiente | Propuesta: pedirlo en cada compra |
 | Volumen esperado: menos de 20 pedidos por día | Decidido | Dimensiona pools y pruebas de carga |
 | Identificadores: UUID generados por la aplicación | Decidido | Ids tipados (`UserId`, `ProductId`...) sobre UUID; columnas `uuid` en PostgreSQL |
+| Claves foráneas entre módulos | Decidido | Solo dentro de un módulo. Entre módulos se guarda el uuid sin FK (por ejemplo `stock_level.variant_id`); la consistencia la dan los eventos (`VariantCreated`) |
+| Orden de talles y colores | Decidido | Texto libre por producto, ordenado según la carga en la matriz de variantes |
+| Motivo de los movimientos de stock | Decidido | Tipo fijo (enum) más una nota libre opcional del administrador |
 | Rate limiting solo en la app (Bucket4j en memoria) | Decidido | Sin Cloudflare ni plugin de Caddy |
 | Concurrencia: pool de hilos clásico y acotado | Recomendado | Delegado por el usuario; hilos virtuales como opción futura |
 | Backoffice: un único administrador (el dueño) | Decidido | Sin gestión de roles ni permisos |

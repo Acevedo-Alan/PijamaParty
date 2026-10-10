@@ -49,6 +49,7 @@ The code, database and API use the English names. Spanish appears only in user-f
 | Category | `category` | `/api/catalog/categories` |
 | Product | `product` | `/api/catalog/products` |
 | Variant | `variant` | nested in product |
+| Product image | `product_image` | `/api/admin/catalog/products/{id}/images` |
 | Stock | `stock_level`, `stock_movement` | `/api/admin/stock-adjustments` |
 | Cart | `cart`, `cart_item` | `/api/cart` |
 | Coupon | `coupon` | `/api/cart/coupon`, `/api/admin/coupons` |
