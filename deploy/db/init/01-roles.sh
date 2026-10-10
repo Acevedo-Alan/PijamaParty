@@ -8,6 +8,14 @@
 #   tienda_backup  pg_dump: read-only, BYPASSRLS so the dump is complete
 set -euo pipefail
 
+# In production the passwords come as Docker secrets (files): *_FILE takes precedence over the plain variable.
+for name in DB_OWNER_PASSWORD DB_APP_PASSWORD DB_BACKUP_PASSWORD; do
+    file_var="${name}_FILE"
+    if [ -n "${!file_var:-}" ]; then
+        export "$name"="$(cat "${!file_var}")"
+    fi
+done
+
 : "${DB_OWNER_PASSWORD:?DB_OWNER_PASSWORD is required}"
 : "${DB_APP_PASSWORD:?DB_APP_PASSWORD is required}"
 : "${DB_BACKUP_PASSWORD:?DB_BACKUP_PASSWORD is required}"

@@ -115,6 +115,10 @@ spring:
   config:
     activate:
       on-profile: prod
+  # Migrations run in the one-shot migrate container as tienda_owner (deploy/docker-compose.yml): the application
+  # never holds the owner credentials (RNF-27).
+  flyway:
+    enabled: false
 
 server:
   tomcat:

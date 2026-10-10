@@ -1,0 +1,79 @@
+{
+	# Caddy logs upstream failures with the whole request. Keep only what helps to debug: no full client IP, no
+	# headers (cookies, tokens) and no query string, which may carry tokens or personal data (R-05, RNF-22).
+	log default {
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip ip_mask 24 48
+				request>client_ip ip_mask 24 48
+				request>headers delete
+				request>uri regexp \?.*$ ?REDACTED
+			}
+		}
+	}
+}
+
+# RNF-29.9: HSTS and the content security policy live here, not in the application. The CSP allows only this
+# origin; E6 adds the analytics (RNF-25) and payment provider domains when they are integrated.
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+}
+
+# One domain (E0 plan): the frontend build at /, the API at /api/*, uploaded images at /uploads/*. No CORS, and
+# cookies stay first-party. HTTPS certificates are automatic for {$DOMAIN}.
+{$DOMAIN} {
+	encode zstd gzip
+	import security_headers
+
+	handle /api/* {
+		reverse_proxy api:8080 {
+			# RNF-22: overwrite, never append, so the backend sees the real client IP and nothing a client forged.
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			# Other client-IP headers are dropped so nothing downstream can trust a forged one.
+			header_up -X-Real-IP
+			header_up -Forwarded
+			transport http {
+				# RNF-21: a refused or silently dropped connection (full Tomcat queue) fails fast instead of hanging.
+				dial_timeout 3s
+				response_header_timeout 30s
+			}
+		}
+	}
+
+	# Uploaded images are stored as WebP only (RNF-29.4); nothing else is served from this same-origin path.
+	handle /uploads/* {
+		@notWebp not path *.webp
+		respond @notWebp 404
+		root * /srv
+		file_server
+	}
+
+	# The single-page app: unknown paths fall back to index.html, where the router shows its own 404 (RNF-31.7).
+	handle {
+		root * /srv/www
+		try_files {path} /index.html
+		file_server
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+	}
+
+	# RNF-21: when the backend cannot take the request, answer like the API does: 503 + Retry-After in problem+json.
+	handle_errors 502 503 504 {
+		import security_headers
+		@api path /api/*
+		handle @api {
+			header Content-Type "application/problem+json"
+			header Retry-After "5"
+			respond `{"type":"about:blank","title":"Service Unavailable","status":503}` 503
+		}
+	}
+}

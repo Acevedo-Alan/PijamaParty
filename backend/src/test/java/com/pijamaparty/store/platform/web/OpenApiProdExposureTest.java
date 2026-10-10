@@ -6,10 +6,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.pijamaparty.store.platform.testing.ApiTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ApiTest
 @ActiveProfiles("prod")
+// In production the migrate container runs Flyway; this test database has no such step, so the test migrates itself.
+@TestPropertySource(properties = "spring.flyway.enabled=true")
 class OpenApiProdExposureTest {
 
     private final MockMvc mvc;

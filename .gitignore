@@ -35,3 +35,7 @@ uploads/
 # OS
 .DS_Store
 Thumbs.db
+
+# Production secrets (deploy/secrets/README.md explains them)
+deploy/secrets/*
+!deploy/secrets/README.md

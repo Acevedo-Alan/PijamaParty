@@ -1,0 +1,12 @@
+# Build contexts never include local state, dependencies or secrets.
+.git
+.github
+.claude
+**/.env
+**/.env.*
+**/node_modules
+**/dist
+**/target
+deploy/secrets
+docs
+index.html

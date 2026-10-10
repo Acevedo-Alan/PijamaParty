@@ -13,14 +13,14 @@ CLAUDE.md     Contexto y convenciones para Claude Code
 ## Decisiones
 
 - **Un solo dominio.** Caddy sirve el frontend compilado en `/`, enruta `/api/*` al backend y `/uploads/*` a un volumen. Así no hay CORS y las cookies son del mismo sitio.
-- **Contenedores:** `api`, `db` (PostgreSQL) y `caddy` en un único `docker-compose.yml`.
+- **Contenedores:** `api`, `db` (PostgreSQL) y `caddy` en un único `docker-compose.yml`, más `migrate`, que corre Flyway una sola vez como `tienda_owner` antes de que arranque la API. La base está en una red interna a la que Caddy no llega.
 - **Backend por módulos:** `catalogo`, `carrito`, `cupones`, `pedidos`, `pagos`, `envios`, `usuarios`, `resenas`, cada uno con su paquete.
 - **Migraciones:** Flyway, con `V1__baseline.sql`.
 - **Errores:** `ProblemDetail` de Spring.
 - **API documentada:** springdoc-openapi.
 - **Salud:** Spring Boot Actuator con `/api/health`.
 - **Frontend:** React Router, estilos con variables CSS (tokens de la paleta cálida/pastel), componentes mobile-first.
-- **Perfiles:** `dev` y `prod`; secretos por variables de entorno, nunca en el repositorio.
+- **Perfiles:** `dev` y `prod`; la configuración por variables de entorno y las contraseñas como secretos de Docker (archivos en `deploy/secrets/`), nunca en el repositorio.
 
 ## Riesgos
 
