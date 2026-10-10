@@ -46,6 +46,7 @@ Frontend and tooling: TypeScript only (.ts/.tsx). No .js/.jsx/.mjs/.cjs files, i
 Backend (run from `backend/`; requires JDK 21 and Docker running for Testcontainers):
 - Build and test: `./mvnw verify` (includes SpotBugs + find-sec-bugs, report only for now)
 - Run locally with a throwaway PostgreSQL container: `./mvnw spring-boot:test-run`
+- Local PostgreSQL (from the repository root): `docker compose -f deploy/docker-compose.dev.yml --env-file .env up -d`
 - Run locally against your own PostgreSQL: set the variables of `.env.example` (including `SPRING_PROFILES_ACTIVE=dev`; there is no default profile), then `./mvnw spring-boot:run`
 - Vulnerable dependency scan (slow, downloads the NVD database): `./mvnw dependency-check:check`
 - Health check: `GET http://localhost:8080/api/health`; Swagger UI (dev only): `http://localhost:8080/swagger-ui.html`

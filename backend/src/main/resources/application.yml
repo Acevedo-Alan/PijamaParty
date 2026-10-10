@@ -10,14 +10,24 @@ spring:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?logServerErrorDetail=false
     username: ${DB_APP_USER}
     password: ${DB_APP_PASSWORD}
+    # RNF-21: bounded pool; when it is exhausted for 3 s the request fails fast (503 in T-E0-11)
+    hikari:
+      maximum-pool-size: 8
+      minimum-idle: 2
+      connection-timeout: 3000      # ms (Hikari takes plain milliseconds)
+      max-lifetime: 1500000         # 25 min
   jpa:
     open-in-view: false
     hibernate:
-      # Schema changes only through Flyway
-      ddl-auto: none
+      # Schema changes only through Flyway; Hibernate only checks that the mappings match it
+      ddl-auto: validate
   flyway:
     enabled: true
     locations: classpath:db/migration
+  modulith:
+    events:
+      # Completed event publications are deleted, so serialized events do not pile up in the database
+      completion-mode: delete
 
 server:
   error:
@@ -55,6 +65,9 @@ spring:
       on-profile: dev
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pijamaparty}?logServerErrorDetail=false
+    hikari:
+      # RNF-21: leak detection only in dev
+      leak-detection-threshold: 10000  # ms
 
 springdoc:
   api-docs:
