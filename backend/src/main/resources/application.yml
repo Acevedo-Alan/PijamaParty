@@ -24,6 +24,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    # RNF-27: migrations run as the table owner; the application connects as tienda_app (T-E0-13)
+    user: ${DB_OWNER_USER}
+    password: ${DB_OWNER_PASSWORD}
   modulith:
     events:
       # Completed event publications are deleted, so serialized events do not pile up in the database
@@ -93,9 +96,13 @@ spring:
       on-profile: dev
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pijamaparty}?logServerErrorDetail=false
+    username: ${DB_APP_USER:tienda_app}
     hikari:
       # RNF-21: leak detection only in dev
       leak-detection-threshold: 10000  # ms
+
+  flyway:
+    user: ${DB_OWNER_USER:tienda_owner}
 
 springdoc:
   api-docs:

@@ -11,6 +11,10 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:?set DB_ADMIN_PASSWORD in .env}
       TZ: America/Argentina/Buenos_Aires
+      # Read by deploy/db/init/01-roles.sh on the first start (RNF-27)
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:?set DB_OWNER_PASSWORD in .env}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?set DB_APP_PASSWORD in .env}
+      DB_BACKUP_PASSWORD: ${DB_BACKUP_PASSWORD:?set DB_BACKUP_PASSWORD in .env}
     # RNF-21 server settings, the same as in production and in the Testcontainers tests
     command:
       - postgres
@@ -26,6 +30,7 @@ services:
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ${DB_NAME:-pijamaparty}"]
       interval: 5s

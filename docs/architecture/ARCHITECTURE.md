@@ -248,7 +248,7 @@ Shared test support lives in test sources under `com.pijamaparty.store.platform.
 | Fake | `InMemory<Port>` in test sources, in the port's package, one per outbound port. A fake for a read/write pair (`LoadCart` + `SaveCart`) may implement both on top of `InMemoryStore`. |
 | Fake contract | `InMemory<Port>ContractTest extends <Port>ContractTest`: plain JUnit, no Spring. |
 | Real contract | `<Technology><Port>ContractTest extends <Port>ContractTest`, in the adapter's package. Persistence adapters use `@PersistenceAdapterTest` (JPA slice on Testcontainers PostgreSQL, constructor injection, rolled back after each test), `@Import` the adapter and override `persistAndForget()` with flush and clear, so assertions read what PostgreSQL stored. |
-| Concurrency and RLS | Not on the rolled-back slice: other connections cannot see uncommitted rows, and the transaction-local security context would last for the whole test. These tests commit real transactions and clean up explicitly. Until `T-E0-13`, tests connect as the container superuser, which bypasses RLS. |
+| Concurrency and RLS | Not on the rolled-back slice: other connections cannot see uncommitted rows, and the transaction-local security context would last for the whole test. These tests commit real transactions and clean up explicitly. Tests connect as `tienda_app` (no owner, no `BYPASSRLS`) after Flyway migrated as `tienda_owner`, so policies apply as in production. |
 | Copies | `InMemoryStore` stores and returns copies of mutable aggregates, so a use case that forgets to save fails in the fake exactly as it would against the database. |
 
 Fakes never live in main sources, and use-case tests build the service with `new`, its fakes and `Clock.fixed(...)`.

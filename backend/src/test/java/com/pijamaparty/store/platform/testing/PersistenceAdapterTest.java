@@ -21,8 +21,8 @@ import org.springframework.test.context.TestConstructor;
  * transaction, and a transaction-local security context would last for the whole test. Those tests commit real
  * transactions and clean up explicitly (ARCHITECTURE.md section 10).
  *
- * <p>TODO(T-E0-13): connect as {@code tienda_app} and migrate as {@code tienda_owner}. Until then the tests use the
- * container's superuser, which bypasses RLS (RNF-27, RNF-29.2).
+ * <p>Like every test on {@link TestcontainersConfiguration}, it connects as {@code tienda_app} (no owner, no
+ * BYPASSRLS) after Flyway migrated as {@code tienda_owner}, so policies apply as in production (RNF-27).
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

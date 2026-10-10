@@ -2,12 +2,15 @@ package com.pijamaparty.store.platform.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import com.zaxxer.hikari.HikariDataSource;
 import java.time.Duration;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.testcontainers.containers.PostgreSQLContainer;
 
 /** T-E0-03 on a fresh Testcontainers PostgreSQL: Flyway migrates on startup and the pool follows RNF-21. */
 @ApiTest
@@ -15,15 +18,19 @@ class DatabaseBaselineTest {
 
     private final JdbcTemplate jdbc;
     private final DataSource dataSource;
+    private final JdbcTemplate owner;
 
-    DatabaseBaselineTest(JdbcTemplate jdbc, DataSource dataSource) {
+    DatabaseBaselineTest(JdbcTemplate jdbc, DataSource dataSource, PostgreSQLContainer<?> postgres) {
         this.jdbc = jdbc;
         this.dataSource = dataSource;
+        // The migration history is readable by the owner only (afterMigrate.sql).
+        this.owner = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), "tienda_owner",
+            TestcontainersConfiguration.OWNER_PASSWORD));
     }
 
     @Test
     void givenAnEmptyDatabase_whenTheBackendStarts_thenTheMigrationsCreateTheSchemaWithoutIntervention() {
-        Integer applied = jdbc.queryForObject(
+        Integer applied = owner.queryForObject(
             "select count(*) from flyway_schema_history where version = '1' and success", Integer.class);
         var tables = jdbc.queryForList(
             "select table_name from information_schema.tables where table_schema = 'public'", String.class);
