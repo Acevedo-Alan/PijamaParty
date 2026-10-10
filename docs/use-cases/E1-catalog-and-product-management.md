@@ -134,8 +134,9 @@
 
 **Design notes**
 - Inbound port: `SignInAdministrator`; sealed result `SignedIn`, `InvalidCredentials`, `Locked(until)`.
-- Outbound ports: `UserRepository`, `PasswordHasher` (BCrypt or Argon2 adapter), `LoginAttemptRegistry`, `SessionIssuer`; optional `TotpVerifier`.
-- The account lock rule lives in the `User` aggregate (`registerFailedAttempt(now)`), with time from the injected `Clock`. `app_user` stores it in `failed_login_attempts` and `locked_until`. Sign-in runs without a signed-in actor, so reading the user and recording attempts happen as `SYSTEM`; RLS lets `SYSTEM` create the initial administrator, read users and update them (RNF-27).
+- Outbound ports: `LoadUser` and `SaveUser` (read and write), `UserSignInStore` (one `SYSTEM` transaction with the user's row locked), `PasswordHasher` (BCrypt adapter); optional `TotpVerifier` (T-E1-16).
+- The web adapter opens and closes the session through `platform.security.SessionAuthentication` (ARCHITECTURE.md section 8), so no session port reaches the application layer. The per-IP limit of the `429` criterion is the login rate-limit policy of `T-E1-15`.
+- The account lock rule lives in the `User` aggregate (`registerFailedSignIn(now)`), with time from the injected `Clock`. `app_user` stores it in `failed_login_attempts` and `locked_until`. Sign-in runs without a signed-in actor, so reading the user and recording attempts happen as `SYSTEM`; RLS lets `SYSTEM` create the initial administrator, read users and update them (RNF-27).
 - Endpoints: `POST /api/admin/auth/login`, `POST /api/admin/auth/logout`, `GET /api/admin/auth/me`. Session cookie `HttpOnly`, `Secure`, `SameSite=Lax`, CSRF protection on.
 - Lock details (T-E1-02):
   - Only consecutive failures count: a successful sign-in resets the counter.
