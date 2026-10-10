@@ -236,6 +236,21 @@ class ArchitectureTest {
 
 Test names follow the acceptance criteria: `givenAnItemExceedingStock_whenAddingToCart_thenItIsRejected`.
 
+### Contract tests and in-memory fakes
+
+Shared test support lives in test sources under `com.pijamaparty.store.platform.testing`.
+
+| Piece | Convention |
+|---|---|
+| Contract | `abstract class <Port>ContractTest extends ContractTest<Port>`, in the port's package. It states the port's behavior once and gets the implementation from `createSubject()`. A read/write pair has one contract over a subject implementing both (`<T extends LoadCart & SaveCart>`): it arranges through the write port, calls `persistAndForget()`, then asserts through the read port. |
+| Fake | `InMemory<Port>` in test sources, in the port's package, one per outbound port. A fake for a read/write pair (`LoadCart` + `SaveCart`) may implement both on top of `InMemoryStore`. |
+| Fake contract | `InMemory<Port>ContractTest extends <Port>ContractTest`: plain JUnit, no Spring. |
+| Real contract | `<Technology><Port>ContractTest extends <Port>ContractTest`, in the adapter's package. Persistence adapters use `@PersistenceAdapterTest` (JPA slice on Testcontainers PostgreSQL, constructor injection, rolled back after each test), `@Import` the adapter and override `persistAndForget()` with flush and clear, so assertions read what PostgreSQL stored. |
+| Concurrency and RLS | Not on the rolled-back slice: other connections cannot see uncommitted rows, and the transaction-local security context would last for the whole test. These tests commit real transactions and clean up explicitly. Until `T-E0-13`, tests connect as the container superuser, which bypasses RLS. |
+| Copies | `InMemoryStore` stores and returns copies of mutable aggregates, so a use case that forgets to save fails in the fake exactly as it would against the database. |
+
+Fakes never live in main sources, and use-case tests build the service with `new`, its fakes and `Clock.fixed(...)`.
+
 ## 11. Frontend architecture (short)
 
 - Feature folders (`catalog`, `cart`, `checkout`, `account`, `admin`), each with its components, hooks and API calls.
