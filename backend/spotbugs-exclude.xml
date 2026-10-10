@@ -21,4 +21,10 @@
             <Bug pattern="SPRING_ENDPOINT"/>
         </Or>
     </Match>
+    <!-- The logged values are the policy name and route pattern from configuration, never request data (RNF-22). -->
+    <Match>
+        <Class name="com.pijamaparty.store.platform.web.ratelimit.RateLimitFilter"/>
+        <Method name="logRejection"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
 </FindBugsFilter>

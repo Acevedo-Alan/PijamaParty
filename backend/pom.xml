@@ -118,6 +118,11 @@
             <artifactId>bucket4j_jdk17-core</artifactId>
             <version>${bucket4j.version}</version>
         </dependency>
+        <!-- Buckets kept in memory with idle expiry and a size bound (RNF-22) -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
 
         <!-- Test -->
         <dependency>

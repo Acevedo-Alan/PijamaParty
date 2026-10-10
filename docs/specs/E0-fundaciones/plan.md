@@ -37,7 +37,7 @@ CLAUDE.md     Contexto y convenciones para Claude Code
 ## Rate limiting (RNF-22)
 
 - Filtro (`OncePerRequestFilter`) que corre antes de la seguridad, con Bucket4j y una caché con expiración por inactividad (por ejemplo Caffeine).
-- Políticas configurables por propiedades (ruta, clave, capacidad y reposición), para ajustarlas sin recompilar.
+- Políticas configurables por propiedades (ruta, clave, capacidad y reposición), para ajustarlas sin recompilar. Se aplican todas las políticas que coinciden con el request y se rechaza si cualquiera está agotada (por ejemplo login por IP y, aparte, por cuenta: RNF-29.5). Una política cuya clave no se puede resolver no aplica, así que cada ruta lleva además una política por IP como base. Las IPv6 se agrupan por su prefijo /64.
 - La IP real se obtiene con `server.forward-headers-strategy=native`; Caddy sobrescribe la cabecera `X-Forwarded-For` en lugar de agregarla.
 - Esta etapa deja la infraestructura y una ruta de prueba; las políticas de cada ruta se activan en la etapa que crea el endpoint.
 
