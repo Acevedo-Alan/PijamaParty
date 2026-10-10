@@ -81,6 +81,7 @@ PAGADO | PREPARANDO → CANCELADO
 | Reglas de cupones automáticos | Pendiente | Documento de alcance, punto 12 |
 | Guardar DNI en la cuenta del cliente | Pendiente | Propuesta: pedirlo en cada compra |
 | Volumen esperado: menos de 20 pedidos por día | Decidido | Dimensiona pools y pruebas de carga |
+| Identificadores: UUID generados por la aplicación | Decidido | Ids tipados (`UserId`, `ProductId`...) sobre UUID; columnas `uuid` en PostgreSQL |
 | Rate limiting solo en la app (Bucket4j en memoria) | Decidido | Sin Cloudflare ni plugin de Caddy |
 | Concurrencia: pool de hilos clásico y acotado | Recomendado | Delegado por el usuario; hilos virtuales como opción futura |
 | Backoffice: un único administrador (el dueño) | Decidido | Sin gestión de roles ni permisos |

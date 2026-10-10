@@ -94,6 +94,7 @@ Persistence uses separate JPA entities mapped to domain aggregates, so the domai
 |---|---|
 | Aggregate and invariants | `Order`, `Product`, `Cart`, `StockLevel`, `Coupon` |
 | Value object (`record`) | `Money` (integer cents), `Sku`, `Slug`, `Email`, `NationalId`, `Quantity`, `OrderNumber` |
+| Typed id (`record` wrapping a `UUID`) | `UserId` (in `platform`), `ProductId`, `OrderId` ... (in their module). The application creates ids through the `IdGenerator` port before persisting; columns are `uuid` |
 | Strategy | `DiscountRule`, `ShippingCostCalculator`, `PaymentGateway` |
 | State machine (transition table) | `OrderStatus` allowed transitions, checked inside `Order` |
 | Specification / filter object | Catalog filters (`ProductFilter`) with whitelisted sort columns |
