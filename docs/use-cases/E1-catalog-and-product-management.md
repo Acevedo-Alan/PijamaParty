@@ -146,6 +146,7 @@
   - `SignedIn`: `200` with the user, a new session id and a new CSRF token.
   - `InvalidCredentials`: `401` generic `problem+json`, the same for an unknown email and a wrong password. An unknown email still costs one hash check, so timing does not reveal it.
   - `Locked`: `423` `problem+json` with `lockedUntil` (decided: this reveals that the email exists, acceptable with a single administrator).
+  - Known risk: anyone who knows the administrator's email can keep the account locked with 5 attempts every 15 minutes, and the per-account limit of RNF-29.5 does not stop that. Revisit it in `T-E1-15` and `T-E1-16`, for example by counting failures per IP and account before locking.
   - `CUSTOMER` on `/api/admin/**`: `403`.
   - The `429` criterion belongs to `T-E1-15`, which turns on the login rate-limit policy.
 - Passwords: BCrypt with cost 12, stored with the `{bcrypt}` prefix so the algorithm can change later. At most 72 bytes and at least 12 characters.
