@@ -42,6 +42,32 @@ class PiiTest {
     }
 
     @Test
+    void givenAnExceptionChainWithPersonalData_whenScrubbing_thenTypesAndStackTracesStayAndPersonalDataGoes() {
+        var cause = new IllegalArgumentException("duplicate email ana@gmail.com");
+        var exception = new IllegalStateException("insert failed for dni 30123456", cause);
+
+        Throwable scrubbed = Pii.scrubException(exception);
+
+        assertThat(scrubbed.getMessage()).startsWith("java.lang.IllegalStateException").doesNotContain("30123456");
+        assertThat(scrubbed.getStackTrace()).isEqualTo(exception.getStackTrace());
+        assertThat(scrubbed.getCause().getMessage())
+            .startsWith("java.lang.IllegalArgumentException").contains("***@gmail.com").doesNotContain("ana@");
+    }
+
+    @Test
+    void givenADatabaseErrorQuotingTheFailingRow_whenScrubbing_thenOnlyTheTypeAndSqlStateRemain() {
+        var sql = new java.sql.SQLException(
+            "ERROR: null value in column \"phone\" violates not-null constraint. Failing row contains "
+                + "(Ana Perez, San Martin 1234, Santa Fe)", "23502");
+        var exception = new org.springframework.dao.DataIntegrityViolationException("could not execute statement", sql);
+
+        Throwable scrubbed = Pii.scrubException(exception);
+
+        assertThat(scrubbed.getMessage()).isEqualTo("org.springframework.dao.DataIntegrityViolationException");
+        assertThat(scrubbed.getCause().getMessage()).isEqualTo("java.sql.SQLException (SQLState 23502)");
+    }
+
+    @Test
     void givenFreeTextWithoutPersonalData_whenScrubbing_thenUuidsAndSmallNumbersAreKept() {
         String text = "order 1042 for 3 items, id 12345678-1234-1234-1234-123456789012";
 

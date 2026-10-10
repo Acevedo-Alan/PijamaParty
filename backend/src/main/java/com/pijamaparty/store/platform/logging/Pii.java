@@ -1,5 +1,7 @@
 package com.pijamaparty.store.platform.logging;
 
+import java.sql.SQLException;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -24,7 +26,21 @@ public final class Pii {
     private static final Pattern NATIONAL_ID =
         Pattern.compile("(?<![\\w.-])\\d{1,2}\\.?\\d{3}\\.?\\d{3}(?![\\w.-])");
 
+    private static final int MAX_CAUSES = 10;
+    private static final List<String> DATABASE_EXCEPTION_PACKAGES = List.of(
+        "org.springframework.dao.", "org.springframework.jdbc.", "org.springframework.orm.",
+        "org.hibernate.", "jakarta.persistence.", "org.postgresql.");
+
     private Pii() {
+    }
+
+    /** Stands in for the original exception in logs; its message starts with the original type. */
+    static final class ScrubbedException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        ScrubbedException(String message, Throwable cause) {
+            super(message, cause, false, true);
+        }
     }
 
     /** Keeps only the domain, which helps diagnose bounces: {@code ana@gmail.com -> ***@gmail.com}. */
@@ -42,6 +58,39 @@ public final class Pii {
 
     public static String address(String address) {
         return address == null ? null : MASK;
+    }
+
+    /**
+     * A copy of the exception chain for logging: same types and stack traces, messages scrubbed. Exception messages
+     * often carry input values (for example a unique-constraint violation with the email).
+     */
+    public static Throwable scrubException(Throwable throwable) {
+        return scrubException(throwable, 0);
+    }
+
+    private static Throwable scrubException(Throwable throwable, int depth) {
+        if (throwable == null || depth > MAX_CAUSES) {
+            return null;
+        }
+        String message = throwable.getClass().getName()
+            + (carriesRowData(throwable) ? sqlState(throwable) : ": " + scrub(throwable.getMessage()));
+        var copy = new ScrubbedException(message, scrubException(throwable.getCause(), depth + 1));
+        copy.setStackTrace(throwable.getStackTrace());
+        return copy;
+    }
+
+    /**
+     * Database errors quote the failing row or key ({@code Failing row contains (...)}, {@code Key (email)=(...)}),
+     * which may hold names, phones and addresses that {@link #scrub(String)} cannot detect: drop their message.
+     */
+    private static boolean carriesRowData(Throwable throwable) {
+        String type = throwable.getClass().getName();
+        return throwable instanceof SQLException
+            || DATABASE_EXCEPTION_PACKAGES.stream().anyMatch(type::startsWith);
+    }
+
+    private static String sqlState(Throwable throwable) {
+        return throwable instanceof SQLException sql ? " (SQLState " + sql.getSQLState() + ")" : "";
     }
 
     /** Replaces emails and national ids found inside free text. Addresses cannot be detected: never log them. */

@@ -10,6 +10,7 @@ public class TestStoreApplication {
     public static void main(String[] args) {
         SpringApplication.from(StoreApplication::main)
             .with(TestcontainersConfiguration.class)
+            .withAdditionalProfiles("dev")
             .run(args);
     }
 }

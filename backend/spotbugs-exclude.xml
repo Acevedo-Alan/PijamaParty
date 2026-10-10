@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs / find-sec-bugs exclusions. Every entry is scoped to one class and one pattern and says why it is a
+  false positive. Never exclude a whole category or package.
+-->
+<FindBugsFilter>
+    <!-- Reading the CSRF header is the point: Spring Security compares it with the cookie (RNF-29.1). -->
+    <Match>
+        <Class name="com.pijamaparty.store.platform.security.SpaCsrfTokenRequestHandler"/>
+        <Bug pattern="SERVLET_HEADER"/>
+    </Match>
+    <!--
+      /error must accept every method because the error dispatch keeps the original one (POST, DELETE...). It only
+      renders the status as problem+json and changes no state, so CSRF does not apply. SPRING_ENDPOINT is an
+      informational "this is an endpoint" marker.
+    -->
+    <Match>
+        <Class name="com.pijamaparty.store.platform.web.ProblemDetailsErrorController"/>
+        <Or>
+            <Bug pattern="SPRING_CSRF_UNRESTRICTED_REQUEST_MAPPING"/>
+            <Bug pattern="SPRING_ENDPOINT"/>
+        </Or>
+    </Match>
+</FindBugsFilter>

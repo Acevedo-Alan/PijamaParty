@@ -1,14 +1,13 @@
 # Shared configuration for every profile. No secrets here: credentials come from environment variables (.env.example).
+# No default profile: without SPRING_PROFILES_ACTIVE nothing dev-only (Swagger, local defaults) is enabled.
 spring:
   application:
     name: store
-  profiles:
-    default: dev
   mvc:
     problemdetails:
       enabled: true
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?logServerErrorDetail=false
     username: ${DB_APP_USER}
     password: ${DB_APP_PASSWORD}
   jpa:
@@ -24,6 +23,20 @@ server:
   error:
     include-stacktrace: never
     include-message: never
+  servlet:
+    session:
+      cookie:
+        # RNF-29.1; the session id changes on login (Spring Security session fixation protection)
+        http-only: true
+        secure: true
+        same-site: lax
+
+# OpenAPI and Swagger UI only in dev (the contract is not published in prod)
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 management:
   endpoints:
@@ -41,7 +54,13 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pijamaparty}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pijamaparty}?logServerErrorDetail=false
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
 
 ---
 spring:
