@@ -1,0 +1,79 @@
+# RNF-28, R-13: SQL and JPQL are constants; values only ever travel as bound parameters. Complements find-sec-bugs
+# (SpotBugs), whose sinks do not include jakarta.persistence, NamedParameterJdbcTemplate or JdbcClient.
+# The rule is inverted on purpose: every call to a query API is flagged unless its query is a string literal, a text
+# block or an UPPER_CASE constant, so new ways of building strings cannot slip through.
+# Tested by sql-injection.java (semgrep --test .semgrep) in CI.
+rules:
+  - id: sql-must-be-a-constant
+    languages: [java]
+    severity: ERROR
+    message: >-
+      Query built at run time (RNF-28). Write it as a literal, text block or static final UPPER_CASE constant with
+      named parameters; take ORDER BY columns from an enum whitelist; escape LIKE wildcards in the bound value.
+    patterns:
+      - pattern-either:
+          - pattern: (EntityManager $EM).createQuery($QUERY, ...)
+          - pattern: (EntityManager $EM).createNativeQuery($QUERY, ...)
+          - pattern: (Session $S).createSelectionQuery($QUERY, ...)
+          - pattern: (Session $S).createMutationQuery($QUERY, ...)
+          - pattern: (Session $S).createNativeQuery($QUERY, ...)
+          - pattern: (JdbcClient $C).sql($QUERY)
+          - patterns:
+              - pattern-either:
+                  - pattern: (JdbcTemplate $J).$METHOD($QUERY, ...)
+                  - pattern: (JdbcOperations $J).$METHOD($QUERY, ...)
+                  - pattern: (NamedParameterJdbcTemplate $J).$METHOD($QUERY, ...)
+                  - pattern: (NamedParameterJdbcOperations $J).$METHOD($QUERY, ...)
+              - metavariable-regex:
+                  metavariable: $METHOD
+                  regex: ^(query|queryForObject|queryForList|queryForMap|queryForRowSet|queryForStream|update|batchUpdate|execute)$
+      - metavariable-pattern:
+          metavariable: $QUERY
+          patterns:
+            - pattern: $ANYTHING
+            - pattern-not: '"..."'
+            - pattern-not-regex: ^(?:[A-Z][A-Za-z0-9_]*\.)?[A-Z][A-Z0-9_]*$
+
+  - id: query-annotation-with-spel
+    languages: [java]
+    severity: ERROR
+    message: >-
+      @Query with a SpEL expression (#{...}) can build SQL text at run time (RNF-28). Use bind parameters (:name).
+    pattern-regex: '@(?:[\w.]+\.)?Query\s*\([^)]*#\{'
+
+  - id: sort-from-request-string
+    languages: [java]
+    severity: ERROR
+    message: >-
+      ORDER BY column or JPA attribute taken from a string (RNF-28). Map the request to an enum whitelist and use the
+      enum's constant column name.
+    pattern-either:
+      - pattern: JpaSort.unsafe(...)
+      - patterns:
+          - pattern-either:
+              - pattern: Sort.by(..., (String $NAME), ...)
+              - pattern: Sort.Order.asc((String $NAME))
+              - pattern: Sort.Order.desc((String $NAME))
+              - pattern: Sort.Order.by((String $NAME))
+              - pattern: (Root $ROOT).get((String $NAME))
+              - pattern: (Path $PATH).get((String $NAME))
+          - metavariable-pattern:
+              metavariable: $NAME
+              patterns:
+                - pattern: $ANYTHING
+                - pattern-not: '"..."'
+                - pattern-not-regex: ^(?:[A-Z][A-Za-z0-9_]*\.)?[A-Z][A-Z0-9_]*$
+
+  - id: like-without-escape
+    languages: [java]
+    severity: ERROR
+    message: >-
+      LIKE without an escape character (RNF-28): build the value with LikePattern and add ESCAPE '\' (or use the
+      CriteriaBuilder.like overload that takes the escape character).
+    pattern-either:
+      - pattern: (CriteriaBuilder $CB).like($EXPRESSION, $PATTERN)
+      - pattern: (CriteriaBuilder $CB).notLike($EXPRESSION, $PATTERN)
+      - pattern: (CriteriaBuilder $CB).likeIgnoreCase($EXPRESSION, $PATTERN)
+      - patterns:
+          - pattern: '"..."'
+          - pattern-regex: (?i)\bi?like\s+(?::\w+|\?\d*)(?!\s+escape\b)

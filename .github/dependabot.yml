@@ -1,0 +1,29 @@
+# RNF-29.11: weekly update PRs for every dependency ecosystem, including the SHA-pinned actions and the images of
+# deploy/. The cooldown waits a week before proposing a new version, so a freshly published malicious release is not
+# picked up on day 0. Security alerts and security updates are enabled in the repository settings.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: docker-compose
+    directory: /deploy
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

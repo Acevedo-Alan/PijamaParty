@@ -1,11 +1,16 @@
 # Continuous integration (T-E0-05): build and test backend and frontend on every push and pull request.
-# Actions are pinned to full commit SHAs (supply chain, RNF-29.11); the comment shows the release.
+# Security gates (T-E0-15, RNF-28, RNF-29.11): SQL built from strings, vulnerable dependencies and leaked secrets.
+# Actions and tool images are pinned to full commit SHAs or digests (supply chain); the comment shows the release.
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+  # Weekly, so newly published vulnerabilities are caught even without commits. GitHub disables schedules after 60 days
+  # without repository activity: Dependabot security alerts (repository setting) are the backstop.
+  schedule:
+    - cron: '17 6 * * 1'
 
 permissions:
   contents: read
@@ -48,8 +53,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      # Unit, architecture (ArchUnit, Spring Modulith) and Testcontainers tests. SpotBugs/find-sec-bugs runs too but only
-      # reports until T-E0-15 makes SQL-injection findings fail the build.
+      # Unit, architecture (ArchUnit, Spring Modulith) and Testcontainers tests; find-sec-bugs fails the build on SQL
+      # built by concatenation (RNF-28) and writes every other finding to target/spotbugsReport.xml.
       - name: Verify
         run: ./mvnw -B -ntp verify
       - name: Keep the OpenAPI contract for the client check
@@ -75,6 +80,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      # RNF-29.11: vulnerable production dependencies fail the build from "high"; the build toolchain (Vite, ESLint,
+      # the OpenAPI generator), which runs in CI and on developer machines, fails it from "critical".
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --audit-level=critical
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
@@ -109,3 +118,85 @@ jobs:
             echo "::error::src/api/schema.d.ts is out of date: run the backend tests, then npm run api:generate"
             exit 1
           }
+
+  sql-injection:
+    name: No SQL built from strings (Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # RNF-28: complements find-sec-bugs, whose sinks miss jakarta.persistence, NamedParameterJdbcTemplate and
+      # JdbcClient. The rules are tested first, so a rule cannot be weakened without this job failing.
+      - name: Semgrep rule tests (.semgrep/sql-injection.java)
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src
+          semgrep/semgrep@sha256:529ee8a277ec8adc5b534d7c74eea0a47e9de21d62852b6ba7ac6ba9566845c3
+          semgrep --test --metrics=off --disable-version-check
+          --config .semgrep/sql-injection.yml .semgrep/sql-injection.java
+      # Test sources are skipped by Semgrep's default ignore list: only production code reaches the database.
+      - name: Semgrep scan
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src
+          semgrep/semgrep@sha256:529ee8a277ec8adc5b534d7c74eea0a47e9de21d62852b6ba7ac6ba9566845c3
+          semgrep scan --config .semgrep/sql-injection.yml --error --metrics=off --disable-version-check backend/src
+      # The SpotBugs exclusions also apply to the SQL-injection gate: none may name a SQL pattern.
+      - name: SQL patterns are never excluded from SpotBugs
+        run: |
+          if grep -n 'SQL_' backend/spotbugs-exclude.xml; then
+            echo "::error::backend/spotbugs-exclude.xml must not exclude SQL patterns (RNF-28): fix the query instead"
+            exit 1
+          fi
+
+  secrets:
+    name: No secrets in the history (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # RNF-29.10, RNF-29.11: every commit is scanned; findings are redacted in the log. gitleaks v8.30.1.
+      - name: gitleaks
+        run: >-
+          docker run --rm -v "$PWD:/repo"
+          zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git /repo --redact --no-banner
+
+  backend-dependencies:
+    name: Backend dependencies (OWASP dependency-check)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Cache the NVD database
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-${{ github.run_id }}
+          restore-keys: nvd-
+      # RNF-29.11: a dependency with CVSS >= 7 fails the build. The NVD_API_KEY secret is required (also as a
+      # Dependabot secret, for Dependabot PRs); only pull requests from forks, which never get secrets, skip the scan.
+      - name: dependency-check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}
+        run: |
+          if [ -z "$NVD_API_KEY" ]; then
+            if [ "$FORK_PR" = "true" ]; then
+              echo "::warning::Pull request from a fork: no secrets, backend dependency scan skipped"
+              exit 0
+            fi
+            echo "::error::NVD_API_KEY is not configured: the backend dependency scan cannot run (RNF-29.11)"
+            exit 1
+          fi
+          ./mvnw -B -ntp dependency-check:check -Ddependency-check.failBuildOnCVSS=7

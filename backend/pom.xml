@@ -29,6 +29,8 @@
         <archunit.version>1.4.2</archunit.version>
         <spotbugs-maven-plugin.version>4.10.4.1</spotbugs-maven-plugin.version>
         <findsecbugs.version>1.14.0</findsecbugs.version>
+        <!-- 11 = never fail locally; CI passes 7 (RNF-29.11) -->
+        <dependency-check.failBuildOnCVSS>11</dependency-check.failBuildOnCVSS>
         <dependency-check.version>13.0.0</dependency-check.version>
     </properties>
 
@@ -170,7 +172,9 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- Static analysis with find-sec-bugs (RNF-28). Report only for now: it does not fail the build. -->
+            <!-- Static analysis with find-sec-bugs (RNF-28, R-13). The check goal is a gate: SQL built by concatenation
+                 fails the build, in CI and locally. Every other finding goes to the full report
+                 (target/spotbugsReport.xml) without failing; fix them or exclude them with a reason. -->
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
@@ -178,9 +182,11 @@
                 <configuration>
                     <effort>Max</effort>
                     <threshold>Low</threshold>
-                    <failOnError>false</failOnError>
                     <xmlOutput>true</xmlOutput>
                     <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+                    <!-- Plugin level, because check forks the analysis with this configuration -->
+                    <includeFilterFile>spotbugs-sql-injection.xml</includeFilterFile>
+                    <failOnError>true</failOnError>
                     <plugins>
                         <plugin>
                             <groupId>com.h3xstream.findsecbugs</groupId>
@@ -191,7 +197,19 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>spotbugs-check</id>
+                        <id>spotbugs-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>spotbugs</goal>
+                        </goals>
+                        <configuration>
+                            <includeFilterFile>spotbugs-all.xml</includeFilterFile>
+                            <spotbugsXmlOutputFilename>spotbugsReport.xml</spotbugsXmlOutputFilename>
+                            <failOnError>false</failOnError>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>spotbugs-sql-injection-gate</id>
                         <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
@@ -202,13 +220,13 @@
 
             <!-- Vulnerable dependency scan (RNF-29.11). Not bound to a phase because it downloads the NVD database.
                  Run with ./mvnw dependency-check:check (set NVD_API_KEY for faster updates).
-                 failBuildOnCVSS=11 means it never fails the build for now. -->
+                 Locally it only reports; CI fails on CVSS >= 7 with -Ddependency-check.failBuildOnCVSS=7. -->
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
                 <version>${dependency-check.version}</version>
                 <configuration>
-                    <failBuildOnCVSS>11</failBuildOnCVSS>
+                    <failBuildOnCVSS>${dependency-check.failBuildOnCVSS}</failBuildOnCVSS>
                     <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
                     <formats>
                         <format>HTML</format>

@@ -51,5 +51,5 @@ CLAUDE.md     Contexto y convenciones para Claude Code
 
 ## Protección contra SQL injection (RNF-28)
 
-- Regla de análisis estático en el CI (Semgrep o find-sec-bugs) que falla ante SQL concatenado o consultas nativas con valores interpolados.
-- Revisión de dependencias con Dependabot o OWASP Dependency-Check.
+- Análisis estático en el CI que falla ante SQL concatenado o consultas con valores interpolados: find-sec-bugs (SpotBugs) para JDBC y Spring JDBC, y reglas de Semgrep (`.semgrep/`, probadas con casos en `sql-injection.java` en cada build) para JPA, `NamedParameterJdbcTemplate` y `JdbcClient`, que find-sec-bugs no cubre: toda consulta debe ser un literal o una constante. También rechazan SpEL en `@Query`, ordenamientos tomados de un string y `LIKE` sin `ESCAPE`; los valores de búsqueda se arman con `LikePattern`.
+- Revisión de dependencias: OWASP Dependency-Check en el CI (falla con CVSS >= 7 cuando está la clave `NVD_API_KEY`), `npm audit` para el frontend y Dependabot para Maven, npm y GitHub Actions. Escaneo de secretos con gitleaks sobre todo el historial.

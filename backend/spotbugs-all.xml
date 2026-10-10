@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Include filter for the full SpotBugs report (target/spotbugsReport.xml): every category, nothing fails. -->
+<FindBugsFilter>
+    <Match>
+        <Bug category="BAD_PRACTICE,CORRECTNESS,EXPERIMENTAL,I18N,MALICIOUS_CODE,MT_CORRECTNESS,NOISE,PERFORMANCE,SECURITY,STYLE"/>
+    </Match>
+</FindBugsFilter>

@@ -44,11 +44,11 @@ Frontend and tooling: TypeScript only (.ts/.tsx). No .js/.jsx/.mjs/.cjs files, i
 
 ## Commands
 Backend (run from `backend/`; requires JDK 21 and Docker running for Testcontainers):
-- Build and test: `./mvnw verify` (includes SpotBugs + find-sec-bugs, report only for now)
+- Build and test: `./mvnw verify` (find-sec-bugs fails on SQL built from strings; all other findings go to `target/spotbugsReport.xml`)
 - Run locally with a throwaway PostgreSQL container: `./mvnw spring-boot:test-run`
 - Local PostgreSQL (from the repository root): `docker compose -f deploy/docker-compose.dev.yml --env-file .env up -d`
 - Run locally against your own PostgreSQL: set the variables of `.env.example` (including `SPRING_PROFILES_ACTIVE=dev`; there is no default profile), then `./mvnw spring-boot:run`
-- Vulnerable dependency scan (slow, downloads the NVD database): `./mvnw dependency-check:check`
+- Vulnerable dependency scan (slow, downloads the NVD database; set NVD_API_KEY): `./mvnw dependency-check:check`
 - Health check: `GET http://localhost:8080/api/health`; Swagger UI (dev only): `http://localhost:8080/swagger-ui.html`
 
 Frontend (run from `frontend/`; Node >= 22.18, npm):
@@ -56,3 +56,8 @@ Frontend (run from `frontend/`; Node >= 22.18, npm):
 - Dev server with /api proxied to the backend on :8080: `npm run dev`
 - Checks: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`
 - Regenerate the typed API client after an API change: run the backend tests (they write `backend/target/openapi/openapi.json`), then `npm run api:generate`
+- Production dependency audit: `npm audit --omit=dev --audit-level=high`
+
+Security gates also run in CI (from the repository root, with Docker):
+- SQL built from strings in JPA (Semgrep): `docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:1.180.0 semgrep scan --config .semgrep --error --metrics=off backend/src`
+- Secrets in the history (gitleaks): `docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 git /repo --redact`

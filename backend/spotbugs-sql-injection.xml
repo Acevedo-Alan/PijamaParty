@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  RNF-28: the build fails on any of these patterns (find-sec-bugs and core SpotBugs). They flag SQL, JPQL or HQL
+  built from non-constant strings instead of bound parameters. Never exclude them: fix the query.
+-->
+<FindBugsFilter>
+    <Match>
+        <Bug pattern="SQL_INJECTION,SQL_INJECTION_JDBC,SQL_INJECTION_SPRING_JDBC,SQL_INJECTION_JPA,SQL_INJECTION_HIBERNATE,SQL_INJECTION_JDO,SQL_INJECTION_R2DBC,SQL_INJECTION_VERTX,SQL_INJECTION_TURBINE,SQL_INJECTION_ANDROID,SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE,SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
+    </Match>
+</FindBugsFilter>
