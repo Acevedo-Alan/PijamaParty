@@ -218,7 +218,7 @@
 **Business rules**
 - Stock never goes negative.
 - Every stock change creates a movement (append-only).
-- A movement has a fixed type (`INITIAL_LOAD`, `ADJUSTMENT`, and from E3 `RESERVATION`, `DEDUCTION`, `RELEASE`), a signed quantity and an optional free-text note from the administrator (at most 200 characters). The history shows the note as the reason.
+- A movement has a fixed type (`INITIAL_LOAD`, `ADJUSTMENT`, and from E3 `RESERVATION`, `DEDUCTION`, `RELEASE`), a signed quantity and an optional free-text note from the administrator (at most 200 characters). The history shows the note as the reason. The note is free text and may contain personal data, so it never reaches logs or events.
 - On mobile, the screen offers − and + buttons as well as a numeric field.
 
 **Acceptance criteria**

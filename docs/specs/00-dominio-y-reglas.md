@@ -23,7 +23,7 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | Producto | id, nombre, slug, descripcion, material, temporada, publico, categoriaId, activo |
 | Variante | id, productoId, sku, talle, ordenTalle, color, ordenColor, precioCentavos?, activa (el orden de talles y colores es el de carga en el producto) |
 | NivelStock | varianteId, enMano (módulo de inventario; la reserva se suma en E3) |
-| Imagen | id, productoId, varianteId?, url, placeholder, orden |
+| Imagen | id, productoId, varianteId?, claveArchivo (nombre generado por el servidor; la URL se deriva de ella, RNF-29.4), placeholder, orden |
 | MovimientoStock | id, varianteId, tipo (CARGA_INICIAL, AJUSTE, RESERVA, DESCUENTO, LIBERACION), cantidad (con signo), nota? (texto libre del administrador), pedidoId?, usuarioId?, fecha |
 | Carrito / CarritoItem | id, token, usuarioId?, cuponId?, items(varianteId, cantidad) |
 | Cupon | id, codigo, tipo, valor, vigenciaDesde/Hasta, usosMax, usosActuales, minimoCompra, automatico, regla, activo |
@@ -41,6 +41,8 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | EmailOutbox | id, tipo, referencia, destinatario, asunto, cuerpo, estado, intentos, proximoIntento |
 | EmailEvento | id, proveedor, idEvento, tipo, emailOutboxId, procesadoEn |
 | Resena | id, productoId, usuarioId, puntaje, texto, estado, creadoEn |
+
+**Largos máximos (RNF-28):** los valida el dominio, los repite Bean Validation y la base es la última defensa. Categoría: nombre 80 y slug 100. Producto: nombre 120, slug 140, descripción 5000 y material 80. Variante: SKU 40, talle 20 y color 30. Usuario: email 254 y nombre 100. Nota de un movimiento de stock: 200. Los textos se guardan sin espacios al principio ni al final.
 
 ## Reglas globales
 
