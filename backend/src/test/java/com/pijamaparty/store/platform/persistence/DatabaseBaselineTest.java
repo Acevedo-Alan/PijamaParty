@@ -57,4 +57,10 @@ class DatabaseBaselineTest {
         assertThat(jdbc.queryForObject("show idle_in_transaction_session_timeout", String.class)).isEqualTo("30s");
         assertThat(jdbc.queryForObject("show max_connections", String.class)).isEqualTo("30");
     }
+
+    @Test
+    void givenAFailingStatement_whenTheServerLogsIt_thenTheLogHasNoDetailWithRowValues() {
+        // R-05: DETAIL lines such as "Key (email)=(...) already exists" would put personal data in the server log.
+        assertThat(jdbc.queryForObject("show log_error_verbosity", String.class)).isEqualTo("terse");
+    }
 }

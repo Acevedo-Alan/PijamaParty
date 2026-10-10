@@ -29,7 +29,8 @@ public class TestcontainersConfiguration {
             .withCommand("postgres",
                 "-c", "max_connections=30",
                 "-c", "statement_timeout=10s",
-                "-c", "idle_in_transaction_session_timeout=30s")
+                "-c", "idle_in_transaction_session_timeout=30s",
+                "-c", "log_error_verbosity=terse")
             .withEnv("DB_OWNER_PASSWORD", OWNER_PASSWORD)
             .withEnv("DB_APP_PASSWORD", APP_PASSWORD)
             .withEnv("DB_BACKUP_PASSWORD", BACKUP_PASSWORD)

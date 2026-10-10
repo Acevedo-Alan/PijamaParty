@@ -26,6 +26,10 @@ services:
       - idle_in_transaction_session_timeout=30s
       - -c
       - shared_buffers=512MB
+      # R-05: a failing statement logs no DETAIL ("Key (email)=...", "Failing row contains ..."): no personal data
+      # in the server log. Clients still get the full error.
+      - -c
+      - log_error_verbosity=terse
     ports:
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:

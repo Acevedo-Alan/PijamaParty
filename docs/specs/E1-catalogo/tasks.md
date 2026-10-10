@@ -1,6 +1,6 @@
 # E1 – Tareas
 
-- [ ] **T-E1-01** Migraciones: `categoria`, `producto`, `variante`, `imagen`, `movimiento_stock`, `usuario` (CU-04 a CU-07). En el código: `category`, `product`, `variant`, `product_image`, `stock_level`, `stock_movement` y `app_user` (el stock sale de la variante, ARCHITECTURE.md sección 12).
+- [x] **T-E1-01** Migraciones: `categoria`, `producto`, `variante`, `imagen`, `movimiento_stock`, `usuario` (CU-04 a CU-07). En el código: `category`, `product`, `variant`, `product_image`, `stock_level`, `stock_movement` y `app_user` (el stock sale de la variante, ARCHITECTURE.md sección 12).
 - [ ] **T-E1-02** Autenticación de administrador con sesión y CSRF, y bloqueo por intentos (CU-04).
 - [ ] **T-E1-03** ABM de categorías en backend y backoffice (CU-05).
 - [ ] **T-E1-04** ABM de productos y generación de la matriz de variantes (CU-06).
