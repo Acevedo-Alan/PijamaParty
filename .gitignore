@@ -25,6 +25,10 @@ dist/
 .env.*
 !.env.example
 
+# Claude Code local state (agents and skills in .claude/ are shared)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
 # Uploaded files
 uploads/
 
