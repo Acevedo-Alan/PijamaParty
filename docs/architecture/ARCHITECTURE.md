@@ -72,6 +72,8 @@ com.pijamaparty.store.<module>/
 
 Persistence uses separate JPA entities mapped to domain aggregates, so the domain stays pure. For simple CRUD modules the mapper is trivial; the rule is kept anyway so the codebase stays uniform.
 
+**Exception: JDBC adapters.** When a constraint violation must become a port outcome (for example `SLUG_ALREADY_USED`) without aborting the caller's transaction, the adapter uses `NamedParameterJdbcTemplate` with constant SQL text blocks and runs each such write inside a savepoint of the caller's transaction (`JdbcCategoryStore`, T-E1-03). PostgreSQL aborts the whole transaction on an error, and Hibernate cannot recover from a failed flush, so a JPA entity cannot do this. Rows are still mapped by hand to the aggregate, never exposed.
+
 ## 5. SOLID, concretely
 
 | Principle | How the architecture applies it | Example |
@@ -249,6 +251,7 @@ Shared test support lives in test sources under `com.pijamaparty.store.platform.
 | Fake | `InMemory<Port>` in test sources, in the port's package, one per outbound port. A fake for a read/write pair (`LoadCart` + `SaveCart`) may implement both on top of `InMemoryStore`. |
 | Fake contract | `InMemory<Port>ContractTest extends <Port>ContractTest`: plain JUnit, no Spring. |
 | Real contract | `<Technology><Port>ContractTest extends <Port>ContractTest`, in the adapter's package. Persistence adapters use `@PersistenceAdapterTest` (JPA slice on Testcontainers PostgreSQL, constructor injection, rolled back after each test), `@Import` the adapter and override `persistAndForget()` with flush and clear, so assertions read what PostgreSQL stored. |
+| Real contract with savepoints | A JDBC adapter that needs the caller's transaction (section 4) uses `@ApiTest` instead: the contract runs through a wrapper that gives every call its own committed transaction, plus one test that breaks a constraint and commits other writes in the same transaction. The rolled-back slice's transaction was not active in contract methods inherited from the abstract class (T-E1-03). |
 | Concurrency and RLS | Not on the rolled-back slice: other connections cannot see uncommitted rows, and the transaction-local security context would last for the whole test. These tests commit real transactions and clean up explicitly. Tests connect as `tienda_app` (no owner, no `BYPASSRLS`) after Flyway migrated as `tienda_owner`, so policies apply as in production. |
 | Copies | `InMemoryStore` stores and returns copies of mutable aggregates, so a use case that forgets to save fails in the fake exactly as it would against the database. |
 

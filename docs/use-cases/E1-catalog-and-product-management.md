@@ -173,7 +173,8 @@
 **Business rules**
 - The slug is unique.
 - The slug is generated from the name: lower case, accents removed, every run of other characters turned into one hyphen, no hyphen at either end (`"Pijamas de Niñas"` → `pijamas-de-ninas`). Renaming regenerates it, so the URL always matches the name.
-- The name is stored trimmed, 1 to 80 characters, and must produce a slug of 1 to 100 characters.
+- The name is stored trimmed, 1 to 80 characters, without control or invisible characters, and must produce a slug of 1 to 100 characters.
+- A category deleted while another change to it is in flight stays deleted (the change answers `404`).
 - A new category goes last in the order.
 - A category with products cannot be deleted; it can only be deactivated. A category without products can be deleted.
 - Deactivation can be undone (reactivate).
@@ -189,7 +190,7 @@
 - Reorder takes the complete list of category ids in the new order; a list that does not name every category exactly once is rejected (`InvalidOrder`).
 - Endpoints under `/api/admin/catalog/categories` (errors as `problem+json`, the slug in the `slug` property of a `409`):
   - `GET` → `200` every category, active or not, by position.
-  - `POST {name}` → `201` with `Location`; `409` slug already used; `422` invalid name.
+  - `POST {name}` → `201` with the category; `409` slug already used; `422` invalid name.
   - `PATCH /{id} {name}` → `200`; `404`; `409`; `422`.
   - `PUT /order {categoryIds}` → `200` the reordered list; `422` invalid order.
   - `POST /{id}/deactivate`, `POST /{id}/activate` → `200`; `404`.
