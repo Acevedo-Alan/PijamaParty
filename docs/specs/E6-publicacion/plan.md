@@ -2,7 +2,8 @@
 
 ## Pruebas
 
-- **Extremo a extremo:** Playwright, sobre un entorno de prueba con el proveedor de pagos en modo sandbox.
+- **Extremo a extremo:** Playwright en TypeScript, sobre un entorno de prueba con el proveedor de pagos en modo sandbox.
+- **Carga:** k6 con los scripts en TypeScript.
 - **Rendimiento:** Lighthouse en modo móvil; revisar tamaño de imágenes, caché y carga diferida.
 - **Seguridad:** cabeceras (HSTS, CSP, X-Content-Type-Options), límite de intentos en logins, revisión de que ningún log incluya DNI, dirección o email.
 

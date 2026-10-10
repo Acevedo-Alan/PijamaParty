@@ -230,8 +230,8 @@ class ArchitectureTest {
 | Persistence and RLS tests | Migrations, queries, policies, concurrency (last unit of stock) | Testcontainers PostgreSQL |
 | Web slice tests | Controllers, validation, problem+json, rate-limit responses | MockMvc |
 | Architecture tests | Layers and module boundaries | ArchUnit, Spring Modulith |
-| End to end | Critical flows with the payment provider in sandbox | Playwright (E6) |
-| Load | Targets in the E6 spec | k6 |
+| End to end | Critical flows with the payment provider in sandbox | Playwright, in TypeScript (E6) |
+| Load | Targets in the E6 spec | k6, in TypeScript |
 
 Test names follow the acceptance criteria: `givenAnItemExceedingStock_whenAddingToCart_thenItIsRejected`.
 
@@ -241,6 +241,12 @@ Test names follow the acceptance criteria: `givenAnItemExceedingStock_whenAdding
 - API client generated from the OpenAPI contract; server state with TanStack Query; no business rules in components (the server is the source of truth for prices, discounts, shipping and stock).
 - Mobile-first components, shared design tokens for the warm pastel palette, accessible drawer and wizard patterns.
 - Texts through i18n resource bundles (Spanish).
+- **TypeScript only.** Frontend and tooling: TypeScript only (.ts/.tsx). No .js/.jsx/.mjs/.cjs files, including configs and scripts. If a tool cannot read a TS config, use JSON. Node >= 22.18 or tsx for scripts.
+  - `tsconfig` with `strict: true`, `allowJs: false` and `noUncheckedIndexedAccess: true`.
+  - Tool configs in `.ts` (for example `vite.config.ts`, `playwright.config.ts`).
+  - The API client is generated from the OpenAPI contract with `openapi-typescript`.
+  - End-to-end tests (Playwright) and load tests (k6) are written in TypeScript too.
+  - CI fails if `git ls-files` returns any `.js`, `.jsx`, `.mjs` or `.cjs` file outside `node_modules` and `dist` (added with the CI in `T-E0-05`).
 
 ## 12. Decisions that differ from the earlier Spanish specs
 

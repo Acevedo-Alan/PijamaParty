@@ -6,6 +6,8 @@ Custom e-commerce for Pijama Party Santa Fe (sleepwear), replacing a Treinta sto
 ## Stack
 Java 21, Spring Boot (Maven), Spring Security, PostgreSQL + Flyway, Spring Modulith + ArchUnit (architecture tests), React + Vite + TypeScript, Docker Compose, Caddy, a single server (4 GB RAM).
 
+Frontend and tooling: TypeScript only (.ts/.tsx). No .js/.jsx/.mjs/.cjs files, including configs and scripts. If a tool cannot read a TS config, use JSON. Node >= 22.18 or tsx for scripts.
+
 ## Workflow (spec-driven)
 - Specs live in `docs/specs` (Spanish, business-facing) and `docs/use-cases` (English, implementation-facing). Architecture lives in `docs/architecture/ARCHITECTURE.md`.
 - Read the stage's use cases and the architecture document before coding. Implement ONE task at a time.

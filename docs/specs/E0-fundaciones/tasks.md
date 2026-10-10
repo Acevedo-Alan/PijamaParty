@@ -7,8 +7,8 @@ Los identificadores son estables: las tareas nuevas se agregan con el siguiente 
 - [ ] **T-E0-01** Crear el repositorio con la estructura del plan y un `CLAUDE.md` inicial que incluya las reglas R-09 a R-11.
 - [ ] **T-E0-02** Backend: proyecto Spring Boot con Java 21, Actuator, springdoc y manejo de errores `problem+json`.
 - [ ] **T-E0-03** Base de datos: PostgreSQL local con Docker Compose, `V1__baseline.sql` con Flyway y HikariCP configurado según RNF-21.
-- [ ] **T-E0-04** Frontend: proyecto Vite + React + TypeScript, router y tokens de diseño.
-- [ ] **T-E0-05** Integración continua: compilar y correr tests de backend y frontend.
+- [ ] **T-E0-04** Frontend: proyecto Vite + React + TypeScript, router y tokens de diseño. Solo TypeScript, también en configs y scripts: `tsconfig` con `strict`, `allowJs: false` y `noUncheckedIndexedAccess`; configs en `.ts` (o JSON si la herramienta no lee TS); cliente de API generado con `openapi-typescript`.
+- [ ] **T-E0-05** Integración continua: compilar y correr tests de backend y frontend. Incluye un check que falla si `git ls-files` devuelve archivos `.js`, `.jsx`, `.mjs` o `.cjs` fuera de `node_modules` y `dist`.
 - [ ] **T-E0-06** Contenedores de producción: Dockerfile del backend con `-Xmx768m`, build del frontend y `Caddyfile` que sobrescribe `X-Forwarded-For`.
 - [ ] **T-E0-11** Límites de Tomcat según RNF-21, manejo de agotamiento de pools con `503` y test de saturación.
 - [ ] **T-E0-12** Infraestructura de rate limiting con Bucket4j: filtro, caché con expiración, IP real, `429` en `problem+json`, políticas por propiedades y tests con una ruta de prueba (RNF-22).

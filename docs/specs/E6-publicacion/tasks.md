@@ -1,6 +1,6 @@
 # E6 – Tareas
 
-- [ ] **T-E6-01** Pruebas de extremo a extremo de los flujos críticos con Playwright.
+- [ ] **T-E6-01** Pruebas de extremo a extremo de los flujos críticos con Playwright (en TypeScript).
 - [ ] **T-E6-02** Medición con Lighthouse y optimización de imágenes, caché y carga diferida.
 - [ ] **T-E6-03** Cabeceras de seguridad, límites de intentos y revisión de logs sin datos personales.
 - [ ] **T-E6-04** Backup diario de base e imágenes fuera del servidor y prueba de restauración.
@@ -13,7 +13,7 @@
 - [ ] **T-E6-11** Carga del catálogo y credenciales reales de pago; compra real de prueba.
 - [ ] **T-E6-12** Publicación, cambio de enlaces desde Treinta y entrega de accesos.
 - [ ] **T-E6-13** Acta de aceptación firmada y cierre del proyecto.
-- [ ] **T-E6-14** Prueba de carga con k6 según la spec y ajuste de los valores de RNF-21 y RNF-22.
+- [ ] **T-E6-14** Prueba de carga con k6 (scripts en TypeScript) según la spec y ajuste de los valores de RNF-21 y RNF-22.
 - [ ] **T-E6-15** Verificar en el servidor real la idempotencia, los límites de tasa y la entrega de correos (SPF, DKIM y DMARC en verde).
 - [ ] **T-E6-16** Verificar la analítica con Meta Pixel Helper y DebugView de GA4, la política de seguridad de contenido y el impacto en Lighthouse (RNF-25).
 - [ ] **T-E6-17** Probar el backoffice en un Android y un iPhone reales (RNF-26).
