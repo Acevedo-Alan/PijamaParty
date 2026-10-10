@@ -73,7 +73,9 @@
 - *Propuesto:* segundo factor (TOTP) para el administrador.
 - La sesión del backoffice vence tras 60 minutos de inactividad.
 - Tras 5 intentos fallidos seguidos, el acceso se bloquea 15 minutos.
-- El primer administrador se crea con variables de entorno al desplegar.
+- El primer administrador se crea con variables de entorno al desplegar: al arrancar, si no existe ningún administrador, se crea con el email, el nombre y la contraseña inicial configurados (secreto de Docker). Si ya existe, esos valores se ignoran.
+- Contraseña de al menos 12 caracteres, guardada con BCrypt.
+- Con la cuenta bloqueada, el mensaje indica la hora de desbloqueo (esto revela que el email existe; se acepta porque hay un único administrador). Un ingreso correcto reinicia el contador de intentos fallidos.
 
 **Criterios de aceptación**
 - Dadas credenciales correctas, cuando inicia sesión, entonces accede al panel.

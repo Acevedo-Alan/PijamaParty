@@ -137,6 +137,22 @@
 - Outbound ports: `UserRepository`, `PasswordHasher` (BCrypt or Argon2 adapter), `LoginAttemptRegistry`, `SessionIssuer`; optional `TotpVerifier`.
 - The account lock rule lives in the `User` aggregate (`registerFailedAttempt(now)`), with time from the injected `Clock`. `app_user` stores it in `failed_login_attempts` and `locked_until`. Sign-in runs without a signed-in actor, so reading the user and recording attempts happen as `SYSTEM`; RLS lets `SYSTEM` create the initial administrator, read users and update them (RNF-27).
 - Endpoints: `POST /api/admin/auth/login`, `POST /api/admin/auth/logout`, `GET /api/admin/auth/me`. Session cookie `HttpOnly`, `Secure`, `SameSite=Lax`, CSRF protection on.
+- Lock details (T-E1-02):
+  - Only consecutive failures count: a successful sign-in resets the counter.
+  - The 5th failure sets `locked_until = now + 15 minutes` and resets the counter, so after the lock the administrator has 5 attempts again.
+  - While locked, the password is not checked and the attempt does not extend the lock.
+- Responses:
+  - `SignedIn`: `200` with the user, a new session id and a new CSRF token.
+  - `InvalidCredentials`: `401` generic `problem+json`, the same for an unknown email and a wrong password. An unknown email still costs one hash check, so timing does not reveal it.
+  - `Locked`: `423` `problem+json` with `lockedUntil` (decided: this reveals that the email exists, acceptable with a single administrator).
+  - `CUSTOMER` on `/api/admin/**`: `403`.
+  - The `429` criterion belongs to `T-E1-15`, which turns on the login rate-limit policy.
+- Passwords: BCrypt with cost 12, stored with the `{bcrypt}` prefix so the algorithm can change later. At most 72 bytes and at least 12 characters.
+- Initial administrator:
+  - Set with `ADMIN_EMAIL`, `ADMIN_NAME` and `ADMIN_INITIAL_PASSWORD` (a Docker secret).
+  - At startup, if no administrator exists, it is created as `SYSTEM`. If one exists, these values are ignored and never overwrite it.
+- Sign-in runs as `SYSTEM`, because nobody is signed in yet. RLS restricts what `SYSTEM` may change to the attempts and the lock (V5). The persistence adapter opens that system transaction, because use cases and web adapters never switch to `SYSTEM` (ARCHITECTURE.md section 9). `GET /me` runs as the `ADMIN` actor.
+- Sessions expire after 60 minutes of inactivity (Spring Session JDBC). The session principal name is the user id, never the email (RNF-27).
 
 ---
 
