@@ -116,6 +116,9 @@ Es una defensa en profundidad: no reemplaza la autorización de la aplicación, 
 - **Roles de base de datos:** `tienda_owner` (dueño de las tablas, usado por Flyway), `tienda_app` (la aplicación, sin ser dueño y sin `BYPASSRLS`) y `tienda_backup` (para `pg_dump`). Los roles de migraciones y de backup tienen `BYPASSRLS`; el de la aplicación no. Las tablas protegidas usan `FORCE ROW LEVEL SECURITY`.
 - **Contexto por transacción:** al empezar cada transacción, la aplicación fija con `set_config(..., true)` el rol (`ANONIMO`, `CLIENTE`, `ADMIN` o `SISTEMA`), el `usuario_id`, el `token` del pedido y el `token` del carrito. Al ser local a la transacción, no se filtra entre requests del pool. Toda operación sobre tablas protegidas corre dentro de una transacción, lecturas incluidas.
 - **Cierre por defecto:** sin contexto, ninguna consulta devuelve filas.
+- **Fuera de alcance, con motivo (*Decidido*):**
+  - `spring_session` y `spring_session_attributes`: Spring Session las lee y escribe fuera de la transacción con contexto de seguridad, así que RLS no es aplicable. Para que no guarden datos personales, el `principal_name` es el id interno del usuario (UUID), nunca el email (se aplica en E4, al crear el ingreso). `tienda_app` solo tiene permisos sobre filas, sin DDL.
+  - `event_publication` y `event_publication_archive`: los eventos de dominio llevan solo ids y valores no personales, nunca datos personales ni tokens (`ARCHITECTURE.md` sección 6, verificado por `ArchitectureTest`). Los eventos completados se borran.
 
 | Tabla | Cliente | Anónimo (invitado) | Administrador | Sistema |
 |---|---|---|---|---|

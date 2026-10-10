@@ -106,6 +106,8 @@ Persistence uses separate JPA entities mapped to domain aggregates, so the domai
 
 **Domain events:** published through Spring's event mechanism and persisted by the Spring Modulith event publication registry (stored in PostgreSQL), so delivery is at least once. Every handler must therefore be idempotent. Verify Spring Modulith's compatibility with your Spring Boot version before adopting it.
 
+**Event payloads carry ids, never personal data.** The registry table (`event_publication`) has no Row Level Security, so an event holds ids and non-personal values only: no email, national ID, address, phone, name or access token. A listener that needs more loads it by id through the owner's `api`. Events are records that implement `platform.domain.DomainEvent`, and `ArchitectureTest` rejects such records with personal-data fields. Completed publications are deleted (`completion-mode: delete`).
+
 ## 7. Java 21 usage
 
 - **Records** for commands, results, value objects, events and DTOs (immutable by default).

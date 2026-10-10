@@ -6,6 +6,8 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyP
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
 
+import com.pijamaparty.store.platform.domain.AccessToken;
+import com.pijamaparty.store.platform.domain.DomainEvent;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.AccessTarget.MethodCallTarget;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
@@ -13,7 +15,13 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.core.domain.JavaField;
+import com.tngtech.archunit.lang.ArchCondition;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 import java.time.Clock;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Layer rules of ARCHITECTURE.md section 4 and 9. Module boundaries are verified by {@link ModularityTest}.
@@ -59,6 +67,30 @@ class ArchitectureTest {
         noClasses().that().resideInAnyPackage("..domain..", "..application..")
             .should().callMethodWhere(readsTheSystemClock())
             .allowEmptyShould(true);
+
+    /** Events are stored serialized without RLS: ids only (ARCHITECTURE.md section 6, RNF-27). */
+    @ArchTest
+    static final ArchRule domain_events_carry_no_personal_data =
+        noFields().that().areDeclaredInClassesThat().implement(DomainEvent.class)
+            .should(holdPersonalData())
+            .allowEmptyShould(true);
+
+    private static final Pattern PERSONAL_FIELD_NAME =
+        Pattern.compile("(?i).*(email|nationalid|dni|address|phone|name|token|password).*");
+    private static final Set<String> PERSONAL_TYPES = Set.of("Email", "NationalId", "Address", "Phone");
+
+    private static ArchCondition<JavaField> holdPersonalData() {
+        return new ArchCondition<>("hold personal data or access tokens") {
+            @Override
+            public void check(JavaField field, ConditionEvents events) {
+                boolean personal = PERSONAL_FIELD_NAME.matcher(field.getName()).matches()
+                    || PERSONAL_TYPES.contains(field.getRawType().getSimpleName())
+                    || field.getRawType().isAssignableTo(AccessToken.class);
+                events.add(new SimpleConditionEvent(field, personal,
+                    field.getFullName() + " looks like personal data or a token"));
+            }
+        };
+    }
 
     private static DescribedPredicate<JavaMethodCall> readsTheSystemClock() {
         return DescribedPredicate.describe("read the system clock instead of the injected Clock", call -> {
