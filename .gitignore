@@ -39,3 +39,6 @@ Thumbs.db
 # Production secrets (deploy/secrets/README.md explains them)
 deploy/secrets/*
 !deploy/secrets/README.md
+
+# Spring Modulith documentation written by the tests when run from the repository root
+/build/

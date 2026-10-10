@@ -4,7 +4,7 @@ Los identificadores son estables: las tareas nuevas se agregan con el siguiente 
 
 ## Parte A – Entorno local (se puede hacer ya)
 
-- [ ] **T-E0-01** Crear el repositorio con la estructura del plan y un `CLAUDE.md` inicial que incluya las reglas R-09 a R-11.
+- [x] **T-E0-01** Crear el repositorio con la estructura del plan y un `CLAUDE.md` inicial que incluya las reglas R-09 a R-11.
 - [x] **T-E0-02** Backend: proyecto Spring Boot con Java 21, Actuator, springdoc y manejo de errores `problem+json`.
 - [x] **T-E0-03** Base de datos: PostgreSQL local con Docker Compose, `V1__baseline.sql` con Flyway y HikariCP configurado según RNF-21.
 - [x] **T-E0-04** Frontend: proyecto Vite + React + TypeScript, router y tokens de diseño. Solo TypeScript, también en configs y scripts: `tsconfig` con `strict`, `allowJs: false` y `noUncheckedIndexedAccess`; configs en `.ts` (o JSON si la herramienta no lee TS); cliente de API generado con `openapi-typescript`.
