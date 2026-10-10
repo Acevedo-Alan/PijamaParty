@@ -2,6 +2,8 @@ package com.pijamaparty.store.platform.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import org.springframework.boot.autoconfigure.security.SecurityProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -41,6 +43,14 @@ public class SecurityConfiguration {
                 authorize.anyRequest().authenticated();
             });
         return http.build();
+    }
+
+    /** Right after Spring Security, so resolvers can read the authenticated principal. */
+    @Bean
+    FilterRegistrationBean<ActorFilter> actorFilter(List<ActorResolver> resolvers, SecurityProperties security) {
+        var registration = new FilterRegistrationBean<>(new ActorFilter(resolvers));
+        registration.setOrder(security.getFilter().getOrder() + 1);
+        return registration;
     }
 
     /** Routes owned by the platform itself. */

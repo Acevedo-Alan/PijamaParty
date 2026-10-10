@@ -8,6 +8,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
 
 import com.pijamaparty.store.platform.domain.AccessToken;
 import com.pijamaparty.store.platform.domain.DomainEvent;
+import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.AccessTarget.MethodCallTarget;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
@@ -66,6 +67,18 @@ class ArchitectureTest {
     static final ArchRule no_static_clock_usage =
         noClasses().that().resideInAnyPackage("..domain..", "..application..")
             .should().callMethodWhere(readsTheSystemClock())
+            .allowEmptyShould(true);
+
+    /**
+     * Running as SYSTEM turns RLS into "see everything": only background adapters (webhooks, jobs) and the platform
+     * may do it, never business rules, use cases or customer-facing controllers (RNF-27).
+     */
+    @ArchTest
+    static final ArchRule system_role_only_in_background_adapters =
+        noClasses().that().resideInAnyPackage("..domain..", "..application..", "..adapter.in.web..")
+            .should().callMethodWhere(DescribedPredicate.describe("run as SYSTEM", call ->
+                call.getTarget().getOwner().isEquivalentTo(CurrentActor.class)
+                    && call.getTarget().getName().matches("(call|run)AsSystem")))
             .allowEmptyShould(true);
 
     /** Events are stored serialized without RLS: ids only (ARCHITECTURE.md section 6, RNF-27). */

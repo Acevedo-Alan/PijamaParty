@@ -1,6 +1,7 @@
 package com.pijamaparty.store.platform.testing;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
+import com.pijamaparty.store.platform.persistence.PersistenceConfiguration;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -29,7 +30,7 @@ import org.springframework.test.context.TestConstructor;
 @Documented
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, PersistenceConfiguration.class})
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 public @interface PersistenceAdapterTest {
 }

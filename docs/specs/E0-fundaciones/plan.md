@@ -44,7 +44,8 @@ CLAUDE.md     Contexto y convenciones para Claude Code
 ## Roles de base de datos y Row Level Security (RNF-27)
 
 - Script de inicialización que crea `tienda_owner`, `tienda_app` y `tienda_backup`, con privilegios mínimos para la aplicación. Flyway se conecta como `tienda_owner`; la aplicación, como `tienda_app`.
-- Un interceptor de transacciones (AOP de Spring) fija el contexto con `set_config('app.rol', ..., true)` y el resto de las variables al iniciar cada transacción. Una anotación o un servicio permite ejecutar un bloque con rol `SISTEMA` (webhooks, correos, vencimiento de reservas, autenticación).
+- El gestor de transacciones (`RlsTransactionManager`, una extensión de `JpaTransactionManager`) fija el contexto con `set_config('app.role', ..., true)` y el resto de las variables al iniciar cada transacción física. Se eligió en lugar de un interceptor AOP porque cubre también las transacciones programáticas, las de solo lectura y las de los repositorios. Si no puede fijar el contexto, deshace la transacción y libera la conexión.
+- El actor sale de `CurrentActor`: un filtro (`ActorFilter`, después de Spring Security) lo fija en cada request con los `ActorResolver` de cada etapa, y los procesos en segundo plano (webhooks, correos, vencimiento de reservas, autenticación) usan `CurrentActor.callAsSystem` alrededor de la transacción, nunca dentro (se rechaza). Un test de ArchUnit impide usar el rol `SISTEMA` en dominio, casos de uso y controladores.
 - Utilidad de pruebas para ejecutar consultas con un contexto dado (cliente A, cliente B, invitado, administrador, sistema).
 - Las políticas de cada tabla se crean en la etapa que crea la tabla.
 

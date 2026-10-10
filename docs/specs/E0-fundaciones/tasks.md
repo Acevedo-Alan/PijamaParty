@@ -13,7 +13,7 @@ Los identificadores son estables: las tareas nuevas se agregan con el siguiente 
 - [x] **T-E0-11** Límites de Tomcat según RNF-21, manejo de agotamiento de pools con `503` y test de saturación.
 - [x] **T-E0-12** Infraestructura de rate limiting con Bucket4j: filtro, caché con expiración, IP real, `429` en `problem+json`, políticas por propiedades y tests con una ruta de prueba (RNF-22).
 - [x] **T-E0-13** Roles de base de datos (`tienda_owner`, `tienda_app`, `tienda_backup`) con privilegios mínimos; Flyway y la aplicación con roles distintos (RNF-27, RNF-28).
-- [ ] **T-E0-14** Contexto de seguridad por transacción para RLS, ejecución con rol `SISTEMA` y utilidad de pruebas de políticas (RNF-27).
+- [x] **T-E0-14** Contexto de seguridad por transacción para RLS, ejecución con rol `SISTEMA` y utilidad de pruebas de políticas (RNF-27).
 - [ ] **T-E0-15** Análisis estático contra SQL concatenado y revisión de dependencias en el CI (RNF-28).
 
 ## Parte B – Cuando esté contratado el servidor y registrado el dominio
