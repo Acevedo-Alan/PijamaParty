@@ -41,6 +41,11 @@ Java 21, Spring Boot (Maven), Spring Security, PostgreSQL + Flyway, Spring Modul
 - Schema changes only through Flyway; API changes update OpenAPI; every acceptance criterion has a test.
 
 ## Commands
-- Build and test: `./mvnw verify`
-- Run locally: (fill in)
-- Frontend: (fill in)
+Backend (run from `backend/`; requires JDK 21 and Docker running for Testcontainers):
+- Build and test: `./mvnw verify` (includes SpotBugs + find-sec-bugs, report only for now)
+- Run locally with a throwaway PostgreSQL container: `./mvnw spring-boot:test-run`
+- Run locally against your own PostgreSQL (profile `dev`): set the variables of `.env.example`, then `./mvnw spring-boot:run`
+- Vulnerable dependency scan (slow, downloads the NVD database): `./mvnw dependency-check:check`
+- Health check: `GET http://localhost:8080/api/health`
+
+Frontend: (fill in)
