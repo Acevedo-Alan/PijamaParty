@@ -4,6 +4,27 @@
  */
 
 export interface paths {
+    "/api/admin/catalog/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A product with its sizes, colors and variants */
+        get: operations["get"];
+        /**
+         * Edit the details of a product
+         * @description A new name regenerates the slug. Requires the CSRF token.
+         */
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/categories/order": {
         parameters: {
             query?: never;
@@ -24,6 +45,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/catalog/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every product, published or not, newest first
+         * @description 50 per page, from page 0.
+         */
+        get: operations["list"];
+        put?: never;
+        /**
+         * Create a product
+         * @description It starts hidden and without variants; the slug comes from the name. Requires the CSRF token.
+         */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/products/{id}/variants/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate the variant matrix
+         * @description Creates the missing size × color variants, active and without a price; never deletes one. The given sizes and colors come first in the display order. Requires the CSRF token.
+         */
+        post: operations["generateVariants"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/products/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a product
+         * @description Needs an active priced variant. Requires the CSRF token.
+         */
+        post: operations["publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/products/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hide a product
+         * @description Takes it out of the shop. Requires the CSRF token.
+         */
+        post: operations["hide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/categories": {
         parameters: {
             query?: never;
@@ -32,13 +137,13 @@ export interface paths {
             cookie?: never;
         };
         /** Every category, active or not, by position */
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         /**
          * Create a category
          * @description The slug is generated from the name and the category goes last. Requires the CSRF token.
          */
-        post: operations["create"];
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -125,6 +230,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/catalog/variants/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set the price of a variant or activate or deactivate it
+         * @description Both fields are optional. The price can change but not be removed. Requires the CSRF token.
+         */
+        patch: operations["updateVariant"];
+        trace?: never;
+    };
     "/api/admin/catalog/categories/{id}": {
         parameters: {
             query?: never;
@@ -170,16 +295,43 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        OrderRequest: {
-            categoryIds: string[];
+        ProductRequest: {
+            /** Format: uuid */
+            categoryId: string;
+            name: string;
+            description: string;
+            material: string;
+            /** @enum {string} */
+            season: "SUMMER" | "MID_SEASON" | "WINTER";
+            /** @enum {string} */
+            audience: "WOMEN" | "MEN" | "KIDS";
         };
-        CategoryResponse: {
+        ProductResponse: {
             /** Format: uuid */
             id?: string;
+            /** Format: uuid */
+            categoryId?: string;
             name?: string;
             slug?: string;
-            /** Format: int32 */
-            position?: number;
+            description?: string;
+            material?: string;
+            /** @enum {string} */
+            season?: "SUMMER" | "MID_SEASON" | "WINTER";
+            /** @enum {string} */
+            audience?: "WOMEN" | "MEN" | "KIDS";
+            published?: boolean;
+            sizes?: string[];
+            colors?: string[];
+            variants?: components["schemas"]["VariantResponse"][];
+        };
+        VariantResponse: {
+            /** Format: uuid */
+            id?: string;
+            sku?: string;
+            size?: string;
+            color?: string;
+            /** Format: int64 */
+            priceCents?: number | null;
             active?: boolean;
         };
         ProblemDetail: {
@@ -195,6 +347,22 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        OrderRequest: {
+            categoryIds: string[];
+        };
+        CategoryResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            slug?: string;
+            /** Format: int32 */
+            position?: number;
+            active?: boolean;
+        };
+        MatrixRequest: {
+            sizes: string[];
+            colors: string[];
+        };
         NameRequest: {
             name: string;
         };
@@ -208,6 +376,26 @@ export interface components {
             email?: string;
             name?: string;
         };
+        VariantRequest: {
+            /** Format: int64 */
+            priceCents?: number;
+            active?: boolean;
+        };
+        ProductPageResponse: {
+            items?: components["schemas"]["ProductSummaryResponse"][];
+            hasMore?: boolean;
+        };
+        ProductSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            categoryId?: string;
+            name?: string;
+            slug?: string;
+            published?: boolean;
+            /** Format: int32 */
+            variantCount?: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -217,6 +405,108 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The product */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such product */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such product */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Another product already uses the slug of this name; see slug */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Invalid fields (see fields) or unknown category */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     reorder: {
         parameters: {
             query?: never;
@@ -261,6 +551,230 @@ export interface operations {
     };
     list: {
         parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of products */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductPageResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Another product already uses the slug of this name; see slug */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Invalid fields (see fields) or unknown category */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    generateVariants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatrixRequest"];
+            };
+        };
+        responses: {
+            /** @description The product with its variants */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such product */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Invalid, repeated or too many sizes or colors; see problem */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Published */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such product */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The product has no active priced variant */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    hide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hidden */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such product */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
             query?: never;
             header?: never;
             path?: never;
@@ -288,7 +802,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -470,6 +984,68 @@ export interface operations {
             };
             /** @description Locked after 5 consecutive failures; lockedUntil says until when */
             423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    updateVariant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VariantRequest"];
+            };
+        };
+        responses: {
+            /** @description The product of the variant */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such variant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Last active priced variant of a published product */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Price not from 1 to 1,000,000,000 cents */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

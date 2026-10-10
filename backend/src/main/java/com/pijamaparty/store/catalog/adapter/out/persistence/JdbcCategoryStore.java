@@ -7,10 +7,8 @@ import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.CategoryId;
 import com.pijamaparty.store.catalog.domain.CategoryName;
 import com.pijamaparty.store.catalog.domain.Slug;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Savepoint;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -25,10 +23,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.TransactionSystemException;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Categories in table {@code category} (V3), within the caller's transaction. The database enforces the unique slug
@@ -71,14 +66,12 @@ class JdbcCategoryStore implements LoadCategories, SaveCategory, RemoveCategory 
         WHERE id = :id
         """;
 
-    private static final String FOREIGN_KEY_VIOLATION = "23503";
-
     private final NamedParameterJdbcTemplate jdbc;
-    private final DataSource dataSource;
+    private final Savepoints savepoints;
 
     JdbcCategoryStore(NamedParameterJdbcTemplate jdbc, DataSource dataSource) {
         this.jdbc = jdbc;
-        this.dataSource = dataSource;
+        this.savepoints = new Savepoints(dataSource);
     }
 
     @Override
@@ -125,7 +118,7 @@ class JdbcCategoryStore implements LoadCategories, SaveCategory, RemoveCategory 
     public RemoveCategory.Outcome remove(CategoryId id) {
         // The only foreign key that points to category is product_category_fk.
         OptionalInt deleted = updateUnlessViolating(DELETE, new MapSqlParameterSource("id", id.value()),
-            JdbcCategoryStore::isForeignKeyViolation);
+            Savepoints::isForeignKeyViolation);
         if (deleted.isEmpty()) {
             return RemoveCategory.Outcome.HAS_PRODUCTS;
         }
@@ -138,33 +131,8 @@ class JdbcCategoryStore implements LoadCategories, SaveCategory, RemoveCategory 
      */
     private OptionalInt updateUnlessViolating(String sql, SqlParameterSource parameters,
                                               Predicate<DataIntegrityViolationException> expected) {
-        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
-            throw new IllegalStateException("categories are written within the caller's transaction");
-        }
-        Connection connection = DataSourceUtils.getConnection(dataSource);
-        try {
-            Savepoint savepoint = connection.setSavepoint();
-            try {
-                int rows = jdbc.update(sql, parameters);
-                connection.releaseSavepoint(savepoint);
-                return OptionalInt.of(rows);
-            } catch (DataIntegrityViolationException violation) {
-                if (!expected.test(violation)) {
-                    throw violation;
-                }
-                connection.rollback(savepoint);
-                return OptionalInt.empty();
-            }
-        } catch (SQLException e) {
-            throw new TransactionSystemException("Could not use a savepoint", e);
-        } finally {
-            DataSourceUtils.releaseConnection(connection, dataSource);
-        }
-    }
-
-    private static boolean isForeignKeyViolation(DataIntegrityViolationException violation) {
-        return violation.getMostSpecificCause() instanceof SQLException sql
-            && FOREIGN_KEY_VIOLATION.equals(sql.getSQLState());
+        return savepoints.run(() -> OptionalInt.of(jdbc.update(sql, parameters)),
+            violation -> expected.test(violation) ? Optional.of(OptionalInt.empty()) : Optional.empty());
     }
 
     private static OffsetDateTime toTimestamp(Instant instant) {
