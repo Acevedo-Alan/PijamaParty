@@ -1,0 +1,41 @@
+/*
+ * Design tokens of the store, taken as-is from the prototype (docs/design/prototype/index.html, :root) plus the
+ * accessibility corrections recorded in ARCHITECTURE.md section 11. Change values only here.
+ */
+:root {
+  /* Colors (prototype) */
+  --bg: #fff8f0;
+  --surface: #ffffff;
+  --ink: #4a3a3a;
+  --ink-soft: #7a6a66;
+  --peach: #ffd9c7;
+  --peach-soft: #ffede3;
+  --rose: #f7c6cf;
+  --rose-soft: #fce4e8;
+  --accent: #c2506a;
+  --accent-hover: #a83f57;
+  --accent-soft: #fce4e8;
+  --line: #f0dcd0;
+  --danger: #b84332;
+
+  /*
+   * Corrections (WCAG 2.1 AA, RNF-31.4):
+   * --accent on --bg is 4.29:1 (3.74 on --rose-soft): only for large text and for buttons with white text (4.52).
+   * Small text and links use --accent-text (5.67 on --bg, 4.95 on --rose-soft).
+   * --line is 1.26:1: decorative separators only. Form controls use --line-strong (3.50 on --bg, 3.69 on --surface,
+   * 3.25 on --peach-soft; WCAG 1.4.11 asks 3:1).
+   */
+  --accent-text: var(--accent-hover);
+  --line-strong: #958178;
+
+  /* Shape and layout (prototype) */
+  --radius-s: 12px;
+  --radius-m: 16px;
+  --maxw: 1180px;
+
+  /* Typography (prototype): Quicksand 400-700, self-hosted with @fontsource, never from Google Fonts */
+  --ff-display: 'Quicksand', sans-serif;
+  --ff-body: 'Quicksand', sans-serif;
+
+  /* Breakpoints of the prototype, for reference in media queries: 640px, 860px, 960px */
+}

@@ -51,4 +51,8 @@ Backend (run from `backend/`; requires JDK 21 and Docker running for Testcontain
 - Vulnerable dependency scan (slow, downloads the NVD database): `./mvnw dependency-check:check`
 - Health check: `GET http://localhost:8080/api/health`; Swagger UI (dev only): `http://localhost:8080/swagger-ui.html`
 
-Frontend: (fill in)
+Frontend (run from `frontend/`; Node >= 22.18, npm):
+- Install: `npm ci`
+- Dev server with /api proxied to the backend on :8080: `npm run dev`
+- Checks: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`
+- Regenerate the typed API client after an API change: run the backend tests (they write `backend/target/openapi/openapi.json`), then `npm run api:generate`

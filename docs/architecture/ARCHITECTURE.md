@@ -260,11 +260,38 @@ Fakes never live in main sources, and use-case tests build the service with `new
 - Mobile-first components, shared design tokens for the warm pastel palette, accessible drawer and wizard patterns.
 - Texts through i18n resource bundles (Spanish).
 - **TypeScript only.** Frontend and tooling: TypeScript only (.ts/.tsx). No .js/.jsx/.mjs/.cjs files, including configs and scripts. If a tool cannot read a TS config, use JSON. Node >= 22.18 or tsx for scripts.
+  - TypeScript is pinned to 5.9: typescript-eslint supports `<6.1` and openapi-typescript `^5`, so TypeScript 6 and 7 wait until they do.
   - `tsconfig` with `strict: true`, `allowJs: false` and `noUncheckedIndexedAccess: true`.
   - Tool configs in `.ts` (for example `vite.config.ts`, `playwright.config.ts`).
   - The API client is generated from the OpenAPI contract with `openapi-typescript`.
   - End-to-end tests (Playwright) and load tests (k6) are written in TypeScript too.
   - CI fails if `git ls-files` returns any `.js`, `.jsx`, `.mjs` or `.cjs` file outside `node_modules` and `dist` (added with the CI in `T-E0-05`).
+
+### Design tokens
+
+Taken as-is from the prototype (`docs/design/prototype/index.html`, read-only reference, never deployed) and defined once in `frontend/src/styles/tokens.css` as CSS variables with the same names. Styling uses plain CSS variables (no Tailwind), as the E0 plan says.
+
+| Token | Value | Use |
+|---|---|---|
+| `--bg` | `#FFF8F0` | Page background (cream) |
+| `--surface` | `#FFFFFF` | Cards, drawers, forms |
+| `--ink` | `#4A3A3A` | Main text |
+| `--ink-soft` | `#7A6A66` | Secondary text (4.89:1 on `--bg`; only 4.26:1 on `--rose-soft`, so not for small text there) |
+| `--peach` / `--peach-soft` | `#FFD9C7` / `#FFEDE3` | Backgrounds, image placeholder |
+| `--rose` / `--rose-soft` | `#F7C6CF` / `#FCE4E8` | Backgrounds, highlights |
+| `--accent` | `#C2506A` | Buttons with white text (4.52:1), large text, focus ring. **Not for small text or links** (4.29:1 on `--bg`) |
+| `--accent-hover` | `#A83F57` | Hover of `--accent` |
+| `--accent-soft` | `#FCE4E8` | Soft accent background |
+| `--accent-text` *(correction)* | `= --accent-hover` | Small text and links (5.67:1 on `--bg`, 4.95:1 on `--rose-soft`) |
+| `--line` | `#F0DCD0` | Decorative separators only (1.26:1) |
+| `--line-strong` *(correction)* | `#958178` | Borders of form controls (3.50:1 on `--bg`, 3.69:1 on `--surface`; WCAG 1.4.11 asks 3:1) |
+| `--danger` | `#B84332` | Errors (5.13:1 on `--bg`; 4.48:1 on `--rose-soft`, avoid small text there) |
+| `--radius-s` / `--radius-m` | `12px` / `16px` | Corners |
+| `--maxw` | `1180px` | Maximum content width |
+| `--ff-display` / `--ff-body` | `'Quicksand', sans-serif` | Weights 400, 500, 600, 700, self-hosted with `@fontsource/quicksand` (never Google Fonts: no visitor IP sent to a third party, no external dependency on the critical path) |
+
+Breakpoints of the prototype: 640, 860 and 960 px, mobile-first. Motion respects `prefers-reduced-motion`, and hover effects go inside `@media (hover: hover)`. Product photos use the prototype's blurred placeholder (`.ph`) through the `BlurredImage` component, the same idea as the blurred placeholder of UC-06. `tokens.test.ts` checks the prototype values and the contrast ratios above.
+
 
 ## 12. Decisions that differ from the earlier Spanish specs
 

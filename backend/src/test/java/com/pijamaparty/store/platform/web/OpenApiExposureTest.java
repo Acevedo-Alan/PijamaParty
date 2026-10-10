@@ -4,6 +4,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.pijamaparty.store.platform.testing.ApiTest;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -13,6 +16,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("dev")
 class OpenApiExposureTest {
 
+    /** The frontend generates its typed client from this file: {@code npm run api:generate} (T-E0-04). */
+    static final Path CONTRACT = Path.of("target", "openapi", "openapi.json");
+
     private final MockMvc mvc;
 
     OpenApiExposureTest(MockMvc mvc) {
@@ -20,7 +26,11 @@ class OpenApiExposureTest {
     }
 
     @Test
-    void givenTheDevProfile_whenRequestingTheOpenApiContract_thenItIsServed() throws Exception {
-        mvc.perform(get("/v3/api-docs")).andExpect(status().isOk());
+    void givenTheDevProfile_whenRequestingTheOpenApiContract_thenItIsServedAndSavedForTheFrontend() throws Exception {
+        String contract = mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        Files.createDirectories(CONTRACT.getParent());
+        Files.writeString(CONTRACT, contract, StandardCharsets.UTF_8);
     }
 }

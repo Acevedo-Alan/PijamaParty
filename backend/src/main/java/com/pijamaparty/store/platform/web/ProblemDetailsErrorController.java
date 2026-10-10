@@ -1,6 +1,7 @@
 package com.pijamaparty.store.platform.web;
 
 import com.pijamaparty.store.platform.logging.Pii;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -15,8 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Renders errors raised outside Spring MVC (filters, the request firewall, {@code sendError}) as problem+json too,
- * replacing Boot's default JSON. Only the status is returned: no path, message or trace.
+ * replacing Boot's default JSON. Only the status is returned: no path, message or trace. Hidden from the
+ * OpenAPI contract: it is not an endpoint clients call.
  */
+@Hidden
 @RestController
 class ProblemDetailsErrorController implements ErrorController {
 
