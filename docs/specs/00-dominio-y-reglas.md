@@ -85,8 +85,10 @@ PAGADO | PREPARANDO → CANCELADO
 | Guardar DNI en la cuenta del cliente | Pendiente | Propuesta: pedirlo en cada compra |
 | Volumen esperado: menos de 20 pedidos por día | Decidido | Dimensiona pools y pruebas de carga |
 | Identificadores: UUID generados por la aplicación | Decidido | Ids tipados (`UserId`, `ProductId`...) sobre UUID; columnas `uuid` en PostgreSQL |
-| Claves foráneas entre módulos | Decidido | Solo dentro de un módulo. Entre módulos se guarda el uuid sin FK (por ejemplo `stock_level.variant_id`); la consistencia la dan los eventos (`VariantCreated`) |
+| Claves foráneas entre módulos | Decidido | Solo dentro de un módulo. Entre módulos se guarda el uuid sin FK (por ejemplo `stock_level.variant_id`); la consistencia la dan los eventos, o una llamada a la `api` del otro módulo en la misma transacción cuando la dependencia ya va en ese sentido (el catálogo crea el `stock_level` de cada variante nueva con `inventory.api`) |
 | Orden de talles y colores | Decidido | Texto libre por producto, ordenado según la carga en la matriz de variantes |
+| SKU de las variantes | Decidido | Código generado por el sistema: `PP-` y 8 caracteres aleatorios sin caracteres parecidos; no se edita (CU-06) |
+| Matriz de variantes | Decidido | Generación aditiva: crea solo las combinaciones nuevas y nunca borra variantes; hasta 20 talles y 20 colores por producto (CU-06) |
 | Motivo de los movimientos de stock | Decidido | Tipo fijo (enum) más una nota libre opcional del administrador |
 | Rate limiting solo en la app (Bucket4j en memoria) | Decidido | Sin Cloudflare ni plugin de Caddy |
 | Concurrencia: pool de hilos clásico y acotado | Recomendado | Delegado por el usuario; hilos virtuales como opción futura |

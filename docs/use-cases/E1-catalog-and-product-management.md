@@ -201,7 +201,7 @@
 
 ## UC-06 Manage products and variants
 
-**Actor:** Administrator · **Module:** `catalog` (+ `inventory` through events) · **Stage:** E1
+**Actor:** Administrator · **Module:** `catalog` (+ `inventory.api`) · **Stage:** E1
 
 **Preconditions:** the administrator is signed in.
 
@@ -218,8 +218,16 @@
 **Business rules**
 - No two variants of a product share the same size and color.
 - Sizes and colors are free text per product. They are shown in the order the administrator entered them when generating the matrix (`size_position`, `color_position` on the variant).
-- The SKU is unique across the shop.
-- A product without at least one priced variant cannot be published.
+- The SKU is unique across the shop. The system generates it when it creates the variant: `PP-` and 8 random characters from an alphabet without look-alikes (for example `PP-7K3M9QX2`). It cannot be edited. A clash is retried with new codes.
+- The slug follows the same rules as a category's (UC-05): generated from the name (at most 140 characters), unique, regenerated on rename; a name whose slug another product uses is rejected.
+- Name: trimmed, 1 to 120 characters, without control or invisible characters. Description: trimmed, up to 5000 characters, line breaks allowed, may be empty. Material: trimmed, 1 to 80 characters. Size: 1 to 20 characters; color: 1 to 30. Season and audience come from their enums. The category must exist (active or not).
+- A new product is hidden and has no variants.
+- Generating the matrix is additive: it creates only the size × color combinations the product does not have yet and never deletes a variant. The sizes and colors of the request come first in the display order, in the order given, followed by the product's other sizes and colors in their previous order. Repeating a generation creates nothing.
+- A generation takes 1 to 20 sizes and 1 to 20 colors without repeated values (exact text after trimming), and a product has at most 20 sizes and 20 colors in total (400 variants).
+- A new variant is active and has no price. The price is set in cents, from 1 to 1,000,000,000 (ARS 10,000,000), and can be changed but not removed.
+- A variant can be deactivated and reactivated. Deactivating the last active priced variant of a published product is rejected: hide the product first.
+- A product without at least one active priced variant cannot be published. Its category may be inactive (the public listing leaves those out). Publishing a published product or hiding a hidden one changes nothing.
+- Products are not deleted: hiding takes them out of the shop.
 - Photos: JPG, PNG or WebP up to 10 MB, at most 8 per product (proposed). The device shrinks each photo (max 1600 px per side) before upload.
 - Initial stock is recorded through UC-07 (reason `INITIAL_LOAD`), so every stock change leaves a movement.
 
@@ -231,12 +239,22 @@
 - Given an upload cut by a lost connection, when the signal returns, then it can be retried without duplicating the photo.
 
 **Design notes**
-- Use cases: `CreateProduct`, `UpdateProduct`, `GenerateVariantMatrix`, `UpdateVariantPrice`, `UploadProductImage`, `ReorderProductImages`, `PublishProduct`, `HideProduct`.
-- `Product` aggregate owns its `Variant` entities and enforces uniqueness of size + color and the publish rule. `VariantMatrix` is a domain service that builds variants from sizes × colors.
-- Outbound ports: `ProductRepository`, `ImageProcessor` (WebP conversion, thumbnails, placeholder; at most 2 conversions at a time), `ImageStore` (volume served by Caddy under `/uploads`), `SkuGenerator`.
-- Events (in `catalog.api`): `VariantCreated(variantId)`, `ProductChanged(productId)`. `inventory` listens to `VariantCreated` and creates a `StockLevel` with 0; the search index (UC-26) listens to `ProductChanged`.
+- Use cases: `CreateProduct`, `UpdateProduct`, `GenerateVariantMatrix`, `UpdateVariant`, `PublishProduct`, `HideProduct`, `ListAllProducts`, `GetProductForAdmin` (T-E1-04); `UploadProductImage`, `ReorderProductImages` (T-E1-05). Each command carries the `Actor`; any actor other than `ADMIN` gets `Forbidden`.
+- `Product` aggregate owns its `Variant` entities and enforces uniqueness of size + color, the size and color limits, the publish rule and the last-priced-variant rule. `VariantMatrix` is a domain service that builds the missing variants from sizes × colors and the new display order.
+- Outbound ports: `LoadProducts` (read, with a variant that locks the product row for writes), `SaveProduct` (write; returns `SLUG_ALREADY_USED`, `SKU_ALREADY_USED` or `UNKNOWN_CATEGORY` on the database constraints, keeping the caller's transaction usable), `ProductSummaries` (read side of the back-office list), `SkuGenerator`, `OpenStockLevels`; `ImageProcessor` (WebP conversion, thumbnails, placeholder; at most 2 conversions at a time) and `ImageStore` (volume served by Caddy under `/uploads`) in T-E1-05.
+- Write use cases lock the product row (`SELECT ... FOR UPDATE`), so two requests on the same product run one after the other.
+- Stock levels: `OpenStockLevels` is implemented by an adapter that calls `inventory.api.StockLevels.open(variantIds)`, which creates a `StockLevel` with 0 for each new variant in the same transaction (idempotent: `INSERT ... ON CONFLICT DO NOTHING`). A synchronous call and not an event: `catalog` already depends on `inventory.api` (UC-03), so `inventory` listening to a `catalog.api` event would be a module cycle.
+- Event (in `catalog.api`): `ProductChanged(productId)`, for the search index (UC-26). It is published from T-E1-18, together with its listener.
 - Upload endpoint accepts an `Idempotency-Key` so retries do not duplicate photos.
-- Endpoints: `/api/admin/catalog/products`, `POST /api/admin/catalog/products/{id}/variants/generate`, `PATCH /api/admin/catalog/variants/{id}`, `POST /api/admin/catalog/products/{id}/images`.
+- Endpoints under `/api/admin/catalog` (errors as `problem+json`):
+  - `GET /products?page=` → `200` `{items, hasMore}`, 50 per page, every product published or not, newest first.
+  - `POST /products {categoryId, name, description, material, season, audience}` → `201` with the product; `409` slug already used (`slug` property); `422` invalid fields (`fields` property) or unknown category.
+  - `GET /products/{id}` → `200` the product with sizes, colors and variants; `404`.
+  - `PUT /products/{id}` (same body) → `200`; `404`; `409`; `422`.
+  - `POST /products/{id}/variants/generate {sizes, colors}` → `200` the product; `404`; `422` invalid sizes or colors, or too many.
+  - `POST /products/{id}/publish` → `200`; `404`; `409` without an active priced variant. `POST /products/{id}/hide` → `200`; `404`.
+  - `PATCH /variants/{id} {priceCents?, active?}` → `200` the product; `404`; `409` last active priced variant of a published product; `422` invalid price.
+  - `POST /products/{id}/images` (T-E1-05).
 
 ---
 

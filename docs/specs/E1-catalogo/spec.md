@@ -113,8 +113,13 @@
 
 **Reglas**
 - No puede haber dos variantes con el mismo talle y color en un producto.
-- El SKU es único en toda la tienda.
-- Un producto sin variantes con precio no se puede publicar.
+- El SKU es único en toda la tienda. Lo genera el sistema al crear la variante (por ejemplo `PP-7K3M9QX2`) y no se edita.
+- El `slug` del producto sigue las reglas de las categorías: sale del nombre, es único y cambia al renombrar.
+- Un producto nuevo queda oculto y sin variantes.
+- Generar la matriz es aditivo: crea solo las combinaciones que faltan y nunca borra variantes. Hasta 20 talles y 20 colores por producto.
+- Una variante se puede desactivar y volver a activar. El precio se puede cambiar, pero no quitar.
+- Un producto sin al menos una variante activa con precio no se puede publicar, y a un producto publicado no se le puede desactivar la última variante activa con precio (primero se oculta).
+- Los productos no se eliminan: se ocultan.
 - Se aceptan fotos JPG, PNG y WebP de hasta 10 MB, con un máximo de 8 por producto (*Propuesto*).
 - Desde el celular se puede sacar la foto o elegirla de la galería, y se pueden elegir varias a la vez.
 - El dispositivo reduce cada foto (máximo 1600 px de lado) antes de enviarla, para ahorrar datos móviles.
