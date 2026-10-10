@@ -87,11 +87,14 @@
 
 **Actor:** Administrador
 
-**Flujo principal:** crear, editar, ordenar y desactivar categorías.
+**Flujo principal:** crear, renombrar, ordenar, desactivar, reactivar y eliminar categorías.
 
 **Reglas**
 - El `slug` es único.
-- Una categoría con productos no se elimina: se desactiva.
+- El `slug` se genera a partir del nombre (minúsculas, sin tildes y con guiones) y cambia al renombrar la categoría.
+- Una categoría nueva queda última en el orden.
+- Una categoría con productos no se elimina: se desactiva. Una categoría sin productos sí se puede eliminar.
+- Una categoría desactivada se puede volver a activar.
 
 **Criterios de aceptación**
 - Dado un nombre de categoría ya existente, cuando se crea, entonces se rechaza con un mensaje claro.

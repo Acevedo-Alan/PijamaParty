@@ -162,20 +162,39 @@
 
 **Actor:** Administrator · **Module:** `catalog` · **Stage:** E1
 
-**Main flow:** create, edit, reorder and deactivate categories.
+**Preconditions:** the administrator is signed in.
+
+**Main flow:** list, create, rename, reorder, deactivate, reactivate and delete categories.
+
+**Alternative flows**
+- Name whose slug is already used by another category: rejected with a clear message.
+- Category with products: deletion is rejected; the administrator can deactivate it instead.
 
 **Business rules**
 - The slug is unique.
-- A category with products cannot be deleted; it can only be deactivated.
+- The slug is generated from the name: lower case, accents removed, every run of other characters turned into one hyphen, no hyphen at either end (`"Pijamas de Niñas"` → `pijamas-de-ninas`). Renaming regenerates it, so the URL always matches the name.
+- The name is stored trimmed, 1 to 80 characters, and must produce a slug of 1 to 100 characters.
+- A new category goes last in the order.
+- A category with products cannot be deleted; it can only be deactivated. A category without products can be deleted.
+- Deactivation can be undone (reactivate).
 
 **Acceptance criteria**
 - Given an existing category name, when another with the same slug is created, then it is rejected with a clear message.
 - Given a category with products, when deletion is attempted, then only deactivation is allowed.
 
 **Design notes**
-- One use case per class (Single Responsibility): `CreateCategory`, `RenameCategory`, `ReorderCategories`, `DeactivateCategory`.
-- `Category` aggregate with the `Slug` value object (normalized, unique); uniqueness is enforced by a database constraint and surfaced as a `SlugAlreadyUsed` result.
-- Endpoints: `/api/admin/catalog/categories` (REST).
+- One use case per class (Single Responsibility): `ListAllCategories`, `CreateCategory`, `RenameCategory`, `ReorderCategories`, `DeactivateCategory`, `ActivateCategory`, `DeleteCategory`. Each command carries the `Actor`; any actor other than `ADMIN` gets `Forbidden`.
+- `Category` aggregate with the `CategoryName` and `Slug` value objects; uniqueness is enforced by a database constraint and surfaced as a `SlugAlreadyUsed` result.
+- Outbound ports: `LoadCategories` (read), `SaveCategory` (write; returns `SLUG_ALREADY_USED` on the unique constraint) and `RemoveCategory` (returns `HAS_PRODUCTS` on the product foreign key). The catalog holds no personal data, so no Row Level Security (RNF-27).
+- Reorder takes the complete list of category ids in the new order; a list that does not name every category exactly once is rejected (`InvalidOrder`).
+- Endpoints under `/api/admin/catalog/categories` (errors as `problem+json`, the slug in the `slug` property of a `409`):
+  - `GET` → `200` every category, active or not, by position.
+  - `POST {name}` → `201` with `Location`; `409` slug already used; `422` invalid name.
+  - `PATCH /{id} {name}` → `200`; `404`; `409`; `422`.
+  - `PUT /order {categoryIds}` → `200` the reordered list; `422` invalid order.
+  - `POST /{id}/deactivate`, `POST /{id}/activate` → `200`; `404`.
+  - `DELETE /{id}` → `204`; `404`; `409` has products (deactivate it instead).
+- The back-office screen is part of `T-E1-12`.
 
 ---
 
