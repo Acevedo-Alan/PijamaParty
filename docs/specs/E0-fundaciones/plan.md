@@ -30,7 +30,8 @@ CLAUDE.md     Contexto y convenciones para Claude Code
 ## Pools y límites (RNF-21)
 
 - HikariCP, Tomcat y PostgreSQL con los valores de `01-requisitos-transversales.md`, definidos en `application.yml` y en `docker-compose.yml`.
-- Un manejador de excepciones convierte el agotamiento del pool y la cola llena en `503` con `Retry-After`.
+- Un manejador de excepciones convierte el agotamiento del pool en `503` con `Retry-After` (5 s, configurable con `store.saturation.retry-after`), tanto dentro de Spring MVC como en errores fuera de él.
+- La cola de RNF-21 se implementa como `max-connections` = 140 (40 hilos + 100 en espera dentro de Tomcat); `accept-count` 100 es el backlog del sistema operativo. Cuando todo eso se llena, la conexión se rechaza o se descarta antes de llegar a la aplicación: Caddy, con un `dial_timeout` acotado, convierte ese fallo del backend en `503` con `Retry-After` en `problem+json` (T-E0-06).
 - La JVM arranca con `-Xmx768m` desde el Dockerfile.
 
 ## Rate limiting (RNF-22)

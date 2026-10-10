@@ -22,16 +22,32 @@ class ProblemDetailsErrorController implements ErrorController {
 
     private static final Logger log = LoggerFactory.getLogger(ProblemDetailsErrorController.class);
 
+    private final Saturation saturation;
+
+    ProblemDetailsErrorController(Saturation saturation) {
+        this.saturation = saturation;
+    }
+
     @RequestMapping("/error")
     ResponseEntity<ProblemDetail> error(HttpServletRequest request) {
+        Throwable exception = request.getAttribute(RequestDispatcher.ERROR_EXCEPTION) instanceof Throwable thrown
+            ? thrown : null;
+        if (saturation.causedBy(exception)) {
+            log.warn("Pool exhausted outside Spring MVC, answering 503: {}", exception.getClass().getName());
+            return withProblemJson(saturation.response());
+        }
         HttpStatus status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE) instanceof Integer code
             && HttpStatus.resolve(code) != null ? HttpStatus.valueOf(code) : HttpStatus.INTERNAL_SERVER_ERROR;
-        if (status.is5xxServerError()
-            && request.getAttribute(RequestDispatcher.ERROR_EXCEPTION) instanceof Throwable exception) {
+        if (status.is5xxServerError() && exception != null) {
             log.error("Unexpected error outside Spring MVC", Pii.scrubException(exception));
         }
-        return ResponseEntity.status(status)
+        return withProblemJson(ResponseEntity.status(status).body(ProblemDetail.forStatus(status)));
+    }
+
+    private static ResponseEntity<ProblemDetail> withProblemJson(ResponseEntity<ProblemDetail> response) {
+        return ResponseEntity.status(response.getStatusCode())
+            .headers(response.getHeaders())
             .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-            .body(ProblemDetail.forStatus(status));
+            .body(response.getBody());
     }
 }

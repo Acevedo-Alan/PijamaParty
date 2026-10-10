@@ -30,6 +30,16 @@ spring:
       completion-mode: delete
 
 server:
+  # RNF-21: bounded classic thread pool. At most 40 requests run and 100 more wait inside Tomcat
+  # (max-connections = threads + queue); beyond that the OS backlog (accept-count) fills and new connections are
+  # refused or dropped, which Caddy answers with 503 + Retry-After (T-E0-06).
+  tomcat:
+    threads:
+      max: 40
+      min-spare: 5
+    max-connections: 140
+    accept-count: 100
+    connection-timeout: 10s
   error:
     include-stacktrace: never
     include-message: never
@@ -40,6 +50,11 @@ server:
         http-only: true
         secure: true
         same-site: lax
+
+store:
+  saturation:
+    # RNF-21: Retry-After of the 503 sent when a pool is exhausted
+    retry-after: 5s
 
 # OpenAPI and Swagger UI only in dev (the contract is not published in prod)
 springdoc:
