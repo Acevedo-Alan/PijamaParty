@@ -6,7 +6,8 @@ import java.util.Optional;
 /**
  * One part of a rate-limit bucket key, referenced by {@link #name()} from a policy's {@code keys}. New keys (cart
  * token, normalized account, order) are new beans in the stage that needs them; nothing here changes.
- * Values stay in memory only and are never logged.
+ * Values stay in memory only and are never logged. A resolver that needs the body reads it with
+ * {@link PeekableRequest#body}.
  */
 public interface RateLimitKeyResolver {
 

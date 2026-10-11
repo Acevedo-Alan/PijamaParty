@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RateLimitTestRoutes {
 
     public static final String[] POLICIES = {
+        "store.rate-limit.enabled=true",
         "store.rate-limit.policies[0].name=limited",
         "store.rate-limit.policies[0].paths[0]=/api/test/public/limited",
         "store.rate-limit.policies[0].keys[0]=ip",

@@ -91,7 +91,34 @@ store:
       - /api/health
       - /api/payments/*/webhook
       - /api/mail/webhook
-    policies: []
+    policies:
+      # UC-04: sign-in attempts per IP and, separately, per account (normalized email, RNF-29.5)
+      - name: login-ip
+        paths: [/api/admin/auth/login]
+        methods: [POST]
+        keys: [ip]
+        capacity: 5
+        period: 1m
+      - name: login-account
+        paths: [/api/admin/auth/login]
+        methods: [POST]
+        keys: [sign-in-email]
+        capacity: 5
+        period: 1m
+      # UC-01 to UC-03 and UC-26: generous, many shoppers share a mobile-data IP
+      - name: catalog
+        paths: [/api/catalog/**]
+        methods: [GET]
+        keys: [ip]
+        capacity: 120
+        period: 1m
+      # UC-26: a catalog request with the text parameter q (search or suggestions); it also counts for catalog
+      - name: search
+        paths: [/api/catalog/products, /api/catalog/suggestions]
+        methods: [GET]
+        keys: [search, ip]
+        capacity: 60
+        period: 1m
 
 # OpenAPI and Swagger UI only in dev (the contract is not published in prod)
 springdoc:

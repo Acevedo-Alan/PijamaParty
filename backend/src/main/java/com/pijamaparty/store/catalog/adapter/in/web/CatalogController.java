@@ -46,6 +46,8 @@ import org.springframework.web.bind.annotation.RestController;
     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
 @ApiResponse(responseCode = "404", description = "No active category has this slug",
     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+@ApiResponse(responseCode = "429", description = "Over the catalog limit (RNF-22); Retry-After says when to retry",
+    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
 class CatalogController {
 
     /** Bounds the offset; 1,000 pages of 24 are far beyond the catalog of the shop. */

@@ -14,7 +14,7 @@
 - [ ] **T-E1-12** Backoffice: pantallas de login, categorías, productos y stock (CU-04 a CU-07).
 - [ ] **T-E1-13** Tests de los criterios de aceptación de CU-01 a CU-07.
 - [ ] **T-E1-14** Límite de 2 conversiones de imagen simultáneas (RNF-21).
-- [ ] **T-E1-15** Activar las políticas de rate limiting de login, catálogo y búsqueda (RNF-22).
+- [x] **T-E1-15** Activar las políticas de rate limiting de login, catálogo y búsqueda (RNF-22).
 - [ ] **T-E1-16** *Propuesto:* segundo factor TOTP para el administrador (RNF-24).
 - [ ] **T-E1-17** Migración de búsqueda: extensión `unaccent`, columna `busqueda` e índice GIN (CU-26).
 - [ ] **T-E1-18** Backend: búsqueda y sugerencias, y recálculo de `busqueda` al guardar productos y variantes (CU-26).

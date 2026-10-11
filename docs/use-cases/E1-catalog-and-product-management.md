@@ -148,7 +148,8 @@
 **Design notes**
 - Inbound port: `SignInAdministrator`; sealed result `SignedIn`, `InvalidCredentials`, `Locked(until)`.
 - Outbound ports: `LoadUser` and `SaveUser` (read and write), `UserSignInStore` (one `SYSTEM` transaction with the user's row locked), `PasswordHasher` (BCrypt adapter); optional `TotpVerifier` (T-E1-16).
-- The web adapter opens and closes the session through `platform.security.SessionAuthentication` (ARCHITECTURE.md section 8), so no session port reaches the application layer. The per-IP limit of the `429` criterion is the login rate-limit policy of `T-E1-15`.
+- The web adapter opens and closes the session through `platform.security.SessionAuthentication` (ARCHITECTURE.md section 8), so no session port reaches the application layer.
+- Rate limits (T-E1-15, RNF-22): two policies on `POST /api/admin/auth/login`, each 5 per minute: `login-ip` (the `429` criterion) and `login-account` (RNF-29.5), keyed by the email of the body, normalized as `Email` does and stored as its SHA-256. The rate-limit filter reads the body before the controller through `PeekableRequest` (at most 8 KB) and replays it. The account is never looked up, so the `429` does not reveal whether it exists; a body without a usable email (not JSON, no email, over 8 KB) shares one bucket instead of escaping the limit.
 - The account lock rule lives in the `User` aggregate (`registerFailedSignIn(now)`), with time from the injected `Clock`. `app_user` stores it in `failed_login_attempts` and `locked_until`. Sign-in runs without a signed-in actor, so reading the user and recording attempts happen as `SYSTEM`; RLS lets `SYSTEM` create the initial administrator, read users and update them (RNF-27).
 - Endpoints: `POST /api/admin/auth/login`, `POST /api/admin/auth/logout`, `GET /api/admin/auth/me`. Session cookie `HttpOnly`, `Secure`, `SameSite=Lax`, CSRF protection on.
 - Lock details (T-E1-02):
@@ -159,9 +160,9 @@
   - `SignedIn`: `200` with the user, a new session id and a new CSRF token.
   - `InvalidCredentials`: `401` generic `problem+json`, the same for an unknown email and a wrong password. An unknown email still costs one hash check, so timing does not reveal it.
   - `Locked`: `423` `problem+json` with `lockedUntil` (decided: this reveals that the email exists, acceptable with a single administrator).
-  - Known risk: anyone who knows the administrator's email can keep the account locked with 5 attempts every 15 minutes, and the per-account limit of RNF-29.5 does not stop that. Revisit it in `T-E1-15` and `T-E1-16`, for example by counting failures per IP and account before locking.
+  - Known risk: anyone who knows the administrator's email can keep the account locked with 5 attempts every 15 minutes, and the per-account limit of RNF-29.5 does not stop that. The limits of T-E1-15 slow that down but do not stop it (5 attempts per minute are enough). Revisit it in `T-E1-16`, for example by counting failures per IP and account before locking.
   - `CUSTOMER` on `/api/admin/**`: `403`.
-  - The `429` criterion belongs to `T-E1-15`, which turns on the login rate-limit policy.
+  - Rate limited (`429` with `Retry-After`): see the rate limits above.
 - Passwords: BCrypt with cost 12, stored with the `{bcrypt}` prefix so the algorithm can change later. At most 72 bytes and at least 12 characters.
 - Initial administrator:
   - Set with `ADMIN_EMAIL`, `ADMIN_NAME` and `ADMIN_INITIAL_PASSWORD` (a Docker secret).
@@ -373,3 +374,4 @@
 - Query: `websearch_to_tsquery('spanish', unaccent(:q))`, ranked with `ts_rank`; suggestions use prefix matching on the last word.
 - Out of v1: typo tolerance (`pg_trgm`).
 - Endpoints: `GET /api/catalog/products?q=` and `GET /api/catalog/suggestions?q=`.
+- Rate limits (T-E1-15, RNF-22): a search is a `GET` of either endpoint that carries `q`. The `search` policy allows 60 per minute per IP and the request also counts for the `catalog` policy (120 per minute per IP, every `GET /api/catalog/**`), so browsing without text is limited only by the latter. Buckets refill continuously (Bucket4j greedy refill): a burst of 60, then one search per second.

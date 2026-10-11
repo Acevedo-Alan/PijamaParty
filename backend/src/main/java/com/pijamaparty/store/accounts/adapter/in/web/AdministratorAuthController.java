@@ -53,6 +53,9 @@ class AdministratorAuthController {
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "423", description = "Locked after 5 consecutive failures; lockedUntil says until when",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "429", description = "Over 5 attempts per minute from this IP or for this email "
+        + "(RNF-22, RNF-29.5); Retry-After says when to retry",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> signIn(@Valid @RequestBody SignInRequest body, HttpServletRequest request,
                              HttpServletResponse response) {
         return switch (signIn.execute(new SignInAdministrator.Command(body.email(), body.password()))) {

@@ -37,7 +37,9 @@ final class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
         throws ServletException, IOException {
-        if (limiter.check(request) instanceof RateLimiter.Decision.Limited limited) {
+        // Wrapped so a key resolver may read the body (the sign-in email) and the controller still sees all of it.
+        var peekable = new PeekableRequest(request);
+        if (limiter.check(peekable) instanceof RateLimiter.Decision.Limited limited) {
             logRejection(limited);
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setHeader(HttpHeaders.RETRY_AFTER, Long.toString(limited.retryAfter().toSeconds()));
@@ -45,7 +47,7 @@ final class RateLimitFilter extends OncePerRequestFilter {
             objectMapper.writeValue(response.getOutputStream(), ProblemDetail.forStatus(HttpStatus.TOO_MANY_REQUESTS));
             return;
         }
-        chain.doFilter(request, response);
+        chain.doFilter(peekable, response);
     }
 
     /** The policy and the route pattern only: never the IP, the account or the actual path (RNF-22). */
