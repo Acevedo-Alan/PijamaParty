@@ -54,8 +54,10 @@ class SignInAdministratorService implements SignInAdministrator {
             return new Result.Locked(user.lockedUntil().orElseThrow());
         }
         if (passwordMatches) {
-            user.registerSuccessfulSignIn(now);
-            return new Result.SignedIn(AdministratorView.of(user));
+            // The attempts are only reset when the second factor succeeds too.
+            return new Result.PasswordAccepted(user.id(), user.secondFactor().isPresent()
+                ? NextStep.SECOND_FACTOR
+                : NextStep.ENROLLMENT);
         }
         return user.registerFailedSignIn(now)
             .<Result>map(Result.Locked::new)

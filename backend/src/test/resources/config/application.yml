@@ -1,5 +1,8 @@
 # Test-only overrides of src/main/resources/application.yml (classpath:/config/ takes precedence over it).
 store:
+  admin:
+    # T-E1-16: a fixed test key for the authenticator secrets
+    second-factor-key: nrmfHm2pxZS9/+IgFjDVBvXDS29OvDAUhjc65qBenAk= # gitleaks:allow
   rate-limit:
     # Every test calls from 127.0.0.1 and Spring reuses the context across test classes, so the real RNF-22 policies
     # would turn unrelated tests into 429s. The rate-limit tests turn it back on with store.rate-limit.enabled=true.

@@ -23,6 +23,11 @@ public class InMemoryUserStore implements LoadUser, SaveUser {
     }
 
     @Override
+    public Optional<User> findAdministrator() {
+        return users.findAll(user -> user.role() == UserRole.ADMIN).stream().findFirst();
+    }
+
+    @Override
     public void save(User user) {
         users.save(user);
     }

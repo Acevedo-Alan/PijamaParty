@@ -62,11 +62,14 @@ services:
       # UC-04: the first administrator, created at startup only when none exists (password: Docker secret below)
       ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
       ADMIN_NAME: ${ADMIN_NAME:?set ADMIN_NAME in .env}
+      # T-E1-16: true for one start only, after losing the phone and the recovery codes (runbook)
+      ADMIN_RESET_SECOND_FACTOR: ${ADMIN_RESET_SECOND_FACTOR:-false}
       # Docker secrets, mounted as files, become properties (e.g. ${DB_APP_PASSWORD}).
       SPRING_CONFIG_IMPORT: configtree:/run/secrets/
     secrets:
       - DB_APP_PASSWORD
       - ADMIN_INITIAL_PASSWORD
+      - SECOND_FACTOR_KEY
     volumes:
       - uploads:/srv/uploads
     networks: [edge, data]
@@ -163,3 +166,5 @@ secrets:
     file: ./secrets/DB_BACKUP_PASSWORD
   ADMIN_INITIAL_PASSWORD:
     file: ./secrets/ADMIN_INITIAL_PASSWORD
+  SECOND_FACTOR_KEY:
+    file: ./secrets/SECOND_FACTOR_KEY

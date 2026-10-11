@@ -60,7 +60,7 @@ class AccountsUserNameLookupContractTest
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate app_user");
+        owner.execute("truncate admin_recovery_code, app_user");
     }
 
     @Test

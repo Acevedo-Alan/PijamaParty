@@ -15,7 +15,7 @@
 - [x] **T-E1-13** Tests de los criterios de aceptación de CU-01 a CU-07. El criterio de la foto de 8 MB reducida en el celular (CU-06) se prueba en T-E1-22.
 - [x] **T-E1-14** Límite de 2 conversiones de imagen simultáneas (RNF-21).
 - [x] **T-E1-15** Activar las políticas de rate limiting de login, catálogo y búsqueda (RNF-22).
-- [ ] **T-E1-16** Segundo factor TOTP obligatorio para el administrador, con códigos de recuperación (RNF-24, RNF-29.8).
+- [x] **T-E1-16** Segundo factor TOTP obligatorio para el administrador, con códigos de recuperación (RNF-24, RNF-29.8).
 - [x] **T-E1-17** Migración de búsqueda: extensión `unaccent`, columna `busqueda` e índice GIN (CU-26).
 - [x] **T-E1-18** Backend: búsqueda y sugerencias, y recálculo de `busqueda` al guardar productos y variantes (CU-26).
 - [x] **T-E1-19** Storefront: barra de búsqueda con sugerencias y pantalla de búsqueda en celular (CU-26).

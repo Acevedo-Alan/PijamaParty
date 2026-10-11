@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.pijamaparty.store.accounts.application.SignInAdministrator.Command;
 import com.pijamaparty.store.accounts.application.SignInAdministrator.Result;
 import com.pijamaparty.store.accounts.domain.Email;
+import com.pijamaparty.store.accounts.domain.EncryptedSecret;
 import com.pijamaparty.store.accounts.domain.User;
 import com.pijamaparty.store.accounts.domain.UserRole;
 import com.pijamaparty.store.platform.domain.UserId;
@@ -33,11 +34,20 @@ class SignInAdministratorServiceTest {
     }
 
     @Test
-    void givenCorrectCredentials_whenSigningIn_thenTheAdministratorIsSignedIn() {
+    void givenCorrectCredentialsWithoutASecondFactor_whenSigningIn_thenEnrollmentComesNext() {
         Result result = signInAt(NOW, " Owner@Example.com ", PASSWORD);
 
-        assertThat(result).isEqualTo(new Result.SignedIn(
-            new AdministratorView(administrator.id(), "owner@example.com", "Owner")));
+        assertThat(result).isEqualTo(
+            new Result.PasswordAccepted(administrator.id(), SignInAdministrator.NextStep.ENROLLMENT));
+    }
+
+    @Test
+    void givenCorrectCredentialsWithASecondFactor_whenSigningIn_thenTheCodeComesNextAndNothingOpensYet() {
+        administrator.enrollSecondFactor(new EncryptedSecret(new byte[] {1}), 1L, NOW.minus(Duration.ofDays(1)));
+        users.save(administrator);
+
+        assertThat(signInAt(NOW, "owner@example.com", PASSWORD)).isEqualTo(
+            new Result.PasswordAccepted(administrator.id(), SignInAdministrator.NextStep.SECOND_FACTOR));
     }
 
     @Test
@@ -85,23 +95,24 @@ class SignInAdministratorServiceTest {
     }
 
     @Test
-    void givenAnExpiredLock_whenSigningInWithTheRightPassword_thenTheAdministratorIsSignedIn() {
+    void givenAnExpiredLock_whenSigningInWithTheRightPassword_thenThePasswordIsAccepted() {
         lock();
 
         assertThat(signInAt(NOW.plus(Duration.ofMinutes(15)), "owner@example.com", PASSWORD))
-            .isInstanceOf(Result.SignedIn.class);
-        assertThat(users.findById(administrator.id()).orElseThrow().lockedUntil()).isEmpty();
+            .isInstanceOf(Result.PasswordAccepted.class);
+        assertThat(users.findById(administrator.id()).orElseThrow().isLockedAt(NOW.plus(Duration.ofMinutes(15))))
+            .as("the expired lock is only cleared when the whole sign-in succeeds").isFalse();
     }
 
     @Test
-    void givenFailuresThenASuccess_whenFailingAgain_thenTheCounterStartedOver() {
+    void givenFailuresThenARightPassword_whenFailingAgain_thenTheCounterGoesOnUntilTheWholeSignInSucceeds() {
         for (int i = 0; i < 4; i++) {
             signInAt(NOW, "owner@example.com", "wrong password!");
         }
         signInAt(NOW, "owner@example.com", PASSWORD);
 
-        assertThat(users.findById(administrator.id()).orElseThrow().failedSignInAttempts()).isZero();
-        assertThat(signInAt(NOW, "owner@example.com", "wrong password!")).isEqualTo(new Result.InvalidCredentials());
+        assertThat(users.findById(administrator.id()).orElseThrow().failedSignInAttempts()).isEqualTo(4);
+        assertThat(signInAt(NOW, "owner@example.com", "wrong password!")).isInstanceOf(Result.Locked.class);
     }
 
     private void lock() {

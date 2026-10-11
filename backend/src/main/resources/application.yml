@@ -71,6 +71,11 @@ store:
     email: ${ADMIN_EMAIL:}
     name: ${ADMIN_NAME:}
     initial-password: ${ADMIN_INITIAL_PASSWORD:}
+    # T-E1-16: AES-256 key (base64 of 32 bytes) that encrypts the authenticator secret; a Docker secret in production.
+    # Without a valid key the API does not start.
+    second-factor-key: ${SECOND_FACTOR_KEY:}
+    # T-E1-16: true for one start after losing the phone and the recovery codes: deletes the second factor.
+    reset-second-factor: ${ADMIN_RESET_SECOND_FACTOR:false}
   images:
     # UC-06: the uploads volume, which Caddy serves under /uploads (deploy/docker-compose.yml)
     uploads-dir: ${UPLOADS_DIR:/srv/uploads}
@@ -97,8 +102,9 @@ store:
       - /api/mail/webhook
     policies:
       # UC-04: sign-in attempts per IP and, separately, per account (normalized email, RNF-29.5)
+      # T-E1-16: the second-factor steps count for the same per-IP limit as the password
       - name: login-ip
-        paths: [/api/admin/auth/login]
+        paths: [/api/admin/auth/login, /api/admin/auth/second-factor, /api/admin/auth/enrollment]
         methods: [POST]
         keys: [ip]
         capacity: 5
@@ -161,6 +167,11 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+store:
+  admin:
+    # Local development only; production has no default and reads the Docker secret SECOND_FACTOR_KEY
+    second-factor-key: ${SECOND_FACTOR_KEY:nrwogtH9OX5wrWlHAXKmmbtPbRf5i2Ybs92t/7nSY3E=} # gitleaks:allow
 
 ---
 spring:

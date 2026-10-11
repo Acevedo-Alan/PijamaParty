@@ -152,7 +152,7 @@
 - Given more than 5 sign-in attempts in a minute from the same IP, when another arrives, then it receives `429` with `Retry-After`.
 
 **Design notes**
-- Inbound port: `SignInAdministrator`; sealed result `SignedIn`, `InvalidCredentials`, `Locked(until)`.
+- Inbound ports: `SignInAdministrator` (the password; sealed result `PasswordAccepted(nextStep)`, `InvalidCredentials`, `Locked(until)`), then `VerifySecondFactor`, or `StartSecondFactorEnrollment` and `ConfirmSecondFactorEnrollment` (T-E1-16); `ResetAdministratorSecondFactor` at startup.
 - Outbound ports: `LoadUser` and `SaveUser` (read and write), `UserSignInStore` (one `SYSTEM` transaction with the user's row locked), `PasswordHasher` (BCrypt adapter); the second-factor ports below (T-E1-16).
 - The web adapter opens and closes the session through `platform.security.SessionAuthentication` (ARCHITECTURE.md section 8), so no session port reaches the application layer.
 - Rate limits (T-E1-15, RNF-22): two policies on `POST /api/admin/auth/login`, each 5 per minute: `login-ip` (the `429` criterion) and `login-account` (RNF-29.5), keyed by the email of the body, normalized as `Email` does and stored as its SHA-256. The rate-limit filter reads the body before the controller through `PeekableRequest` (at most 8 KB) and replays it. The account is never looked up, so the `429` does not reveal whether it exists; a body without a usable email (not JSON, no email, over 8 KB) shares one bucket instead of escaping the limit.
@@ -163,7 +163,7 @@
   - The 5th failure sets `locked_until = now + 15 minutes` and resets the counter, so after the lock the administrator has 5 attempts again.
   - While locked, the password is not checked and the attempt does not extend the lock.
 - Responses:
-  - `SignedIn`: `200` with the user, a new session id and a new CSRF token.
+  - Right password: `200` `{nextStep}`; the session opens (new session id and CSRF token) only after the second factor (T-E1-16).
   - `InvalidCredentials`: `401` generic `problem+json`, the same for an unknown email and a wrong password. An unknown email still costs one hash check, so timing does not reveal it.
   - `Locked`: `423` `problem+json` with `lockedUntil` (decided: this reveals that the email exists, acceptable with a single administrator).
   - Known risk: anyone who knows the administrator's email can keep the account locked with 5 attempts every 15 minutes, and the per-account limit of RNF-29.5 does not stop that. The limits of T-E1-15 slow that down but do not stop it (5 attempts per minute are enough). With the mandatory second factor (T-E1-16) a guessed or stolen password no longer opens the account, so this stays a nuisance, not a breach; counting failures per IP and account before locking remains an option if it happens.

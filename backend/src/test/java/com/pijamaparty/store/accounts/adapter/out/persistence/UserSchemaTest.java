@@ -60,7 +60,7 @@ class UserSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate app_user");
+        owner.execute("truncate admin_recovery_code, app_user");
     }
 
     @Test
@@ -150,6 +150,42 @@ class UserSchemaTest {
                 .as(update).isInstanceOf(DataAccessException.class)
                 .hasStackTraceContaining("the system may only update failed sign-in attempts");
         }
+    }
+
+    @Test
+    void givenTheSystem_whenEnrollingMovingAndResettingTheSecondFactor_thenOnlyThoseChangesAreAllowed() {
+        String enroll = """
+            update app_user set totp_secret = ?, totp_enabled_at = now(), totp_last_step = ? where id = ?
+            """;
+        int enrolled = rls.as(SYSTEM, sql -> sql.update(enroll, new byte[] {1}, 100L, ADMIN_ID.value()));
+        int moved = rls.as(SYSTEM, sql -> sql.update("update app_user set totp_last_step = 101 where id = ?",
+            ADMIN_ID.value()));
+        assertThat(enrolled).isOne();
+        assertThat(moved).isOne();
+
+        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(enroll, new byte[] {2}, 102L, ADMIN_ID.value())))
+            .as("replacing the secret without deleting it").isInstanceOf(DataAccessException.class)
+            .hasStackTraceContaining("a second factor is replaced only by deleting it first");
+        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(
+                "update app_user set totp_last_step = 50 where id = ?", ADMIN_ID.value())))
+            .as("moving the last step back").isInstanceOf(DataAccessException.class)
+            .hasStackTraceContaining("the last accepted step only moves forward");
+
+        int reset = rls.as(SYSTEM, sql -> sql.update("""
+            update app_user set totp_secret = null, totp_enabled_at = null, totp_last_step = null where id = ?
+            """, ADMIN_ID.value()));
+        assertThat(reset).isOne();
+    }
+
+    @Test
+    void givenACustomerOrAnIncompleteSecondFactor_whenStored_thenTheChecksRejectIt() {
+        assertThatThrownBy(() -> owner.update(
+                "update app_user set totp_secret = '\\x01', totp_enabled_at = now(), totp_last_step = 1 where id = ?",
+                CUSTOMER_A_ID.value()))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("app_user_totp_admin_ck");
+        assertThatThrownBy(() -> owner.update("update app_user set totp_secret = '\\x01' where id = ?",
+                ADMIN_ID.value()))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("app_user_totp_complete_ck");
     }
 
     @Test

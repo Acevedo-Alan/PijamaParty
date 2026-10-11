@@ -250,6 +250,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/auth/second-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Second step: a code of the authenticator app or a recovery code
+         * @description Opens the session (new session id and CSRF token). A wrong code counts as a failed sign-in. Requires the CSRF token.
+         */
+        post: operations["secondFactor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/logout": {
         parameters: {
             query?: never;
@@ -280,10 +300,34 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Sign in the administrator
-         * @description Opens a session (new session id and CSRF token). Requires the CSRF token.
+         * First step: the administrator's email and password
+         * @description A right password never opens the session: nextStep says whether the second factor or its enrollment comes next, within 5 minutes. Requires the CSRF token.
          */
         post: operations["signIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/auth/enrollment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Enrollment: a new secret for the authenticator app
+         * @description Only during a pending sign-in without a second factor. Each call makes a new secret.
+         */
+        get: operations["startEnrollment"];
+        put?: never;
+        /**
+         * Enrollment: confirm with a code of the new authenticator app
+         * @description Stores the second factor, opens the session and shows the recovery codes this once. A wrong code counts as a failed sign-in. Requires the CSRF token.
+         */
+        post: operations["confirmEnrollment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -592,15 +636,26 @@ export interface components {
         NameRequest: {
             name: string;
         };
-        SignInRequest: {
-            email: string;
-            password: string;
+        CodeRequest: {
+            code: string;
         };
         AdministratorResponse: {
             /** Format: uuid */
             id?: string;
             email?: string;
             name?: string;
+        };
+        SignInRequest: {
+            email: string;
+            password: string;
+        };
+        NextStepResponse: {
+            /** @enum {string} */
+            nextStep?: "SECOND_FACTOR" | "ENROLLMENT";
+        };
+        EnrolledResponse: {
+            administrator?: components["schemas"]["AdministratorResponse"];
+            recoveryCodes?: string[];
         };
         VariantRequest: {
             /** Format: int64 */
@@ -716,6 +771,11 @@ export interface components {
             published?: boolean;
             /** Format: int32 */
             variantCount?: number;
+        };
+        EnrollmentResponse: {
+            secret?: string;
+            otpauthUri?: string;
+            qrCode?: string;
         };
     };
     responses: never;
@@ -1494,6 +1554,66 @@ export interface operations {
             };
         };
     };
+    secondFactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Signed in */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdministratorResponse"];
+                };
+            };
+            /** @description Wrong, reused or used code */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No pending sign-in, or it expired: start with the password */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Locked after 5 consecutive failures; lockedUntil says until when */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over 5 attempts per minute from this IP (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     signOut: {
         parameters: {
             query?: never;
@@ -1510,6 +1630,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Over 5 attempts per minute from this IP (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     signIn: {
@@ -1525,13 +1654,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Signed in */
+            /** @description Right password; the sign-in goes on with nextStep */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdministratorResponse"];
+                    "application/json": components["schemas"]["NextStepResponse"];
                 };
             };
             /** @description Invalid credentials; does not say which field failed */
@@ -1552,7 +1681,105 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description Over 5 attempts per minute from this IP or for this email (RNF-22, RNF-29.5); Retry-After says when to retry */
+            /** @description Over 5 attempts per minute from this IP (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    startEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The secret, as text, URI and QR code */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrollmentResponse"];
+                };
+            };
+            /** @description No pending enrollment, or it expired */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over 5 attempts per minute from this IP (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    confirmEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Enrolled and signed in */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolledResponse"];
+                };
+            };
+            /** @description Wrong code */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No pending enrollment with a secret, or it expired */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Locked after 5 consecutive failures; lockedUntil says until when */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over 5 attempts per minute from this IP (RNF-22); Retry-After says when to retry */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -2051,6 +2278,15 @@ export interface operations {
             };
             /** @description Not signed in */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over 5 attempts per minute from this IP (RNF-22); Retry-After says when to retry */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

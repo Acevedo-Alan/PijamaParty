@@ -2,6 +2,7 @@ package com.pijamaparty.store.accounts.application;
 
 import com.pijamaparty.store.accounts.domain.Email;
 import com.pijamaparty.store.accounts.domain.User;
+import com.pijamaparty.store.platform.domain.UserId;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -22,4 +23,10 @@ public interface UserSignInStore {
      * lock (V5).
      */
     <R> R withUserLockedForSignIn(Email email, Function<Optional<User>, R> record);
+
+    /** As {@link #find(Email)}, by id: the steps after the password know the user by its id (T-E1-16). */
+    Optional<User> find(UserId id);
+
+    /** As {@link #withUserLockedForSignIn(Email, Function)}, by id; the second factor may also change. */
+    <R> R withUserLockedForSignIn(UserId id, Function<Optional<User>, R> record);
 }

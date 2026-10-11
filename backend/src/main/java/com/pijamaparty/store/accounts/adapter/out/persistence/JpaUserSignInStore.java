@@ -3,6 +3,7 @@ package com.pijamaparty.store.accounts.adapter.out.persistence;
 import com.pijamaparty.store.accounts.application.UserSignInStore;
 import com.pijamaparty.store.accounts.domain.Email;
 import com.pijamaparty.store.accounts.domain.User;
+import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import java.util.Optional;
 import java.util.function.Function;
@@ -12,7 +13,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Sign-in happens before anyone is signed in: the attempt runs in its own transaction as {@code SYSTEM} (RNF-27),
- * which may only read users and change the attempt counter and the lock (V5 policies and trigger).
+ * which may only read users and change the attempt counter, the lock and the second factor (V5 and V11 policies
+ * and trigger). The second-factor steps call {@link com.pijamaparty.store.accounts.application.RecoveryCodes} inside
+ * the same transaction.
  */
 @Repository
 class JpaUserSignInStore implements UserSignInStore {
@@ -41,6 +44,23 @@ class JpaUserSignInStore implements UserSignInStore {
             Optional<User> user = row.map(UserEntity::toDomain);
             R result = record.apply(user);
             // The entity is managed: the changed counter and lock are flushed at commit.
+            row.ifPresent(entity -> entity.copySignInStateFrom(user.orElseThrow()));
+            return result;
+        }));
+    }
+
+    @Override
+    public Optional<User> find(UserId id) {
+        return CurrentActor.callAsSystem(() -> readOnly.execute(status ->
+            users.findById(id.value()).map(UserEntity::toDomain)));
+    }
+
+    @Override
+    public <R> R withUserLockedForSignIn(UserId id, Function<Optional<User>, R> record) {
+        return CurrentActor.callAsSystem(() -> transactions.execute(status -> {
+            Optional<UserEntity> row = users.findLockedById(id.value());
+            Optional<User> user = row.map(UserEntity::toDomain);
+            R result = record.apply(user);
             row.ifPresent(entity -> entity.copySignInStateFrom(user.orElseThrow()));
             return result;
         }));

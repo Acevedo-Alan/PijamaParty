@@ -41,7 +41,7 @@ class JpaUserStoreContractTest extends UserStoreContractTest<JpaUserStoreContrac
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate app_user");
+        owner.execute("truncate admin_recovery_code, app_user");
     }
 
     record AsSystem(JpaUserStore adapter, TransactionTemplate transactions) implements LoadUser, SaveUser {
@@ -54,6 +54,11 @@ class JpaUserStoreContractTest extends UserStoreContractTest<JpaUserStoreContrac
         @Override
         public boolean administratorExists() {
             return CurrentActor.callAsSystem(() -> transactions.execute(status -> adapter.administratorExists()));
+        }
+
+        @Override
+        public Optional<User> findAdministrator() {
+            return CurrentActor.callAsSystem(() -> transactions.execute(status -> adapter.findAdministrator()));
         }
 
         @Override

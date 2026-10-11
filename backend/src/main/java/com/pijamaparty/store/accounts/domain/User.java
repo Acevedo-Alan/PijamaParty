@@ -9,7 +9,8 @@ import java.util.Optional;
 /**
  * A customer or the administrator. Owns the sign-in lock rule of UC-04: 5 consecutive failures lock the account for
  * 15 minutes. Only consecutive failures count (a successful sign-in resets them), and the failure that locks also
- * resets the counter, so after the lock there are 5 attempts again.
+ * resets the counter, so after the lock there are 5 attempts again. A wrong second-factor code is a failure too.
+ * The administrator's second factor (T-E1-16) accepts each code once.
  */
 public final class User {
 
@@ -26,11 +27,13 @@ public final class User {
     private final UserRole role;
     private int failedSignInAttempts;
     private Instant lockedUntil;
+    private SecondFactor secondFactor;
     private final Instant createdAt;
     private Instant updatedAt;
 
     private User(UserId id, Email email, boolean emailVerified, PasswordHash passwordHash, String name, UserRole role,
-                 int failedSignInAttempts, Instant lockedUntil, Instant createdAt, Instant updatedAt) {
+                 int failedSignInAttempts, Instant lockedUntil, SecondFactor secondFactor, Instant createdAt,
+                 Instant updatedAt) {
         this.id = Objects.requireNonNull(id, "id");
         this.email = Objects.requireNonNull(email, "email");
         this.emailVerified = emailVerified;
@@ -39,6 +42,7 @@ public final class User {
         this.role = Objects.requireNonNull(role, "role");
         this.failedSignInAttempts = failedSignInAttempts;
         this.lockedUntil = lockedUntil;
+        this.secondFactor = secondFactor;
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
         this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt");
         if (!isValidName(name)) {
@@ -50,12 +54,15 @@ public final class User {
         if (role == UserRole.ADMIN && passwordHash == null) {
             throw new IllegalArgumentException("the administrator signs in with a password (R-14)");
         }
+        if (secondFactor != null && role != UserRole.ADMIN) {
+            throw new IllegalArgumentException("only the administrator has a second factor (T-E1-16)");
+        }
     }
 
     /** UC-04: the single administrator, created from the deployment settings. */
     public static User newAdministrator(UserId id, Email email, String name, PasswordHash passwordHash, Instant now) {
         Objects.requireNonNull(passwordHash, "passwordHash");
-        return new User(id, email, true, passwordHash, name, UserRole.ADMIN, 0, null, now, now);
+        return new User(id, email, true, passwordHash, name, UserRole.ADMIN, 0, null, null, now, now);
     }
 
     /** Rebuilds a stored user; only persistence adapters call it. */
@@ -63,7 +70,15 @@ public final class User {
                                UserRole role, int failedSignInAttempts, Instant lockedUntil, Instant createdAt,
                                Instant updatedAt) {
         return new User(id, email, emailVerified, passwordHash, name, role, failedSignInAttempts, lockedUntil,
-            createdAt, updatedAt);
+            null, createdAt, updatedAt);
+    }
+
+    /** Rebuilds a stored user with its second factor, if any; only persistence adapters call it. */
+    public static User restore(UserId id, Email email, boolean emailVerified, PasswordHash passwordHash, String name,
+                               UserRole role, int failedSignInAttempts, Instant lockedUntil,
+                               SecondFactor secondFactor, Instant createdAt, Instant updatedAt) {
+        return new User(id, email, emailVerified, passwordHash, name, role, failedSignInAttempts, lockedUntil,
+            secondFactor, createdAt, updatedAt);
     }
 
     public static boolean isValidName(String name) {
@@ -101,9 +116,61 @@ public final class User {
         }
     }
 
+    /** How a code of the authenticator app ended (T-E1-16). */
+    public enum CodeOutcome {
+        ACCEPTED,
+        /** Its time step, or a later one, was already used: a code works once. */
+        REPLAYED
+    }
+
+    /**
+     * Records a right code of the authenticator app at time step {@code step}: the sign-in succeeds and that step is
+     * spent. A step that is not after the last accepted one changes nothing and is {@link CodeOutcome#REPLAYED}.
+     */
+    public CodeOutcome acceptCodeAt(long step, Instant now) {
+        if (secondFactor == null) {
+            throw new IllegalStateException("no second factor to accept a code for");
+        }
+        if (step <= secondFactor.lastStep()) {
+            return CodeOutcome.REPLAYED;
+        }
+        registerSuccessfulSignIn(now);
+        secondFactor = secondFactor.afterStep(step);
+        updatedAt = now;
+        return CodeOutcome.ACCEPTED;
+    }
+
+    /**
+     * Enrolls the authenticator app whose code of time step {@code step} was just confirmed; that step is already spent.
+     * Only the administrator, and only without a second factor.
+     */
+    public void enrollSecondFactor(EncryptedSecret secret, long step, Instant now) {
+        if (role != UserRole.ADMIN) {
+            throw new IllegalStateException("only the administrator has a second factor");
+        }
+        if (secondFactor != null) {
+            throw new IllegalStateException("a second factor is already enrolled");
+        }
+        registerSuccessfulSignIn(now);
+        secondFactor = new SecondFactor(secret, now, step);
+        updatedAt = now;
+    }
+
+    /** Forgets the second factor (lost phone and recovery codes), so the next sign-in enrolls again. */
+    public void resetSecondFactor(Instant now) {
+        if (secondFactor != null) {
+            secondFactor = null;
+            updatedAt = now;
+        }
+    }
+
+    public Optional<SecondFactor> secondFactor() {
+        return Optional.ofNullable(secondFactor);
+    }
+
     public User copy() {
         return new User(id, email, emailVerified, passwordHash, name, role, failedSignInAttempts, lockedUntil,
-            createdAt, updatedAt);
+            secondFactor, createdAt, updatedAt);
     }
 
     public UserId id() {

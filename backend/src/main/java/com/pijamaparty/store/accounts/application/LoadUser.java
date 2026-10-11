@@ -10,4 +10,7 @@ public interface LoadUser {
     Optional<User> findById(UserId id);
 
     boolean administratorExists();
+
+    /** The single administrator, if created (UC-04). */
+    Optional<User> findAdministrator();
 }

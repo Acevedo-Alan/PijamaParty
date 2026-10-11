@@ -29,6 +29,11 @@ class JpaUserStore implements LoadUser, SaveUser {
     }
 
     @Override
+    public Optional<User> findAdministrator() {
+        return users.findByRole(UserRole.ADMIN).map(UserEntity::toDomain);
+    }
+
+    @Override
     public void save(User user) {
         users.save(UserEntity.from(user));
     }

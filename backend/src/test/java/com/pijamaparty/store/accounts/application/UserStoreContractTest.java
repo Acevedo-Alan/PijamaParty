@@ -3,7 +3,9 @@ package com.pijamaparty.store.accounts.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.accounts.domain.Email;
+import com.pijamaparty.store.accounts.domain.EncryptedSecret;
 import com.pijamaparty.store.accounts.domain.PasswordHash;
+import com.pijamaparty.store.accounts.domain.SecondFactor;
 import com.pijamaparty.store.accounts.domain.User;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.testing.ContractTest;
@@ -49,5 +51,22 @@ public abstract class UserStoreContractTest<T extends LoadUser & SaveUser> exten
     @Test
     void givenAnUnknownId_whenLoading_thenItIsEmpty() {
         assertThat(subject.findById(UserId.of(UUID.randomUUID()))).isEmpty();
+    }
+
+    @Test
+    void givenAnAdministratorWithASecondFactor_whenSavedAndLoaded_thenTheSecondFactorIsKept() {
+        User saved = administrator();
+        saved.enrollSecondFactor(new EncryptedSecret(new byte[] {1, 2, 3}), 57_000_000L, NOW);
+        subject.save(saved);
+        persistAndForget();
+
+        User loaded = subject.findAdministrator().orElseThrow();
+        assertThat(loaded).usingRecursiveComparison().isEqualTo(saved);
+        assertThat(loaded.secondFactor()).map(SecondFactor::lastStep).contains(57_000_000L);
+    }
+
+    @Test
+    void givenNoAdministrator_whenFindingIt_thenThereIsNone() {
+        assertThat(subject.findAdministrator()).isEmpty();
     }
 }

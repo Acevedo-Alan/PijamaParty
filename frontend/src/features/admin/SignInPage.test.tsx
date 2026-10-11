@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
@@ -6,6 +6,7 @@ import { problem, signedIn, signedOut, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
+const messages = es.admin.signIn;
 const productList = answer(200, { items: [], hasMore: false });
 const categoryList = answer(200, []);
 
@@ -20,16 +21,20 @@ describe('back-office sign-in (UC-04)', () => {
     vi.restoreAllMocks();
   });
 
-  it('given correct credentials, when signing in, then the administrator reaches the page asked for', async () => {
+  it('given correct credentials and a code of the app, when signing in, then the administrator reaches the page asked for', async () => {
     const api = stubApi({
       'GET /api/admin/auth/me': signedOut,
-      'POST /api/admin/auth/login': signedIn,
+      'POST /api/admin/auth/login': answer(200, { nextStep: 'SECOND_FACTOR' }),
+      'POST /api/admin/auth/second-factor': signedIn,
       'GET /api/admin/catalog/products': productList,
       'GET /api/admin/catalog/categories': categoryList,
     });
     const { router } = renderRoute('/admin/productos');
 
     await signInWith('owner@example.com', 'a long password');
+    expect(await screen.findByRole('heading', { level: 1, name: messages.codeTitle })).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText(messages.codeLabel), '123 456');
+    await userEvent.click(screen.getByRole('button', { name: messages.verify }));
 
     expect(await screen.findByRole('heading', { level: 1, name: es.admin.productList.title })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/admin/productos');
@@ -37,6 +42,85 @@ describe('back-office sign-in (UC-04)', () => {
       email: 'owner@example.com',
       password: 'a long password',
     });
+    expect(api.callsTo('POST /api/admin/auth/second-factor')[0]?.options.body).toEqual({ code: '123 456' });
+  });
+
+  it('given the right password and a wrong code, when verifying, then the back office stays closed', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedOut,
+      'POST /api/admin/auth/login': answer(200, { nextStep: 'SECOND_FACTOR' }),
+      'POST /api/admin/auth/second-factor': problem(401),
+    });
+    renderRoute('/admin/ingresar');
+
+    await signInWith('owner@example.com', 'a long password');
+    await userEvent.type(await screen.findByLabelText(messages.codeLabel), '000000');
+    await userEvent.click(screen.getByRole('button', { name: messages.verify }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(messages.invalidCode);
+    expect(screen.getByLabelText(messages.codeLabel)).toHaveValue('');
+    expect(screen.getByRole('heading', { level: 1, name: messages.codeTitle })).toBeInTheDocument();
+  });
+
+  it('given more than 5 minutes after the password, when the code arrives, then the password is asked again', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedOut,
+      'POST /api/admin/auth/login': answer(200, { nextStep: 'SECOND_FACTOR' }),
+      'POST /api/admin/auth/second-factor': problem(409),
+    });
+    renderRoute('/admin/ingresar');
+
+    await signInWith('owner@example.com', 'a long password');
+    await userEvent.type(await screen.findByLabelText(messages.codeLabel), '123456');
+    await userEvent.click(screen.getByRole('button', { name: messages.verify }));
+
+    expect(await screen.findByText(messages.expiredStep)).toBeInTheDocument();
+    expect(screen.getByLabelText(messages.password)).toBeInTheDocument();
+  });
+
+  it('given no second factor yet, when the password is right, then the app is enrolled and the recovery codes shown once', async () => {
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedOut,
+      'POST /api/admin/auth/login': answer(200, { nextStep: 'ENROLLMENT' }),
+      'GET /api/admin/auth/enrollment': answer(200, {
+        secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+        otpauthUri: 'otpauth://totp/x',
+        qrCode: 'data:image/png;base64,AAAA',
+      }),
+      'POST /api/admin/auth/enrollment': [
+        problem(401),
+        answer(200, {
+          administrator: { id: 'admin-1', email: 'owner@example.com', name: 'Dueña' },
+          recoveryCodes: ['AB7K3-M9QX2', 'ZZZZZ-00000'],
+        }),
+      ],
+      'GET /api/admin/catalog/products': productList,
+      'GET /api/admin/catalog/categories': categoryList,
+    });
+    const { router } = renderRoute('/admin/ingresar');
+
+    await signInWith('owner@example.com', 'a long password');
+    expect(await screen.findByRole('img', { name: messages.qrAlt })).toHaveAttribute('src', 'data:image/png;base64,AAAA');
+    expect(screen.getByText('JBSW Y3DP EHPK 3PXP JBSW Y3DP EHPK 3PXP')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText(messages.enrollCodeLabel), '000000');
+    await userEvent.click(screen.getByRole('button', { name: messages.enroll }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(messages.invalidCode);
+    await userEvent.type(screen.getByLabelText(messages.enrollCodeLabel), '654321');
+    await userEvent.click(screen.getByRole('button', { name: messages.enroll }));
+
+    const codes = await screen.findByRole('list', { name: messages.recoveryTitle });
+    expect(within(codes).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'AB7K3-M9QX2',
+      'ZZZZZ-00000',
+    ]);
+    const enter = screen.getByRole('button', { name: messages.continue });
+    expect(enter).toBeDisabled();
+    await userEvent.click(screen.getByLabelText(messages.saved));
+    await userEvent.click(enter);
+
+    expect(await screen.findByRole('heading', { level: 1, name: es.admin.productList.title })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/admin/productos');
+    expect(api.callsTo('GET /api/admin/auth/enrollment')).toHaveLength(1);
   });
 
   it('given wrong credentials, when trying, then one generic message is shown and the password is cleared', async () => {

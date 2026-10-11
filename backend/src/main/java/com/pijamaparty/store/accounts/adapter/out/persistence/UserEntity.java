@@ -1,7 +1,9 @@
 package com.pijamaparty.store.accounts.adapter.out.persistence;
 
 import com.pijamaparty.store.accounts.domain.Email;
+import com.pijamaparty.store.accounts.domain.EncryptedSecret;
 import com.pijamaparty.store.accounts.domain.PasswordHash;
+import com.pijamaparty.store.accounts.domain.SecondFactor;
 import com.pijamaparty.store.accounts.domain.User;
 import com.pijamaparty.store.accounts.domain.UserRole;
 import com.pijamaparty.store.platform.domain.UserId;
@@ -12,9 +14,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
-/** Row of {@code app_user} (V5). Translated to and from the {@link User} aggregate; never leaves this package. */
+/** Row of {@code app_user} (V5, V11). Translated to and from the {@link User} aggregate; never leaves this package. */
 @Entity
 @Table(name = "app_user")
 class UserEntity {
@@ -44,6 +47,15 @@ class UserEntity {
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
+    @Column(name = "totp_secret")
+    private byte[] totpSecret;
+
+    @Column(name = "totp_enabled_at")
+    private Instant totpEnabledAt;
+
+    @Column(name = "totp_last_step")
+    private Long totpLastStep;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -66,16 +78,22 @@ class UserEntity {
         return entity;
     }
 
-    /** The only state the sign-in may change (the database enforces the same for SYSTEM, V5). */
+    /** The only state the sign-in may change (the database enforces the same for SYSTEM, V5 and V11). */
     void copySignInStateFrom(User user) {
         failedLoginAttempts = user.failedSignInAttempts();
         lockedUntil = user.lockedUntil().orElse(null);
+        Optional<SecondFactor> secondFactor = user.secondFactor();
+        totpSecret = secondFactor.map(factor -> factor.secret().bytes()).orElse(null);
+        totpEnabledAt = secondFactor.map(SecondFactor::enabledAt).orElse(null);
+        totpLastStep = secondFactor.map(SecondFactor::lastStep).orElse(null);
         updatedAt = user.updatedAt();
     }
 
     User toDomain() {
         return User.restore(UserId.of(id), new Email(email), emailVerified,
             passwordHash == null ? null : new PasswordHash(passwordHash), name, role, failedLoginAttempts, lockedUntil,
+            totpSecret == null ? null
+                : new SecondFactor(new EncryptedSecret(totpSecret), totpEnabledAt, totpLastStep),
             createdAt, updatedAt);
     }
 }

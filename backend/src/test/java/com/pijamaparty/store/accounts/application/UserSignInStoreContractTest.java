@@ -3,6 +3,8 @@ package com.pijamaparty.store.accounts.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.accounts.domain.Email;
+import com.pijamaparty.store.accounts.domain.EncryptedSecret;
+import com.pijamaparty.store.accounts.domain.SecondFactor;
 import com.pijamaparty.store.accounts.domain.User;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.testing.ContractTest;
@@ -61,6 +63,25 @@ public abstract class UserSignInStoreContractTest<T extends UserSignInStore> ext
 
         assertThat(subject.find(OWNER)).map(User::id).contains(user.id());
         assertThat(subject.find(Email.parse("nobody@example.com").orElseThrow())).isEmpty();
+    }
+
+    @Test
+    void givenAStoredUser_whenAnAttemptByIdEnrollsASecondFactor_thenItIsSavedAndFoundById() {
+        User user = UserStoreContractTest.administrator();
+        arrange(user);
+        Instant later = UserStoreContractTest.NOW.plusSeconds(60);
+
+        subject.withUserLockedForSignIn(user.id(), found -> {
+            found.orElseThrow().enrollSecondFactor(new EncryptedSecret(new byte[] {7}), 42L, later);
+            return null;
+        });
+
+        assertThat(stored(user.id()).orElseThrow().secondFactor()).map(SecondFactor::lastStep).contains(42L);
+        assertThat(subject.find(user.id())).map(User::id).contains(user.id());
+        assertThat(subject.find(UserId.of(java.util.UUID.randomUUID()))).isEmpty();
+        boolean unknownFound = subject.withUserLockedForSignIn(UserId.of(java.util.UUID.randomUUID()),
+            Optional::isPresent);
+        assertThat(unknownFound).isFalse();
     }
 
     @Test
