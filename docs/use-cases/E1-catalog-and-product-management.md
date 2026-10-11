@@ -381,6 +381,7 @@
 **Design notes**
 - Inbound ports: `SearchProducts`, `SuggestProducts`. Outbound read port: `ProductSearchQuery` (PostgreSQL full text, `spanish` configuration, `unaccent`).
 - Index maintenance: an application-level listener `RefreshSearchVector` reacts to `ProductChanged` and recomputes the `search_vector` column (weights: name A, category and material B, description and variant colors C) with a GIN index. `unaccent` is not immutable, so a generated column is not possible.
+- Schema (T-E1-17): the trusted extension `unaccent` (created by the schema owner, no superuser), `product.search_vector TSVECTOR NOT NULL DEFAULT ''` (a product not indexed yet matches nothing) and the GIN index `product_search_vector_idx`. The weighting lives once in the SQL function `product_search_vector(product_id)`: the migration fills existing products with it and the listener of T-E1-18 runs `update product set search_vector = product_search_vector(id)`. Only active variants contribute colors, so an inactive variant's color does not match.
 - Query: `websearch_to_tsquery('spanish', unaccent(:q))`, ranked with `ts_rank`; suggestions use prefix matching on the last word.
 - Out of v1: typo tolerance (`pg_trgm`).
 - Endpoints: `GET /api/catalog/products?q=` and `GET /api/catalog/suggestions?q=`.
