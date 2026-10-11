@@ -407,3 +407,18 @@
   - Public endpoint for those links: `GET /api/catalog/categories` → `200` `{items}`, the active categories by position, each with `slug` and `name` (inbound port `ListShopCategories`, no actor; rate-limit policy catalog).
   - A `q` in the URL of `/` or of a category page is ignored: only `/buscar` searches.
 - Rate limits (T-E1-15, RNF-22): a search is a `GET` of either endpoint that carries `q`. The `search` policy allows 60 per minute per IP and the request also counts for the `catalog` policy (120 per minute per IP, every `GET /api/catalog/**`), so browsing without text is limited only by the latter. Buckets refill continuously (Bucket4j greedy refill): a burst of 60, then one search per second.
+
+---
+
+## Analytics and consent (RNF-25)
+
+**Module:** frontend only (ARCHITECTURE.md section 8): the backend never receives or forwards analytics data. **Tasks:** T-E1-23 (consent and loader), T-E1-24 (catalog events).
+
+**Consent and loader (T-E1-23)**
+- The tools are Google Analytics 4 and Meta Pixel. Their ids come from the build variables `VITE_GA4_MEASUREMENT_ID` and `VITE_META_PIXEL_ID` (Docker build arguments taken from `.env`), never from the code. A tool without an id is never loaded; without either, no banner is shown.
+- Every public page (not the back office) shows a banner at the bottom until the visitor chooses: a short text, "Aceptar" and "Rechazar", with the same weight. Nothing of either tool loads before "Aceptar".
+- The choice is kept in the browser (`localStorage`, key `pp-consent`, with the date it was made) for 12 months; after that, or with an unreadable value, the banner asks again.
+- The footer of every public page has a "Cookies" link that opens the banner again, with the current choice stated, to change it.
+- Accepting loads `gtag.js` and `fbevents.js` asynchronously, after the page. Rejecting loads nothing. Changing from accepted to rejected deletes the cookies of both tools (`_ga`, `_ga_*`, `_fbp`) and reloads the page, so the loaded scripts go away.
+- Page views are sent by the app on every route change (GA4 `page_view` with its automatic one turned off, Pixel `PageView`), with the address without query string or fragment: queries can hold search texts and, from E3, tracking tokens. No event carries a national ID, email, name or address (R-05).
+- Caddy's content security policy allows only the domains these tools need (`www.googletagmanager.com`, `*.google-analytics.com`, `*.analytics.google.com`, `connect.facebook.net`, `www.facebook.com`). Verification with Pixel Helper and GA4 DebugView is T-E6-16.
