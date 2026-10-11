@@ -56,7 +56,7 @@
 **Criterios de aceptación**
 - Dado un producto rosa M con stock y celeste M sin stock, cuando se abre el detalle, entonces solo el celeste M figura agotado.
 - Dada una combinación con stock disponible 0, cuando se selecciona, entonces el botón de compra está deshabilitado.
-- Dado el detalle abierto, cuando se cambia de color, entonces el precio y las fotos se actualizan según la variante.
+- Dado el detalle abierto, cuando se cambia de color, entonces el precio se actualiza según la variante y la galería muestra primero las fotos de ese color.
 - Dado un slug inexistente, cuando se abre, entonces se muestra una página 404 con enlace a la tienda.
 
 ## CU-04 Iniciar sesión en el backoffice
@@ -123,6 +123,9 @@
 - Se aceptan fotos JPG, PNG y WebP de hasta 10 MB, con un máximo de 8 por producto (*Propuesto*).
 - Desde el celular se puede sacar la foto o elegirla de la galería, y se pueden elegir varias a la vez.
 - El dispositivo reduce cada foto (máximo 1600 px de lado) antes de enviarla, para ahorrar datos móviles.
+- Una foto puede ser de uno de los colores del producto (se muestra en todos los talles de ese color) o de todo el producto. El color se elige al subirla; para cambiarlo, se borra y se sube de nuevo.
+- Las fotos se pueden reordenar y borrar. Una foto nueva va al final.
+- El servidor guarda cada foto en WebP de 400, 800 y 1200 px de ancho (nunca la agranda), sin metadatos y con la orientación aplicada, más un placeholder borroso.
 
 **Criterios de aceptación**
 - Dados 3 talles y 2 colores, cuando se genera la matriz, entonces se crean 6 variantes.
@@ -130,6 +133,9 @@
 - Dado un producto oculto, cuando se publica, entonces aparece en el catálogo.
 - Dada una foto de 8 MB elegida desde el celular, cuando se sube, entonces se reduce en el dispositivo antes de enviarse y el servidor la procesa como cualquier otra.
 - Dada una subida que se corta por falta de conexión, cuando vuelve la señal, entonces se puede reintentar sin duplicar la foto.
+- Dado un archivo llamado `.jpg` cuyo contenido no es JPG, PNG ni WebP, cuando se sube, entonces se rechaza.
+- Dado un producto con 8 fotos, cuando se sube otra, entonces se rechaza.
+- Dada una foto, cuando se borra, entonces deja de figurar en el producto y se eliminan sus archivos.
 
 ## CU-07 Gestionar stock
 

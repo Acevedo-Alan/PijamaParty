@@ -23,7 +23,7 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | Producto | id, nombre, slug, descripcion, material, temporada, publico, categoriaId, activo |
 | Variante | id, productoId, sku, talle, ordenTalle, color, ordenColor, precioCentavos?, activa (el orden de talles y colores es el de carga en el producto) |
 | NivelStock | varianteId, enMano (módulo de inventario; la reserva se suma en E3) |
-| Imagen | id, productoId, varianteId?, claveArchivo (nombre generado por el servidor; la URL se deriva de ella, RNF-29.4), placeholder, orden |
+| Imagen | id, productoId, color? (uno de los colores del producto), claveArchivo (nombre generado por el servidor; la URL se deriva de ella, RNF-29.4), placeholder, orden, claveSubida y hash del archivo (reintentos sin duplicar) |
 | MovimientoStock | id, varianteId, tipo (CARGA_INICIAL, AJUSTE, RESERVA, DESCUENTO, LIBERACION), cantidad (con signo), nota? (texto libre del administrador), pedidoId?, usuarioId?, fecha |
 | Carrito / CarritoItem | id, token, usuarioId?, cuponId?, items(varianteId, cantidad) |
 | Cupon | id, codigo, tipo, valor, vigenciaDesde/Hasta, usosMax, usosActuales, minimoCompra, automatico, regla, activo |
@@ -88,6 +88,7 @@ PAGADO | PREPARANDO → CANCELADO
 | Claves foráneas entre módulos | Decidido | Solo dentro de un módulo. Entre módulos se guarda el uuid sin FK (por ejemplo `stock_level.variant_id`); la consistencia la dan los eventos, o una llamada a la `api` del otro módulo en la misma transacción cuando la dependencia ya va en ese sentido (el catálogo crea el `stock_level` de cada variante nueva con `inventory.api`) |
 | Orden de talles y colores | Decidido | Texto libre por producto, ordenado según la carga en la matriz de variantes |
 | SKU de las variantes | Decidido | Código generado por el sistema: `PP-` y 8 caracteres aleatorios sin caracteres parecidos; no se edita (CU-06) |
+| Fotos de producto | Decidido | Se asocian a un color (o a todo el producto), no a una variante: una foto muestra un color en todos sus talles. Conversión con libvips por línea de comandos, fuera de la JVM (CU-06) |
 | Matriz de variantes | Decidido | Generación aditiva: crea solo las combinaciones nuevas y nunca borra variantes; hasta 20 talles y 20 colores por producto (CU-06) |
 | Motivo de los movimientos de stock | Decidido | Tipo fijo (enum) más una nota libre opcional del administrador |
 | Rate limiting solo en la app (Bucket4j en memoria) | Decidido | Sin Cloudflare ni plugin de Caddy |
