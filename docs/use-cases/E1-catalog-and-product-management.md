@@ -422,3 +422,11 @@
 - Accepting loads `gtag.js` and `fbevents.js` asynchronously, after the page. Rejecting loads nothing. Changing from accepted to rejected deletes the cookies of both tools (`_ga`, `_ga_*`, `_fbp`) and reloads the page, so the loaded scripts go away.
 - Page views are sent by the app on every route change (GA4 `page_view` with its automatic one turned off, Pixel `PageView`), with the address without query string or fragment: queries can hold search texts and, from E3, tracking tokens. No event carries a national ID, email, name or address (R-05).
 - Caddy's content security policy allows only the domains these tools need (`www.googletagmanager.com`, `*.google-analytics.com`, `*.analytics.google.com`, `connect.facebook.net`, `www.facebook.com`). Verification with Pixel Helper and GA4 DebugView is T-E6-16.
+
+**Catalog events (T-E1-24)**
+- Sent only once the tools are loaded (after "Aceptar"); before that, or for a tool without an id, nothing is sent.
+- `view_item_list` (GA4 only): each page of products shown, the first and every "Show more", with `item_list_id` and `item_list_name` (`all_products`, `category_{slug}` or `search_results`) and its `items`, each with `item_id`, `item_name`, `price` and `index` (its place in the whole list, from 0).
+- `view_item` (GA4) and `ViewContent` (Pixel): once per product page opened, with `currency: "ARS"`, `value` (the "from" price) and the product as the single item (Pixel: `content_ids`, `content_type: "product"`, `value`, `currency`).
+- `search` (GA4, `search_term`) and `Search` (Pixel, `search_string`): once per text searched, when its results page opens. A text with `@` or a run of 7 or more digits is not sent, because it may be an email or a national ID (R-05).
+- Amounts go in pesos (`cents / 100`) with `currency: "ARS"`.
+- Item id: RNF-25 asks for the SKU, but a listing or a product page has no chosen variant yet, so these events identify the product by its slug. The SKU is the item id from `add_to_cart` (E2) on, where a variant is chosen.
