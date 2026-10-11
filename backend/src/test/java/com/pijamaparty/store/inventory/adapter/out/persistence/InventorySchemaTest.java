@@ -19,7 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-/** T-E1-01: the inventory schema (V4) enforces UC-07 and RNF-20.4, connected as the application role. */
+/** T-E1-01, T-E1-06: the inventory schema (V4, V8) enforces UC-07 and RNF-20.4, connected as the application role. */
 @ApiTest
 class InventorySchemaTest {
 
@@ -56,8 +56,8 @@ class InventorySchemaTest {
         var variant = stockLevel(3);
         var admin = UUID.randomUUID();
         app.update("""
-            insert into stock_movement (id, variant_id, type, quantity, note, user_id, created_at)
-            values (?, ?, 'ADJUSTMENT', 2, 'Reposición', ?, now())
+            insert into stock_movement (id, variant_id, type, quantity, note, user_id, adjustment_key, created_at)
+            values (?, ?, 'ADJUSTMENT', 2, 'Reposición', ?, gen_random_uuid(), now())
             """, UUID.randomUUID(), variant, admin);
 
         var row = app.queryForMap("select created_at, user_id, quantity, note from stock_movement where variant_id = ?",
@@ -71,8 +71,8 @@ class InventorySchemaTest {
         var variant = stockLevel(3);
 
         assertThatThrownBy(() -> app.update("""
-                insert into stock_movement (id, variant_id, type, quantity, note, user_id, created_at)
-                values (?, ?, 'ADJUSTMENT', 2, ?, ?, now())
+                insert into stock_movement (id, variant_id, type, quantity, note, user_id, adjustment_key, created_at)
+                values (?, ?, 'ADJUSTMENT', 2, ?, ?, gen_random_uuid(), now())
                 """, UUID.randomUUID(), variant, "x".repeat(201), UUID.randomUUID()))
             .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_movement_note_length_ck");
     }
@@ -82,8 +82,8 @@ class InventorySchemaTest {
         var variant = stockLevel(3);
 
         assertThatThrownBy(() -> app.update("""
-                insert into stock_movement (id, variant_id, type, quantity, created_at)
-                values (?, ?, 'ADJUSTMENT', 2, now())
+                insert into stock_movement (id, variant_id, type, quantity, adjustment_key, created_at)
+                values (?, ?, 'ADJUSTMENT', 2, gen_random_uuid(), now())
                 """, UUID.randomUUID(), variant))
             .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_movement_user_ck");
     }
@@ -125,6 +125,50 @@ class InventorySchemaTest {
         } finally {
             threads.shutdownNow();
         }
+    }
+
+    @Test
+    void givenAnAdjustmentKey_whenUsedAgainOnTheSameVariant_thenItIsRejectedButAnotherVariantMayUseIt() {
+        var variant = stockLevel(3);
+        var other = stockLevel(3);
+        var key = UUID.randomUUID();
+        recordAdjustment(variant, key);
+
+        assertThatThrownBy(() -> recordAdjustment(variant, key))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_movement_adjustment_key_uk");
+        recordAdjustment(other, key);
+        assertThat(movementsOf(other)).isOne();
+    }
+
+    @Test
+    void givenAMovementType_whenRecordedWithOrWithoutAnAdjustmentKey_thenOnlyTheAdministratorsTypesHaveOne() {
+        var variant = stockLevel(3);
+
+        assertThatThrownBy(() -> app.update("""
+                insert into stock_movement (id, variant_id, type, quantity, user_id, created_at)
+                values (?, ?, 'INITIAL_LOAD', 2, ?, now())
+                """, UUID.randomUUID(), variant, UUID.randomUUID()))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_movement_adjustment_key_ck");
+        assertThatThrownBy(() -> app.update("""
+                insert into stock_movement (id, variant_id, type, quantity, order_id, adjustment_key, created_at)
+                values (?, ?, 'RESERVATION', -1, ?, ?, now())
+                """, UUID.randomUUID(), variant, UUID.randomUUID(), UUID.randomUUID()))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_movement_adjustment_key_ck");
+    }
+
+    @Test
+    void givenAStockOfAMillion_whenAddingOne_thenItIsRejected() {
+        var variant = stockLevel(1_000_000);
+
+        assertThatThrownBy(() -> app.update("update stock_level set on_hand = on_hand + 1 where variant_id = ?", variant))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_level_on_hand_max_ck");
+    }
+
+    private void recordAdjustment(UUID variant, UUID key) {
+        app.update("""
+            insert into stock_movement (id, variant_id, type, quantity, user_id, adjustment_key, created_at)
+            values (?, ?, 'ADJUSTMENT', 1, ?, ?, now())
+            """, UUID.randomUUID(), variant, UUID.randomUUID(), key);
     }
 
     private int recordAfter(CountDownLatch start, UUID variant, UUID order) {

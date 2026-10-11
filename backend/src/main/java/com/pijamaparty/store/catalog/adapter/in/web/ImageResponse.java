@@ -12,7 +12,7 @@ import java.util.UUID;
 record ImageResponse(UUID id, @Schema(nullable = true) String color, String placeholder, List<FileResponse> files) {
 
     /** Where Caddy serves the uploads volume (deploy/caddy/Caddyfile). */
-    private static final String UPLOADS_PATH = "/uploads/";
+    static final String UPLOADS_PATH = "/uploads/";
 
     static ImageResponse of(ProductView.ImageView view) {
         return new ImageResponse(view.id().value(), view.color().orElse(null), view.placeholder(),

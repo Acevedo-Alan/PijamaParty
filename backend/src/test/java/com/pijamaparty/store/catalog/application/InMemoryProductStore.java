@@ -67,6 +67,11 @@ public class InMemoryProductStore implements LoadProducts, SaveProduct, ProductS
         return write(product);
     }
 
+    /** Copies of every stored product, for the fakes of the read side ({@link InMemoryProductListing}). */
+    public List<Product> all() {
+        return products.findAll();
+    }
+
     /** Test arrangement: stores the product as it is, like {@link #add} without the result. */
     public void save(Product product) {
         SaveProduct.Outcome outcome = add(product);
