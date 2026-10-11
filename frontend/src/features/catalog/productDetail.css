@@ -1,0 +1,154 @@
+/* The prototype's product page (.pdp): gallery with thumbnails, info and the size and color picker (UC-03). */
+.pdp {
+  padding-top: 24px;
+  padding-bottom: 70px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.pdp-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 860px) {
+  .pdp-layout {
+    grid-template-columns: 1.15fr 1fr;
+    gap: 56px;
+    align-items: start;
+  }
+}
+
+.pdp-gallery .pdp-main,
+.pdp-layout > .skeleton-ph {
+  border-radius: var(--radius-m);
+}
+
+.pdp-thumbs {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  overflow-x: auto;
+}
+
+.pdp-thumb {
+  display: block;
+  border-radius: var(--radius-s);
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+.pdp-thumb .ph {
+  width: 64px;
+  height: 80px;
+  border-radius: var(--radius-s);
+}
+
+.pdp-thumb[aria-pressed='true'] {
+  opacity: 1;
+  outline: 1.5px solid var(--ink);
+}
+
+.pdp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pdp-info h1 {
+  font-family: var(--ff-display);
+  font-weight: 500;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.pdp-price {
+  font-size: 17px;
+  color: var(--ink-soft);
+}
+
+.pdp-desc {
+  margin-top: 10px;
+  max-width: 48ch;
+  font-size: 14px;
+  color: var(--ink-soft);
+  white-space: pre-line;
+}
+
+.pdp-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-size: 13px;
+}
+
+.pdp-facts div {
+  display: flex;
+  gap: 6px;
+}
+
+.pdp-facts dt {
+  color: var(--ink-soft);
+}
+
+.pdp-facts dt::after {
+  content: ':';
+}
+
+.option-group {
+  border: none;
+  margin-top: 18px;
+}
+
+.option-group legend {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chip.sold-out {
+  color: var(--ink-soft);
+  border-style: dashed;
+  text-decoration: line-through;
+}
+
+.chip:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+.stock-note {
+  min-height: 1.5em;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.add-cart {
+  width: 100%;
+  margin-top: 8px;
+}
+
+@media (min-width: 860px) {
+  .add-cart {
+    max-width: 360px;
+  }
+}
+
+.pdp-hint {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+@media (hover: hover) {
+  .pdp-thumb:hover {
+    opacity: 1;
+  }
+}

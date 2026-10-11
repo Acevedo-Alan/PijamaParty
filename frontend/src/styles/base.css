@@ -66,6 +66,57 @@ textarea {
   padding: 0 20px;
 }
 
+/* Buttons shared by the storefront and the back office */
+.btn {
+  min-height: 48px;
+  padding: 12px 28px;
+  border-radius: var(--radius-s);
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background-color 0.22s ease;
+}
+
+.btn:disabled {
+  background: #d9d2c4;
+  color: var(--ink);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+}
+
+.link-btn {
+  min-height: 44px;
+  color: var(--accent-text);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--peach-soft);
+  }
+}
+
+/* Read by screen readers, not shown */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

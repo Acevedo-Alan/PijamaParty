@@ -290,7 +290,7 @@ class ProductImageAdminApiTest {
     }
 
     private String order(String... ids) throws Exception {
-        return json.writeValueAsString(new ProductImageAdminController.OrderRequest(
+        return json.writeValueAsString(new ProductImageAdminController.ImageOrderRequest(
             Stream.of(ids).map(UUID::fromString).toList()));
     }
 

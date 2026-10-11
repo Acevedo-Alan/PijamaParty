@@ -40,6 +40,7 @@
 - Result record: `ProductListingItem(slug, name, image?, fromPrice: Money, soldOut: boolean)`; `image` carries the placeholder and the files of the first photo (400, 800 and 1200 px, for `srcset`).
 - Endpoint: `GET /api/catalog/products?category=&page=` (category by slug) → `200` `{items, hasMore}`, each item with `slug`, `name`, `image` (or null: `placeholder` and `files` with `width` and `url`), `fromPriceCents` and `soldOut`; `400` invalid parameters; `404` unknown or inactive category. Offset pagination with page size 24, pages from 0 to 1,000; revisit if the catalog exceeds a few thousand products.
 - Rate-limit policy: catalog (120 per minute per IP), activated in T-E1-15.
+- Storefront pages (T-E1-09): the whole shop at `/` and a category at `/categoria/{slug}`; each card links to `/producto/{slug}` (UC-03). These public paths are Spanish because customers read and share them; API routes stay in English. An unknown or inactive category shows the empty-category message with a link to `/`. A failed "Show more" keeps the products already shown and lets the visitor retry.
 
 ---
 
@@ -78,6 +79,7 @@
 - `ProductFilter` is a record in `catalog.domain` (value object) that enforces the limits above. `ProductSort` is an enum in `catalog.domain`.
 - The SQL is one constant text block per query (RNF-28: Semgrep rejects SQL built at run time). Every filter is a condition that an empty array parameter switches off (`cardinality(:sizes) = 0 OR ...`), and the sort is a whitelisted `CASE` on the bound enum name. A new filter adds a condition and a parameter to that query.
 - Endpoints: `GET /api/catalog/products?category=&size=&color=&material=&season=&audience=&minPrice=&maxPrice=&sort=&page=` (repeat a parameter for several values) and `GET /api/catalog/filters?category=` → `200` `{sizes, colors, materials, seasons, audiences, minPriceCents, maxPriceCents}` (prices null without listed products); `404` unknown or inactive category. Invalid values answer `400`.
+- Storefront (T-E1-10): a "Filter" button opens the filters in a sliding panel (a modal `dialog`) at every width; the visitor picks values and confirms with "Show results", and "Clear" empties the panel. The sort is a select next to the button and applies at once. The URL is the source of truth, so a shared link shows the same filters and sort, and the browser's back button undoes the last change. Its query keys and values are Spanish, like the public paths: `talle`, `color`, `material` (repeated for several values, exact text), `temporada` (`verano`, `media-estacion`, `invierno`), `publico` (`mujer`, `hombre`, `infantil`), `precio-desde` and `precio-hasta` (whole pesos; the panel asks for pesos and the API receives cents) and `orden` (`menor-precio`, `mayor-precio`; absent means newest). Unknown values, values past the 20th of a filter and a minimum above the maximum are ignored when reading the URL; the panel refuses a minimum above the maximum. Groups without options are not shown, and the price group only appears when the options carry a price range. With filters and no matches the grid shows the no-matches message and "Clear filters", which keeps the sort.
 
 ---
 
@@ -112,6 +114,7 @@
 **Design notes**
 - Inbound query port: `GetProductDetail`; sealed result `Found(ProductDetail)` or `NotFound`. No actor: the detail is public. The product comes from `LoadProducts.findBySlug` (a text that is not a slug finds nothing), its category from `LoadCategories`; `Product.isListedIn(category)` holds the rule above and `Product.sellableVariants()` gives the active priced variants.
 - `catalog.application` depends on the port `VariantAvailabilityLookup`, implemented by an adapter that calls `inventory.api.StockAvailability`. It answers every requested variant, 0 for one without a stock level.
+- Storefront (T-E1-11): the page lives at `/producto/{slug}`; an unknown slug, and one the API rejects with `400`, shows the own 404 page. Color and size are two radio groups in the order of `colors` and `sizes`; a group with a single option starts picked (a size only when it has stock). A size without stock in the picked color (or in any color, before one is picked) is disabled. A color stays selectable, since it also orders the gallery, and is marked sold out when it has no stock in the picked size; picking it drops a size it has no stock in. The price is the picked variant's; before both are picked it is the lowest price of the variants that match the picks, prefixed "from" when they differ. With both picked, the exact available stock shows. The gallery shows a main photo (loaded eagerly, blurred placeholder until it loads) and thumbnails; a new color starts it again from that color's first photo. Alternative text is name, color (for photos of a color) and photo number. "Add to cart" does nothing until UC-08.
 - `inventory.api.StockAvailability.available(variantIds)`: the available stock of each variant, read from the view `v_variant_availability` (V9) through the inventory port `AvailableStock`, so "on hand − reserved" is written only in the view. Joins the caller's transaction, read-only.
 - Endpoint: `GET /api/catalog/products/{slug}` → `200` `{slug, name, description, material, season, audience, fromPriceCents, sizes, colors, variants, images}`; each variant with `id`, `size`, `color`, `priceCents` and `available`; each image with `color` (null for the whole product), `placeholder` and `files` (`width`, `url`). `NotFound` maps to `404` `problem+json`; a slug longer than 4 × 140 characters answers `400`.
 - Rate-limit policy: catalog (120 per minute per IP), activated in T-E1-15.
@@ -169,6 +172,7 @@
   - At startup, if no administrator exists, it is created as `SYSTEM`. If one exists, these values are ignored and never overwrite it.
 - Sign-in runs as `SYSTEM`, because nobody is signed in yet. RLS restricts what `SYSTEM` may change to the attempts and the lock (V5). The persistence adapter opens that system transaction, because use cases and web adapters never switch to `SYSTEM` (ARCHITECTURE.md section 9). `GET /me` runs as the `ADMIN` actor.
 - Sessions expire after 60 minutes of inactivity (Spring Session JDBC). The session principal name is the user id, never the email (RNF-27).
+- Back office (T-E1-12): the sign-in page is `/admin/ingresar`; `/admin` opens the product list. Every other back-office page asks `GET /me` first: without a session it opens the sign-in page and, once signed in, returns to the page asked for; a `CUSTOMER` sees an access-denied page. A `401` on a later call (expired session) opens the sign-in page again with a notice. Wrong credentials show one generic message, a lock shows the unlock time (Argentina time) and a `429` asks to wait. "Sign out" ends the session and opens the sign-in page. The back office has its own header (products, categories, view store, sign out) and is never indexed.
 
 ---
 
@@ -209,7 +213,7 @@
   - `PUT /order {categoryIds}` → `200` the reordered list; `422` invalid order.
   - `POST /{id}/deactivate`, `POST /{id}/activate` → `200`; `404`.
   - `DELETE /{id}` → `204`; `404`; `409` has products (deactivate it instead).
-- The back-office screen is part of `T-E1-12`.
+- Back office (T-E1-12): `/admin/categorias` lists every category by position with its state. A form above the list creates one. Each row renames in place, moves up or down (sending the whole new order), deactivates or reactivates, and deletes after a confirmation; a `409` on delete says the category has products and offers to deactivate it instead. A `409` on a name shows the slug already used.
 
 ---
 
@@ -288,6 +292,10 @@
   - `POST /products/{id}/images` (multipart: part `file`, optional field `color`; header `Idempotency-Key`) → `201` with the photo; `200` with the stored photo when the key was already used with the same file; `400` missing or invalid key or file; `404`; `409` already 8 photos; `413` over 10 MB; `422` with `problem`: `UNSUPPORTED_FORMAT`, `TOO_LARGE` (dimensions), `UNREADABLE`, `UNKNOWN_COLOR` or `KEY_REUSED` (same key, another file).
   - `PUT /products/{id}/images/order {imageIds}` → `200` the product; `404`; `422` invalid order.
   - `DELETE /products/{id}/images/{imageId}` → `204`; `404` unknown product or photo.
+- Back office (T-E1-12):
+  - `/admin/productos` lists the products newest first with category, state (published or hidden) and number of variants, with "See more" for the next 50. `/admin/productos/nuevo` creates one and opens it.
+  - `/admin/productos/{id}` has four sections. Details: the same form as creation; the fields of a `422` are marked. State: publish or hide; a `409` on publish says a priced active variant is needed. Variants: sizes and colors are typed separated by commas to generate the matrix; the variants show by color and size in display order, each with its SKU, a price in pesos (up to 2 decimals, saved per variant), an active switch and a link to its stock. Photos: by position, each with its color (or "whole product"), move up or down, and delete after a confirmation.
+  - Upload in this task: one file at a time with an optional color. Its `Idempotency-Key` is created when the file is chosen and sent again by "Retry" until it uploads or another file is chosen, so a retry never duplicates the photo. Selecting several files, shrinking on the device, progress and drag to reorder come in T-E1-22.
 
 ---
 
@@ -335,6 +343,7 @@
 - Endpoints (errors as `problem+json`):
   - `POST /api/admin/stock-adjustments {variantId, quantity, note?}` (header `Idempotency-Key`) → `201` `{variantId, onHand}`; `200` the same with the current stock when the key was already used with the same adjustment; `400` missing or invalid key or body; `404` unknown variant; `409` with `problem` `WOULD_GO_NEGATIVE` or `WOULD_EXCEED_MAXIMUM` and the current stock in `onHand`; `422` with `problem` `INVALID_QUANTITY`, `INVALID_NOTE` or `KEY_REUSED`.
   - `GET /api/admin/variants/{id}/stock-movements?page=` → `200` `{variantId, onHand, items, hasMore}`, each item with `id`, `type`, `quantity`, `note` (or null), `userId` and `userName` (or null) and `createdAt`; `404` unknown variant.
+- Back office (T-E1-12): each variant of the product page links to `/admin/productos/{id}/variantes/{variantId}/stock`. The page shows the product, size, color and SKU, the current stock, the adjustment form (a quantity with − and + buttons around the numeric field, and an optional note) and the history, 50 at a time with "See more". The `Idempotency-Key` belongs to one quantity and note: a retry after a lost answer sends it again, and changing the quantity or the note creates a new one. A `409` shows the current stock. The reason column shows the note, or the movement type when there is none; a user without a name shows a dash.
 
 ---
 

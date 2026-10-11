@@ -520,8 +520,11 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        OrderRequest: {
+        ImageOrderRequest: {
             imageIds: string[];
+        };
+        CategoryOrderRequest: {
+            categoryIds: string[];
         };
         CategoryResponse: {
             /** Format: uuid */
@@ -784,7 +787,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrderRequest"];
+                "application/json": components["schemas"]["ImageOrderRequest"];
             };
         };
         responses: {
@@ -835,7 +838,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrderRequest"];
+                "application/json": components["schemas"]["CategoryOrderRequest"];
             };
         };
         responses: {

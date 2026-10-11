@@ -3,6 +3,7 @@ package com.pijamaparty.store;
 import static com.tngtech.archunit.base.DescribedPredicate.not;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
 
@@ -11,6 +12,7 @@ import com.pijamaparty.store.platform.domain.DomainEvent;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.AccessTarget.MethodCallTarget;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -21,7 +23,11 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import java.time.Clock;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
 /**
@@ -87,6 +93,35 @@ class ArchitectureTest {
         noFields().that().areDeclaredInClassesThat().implement(DomainEvent.class)
             .should(holdPersonalData())
             .allowEmptyShould(true);
+
+    /**
+     * springdoc names an OpenAPI schema after the simple class name and silently keeps only one of two records with
+     * the same name, so the generated frontend client would type one endpoint with the other's body.
+     */
+    @ArchTest
+    static final ArchRule web_records_have_unique_names =
+        classes().that().resideInAPackage("..adapter.in.web..").and().areRecords()
+            .should(haveAUniqueSimpleName())
+            .allowEmptyShould(true);
+
+    private static ArchCondition<JavaClass> haveAUniqueSimpleName() {
+        return new ArchCondition<>("have a unique simple name, which becomes their OpenAPI schema name") {
+            private Map<String, Long> counts = Map.of();
+
+            @Override
+            public void init(Collection<JavaClass> records) {
+                counts = records.stream().map(JavaClass::getSimpleName)
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+            }
+
+            @Override
+            public void check(JavaClass record, ConditionEvents events) {
+                boolean unique = counts.getOrDefault(record.getSimpleName(), 0L) == 1;
+                events.add(new SimpleConditionEvent(record, unique,
+                    record.getName() + " has the simple name of another web record"));
+            }
+        };
+    }
 
     private static final Pattern PERSONAL_FIELD_NAME =
         Pattern.compile("(?i).*(email|nationalid|dni|address|phone|name|token|password).*");

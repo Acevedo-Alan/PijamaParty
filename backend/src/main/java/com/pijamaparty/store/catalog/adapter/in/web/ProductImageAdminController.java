@@ -130,7 +130,7 @@ class ProductImageAdminController {
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "422", description = "The order does not name every photo exactly once",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-    ResponseEntity<?> reorder(@PathVariable UUID id, @Valid @RequestBody OrderRequest body) {
+    ResponseEntity<?> reorder(@PathVariable UUID id, @Valid @RequestBody ImageOrderRequest body) {
         var command = new ReorderProductImages.Command(actor(), ProductId.of(id),
             body.imageIds().stream().map(ImageId::of).toList());
         return switch (reorder.execute(command)) {
@@ -191,5 +191,5 @@ class ProductImageAdminController {
     }
 
     /** Every photo id of the product, in the new order. */
-    record OrderRequest(@NotNull @Size(max = SLACK * Product.MAX_IMAGES) List<@NotNull UUID> imageIds) {}
+    record ImageOrderRequest(@NotNull @Size(max = SLACK * Product.MAX_IMAGES) List<@NotNull UUID> imageIds) {}
 }

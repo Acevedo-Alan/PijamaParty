@@ -10,7 +10,12 @@ interface BlurredImageProps {
   alt: string;
   /** Shown blurred until the photo loads; without it, a gradient of the palette tokens is used. */
   placeholder?: PlaceholderDataUrl;
+  /** Responsive files of the photo (`url 400w, ...`) and the width it takes in the layout. */
+  srcSet?: string;
+  sizes?: string;
   className?: string;
+  /** Lazy by default; the main photo of a page loads eagerly because it is the largest paint. */
+  loading?: 'lazy' | 'eager';
 }
 
 function placeholderStyle(placeholder: PlaceholderDataUrl | undefined): CSSProperties | undefined {
@@ -21,7 +26,7 @@ function placeholderStyle(placeholder: PlaceholderDataUrl | undefined): CSSPrope
 }
 
 /** Photo with the prototype's blurred placeholder (.ph): the placeholder fades out once the image has loaded. */
-export function BlurredImage({ src, alt, placeholder, className }: BlurredImageProps) {
+export function BlurredImage({ src, alt, placeholder, srcSet, sizes, className, loading = 'lazy' }: BlurredImageProps) {
   const [loaded, setLoaded] = useState(false);
   const classes = ['ph', loaded ? 'loaded' : '', className ?? ''].filter(Boolean).join(' ');
 
@@ -29,8 +34,10 @@ export function BlurredImage({ src, alt, placeholder, className }: BlurredImageP
     <div className={classes} style={placeholderStyle(placeholder)} data-testid="blurred-image">
       <img
         src={src}
+        srcSet={srcSet}
+        sizes={sizes}
         alt={alt}
-        loading="lazy"
+        loading={loading}
         decoding="async"
         onLoad={() => {
           setLoaded(true);

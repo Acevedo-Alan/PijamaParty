@@ -125,7 +125,7 @@ class CategoryAdminController {
             array = @ArraySchema(schema = @Schema(implementation = CategoryResponse.class))))
     @ApiResponse(responseCode = "422", description = "The order does not name every category exactly once",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-    ResponseEntity<?> reorder(@Valid @RequestBody OrderRequest body) {
+    ResponseEntity<?> reorder(@Valid @RequestBody CategoryOrderRequest body) {
         List<CategoryId> order = body.categoryIds().stream().map(CategoryId::of).toList();
         return switch (reorder.execute(new ReorderCategories.Command(actor(), order))) {
             case ReorderCategories.Result.Reordered reordered ->
@@ -218,7 +218,7 @@ class CategoryAdminController {
     /** The name as typed; the use case trims it and checks the rest of the rules. */
     record NameRequest(@NotNull @Size(max = CategoryName.MAX_LENGTH) String name) {}
 
-    record OrderRequest(@NotNull @Size(max = MAX_CATEGORIES_IN_ORDER) List<@NotNull UUID> categoryIds) {}
+    record CategoryOrderRequest(@NotNull @Size(max = MAX_CATEGORIES_IN_ORDER) List<@NotNull UUID> categoryIds) {}
 
     record CategoryResponse(UUID id, String name, String slug, int position, boolean active) {
 

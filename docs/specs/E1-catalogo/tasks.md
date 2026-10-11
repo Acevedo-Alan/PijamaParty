@@ -8,11 +8,11 @@
 - [x] **T-E1-06** Ajustes de stock e historial de movimientos (CU-07).
 - [x] **T-E1-07** API pública: lista con filtros, orden y paginación (CU-01, CU-02).
 - [x] **T-E1-08** API pública: detalle de producto con stock disponible por variante (CU-03).
-- [ ] **T-E1-09** Storefront: grilla de productos, "Agotado" y "Ver más" (CU-01).
-- [ ] **T-E1-10** Storefront: panel de filtros mobile y filtros en la URL (CU-02).
-- [ ] **T-E1-11** Storefront: página de detalle, selector de talle y color, galería y blur-up (CU-03).
-- [ ] **T-E1-12** Backoffice: pantallas de login, categorías, productos y stock (CU-04 a CU-07).
-- [ ] **T-E1-13** Tests de los criterios de aceptación de CU-01 a CU-07.
+- [x] **T-E1-09** Storefront: grilla de productos, "Agotado" y "Ver más" (CU-01).
+- [x] **T-E1-10** Storefront: panel de filtros mobile y filtros en la URL (CU-02).
+- [x] **T-E1-11** Storefront: página de detalle, selector de talle y color, galería y blur-up (CU-03).
+- [x] **T-E1-12** Backoffice: pantallas de login, categorías, productos y stock (CU-04 a CU-07).
+- [x] **T-E1-13** Tests de los criterios de aceptación de CU-01 a CU-07. El criterio de la foto de 8 MB reducida en el celular (CU-06) se prueba en T-E1-22.
 - [ ] **T-E1-14** Límite de 2 conversiones de imagen simultáneas (RNF-21).
 - [x] **T-E1-15** Activar las políticas de rate limiting de login, catálogo y búsqueda (RNF-22).
 - [ ] **T-E1-16** *Propuesto:* segundo factor TOTP para el administrador (RNF-24).
