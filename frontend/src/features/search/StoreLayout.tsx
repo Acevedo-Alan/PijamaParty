@@ -1,6 +1,6 @@
 import { Link, Outlet } from 'react-router';
 import { es } from '../../i18n/es.ts';
-import { Analytics, StoreFooter } from '../analytics/Analytics.tsx';
+import { Analytics, StoreFooter } from '../analytics/ConsentBanner.tsx';
 import { HeaderSearch } from './HeaderSearch.tsx';
 import './search.css';
 

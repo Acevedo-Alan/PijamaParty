@@ -6,7 +6,7 @@ import { signedOut, stubApi } from '../../test/adminApi.ts';
 import { listed, stubCatalogApi } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { resetAnalyticsForTests } from './analytics.ts';
-import { pageReload } from './Analytics.tsx';
+import { pageReload } from './ConsentBanner.tsx';
 import { saveConsent } from './consent.ts';
 
 const consent = es.consent;
