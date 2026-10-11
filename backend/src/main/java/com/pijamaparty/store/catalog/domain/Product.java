@@ -13,11 +13,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * A product and its variants (UC-06). It keeps every size and color combination unique, its slug following its name,
- * and a published product sellable: it is published only with an active priced variant, and that last one cannot be
- * deactivated while it stays published.
+ * A product, its variants and its photos (UC-06). It keeps every size and color combination unique, its slug
+ * following its name, and a published product sellable: it is published only with an active priced variant, and that
+ * last one cannot be deactivated while it stays published. It holds at most {@link #MAX_IMAGES} photos, each of one of
+ * its colors or of the whole product, and one per upload key.
  */
 public final class Product {
+
+    /** UC-06 (proposed): the most photos a product has. */
+    public static final int MAX_IMAGES = 8;
 
     private static final Comparator<Variant> DISPLAY_ORDER =
         Comparator.comparingInt(Variant::sizePosition).thenComparingInt(Variant::colorPosition);
@@ -29,9 +33,11 @@ public final class Product {
     private final Instant createdAt;
     private Instant updatedAt;
     private final List<Variant> variants;
+    /** By position, which is always the index. */
+    private final List<ProductImage> images;
 
     private Product(ProductId id, ProductDetails details, Slug slug, boolean published, Instant createdAt,
-                    Instant updatedAt, List<Variant> variants) {
+                    Instant updatedAt, List<Variant> variants, List<ProductImage> images) {
         this.id = Objects.requireNonNull(id, "id");
         this.details = Objects.requireNonNull(details, "details");
         this.slug = Objects.requireNonNull(slug, "slug");
@@ -44,18 +50,24 @@ public final class Product {
         if (combinations != this.variants.size()) {
             throw new IllegalArgumentException("two variants share size and color");
         }
+        this.images = new ArrayList<>(images.stream().sorted(Comparator.comparingInt(ProductImage::position)).toList());
+        if (this.images.stream().map(ProductImage::uploadKey).distinct().count() != this.images.size()) {
+            throw new IllegalArgumentException("two photos share an upload key");
+        }
+        renumberImages();
     }
 
-    /** UC-06: a new product is hidden and has no variants; its slug comes from its name. */
+    /** UC-06: a new product is hidden and has no variants or photos; its slug comes from its name. */
     public static Product create(ProductId id, ProductDetails details, Instant now) {
-        return new Product(id, details, details.name().slug(), false, now, now, List.of());
+        return new Product(id, details, details.name().slug(), false, now, now, List.of(), List.of());
     }
 
     /** Rebuilds a stored product; only persistence adapters call it. */
     public static Product restore(ProductId id, ProductDetails details, Slug slug, boolean published,
-                                  Instant createdAt, Instant updatedAt, List<Variant> variants) {
+                                  Instant createdAt, Instant updatedAt, List<Variant> variants,
+                                  List<ProductImage> images) {
         return new Product(id, details, slug, published, createdAt, updatedAt,
-            variants.stream().map(Variant::copy).toList());
+            variants.stream().map(Variant::copy).toList(), images.stream().map(ProductImage::copy).toList());
     }
 
     /** UC-06: changing the name regenerates the slug, as for a category. */
@@ -140,9 +152,82 @@ public final class Product {
         }
     }
 
+    /**
+     * UC-06: whether a photo with this upload key, file and color can be added, without adding it. The upload checks
+     * this before converting the file, then adds the photo with {@link #addImage}, which checks again.
+     */
+    public ImageUpload checkUpload(UploadKey uploadKey, ContentHash contentHash, Optional<Color> color) {
+        Optional<ProductImage> uploaded = images.stream()
+            .filter(image -> image.uploadKey().equals(uploadKey)).findFirst();
+        if (uploaded.isPresent()) {
+            // A retry is answered even when the product is full or the photo's color was another.
+            return uploaded.get().contentHash().equals(contentHash)
+                ? new ImageUpload.AlreadyUploaded(uploaded.get().copy())
+                : new ImageUpload.KeyReused();
+        }
+        if (images.size() >= MAX_IMAGES) {
+            return new ImageUpload.TooManyImages();
+        }
+        if (color.isPresent() && !colors().contains(color.get())) {
+            return new ImageUpload.UnknownColor();
+        }
+        return new ImageUpload.Ready();
+    }
+
+    /** UC-06: adds the photo last, unless {@link #checkUpload} refuses it; never answers {@code Ready}. */
+    public ImageUpload addImage(NewImage image, Instant now) {
+        ImageUpload check = checkUpload(image.uploadKey(), image.contentHash(), image.color());
+        if (!(check instanceof ImageUpload.Ready)) {
+            return check;
+        }
+        if (images.stream().anyMatch(existing -> existing.id().equals(image.id()))) {
+            throw new IllegalArgumentException("the photo id is already used");
+        }
+        ProductImage added = ProductImage.create(image, images.size(), now);
+        images.add(added);
+        return new ImageUpload.Added(added.copy());
+    }
+
+    /**
+     * UC-06: puts the photos in the given order, which must name every photo exactly once (as for categories);
+     * otherwise nothing changes and it returns false.
+     */
+    public boolean reorderImages(List<ImageId> order) {
+        Map<ImageId, ProductImage> byId = images.stream()
+            .collect(Collectors.toMap(ProductImage::id, image -> image));
+        if (order.size() != byId.size() || !byId.keySet().equals(Set.copyOf(order))) {
+            return false;
+        }
+        images.clear();
+        order.forEach(imageId -> images.add(byId.get(imageId)));
+        renumberImages();
+        return true;
+    }
+
+    /** UC-06: removes a photo and closes the gap it leaves; empty when the product has no such photo. */
+    public Optional<ProductImage> removeImage(ImageId imageId) {
+        Optional<ProductImage> found = images.stream().filter(image -> image.id().equals(imageId)).findFirst();
+        found.ifPresent(image -> {
+            images.remove(image);
+            renumberImages();
+        });
+        return found.map(ProductImage::copy);
+    }
+
+    private void renumberImages() {
+        for (int position = 0; position < images.size(); position++) {
+            images.get(position).moveTo(position);
+        }
+    }
+
     public Product copy() {
         return new Product(id, details, slug, published, createdAt, updatedAt,
-            variants.stream().map(Variant::copy).toList());
+            variants.stream().map(Variant::copy).toList(), images.stream().map(ProductImage::copy).toList());
+    }
+
+    /** The photos by position. */
+    public List<ProductImage> images() {
+        return images.stream().map(ProductImage::copy).toList();
     }
 
     /** The product's sizes in display order. */
@@ -217,6 +302,43 @@ public final class Product {
 
         /** The variant is the last active priced one of a published product: hide the product first. */
         record LastActivePricedVariant() implements VariantOutcome {}
+    }
+
+    /**
+     * A photo to add: its files are already stored under {@code storageKey}. {@code color} is empty for a photo of the
+     * whole product.
+     */
+    public record NewImage(ImageId id, Optional<Color> color, StorageKey storageKey, ImagePlaceholder placeholder,
+                           UploadKey uploadKey, ContentHash contentHash) {
+
+        public NewImage {
+            Objects.requireNonNull(id, "id");
+            Objects.requireNonNull(color, "color");
+            Objects.requireNonNull(storageKey, "storageKey");
+            Objects.requireNonNull(placeholder, "placeholder");
+            Objects.requireNonNull(uploadKey, "uploadKey");
+            Objects.requireNonNull(contentHash, "contentHash");
+        }
+    }
+
+    public sealed interface ImageUpload {
+
+        /** {@link #checkUpload} only: the photo can be added. */
+        record Ready() implements ImageUpload {}
+
+        /** {@link #addImage} only: the photo was added. */
+        record Added(ProductImage image) implements ImageUpload {}
+
+        /** A retry: the photo of this upload key and file is already there. */
+        record AlreadyUploaded(ProductImage image) implements ImageUpload {}
+
+        /** The upload key belongs to a photo of another file. */
+        record KeyReused() implements ImageUpload {}
+
+        record TooManyImages() implements ImageUpload {}
+
+        /** The product has no variant of that color. */
+        record UnknownColor() implements ImageUpload {}
     }
 
     public sealed interface PublishOutcome {

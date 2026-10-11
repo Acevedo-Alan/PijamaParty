@@ -4,7 +4,7 @@
 - [x] **T-E1-02** Autenticación de administrador con sesión y CSRF, y bloqueo por intentos (CU-04).
 - [x] **T-E1-03** ABM de categorías en backend (CU-05). La pantalla del backoffice va en T-E1-12.
 - [x] **T-E1-04** ABM de productos y generación de la matriz de variantes (CU-06).
-- [ ] **T-E1-05** Subida y procesamiento de imágenes: WebP, miniaturas y placeholder (CU-06).
+- [x] **T-E1-05** Subida y procesamiento de imágenes: WebP, miniaturas y placeholder (CU-06).
 - [ ] **T-E1-06** Ajustes de stock e historial de movimientos (CU-07).
 - [ ] **T-E1-07** API pública: lista con filtros, orden y paginación (CU-01, CU-02).
 - [ ] **T-E1-08** API pública: detalle de producto con stock disponible por variante (CU-03).

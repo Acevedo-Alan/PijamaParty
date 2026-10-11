@@ -4,14 +4,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.catalog.domain.Audience;
 import com.pijamaparty.store.catalog.domain.CategoryId;
+import com.pijamaparty.store.catalog.domain.Color;
+import com.pijamaparty.store.catalog.domain.ContentHash;
 import com.pijamaparty.store.catalog.domain.Description;
+import com.pijamaparty.store.catalog.domain.ImageId;
+import com.pijamaparty.store.catalog.domain.ImagePlaceholder;
 import com.pijamaparty.store.catalog.domain.Material;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductDetails;
 import com.pijamaparty.store.catalog.domain.ProductId;
+import com.pijamaparty.store.catalog.domain.ProductImage;
 import com.pijamaparty.store.catalog.domain.ProductName;
 import com.pijamaparty.store.catalog.domain.Season;
 import com.pijamaparty.store.catalog.domain.Sku;
+import com.pijamaparty.store.catalog.domain.StorageKey;
+import com.pijamaparty.store.catalog.domain.UploadKey;
 import com.pijamaparty.store.catalog.domain.VariantId;
 import com.pijamaparty.store.catalog.domain.VariantIdentities;
 import com.pijamaparty.store.catalog.domain.VariantMatrix;
@@ -80,6 +87,35 @@ public abstract class ProductStoreContractTest<T extends LoadProducts & SaveProd
         assertSameState(stored, loaded);
         assertThat(stored.sizes()).extracting(size -> size.value()).containsExactly("XS", "S", "M");
         assertThat(stored.variants().get(1).price()).contains(Money.of(2_500_000));
+    }
+
+    @Test
+    void givenPhotos_whenAddedReorderedAndRemoved_thenTheStoredProductHasTheSamePhotos() {
+        Product product = product("Pijama", CREATED);
+        subject.add(product);
+        generate(product, List.of("M"), List.of("Rosa"), "PP-A");
+        ImageId plain = addImage(product, Optional.empty(), 1);
+        ImageId pink = addImage(product, Optional.of(new Color("Rosa")), 2);
+        ImageId last = addImage(product, Optional.empty(), 3);
+        assertThat(subject.update(product)).isEqualTo(SaveProduct.Outcome.SAVED);
+        persistAndForget();
+        assertSameState(subject.findById(product.id()).orElseThrow(), product);
+
+        Product loaded = subject.lockById(product.id()).orElseThrow();
+        loaded.reorderImages(List.of(last, pink, plain));
+        loaded.removeImage(pink);
+        assertThat(subject.update(loaded)).isEqualTo(SaveProduct.Outcome.SAVED);
+        persistAndForget();
+
+        Product stored = subject.findById(product.id()).orElseThrow();
+        assertSameState(stored, loaded);
+        assertThat(stored.images()).extracting(ProductImage::id).containsExactly(last, plain);
+
+        loaded.removeImage(last);
+        loaded.removeImage(plain);
+        subject.update(loaded);
+        persistAndForget();
+        assertThat(subject.findById(product.id()).orElseThrow().images()).isEmpty();
     }
 
     @Test
@@ -172,6 +208,13 @@ public abstract class ProductStoreContractTest<T extends LoadProducts & SaveProd
             Season.SUMMER, Audience.WOMEN);
     }
 
+    private static ImageId addImage(Product product, Optional<Color> color, int file) {
+        var image = new Product.NewImage(ImageId.of(UUID.randomUUID()), color, StorageKey.of(UUID.randomUUID()),
+            new ImagePlaceholder("data:image/webp;base64,UklGRg=="), UploadKey.of(UUID.randomUUID()),
+            ContentHash.of(new byte[] {(byte) file}));
+        return ((Product.ImageUpload.Added) product.addImage(image, CREATED)).image().id();
+    }
+
     /** Generates the matrix with SKUs {@code prefix + n}, or with {@code skus} first when given. */
     private static void generate(Product product, List<String> sizes, List<String> colors, String prefix,
                                  String... skus) {
@@ -203,5 +246,7 @@ public abstract class ProductStoreContractTest<T extends LoadProducts & SaveProd
         assertThat(actual.updatedAt()).isEqualTo(expected.updatedAt());
         assertThat(actual.variants()).usingRecursiveFieldByFieldElementComparator()
             .containsExactlyElementsOf(expected.variants());
+        assertThat(actual.images()).usingRecursiveFieldByFieldElementComparator()
+            .containsExactlyElementsOf(expected.images());
     }
 }

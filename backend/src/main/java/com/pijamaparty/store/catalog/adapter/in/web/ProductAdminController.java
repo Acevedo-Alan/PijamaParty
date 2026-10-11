@@ -107,7 +107,7 @@ class ProductAdminController {
     }
 
     @GetMapping("/products/{id}")
-    @Operation(summary = "A product with its sizes, colors and variants")
+    @Operation(summary = "A product with its sizes, colors, variants and photos")
     @ApiResponse(responseCode = "200", description = "The product", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = ProductResponse.class)))
     @ApiResponse(responseCode = "404", description = "No such product",
@@ -329,12 +329,13 @@ class ProductAdminController {
 
     record ProductResponse(UUID id, UUID categoryId, String name, String slug, String description, String material,
                            Season season, Audience audience, boolean published, List<String> sizes,
-                           List<String> colors, List<VariantResponse> variants) {
+                           List<String> colors, List<VariantResponse> variants, List<ImageResponse> images) {
 
         static ProductResponse of(ProductView view) {
             return new ProductResponse(view.id().value(), view.categoryId().value(), view.name(), view.slug(),
                 view.description(), view.material(), view.season(), view.audience(), view.published(), view.sizes(),
-                view.colors(), view.variants().stream().map(VariantResponse::of).toList());
+                view.colors(), view.variants().stream().map(VariantResponse::of).toList(),
+                view.images().stream().map(ImageResponse::of).toList());
         }
     }
 

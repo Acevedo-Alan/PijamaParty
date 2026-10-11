@@ -39,6 +39,13 @@ final class ProductFixture {
     final HideProduct hide = new HideProductService(products, products, clock);
     final ListAllProducts listAll = new ListAllProductsService(products);
     final GetProductForAdmin get = new GetProductForAdminService(products);
+    final InMemoryImageProcessor imageProcessor = new InMemoryImageProcessor();
+    final InMemoryImageStore imageStore = new InMemoryImageStore();
+    final ProductImageTransactions imageTransactions = new ProductImageTransactions(products, products, clock);
+    final UploadProductImage uploadImage =
+        new UploadProductImageService(imageTransactions, imageProcessor, imageStore, ids);
+    final ReorderProductImages reorderImages = new ReorderProductImagesService(products, products);
+    final DeleteProductImage deleteImage = new DeleteProductImageService(imageTransactions, imageStore);
 
     ProductFixture() {
         categories.save(Category.create(CATEGORY, new CategoryName("Verano"), List.of(), NOW));

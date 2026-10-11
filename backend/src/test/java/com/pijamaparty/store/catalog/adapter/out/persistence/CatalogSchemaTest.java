@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-/** T-E1-01: the catalog schema (V3) enforces the UC-05 and UC-06 rules, connected as the application role. */
+/** T-E1-01: the catalog schema (V3, V7) enforces the UC-05 and UC-06 rules, connected as the application role. */
 @ApiTest
 class CatalogSchemaTest {
 
@@ -95,10 +95,39 @@ class CatalogSchemaTest {
         var product = product(category("accesorios"), "antifaz");
 
         assertThatThrownBy(() -> app.update("""
-                insert into product_image (id, product_id, storage_key, placeholder, position, created_at)
-                values (?, ?, 'antifaz-1', 'data:image/webp;base64,AAAA") onerror=alert(1)', 0, now())
-                """, UUID.randomUUID(), product))
+                insert into product_image (id, product_id, storage_key, placeholder, position, upload_key,
+                                           content_sha256, created_at)
+                values (?, ?, 'antifaz-1', 'data:image/webp;base64,AAAA") onerror=alert(1)', 0, ?, ?, now())
+                """, UUID.randomUUID(), product, UUID.randomUUID(), new byte[32]))
             .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("product_image_placeholder_ck");
+    }
+
+    @Test
+    void givenAnUploadKeyUsedOnAProduct_whenAnotherPhotoOfItUsesIt_thenItIsRejectedButOtherProductsMayUseIt() {
+        var category = category("bebes");
+        var product = product(category, "enterito");
+        var key = UUID.randomUUID();
+        image(product, null, "enterito-1", key);
+
+        assertThatThrownBy(() -> image(product, null, "enterito-2", key))
+            .isInstanceOf(DuplicateKeyException.class).hasMessageContaining("product_image_upload_key_uk");
+        image(product(category, "body"), null, "body-1", key);
+    }
+
+    @Test
+    void givenAPhoto_whenItsColorIsNotTrimmedOrItsHashIsNotASha256_thenItIsRejected() {
+        var product = product(category("bebes"), "enterito");
+
+        assertThatThrownBy(() -> image(product, " Rosa", "enterito-1", UUID.randomUUID()))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("product_image_color_length_ck");
+        assertThatThrownBy(() -> app.update("""
+                insert into product_image (id, product_id, storage_key, placeholder, position, upload_key,
+                                           content_sha256, created_at)
+                values (?, ?, 'enterito-2', 'data:image/webp;base64,AAAA', 0, ?, ?, now())
+                """, UUID.randomUUID(), product, UUID.randomUUID(), new byte[31]))
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("product_image_content_sha256_ck");
+        image(product, "Rosa", "enterito-3", UUID.randomUUID());
     }
 
     @Test
@@ -111,17 +140,6 @@ class CatalogSchemaTest {
                 values (?, ?, 'Pijama', 'pijama', '', 'Algodón', 'SPRING', 'KIDS', false, now(), now())
                 """, UUID.randomUUID(), category))
             .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("product_season_ck");
-    }
-
-    @Test
-    void givenAnImage_whenItsVariantBelongsToAnotherProduct_thenItIsRejected() {
-        var category = category("bebes");
-        var product = product(category, "enterito");
-        var otherVariant = variant(product(category, "body"), "SKU-1", "3M", "Blanco", null);
-        image(product, null, "enterito-1");
-
-        assertThatThrownBy(() -> image(product, otherVariant, "enterito-2"))
-            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("product_image_variant_fk");
     }
 
     private UUID category(String slug) {
@@ -153,10 +171,11 @@ class CatalogSchemaTest {
         return id;
     }
 
-    private void image(UUID product, UUID variant, String storageKey) {
+    private void image(UUID product, String color, String storageKey, UUID uploadKey) {
         app.update("""
-            insert into product_image (id, product_id, variant_id, storage_key, placeholder, position, created_at)
-            values (?, ?, ?, ?, 'data:image/webp;base64,AAAA', 0, now())
-            """, UUID.randomUUID(), product, variant, storageKey);
+            insert into product_image (id, product_id, color, storage_key, placeholder, position, upload_key,
+                                       content_sha256, created_at)
+            values (?, ?, ?, ?, 'data:image/webp;base64,AAAA', 0, ?, ?, now())
+            """, UUID.randomUUID(), product, color, storageKey, uploadKey, new byte[32]);
     }
 }

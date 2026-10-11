@@ -7,16 +7,22 @@ import com.pijamaparty.store.catalog.application.SaveProduct;
 import com.pijamaparty.store.catalog.domain.Audience;
 import com.pijamaparty.store.catalog.domain.CategoryId;
 import com.pijamaparty.store.catalog.domain.Color;
+import com.pijamaparty.store.catalog.domain.ContentHash;
 import com.pijamaparty.store.catalog.domain.Description;
+import com.pijamaparty.store.catalog.domain.ImageId;
+import com.pijamaparty.store.catalog.domain.ImagePlaceholder;
 import com.pijamaparty.store.catalog.domain.Material;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductDetails;
 import com.pijamaparty.store.catalog.domain.ProductId;
+import com.pijamaparty.store.catalog.domain.ProductImage;
 import com.pijamaparty.store.catalog.domain.ProductName;
 import com.pijamaparty.store.catalog.domain.Season;
 import com.pijamaparty.store.catalog.domain.Size;
 import com.pijamaparty.store.catalog.domain.Sku;
 import com.pijamaparty.store.catalog.domain.Slug;
+import com.pijamaparty.store.catalog.domain.StorageKey;
+import com.pijamaparty.store.catalog.domain.UploadKey;
 import com.pijamaparty.store.catalog.domain.Variant;
 import com.pijamaparty.store.catalog.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Money;
@@ -39,9 +45,9 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 /**
- * Products in table {@code product} and their variants in {@code variant} (V3), within the caller's transaction. A
- * product and its variants are written together inside a savepoint: a used slug or SKU, or a missing category, rolls
- * back only that write and becomes an outcome.
+ * Products in table {@code product}, their variants in {@code variant} (V3) and their photos in {@code product_image}
+ * (V3, V7), within the caller's transaction. A product, its variants and its photos are written together inside a
+ * savepoint: a used slug or SKU, or a missing category, rolls back only that write and becomes an outcome.
  */
 @Repository
 class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
@@ -73,6 +79,13 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
         FROM variant
         WHERE product_id = :productId
         ORDER BY size_position, color_position, id
+        """;
+
+    private static final String SELECT_IMAGES = """
+        SELECT id, color, storage_key, placeholder, position, upload_key, content_sha256, created_at
+        FROM product_image
+        WHERE product_id = :productId
+        ORDER BY position, id
         """;
 
     private static final String SELECT_SUMMARIES = """
@@ -119,6 +132,27 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
         WHERE variant.product_id = EXCLUDED.product_id
         """;
 
+    // Only the position of a stored photo changes.
+    private static final String UPSERT_IMAGE = """
+        INSERT INTO product_image (id, product_id, color, storage_key, placeholder, position, upload_key,
+                                   content_sha256, created_at)
+        VALUES (:id, :productId, :color, :storageKey, :placeholder, :position, :uploadKey, :contentSha256,
+                :createdAt)
+        ON CONFLICT (id) DO UPDATE
+        SET position = EXCLUDED.position
+        WHERE product_image.product_id = EXCLUDED.product_id
+        """;
+
+    private static final String DELETE_ALL_IMAGES = """
+        DELETE FROM product_image
+        WHERE product_id = :productId
+        """;
+
+    private static final String DELETE_OTHER_IMAGES = """
+        DELETE FROM product_image
+        WHERE product_id = :productId AND id NOT IN (:ids)
+        """;
+
     private static final String SLUG_USED_ELSEWHERE = """
         SELECT EXISTS (SELECT 1 FROM product WHERE slug = :slug AND id <> :id)
         """;
@@ -153,8 +187,11 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
 
     private Optional<Product> load(String sql, SqlParameterSource parameters) {
         return jdbc.query(sql, parameters, JdbcProductStore::toProductRow).stream().findFirst()
-            .map(row -> row.toProduct(jdbc.query(SELECT_VARIANTS,
-                new MapSqlParameterSource("productId", row.id().value()), JdbcProductStore::toVariant)));
+            .map(row -> {
+                var productId = new MapSqlParameterSource("productId", row.id().value());
+                return row.toProduct(jdbc.query(SELECT_VARIANTS, productId, JdbcProductStore::toVariant),
+                    jdbc.query(SELECT_IMAGES, productId, JdbcProductStore::toImage));
+            });
     }
 
     @Override
@@ -185,8 +222,27 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
             if (Arrays.stream(jdbc.batchUpdate(UPSERT_VARIANT, variants)).anyMatch(rows -> rows != 1)) {
                 throw new IllegalStateException("a variant id belongs to another product");
             }
+            saveImages(product);
             return SaveProduct.Outcome.SAVED;
         }, violation -> outcomeOf(violation, product));
+    }
+
+    /** Photos are the only children that are deleted: the stored ones the product no longer has go. */
+    private void saveImages(Product product) {
+        List<ProductImage> images = product.images();
+        if (images.isEmpty()) {
+            jdbc.update(DELETE_ALL_IMAGES, new MapSqlParameterSource("productId", product.id().value()));
+            return;
+        }
+        jdbc.update(DELETE_OTHER_IMAGES, new MapSqlParameterSource()
+            .addValue("productId", product.id().value())
+            .addValue("ids", images.stream().map(image -> image.id().value()).toList()));
+        SqlParameterSource[] rows = images.stream()
+            .map(image -> parametersOf(product.id(), image))
+            .toArray(SqlParameterSource[]::new);
+        if (Arrays.stream(jdbc.batchUpdate(UPSERT_IMAGE, rows)).anyMatch(count -> count != 1)) {
+            throw new IllegalStateException("a photo id belongs to another product");
+        }
     }
 
     /** Runs after the savepoint was rolled back, so the queries see only what other transactions committed. */
@@ -243,6 +299,19 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
             .addValue("updatedAt", toTimestamp(variant.updatedAt()));
     }
 
+    private static MapSqlParameterSource parametersOf(ProductId productId, ProductImage image) {
+        return new MapSqlParameterSource()
+            .addValue("id", image.id().value())
+            .addValue("productId", productId.value())
+            .addValue("color", image.color().map(Color::value).orElse(null), Types.VARCHAR)
+            .addValue("storageKey", image.storageKey().value())
+            .addValue("placeholder", image.placeholder().value())
+            .addValue("position", image.position())
+            .addValue("uploadKey", image.uploadKey().value())
+            .addValue("contentSha256", image.contentHash().digest())
+            .addValue("createdAt", toTimestamp(image.createdAt()));
+    }
+
     private static OffsetDateTime toTimestamp(Instant instant) {
         return instant.atOffset(ZoneOffset.UTC);
     }
@@ -283,6 +352,18 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
             toInstant(row, "updated_at"));
     }
 
+    private static ProductImage toImage(ResultSet row, int rowNumber) throws SQLException {
+        return ProductImage.restore(
+            ImageId.of(row.getObject("id", UUID.class)),
+            Optional.ofNullable(row.getString("color")).map(Color::new),
+            new StorageKey(row.getString("storage_key")),
+            new ImagePlaceholder(row.getString("placeholder")),
+            row.getInt("position"),
+            UploadKey.of(row.getObject("upload_key", UUID.class)),
+            ContentHash.ofDigest(row.getBytes("content_sha256")),
+            toInstant(row, "created_at"));
+    }
+
     private static ProductSummaryView toSummary(ResultSet row, int rowNumber) throws SQLException {
         return new ProductSummaryView(
             ProductId.of(row.getObject("id", UUID.class)),
@@ -296,8 +377,8 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
     private record ProductRow(ProductId id, ProductDetails details, Slug slug, boolean published, Instant createdAt,
                               Instant updatedAt) {
 
-        Product toProduct(List<Variant> variants) {
-            return Product.restore(id, details, slug, published, createdAt, updatedAt, variants);
+        Product toProduct(List<Variant> variants, List<ProductImage> images) {
+            return Product.restore(id, details, slug, published, createdAt, updatedAt, variants, images);
         }
     }
 }

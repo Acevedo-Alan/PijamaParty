@@ -11,13 +11,33 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A product with its sizes, colors and variants */
+        /** A product with its sizes, colors, variants and photos */
         get: operations["get"];
         /**
          * Edit the details of a product
          * @description A new name regenerates the slug. Requires the CSRF token.
          */
         put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/products/{id}/images/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder the photos of a product
+         * @description Takes every photo of the product exactly once, in the new order. Requires the CSRF token.
+         */
+        put: operations["reorder"];
         post?: never;
         delete?: never;
         options?: never;
@@ -37,7 +57,7 @@ export interface paths {
          * Reorder the categories
          * @description Takes every category id in the new order. Requires the CSRF token.
          */
-        put: operations["reorder"];
+        put: operations["reorder_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -103,6 +123,26 @@ export interface paths {
          * @description Needs an active priced variant. Requires the CSRF token.
          */
         post: operations["publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/products/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a photo of a product
+         * @description JPG, PNG or WebP up to 10 MB, recognized by its content. It is stored as WebP at 400, 800 and 1200 px wide with a blurred placeholder, and goes last. color is optional: one of the product's colors. Retrying with the same Idempotency-Key and file returns the stored photo. Requires the CSRF token.
+         */
+        post: operations["upload"];
         delete?: never;
         options?: never;
         head?: never;
@@ -291,6 +331,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/catalog/products/{id}/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a photo of a product
+         * @description The other photos close the gap and its files are removed. Requires the CSRF token.
+         */
+        delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -305,6 +365,18 @@ export interface components {
             season: "SUMMER" | "MID_SEASON" | "WINTER";
             /** @enum {string} */
             audience: "WOMEN" | "MEN" | "KIDS";
+        };
+        FileResponse: {
+            /** Format: int32 */
+            width?: number;
+            url?: string;
+        };
+        ImageResponse: {
+            /** Format: uuid */
+            id?: string;
+            color?: string | null;
+            placeholder?: string;
+            files?: components["schemas"]["FileResponse"][];
         };
         ProductResponse: {
             /** Format: uuid */
@@ -323,6 +395,7 @@ export interface components {
             sizes?: string[];
             colors?: string[];
             variants?: components["schemas"]["VariantResponse"][];
+            images?: components["schemas"]["ImageResponse"][];
         };
         VariantResponse: {
             /** Format: uuid */
@@ -348,7 +421,7 @@ export interface components {
             } | null;
         };
         OrderRequest: {
-            categoryIds: string[];
+            imageIds: string[];
         };
         CategoryResponse: {
             /** Format: uuid */
@@ -508,6 +581,59 @@ export interface operations {
         };
     };
     reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderRequest"];
+            };
+        };
+        responses: {
+            /** @description The product with its photos in the new order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such product */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The order does not name every photo exactly once */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    reorder_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -724,6 +850,103 @@ export interface operations {
             };
             /** @description The product has no active priced variant */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    upload: {
+        parameters: {
+            query?: {
+                color?: string;
+            };
+            header: {
+                /** @description A UUID per photo, repeated on retries */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Already uploaded with this key and file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageResponse"];
+                };
+            };
+            /** @description Uploaded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageResponse"];
+                };
+            };
+            /** @description Missing or invalid Idempotency-Key, or no file */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such product */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The product already has 8 photos */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Larger than 10 MB */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description See problem: UNSUPPORTED_FORMAT, TOO_LARGE, UNREADABLE, UNKNOWN_COLOR or KEY_REUSED */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1186,6 +1409,47 @@ export interface operations {
             };
             /** @description Not signed in */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                imageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such product or photo */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

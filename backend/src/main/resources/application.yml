@@ -6,6 +6,11 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  servlet:
+    multipart:
+      # UC-06: photos up to 10 MB (a larger one gets 413); the rest of the request is the color field
+      max-file-size: 10MB
+      max-request-size: 11MB
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?logServerErrorDetail=false
     username: ${DB_APP_USER}
@@ -66,6 +71,14 @@ store:
     email: ${ADMIN_EMAIL:}
     name: ${ADMIN_NAME:}
     initial-password: ${ADMIN_INITIAL_PASSWORD:}
+  images:
+    # UC-06: the uploads volume, which Caddy serves under /uploads (deploy/docker-compose.yml)
+    uploads-dir: ${UPLOADS_DIR:/srv/uploads}
+    vips:
+      # Where vips and vipsheader are (libvips command line); empty: on the PATH, as in the API image
+      bin-dir: ${VIPS_BIN_DIR:}
+      # Each libvips step of a conversion; a photo the device already shrank takes well under a second
+      timeout: 30s
   saturation:
     # RNF-21: Retry-After of the 503 sent when a pool is exhausted
     retry-after: 5s

@@ -11,7 +11,9 @@ RUN ./mvnw -B -ntp -DskipTests package \
 FROM eclipse-temurin:21-jre-alpine
 # Fixed uid/gid, so host files and volumes can be given to this user predictably. The uploads volume takes the owner
 # of /srv/uploads when Docker first creates it.
-RUN addgroup -S -g 10001 store && adduser -S -u 10001 -G store store \
+# libvips command line converts uploaded photos to WebP in separate processes (UC-06, RNF-29.4).
+RUN apk add --no-cache vips-tools \
+    && addgroup -S -g 10001 store && adduser -S -u 10001 -G store store \
     && mkdir -p /srv/uploads && chown store:store /srv/uploads
 WORKDIR /app
 # Spring Boot layers: dependencies change less often than the application, so they are cached apart.

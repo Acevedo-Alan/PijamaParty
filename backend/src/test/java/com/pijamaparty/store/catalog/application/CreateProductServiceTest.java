@@ -33,7 +33,7 @@ class CreateProductServiceTest {
         ProductId id = ProductId.of(InMemoryIdGenerator.nth(1));
         assertThat(result).isEqualTo(new Result.Created(new ProductView(id, CATEGORY, "Pijama de Algodón",
             "pijama-de-algodon", "Suave.\nFresco.", "Algodón", Season.WINTER, Audience.KIDS, false, List.of(),
-            List.of(), List.of())));
+            List.of(), List.of(), List.of())));
         assertThat(fixture.products.findById(id)).get()
             .satisfies(saved -> assertThat(saved.createdAt()).isEqualTo(NOW));
     }

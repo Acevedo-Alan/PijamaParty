@@ -53,6 +53,9 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      # The contract test of the libvips image processor (UC-06) is skipped without libvips, except in CI.
+      - name: Install the libvips command line
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libvips-tools
       # Unit, architecture (ArchUnit, Spring Modulith) and Testcontainers tests; find-sec-bugs fails the build on SQL
       # built by concatenation (RNF-28) and writes every other finding to target/spotbugsReport.xml.
       - name: Verify
