@@ -60,4 +60,14 @@ class CategoryNameAndSlugTest {
         assertThatThrownBy(() -> new Slug("-pijamas")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new CategoryName(" Verano")).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void givenTextFromAVisitor_whenParsedAsASlug_thenOnlyTheDatabaseFormatIsAccepted() {
+        assertThat(Slug.parse("pijama-rosa")).contains(new Slug("pijama-rosa"));
+        assertThat(Slug.parse("x".repeat(Slug.MAX_LENGTH))).isPresent();
+        assertThat(Slug.parse("x".repeat(Slug.MAX_LENGTH + 1))).isEmpty();
+        assertThat(Slug.parse("Pijama")).isEmpty();
+        assertThat(Slug.parse("pijama--rosa")).isEmpty();
+        assertThat(Slug.parse("")).isEmpty();
+    }
 }

@@ -247,6 +247,22 @@ public final class Product {
         return variants.stream().sorted(DISPLAY_ORDER).toList();
     }
 
+    /**
+     * UC-01, UC-03: whether visitors see the product, given its category: published, the category active and with a
+     * variant they can buy.
+     */
+    public boolean isListedIn(Category category) {
+        if (!category.id().equals(details.categoryId())) {
+            throw new IllegalArgumentException("not the product's category");
+        }
+        return published && category.active() && variants.stream().anyMatch(Variant::isActiveAndPriced);
+    }
+
+    /** UC-01, UC-03: the variants a visitor sees and can buy, active and priced, by size and then color position. */
+    public List<Variant> sellableVariants() {
+        return variants().stream().filter(Variant::isActiveAndPriced).toList();
+    }
+
     private static <T> Map<T, Integer> positions(List<T> order) {
         Map<T, Integer> positions = new HashMap<>();
         for (int i = 0; i < order.size(); i++) {

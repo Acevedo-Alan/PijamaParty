@@ -19,11 +19,15 @@
 
 **Alternative flows**
 - Category without products: show a message and a link to the full catalog.
+- Unknown or inactive category: `404`, shown as the same message.
 - Product with no stock in any variant: show it with a "Sold out" label.
 
 **Business rules**
-- Inactive products never appear.
-- The "from" price is the lowest price among the product's active variants.
+- A product is listed when it is published, its category is active and it has an active priced variant. Hidden products and products of inactive categories never appear.
+- The "from" price is the lowest price among the product's active priced variants, with or without stock.
+- A product is sold out when none of its active priced variants has available stock (on hand − reserved).
+- Newest first by default (creation date of the product).
+- The grid shows the product's first photo (any color); a product without photos shows none.
 
 **Acceptance criteria**
 - Given an inactive product, when the catalog is listed, then it does not appear.
@@ -31,11 +35,11 @@
 - Given more than 24 matches, when the catalog opens, then 24 are shown and a button to show more.
 
 **Design notes**
-- Inbound query port: `ListProducts` (`catalog.application`). Outbound read port: `ProductListingQuery`.
-- Adapter: `JdbcProductListingQuery` (`adapter.out.persistence`), native SQL with named parameters. Availability comes from the view `inventory.v_variant_availability`.
-- Result record: `ProductListingItem(slug, name, thumbnailUrl, placeholder, fromPrice: Money, soldOut: boolean)`; the page record carries `hasMore`.
-- Endpoint: `GET /api/catalog/products?category=&page=`. Offset pagination with page size 24; revisit if the catalog exceeds a few thousand products.
-- Rate-limit policy: catalog (120 per minute per IP).
+- Inbound query port: `ListProducts` (`catalog.application`); sealed result `Listed(items, hasMore)`, `UnknownCategory` or `InvalidFilter`. No actor: the listing is public. The category comes from `LoadCategories` by slug and must be active.
+- Outbound read port: `ProductListingQuery`. Adapter: `JdbcProductListingQuery` (`adapter.out.persistence`), native SQL with named parameters. Availability comes from the view `v_variant_availability` (V9), published by `inventory` (rule 4 of ARCHITECTURE.md section 3): `available` is `on_hand` until E3 subtracts reservations. The view is read-only for `tienda_app`.
+- Result record: `ProductListingItem(slug, name, image?, fromPrice: Money, soldOut: boolean)`; `image` carries the placeholder and the files of the first photo (400, 800 and 1200 px, for `srcset`).
+- Endpoint: `GET /api/catalog/products?category=&page=` (category by slug) → `200` `{items, hasMore}`, each item with `slug`, `name`, `image` (or null: `placeholder` and `files` with `width` and `url`), `fromPriceCents` and `soldOut`; `400` invalid parameters; `404` unknown or inactive category. Offset pagination with page size 24, pages from 0 to 1,000; revisit if the catalog exceeds a few thousand products.
+- Rate-limit policy: catalog (120 per minute per IP), activated in T-E1-15.
 
 ---
 
@@ -57,7 +61,12 @@
 **Business rules**
 - Different filters combine with AND; several values of the same filter combine with OR.
 - A size or color only counts when the variant has available stock.
+- Size and color apply to the same variant: with size M and color pink, a product appears only when one of its active priced variants is M, pink and has available stock.
+- The price range applies to the "from" price (UC-01), bounds included, in cents. A minimum above the maximum is invalid.
+- Sizes, colors and materials match the exact text. At most 20 values per filter.
+- Sort: `NEWEST` (default), `PRICE_ASC` or `PRICE_DESC` on the "from" price; ties go newest first.
 - The sort key comes from an enum, never from raw request text.
+- The filter options are those of the listed products of the category (or of the whole shop), not narrowed by the other filters: sizes and colors of active priced variants with available stock, materials, seasons and audiences, and the lowest and highest "from" price. Sizes and colors follow their smallest display position, then the text; materials go by text; seasons and audiences in the enum order.
 
 **Acceptance criteria**
 - Given the filters size M and season summer, when applied, then only products with an M variant in stock and season summer appear.
@@ -65,10 +74,10 @@
 - Given filters with no matches, when applied, then a message and a "clear filters" option are shown.
 
 **Design notes**
-- Inbound query ports: `ListProducts` (extended with `ProductFilter`) and `GetFilterOptions`.
-- `ProductFilter` is a record in `catalog.domain` (value object). `ProductSort` is an enum mapped to whitelisted SQL expressions in the adapter.
-- A small `ProductFilterSql` builder in the adapter turns the filter into SQL conditions with named parameters. New filter = new condition class, no edits to a central `switch` (Open/Closed).
-- Endpoints: `GET /api/catalog/products?size=&color=&material=&season=&audience=&minPrice=&maxPrice=&sort=&page=` and `GET /api/catalog/filters`.
+- Inbound query ports: `ListProducts` (with `ProductFilter` and `ProductSort`) and `GetFilterOptions` (sealed result `Found(FilterOptions)` or `UnknownCategory`). Outbound read ports: `ProductListingQuery` and `FilterOptionsQuery`.
+- `ProductFilter` is a record in `catalog.domain` (value object) that enforces the limits above. `ProductSort` is an enum in `catalog.domain`.
+- The SQL is one constant text block per query (RNF-28: Semgrep rejects SQL built at run time). Every filter is a condition that an empty array parameter switches off (`cardinality(:sizes) = 0 OR ...`), and the sort is a whitelisted `CASE` on the bound enum name. A new filter adds a condition and a parameter to that query.
+- Endpoints: `GET /api/catalog/products?category=&size=&color=&material=&season=&audience=&minPrice=&maxPrice=&sort=&page=` (repeat a parameter for several values) and `GET /api/catalog/filters?category=` → `200` `{sizes, colors, materials, seasons, audiences, minPriceCents, maxPriceCents}` (prices null without listed products); `404` unknown or inactive category. Invalid values answer `400`.
 
 ---
 
@@ -88,9 +97,11 @@
 - Unknown or inactive slug: `404` page with a link to the shop.
 
 **Business rules**
+- A product opens when it is listed (UC-01): published, its category active and with an active priced variant. Otherwise its slug answers `404`, like an unknown one.
+- Only the active priced variants are shown; the sizes and colors offered are theirs, in display order. The gallery holds the photos of the whole product and of the shown colors, by position.
+- Each shown variant has its own price and its available stock (on hand − reserved) as an exact count.
 - Combinations without stock are shown disabled.
 - "Add to cart" stays disabled until both size and color are chosen.
-- Available stock = on hand − reserved.
 
 **Acceptance criteria**
 - Given a product with pink M in stock and light-blue M out of stock, when the detail opens, then only light-blue M is shown as sold out.
@@ -99,9 +110,11 @@
 - Given a slug that does not exist, when opened, then a 404 page with a link to the shop is shown.
 
 **Design notes**
-- Inbound query port: `GetProductDetail`; sealed result `Found(ProductDetail)` or `NotFound`.
-- `catalog.application` depends on the port `VariantAvailabilityLookup`, implemented by an adapter that calls `inventory.api.StockAvailability`.
-- Endpoint: `GET /api/catalog/products/{slug}`; `NotFound` maps to `404` `problem+json`.
+- Inbound query port: `GetProductDetail`; sealed result `Found(ProductDetail)` or `NotFound`. No actor: the detail is public. The product comes from `LoadProducts.findBySlug` (a text that is not a slug finds nothing), its category from `LoadCategories`; `Product.isListedIn(category)` holds the rule above and `Product.sellableVariants()` gives the active priced variants.
+- `catalog.application` depends on the port `VariantAvailabilityLookup`, implemented by an adapter that calls `inventory.api.StockAvailability`. It answers every requested variant, 0 for one without a stock level.
+- `inventory.api.StockAvailability.available(variantIds)`: the available stock of each variant, read from the view `v_variant_availability` (V9) through the inventory port `AvailableStock`, so "on hand − reserved" is written only in the view. Joins the caller's transaction, read-only.
+- Endpoint: `GET /api/catalog/products/{slug}` → `200` `{slug, name, description, material, season, audience, fromPriceCents, sizes, colors, variants, images}`; each variant with `id`, `size`, `color`, `priceCents` and `available`; each image with `color` (null for the whole product), `placeholder` and `files` (`width`, `url`). `NotFound` maps to `404` `problem+json`; a slug longer than 4 × 140 characters answers `400`.
+- Rate-limit policy: catalog (120 per minute per IP), activated in T-E1-15.
 
 ---
 
@@ -279,9 +292,9 @@
 
 ## UC-07 Manage stock
 
-**Actor:** Administrator · **Module:** `inventory` · **Stage:** E1
+**Actor:** Administrator · **Module:** `inventory` (+ `accounts.api`) · **Stage:** E1
 
-**Preconditions:** the variant exists (a `StockLevel` was created when it was).
+**Preconditions:** the administrator is signed in; the variant exists (a `StockLevel` was created when it was).
 
 **Main flow**
 1. The administrator picks a variant and records an adjustment (add or subtract) with a reason.
@@ -289,24 +302,38 @@
 
 **Alternative flows**
 - Adjustment that would make stock negative: rejected with the current stock.
+- Adjustment retried after a lost response: the stock changes only once.
 
 **Business rules**
-- Stock never goes negative.
+- Stock never goes negative, and is at most 1,000,000 units.
 - Every stock change creates a movement (append-only).
-- A movement has a fixed type (`INITIAL_LOAD`, `ADJUSTMENT`, and from E3 `RESERVATION`, `DEDUCTION`, `RELEASE`), a signed quantity and an optional free-text note from the administrator (at most 200 characters). The history shows the note as the reason. The note is free text and may contain personal data, so it never reaches logs or events.
+- A movement has a fixed type (`INITIAL_LOAD`, `ADJUSTMENT`, and from E3 `RESERVATION`, `DEDUCTION`, `RELEASE`), a signed quantity and an optional free-text note from the administrator. The history shows the note as the reason. The note is free text and may contain personal data, so it never reaches logs or events.
+- The administrator does not choose the type: the first movement of a variant is `INITIAL_LOAD`, every later one `ADJUSTMENT`. Stock starts at 0, so the first movement always adds.
+- Quantity: a whole number from −10,000 to 10,000, not 0. Note: trimmed, at most 200 characters, one line, without control or invisible characters; empty means no note.
+- Any variant can be adjusted, active or not, of a published product or not: the inventory does not know those states.
+- An adjustment carries an `Idempotency-Key` (UUID), scoped to the variant. The same key with the same quantity and note changes nothing and returns the current stock; the same key with another quantity or note is rejected.
+- The history of a variant is shown newest first, 50 movements per page, together with its current stock. Each movement shows date, user (name), quantity and reason. The name comes from `accounts`; a user the administrator cannot see (Row Level Security shows it only its own user) has no name.
 - On mobile, the screen offers − and + buttons as well as a numeric field.
 
 **Acceptance criteria**
 - Given stock 3, when subtracting 5, then it is rejected.
 - Given a valid adjustment, when saved, then the history shows date, user, amount and reason.
+- Given an adjustment whose response was lost, when retried with the same key, then the stock changes only once.
+- Given a variant without movements, when stock is added, then the movement is the initial load.
 
 **Design notes**
-- Inbound port: `AdjustStock`; sealed result `Adjusted(newOnHand)`, `WouldGoNegative(currentOnHand)`, `UnknownVariant`.
-- `StockLevel` aggregate: `adjust(delta, reason, actor, now)` enforces the non-negative invariant. `StockMovement` is an immutable record.
-- Outbound ports: `StockLevelRepository`, `StockMovementLog`.
-- Public API for other modules (`inventory.api`): `StockAvailability` (read) and, from E3, `StockReservations` (reserve, commit, release). Keep the two interfaces separate (Interface Segregation).
-- Endpoints: `POST /api/admin/stock-adjustments`, `GET /api/admin/variants/{id}/stock-movements`.
-- Concurrency: conditional `UPDATE` (`WHERE on_hand + :delta >= 0`) plus a unique movement constraint, as in RNF-20.4.
+- Use cases: `AdjustStock` and `ListStockMovements`. Each command carries the `Actor`; any actor other than `ADMIN` gets `Forbidden`.
+  - `AdjustStock`: sealed result `Adjusted(newOnHand)`, `AlreadyAdjusted(onHand)` (a retry), `WouldGoNegative(currentOnHand)`, `WouldExceedMaximum(currentOnHand)`, `InvalidQuantity`, `InvalidNote`, `KeyReused`, `UnknownVariant`, `Forbidden`.
+  - `ListStockMovements`: `Listed(onHand, movements, hasMore)`, `UnknownVariant`, `Forbidden`.
+- `StockLevel` aggregate: `adjust(...)` enforces the non-negative invariant and the maximum, and picks the movement type. `StockMovement` is an immutable record. `MovementNote` never prints its text.
+- Outbound ports: `LoadStockLevels` (locks the level of a variant with `SELECT ... FOR UPDATE`, and finds the movement of an adjustment key), `SaveStockLevels` (write), `StockHistory` (read side: current stock and a page of movements), `UserNameLookup` (names of users, backed by `accounts.api.UserNames`). The existing `AddStockLevels` stays as it is.
+- `inventory` depends on `accounts.api` (no cycle: `accounts` depends on nothing). `accounts.api.UserNames` returns the names of the users that the caller's security context shows, joining the caller's transaction.
+- Public API for other modules (`inventory.api`): `StockAvailability` (read, T-E1-08) and, from E3, `StockReservations` (reserve, commit, release). Keep the two interfaces separate (Interface Segregation).
+- Concurrency: an adjustment locks the stock level row, then checks the key, then writes: a conditional `UPDATE` (`WHERE on_hand + :delta >= 0`) and the insert of the movement, in the same transaction. Two requests with the same key run one after the other, and the second finds the movement of the first.
+- `stock_movement` (V8): `adjustment_key` (UUID), present exactly on `INITIAL_LOAD` and `ADJUSTMENT`, unique on `(variant_id, adjustment_key)` as the last line of defense (RNF-20.4). `stock_level.on_hand` at most 1,000,000.
+- Endpoints (errors as `problem+json`):
+  - `POST /api/admin/stock-adjustments {variantId, quantity, note?}` (header `Idempotency-Key`) → `201` `{variantId, onHand}`; `200` the same with the current stock when the key was already used with the same adjustment; `400` missing or invalid key or body; `404` unknown variant; `409` with `problem` `WOULD_GO_NEGATIVE` or `WOULD_EXCEED_MAXIMUM` and the current stock in `onHand`; `422` with `problem` `INVALID_QUANTITY`, `INVALID_NOTE` or `KEY_REUSED`.
+  - `GET /api/admin/variants/{id}/stock-movements?page=` → `200` `{variantId, onHand, items, hasMore}`, each item with `id`, `type`, `quantity`, `note` (or null), `userId` and `userName` (or null) and `createdAt`; `404` unknown variant.
 
 ---
 

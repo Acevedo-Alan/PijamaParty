@@ -18,6 +18,7 @@ import com.pijamaparty.store.catalog.domain.ProductDetails;
 import com.pijamaparty.store.catalog.domain.ProductId;
 import com.pijamaparty.store.catalog.domain.ProductName;
 import com.pijamaparty.store.catalog.domain.Season;
+import com.pijamaparty.store.catalog.domain.Slug;
 import com.pijamaparty.store.catalog.domain.VariantId;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import java.time.Instant;
@@ -115,6 +116,11 @@ class JdbcProductStoreContractTest extends ProductStoreContractTest<JdbcProductS
         @Override
         public Optional<Product> findById(ProductId id) {
             return transactions.execute(status -> adapter.findById(id));
+        }
+
+        @Override
+        public Optional<Product> findBySlug(Slug slug) {
+            return transactions.execute(status -> adapter.findBySlug(slug));
         }
 
         @Override

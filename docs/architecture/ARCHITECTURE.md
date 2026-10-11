@@ -26,7 +26,7 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 | Module | Responsibility | Key types | Depends on (`api` packages only) |
 |---|---|---|---|
 | `catalog` | Categories, products, variants, images, listing, filters, text search | `Category`, `Product` (with `Variant`, `Image`) | `inventory` |
-| `inventory` | Stock levels, reservations, movements | `StockLevel`, `StockReservation`, `StockMovement` | – |
+| `inventory` | Stock levels, reservations, movements | `StockLevel`, `StockReservation`, `StockMovement` | `accounts` (names of the users in the stock history) |
 | `cart` | Carts and items | `Cart` | `catalog`, `inventory`, `promotions` |
 | `promotions` | Coupons and automatic discount rules | `Coupon`, `DiscountRule` | – |
 | `shipping` | Cost per zone, free-shipping threshold | `ShippingZoneRate`, `ShippingSettings` | – |

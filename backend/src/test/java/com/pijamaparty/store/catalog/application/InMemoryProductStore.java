@@ -2,6 +2,7 @@ package com.pijamaparty.store.catalog.application;
 
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductId;
+import com.pijamaparty.store.catalog.domain.Slug;
 import com.pijamaparty.store.catalog.domain.Variant;
 import com.pijamaparty.store.catalog.domain.VariantId;
 import com.pijamaparty.store.platform.testing.InMemoryStore;
@@ -28,6 +29,11 @@ public class InMemoryProductStore implements LoadProducts, SaveProduct, ProductS
     @Override
     public Optional<Product> findById(ProductId id) {
         return products.findById(id);
+    }
+
+    @Override
+    public Optional<Product> findBySlug(Slug slug) {
+        return products.findAll(product -> product.slug().equals(slug)).stream().findFirst();
     }
 
     @Override

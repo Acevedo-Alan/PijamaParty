@@ -2,8 +2,11 @@ package com.pijamaparty.store.catalog.adapter.in.web;
 
 import com.pijamaparty.store.catalog.application.FilterOptions;
 import com.pijamaparty.store.catalog.application.GetFilterOptions;
+import com.pijamaparty.store.catalog.application.GetProductDetail;
 import com.pijamaparty.store.catalog.application.ListProducts;
+import com.pijamaparty.store.catalog.application.ProductDetail;
 import com.pijamaparty.store.catalog.application.ProductListingItem;
+import com.pijamaparty.store.catalog.application.ProductView;
 import com.pijamaparty.store.catalog.domain.Audience;
 import com.pijamaparty.store.catalog.domain.ProductFilter;
 import com.pijamaparty.store.catalog.domain.ProductSort;
@@ -24,16 +27,18 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** UC-01, UC-02: the public catalog. Only translates between HTTP and the use cases. */
+/** UC-01 to UC-03: the public catalog. Only translates between HTTP and the use cases. */
 @RestController
 @RequestMapping("/api/catalog")
 @Tag(name = "Catalog")
@@ -46,15 +51,18 @@ class CatalogController {
     /** Bounds the offset; 1,000 pages of 24 are far beyond the catalog of the shop. */
     private static final int MAX_PAGE = 1_000;
 
-    /** The category slug is only capped to bound the request, at 4 times the longest slug. */
+    /** A slug is only capped to bound the request, at 4 times the longest slug. */
     private static final int SLACK = 4;
 
     private final ListProducts listProducts;
     private final GetFilterOptions getFilterOptions;
+    private final GetProductDetail getProductDetail;
 
-    CatalogController(ListProducts listProducts, GetFilterOptions getFilterOptions) {
+    CatalogController(ListProducts listProducts, GetFilterOptions getFilterOptions,
+                      GetProductDetail getProductDetail) {
         this.listProducts = listProducts;
         this.getFilterOptions = getFilterOptions;
+        this.getProductDetail = getProductDetail;
     }
 
     @GetMapping("/products")
@@ -86,6 +94,21 @@ class CatalogController {
             case ListProducts.Result.InvalidFilter invalid -> problem(HttpStatus.BAD_REQUEST, "Invalid filter",
                 "At most " + ProductFilter.MAX_VALUES + " values per filter, sizes, colors and materials as the shop "
                     + "names them, and prices from 0 with the minimum not above the maximum.");
+        };
+    }
+
+    @GetMapping("/products/{slug}")
+    @Operation(summary = "A listed product with its sellable variants",
+        description = "Each variant has its price in cents and its available stock. Photos of a color have that color; "
+            + "the others are of the whole product.")
+    @ApiResponse(responseCode = "200", description = "The product", content = @Content(
+        mediaType = "application/json", schema = @Schema(implementation = ProductDetailResponse.class)))
+    @ApiResponse(responseCode = "404", description = "No listed product has this slug",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<?> getProduct(@PathVariable @Size(max = SLACK * Slug.MAX_LENGTH) String slug) {
+        return switch (getProductDetail.execute(new GetProductDetail.Query(slug))) {
+            case GetProductDetail.Result.Found found -> ResponseEntity.ok(ProductDetailResponse.of(found.product()));
+            case GetProductDetail.Result.NotFound notFound -> problem(HttpStatus.NOT_FOUND, "Product not found", null);
         };
     }
 
@@ -138,6 +161,38 @@ class CatalogController {
 
         static ListingImageResponse of(ProductListingItem.ListingImage image) {
             return new ListingImageResponse(image.placeholder(), image.files().stream()
+                .map(file -> new ImageResponse.FileResponse(file.width(), ImageResponse.UPLOADS_PATH + file.fileName()))
+                .toList());
+        }
+    }
+
+    record ProductDetailResponse(String slug, String name, String description, String material, Season season,
+                                 Audience audience, long fromPriceCents, List<String> sizes, List<String> colors,
+                                 List<VariantDetailResponse> variants, List<DetailImageResponse> images) {
+
+        static ProductDetailResponse of(ProductDetail product) {
+            return new ProductDetailResponse(product.slug(), product.name(), product.description(), product.material(),
+                product.season(), product.audience(), product.fromPrice().cents(), product.sizes(), product.colors(),
+                product.variants().stream().map(VariantDetailResponse::of).toList(),
+                product.images().stream().map(DetailImageResponse::of).toList());
+        }
+    }
+
+    /** {@code id} is what the cart takes (UC-08); {@code available} is the stock that can be bought now. */
+    record VariantDetailResponse(UUID id, String size, String color, long priceCents, int available) {
+
+        static VariantDetailResponse of(ProductDetail.VariantDetail variant) {
+            return new VariantDetailResponse(variant.id().value(), variant.size(), variant.color(),
+                variant.price().cents(), variant.available());
+        }
+    }
+
+    /** {@code color} is null for a photo of the whole product. */
+    record DetailImageResponse(@Schema(nullable = true) String color, String placeholder,
+                               List<ImageResponse.FileResponse> files) {
+
+        static DetailImageResponse of(ProductView.ImageView image) {
+            return new DetailImageResponse(image.color().orElse(null), image.placeholder(), image.files().stream()
                 .map(file -> new ImageResponse.FileResponse(file.width(), ImageResponse.UPLOADS_PATH + file.fileName()))
                 .toList());
         }

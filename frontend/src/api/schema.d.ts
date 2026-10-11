@@ -65,6 +65,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/stock-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add stock to a variant or subtract it
+         * @description quantity is signed, from -10,000 to 10,000 and not 0; note is optional, up to 200 characters. The first movement of a variant is its initial load. Retrying with the same Idempotency-Key, quantity and note changes nothing. Requires the CSRF token.
+         */
+        post: operations["adjust"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/products": {
         parameters: {
             query?: never;
@@ -314,6 +334,86 @@ export interface paths {
         patch: operations["rename"];
         trace?: never;
     };
+    "/api/catalog/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listed products, filtered and sorted
+         * @description 24 per page, from page 0. Repeat a filter for several values: they combine with OR, and different filters with AND. Size and color apply to one variant with stock; prices are in cents and apply to the "from" price.
+         */
+        get: operations["listProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalog/products/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A listed product with its sellable variants
+         * @description Each variant has its price in cents and its available stock. Photos of a color have that color; the others are of the whole product.
+         */
+        get: operations["getProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalog/filters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the filter panel offers
+         * @description From the listed products of the category, or of the whole shop; the other filters do not narrow it. Prices are in cents and null without listed products.
+         */
+        get: operations["getFilterOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/variants/{id}/stock-movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The stock of a variant and its movements, newest first
+         * @description 50 per page, from page 0. Each movement has its date, user, quantity and note (the reason).
+         */
+        get: operations["movements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/me": {
         parameters: {
             query?: never;
@@ -432,6 +532,19 @@ export interface components {
             position?: number;
             active?: boolean;
         };
+        AdjustmentRequest: {
+            /** Format: uuid */
+            variantId: string;
+            /** Format: int32 */
+            quantity: number;
+            note?: string;
+        };
+        AdjustmentResponse: {
+            /** Format: uuid */
+            variantId?: string;
+            /** Format: int32 */
+            onHand?: number;
+        };
         MatrixRequest: {
             sizes: string[];
             colors: string[];
@@ -453,6 +566,86 @@ export interface components {
             /** Format: int64 */
             priceCents?: number;
             active?: boolean;
+        };
+        ListingImageResponse: {
+            placeholder?: string;
+            files?: components["schemas"]["FileResponse"][];
+        };
+        ProductListItemResponse: {
+            slug?: string;
+            name?: string;
+            image?: components["schemas"]["ListingImageResponse"];
+            /** Format: int64 */
+            fromPriceCents?: number;
+            soldOut?: boolean;
+        };
+        ProductListPageResponse: {
+            items?: components["schemas"]["ProductListItemResponse"][];
+            hasMore?: boolean;
+        };
+        DetailImageResponse: {
+            color?: string | null;
+            placeholder?: string;
+            files?: components["schemas"]["FileResponse"][];
+        };
+        ProductDetailResponse: {
+            slug?: string;
+            name?: string;
+            description?: string;
+            material?: string;
+            /** @enum {string} */
+            season?: "SUMMER" | "MID_SEASON" | "WINTER";
+            /** @enum {string} */
+            audience?: "WOMEN" | "MEN" | "KIDS";
+            /** Format: int64 */
+            fromPriceCents?: number;
+            sizes?: string[];
+            colors?: string[];
+            variants?: components["schemas"]["VariantDetailResponse"][];
+            images?: components["schemas"]["DetailImageResponse"][];
+        };
+        VariantDetailResponse: {
+            /** Format: uuid */
+            id?: string;
+            size?: string;
+            color?: string;
+            /** Format: int64 */
+            priceCents?: number;
+            /** Format: int32 */
+            available?: number;
+        };
+        FilterOptionsResponse: {
+            sizes?: string[];
+            colors?: string[];
+            materials?: string[];
+            seasons?: ("SUMMER" | "MID_SEASON" | "WINTER")[];
+            audiences?: ("WOMEN" | "MEN" | "KIDS")[];
+            /** Format: int64 */
+            minPriceCents?: number | null;
+            /** Format: int64 */
+            maxPriceCents?: number | null;
+        };
+        MovementPageResponse: {
+            /** Format: uuid */
+            variantId?: string;
+            /** Format: int32 */
+            onHand?: number;
+            items?: components["schemas"]["MovementResponse"][];
+            hasMore?: boolean;
+        };
+        MovementResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "INITIAL_LOAD" | "ADJUSTMENT" | "RESERVATION" | "DEDUCTION" | "RELEASE";
+            /** Format: int32 */
+            quantity?: number;
+            note?: string;
+            /** Format: uuid */
+            userId?: string;
+            userName?: string;
+            /** Format: date-time */
+            createdAt?: string;
         };
         ProductPageResponse: {
             items?: components["schemas"]["ProductSummaryResponse"][];
@@ -665,6 +858,87 @@ export interface operations {
                 };
             };
             /** @description The order does not name every category exactly once */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    adjust: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A UUID per adjustment, repeated on retries */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Already adjusted with this key: the current stock */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentResponse"];
+                };
+            };
+            /** @description Adjusted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentResponse"];
+                };
+            };
+            /** @description Missing or invalid Idempotency-Key or body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such variant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description See problem: WOULD_GO_NEGATIVE or WOULD_EXCEED_MAXIMUM; the current stock is in onHand */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description See problem: INVALID_QUANTITY, INVALID_NOTE or KEY_REUSED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1380,6 +1654,177 @@ export interface operations {
             };
             /** @description The name has no letters or digits to build a slug from */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listProducts: {
+        parameters: {
+            query?: {
+                category?: string;
+                season?: ("SUMMER" | "MID_SEASON" | "WINTER")[];
+                audience?: ("WOMEN" | "MEN" | "KIDS")[];
+                minPrice?: number;
+                maxPrice?: number;
+                sort?: "NEWEST" | "PRICE_ASC" | "PRICE_DESC";
+                page?: number;
+                size?: string[];
+                color?: string[];
+                material?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of products */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductListPageResponse"];
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No active category has this slug */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    getProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The product */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetailResponse"];
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No active category has this slug */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    getFilterOptions: {
+        parameters: {
+            query?: {
+                category?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The options */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilterOptionsResponse"];
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No active category has this slug */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    movements: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of movements */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovementPageResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such variant */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

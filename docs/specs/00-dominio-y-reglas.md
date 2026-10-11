@@ -24,7 +24,7 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | Variante | id, productoId, sku, talle, ordenTalle, color, ordenColor, precioCentavos?, activa (el orden de talles y colores es el de carga en el producto) |
 | NivelStock | varianteId, enMano (módulo de inventario; la reserva se suma en E3) |
 | Imagen | id, productoId, color? (uno de los colores del producto), claveArchivo (nombre generado por el servidor; la URL se deriva de ella, RNF-29.4), placeholder, orden, claveSubida y hash del archivo (reintentos sin duplicar) |
-| MovimientoStock | id, varianteId, tipo (CARGA_INICIAL, AJUSTE, RESERVA, DESCUENTO, LIBERACION), cantidad (con signo), nota? (texto libre del administrador), pedidoId?, usuarioId?, fecha |
+| MovimientoStock | id, varianteId, tipo (CARGA_INICIAL, AJUSTE, RESERVA, DESCUENTO, LIBERACION), cantidad (con signo), nota? (texto libre del administrador), pedidoId?, usuarioId?, claveAjuste? (reintentos sin duplicar), fecha |
 | Carrito / CarritoItem | id, token, usuarioId?, cuponId?, items(varianteId, cantidad) |
 | Cupon | id, codigo, tipo, valor, vigenciaDesde/Hasta, usosMax, usosActuales, minimoCompra, automatico, regla, activo |
 | Usuario | id, email, emailVerificado, passwordHash?, nombre, rol (CLIENTE / ADMIN), intentosFallidos, bloqueadoHasta? |
@@ -90,7 +90,8 @@ PAGADO | PREPARANDO → CANCELADO
 | SKU de las variantes | Decidido | Código generado por el sistema: `PP-` y 8 caracteres aleatorios sin caracteres parecidos; no se edita (CU-06) |
 | Fotos de producto | Decidido | Se asocian a un color (o a todo el producto), no a una variante: una foto muestra un color en todos sus talles. Conversión con libvips por línea de comandos, fuera de la JVM (CU-06) |
 | Matriz de variantes | Decidido | Generación aditiva: crea solo las combinaciones nuevas y nunca borra variantes; hasta 20 talles y 20 colores por producto (CU-06) |
-| Motivo de los movimientos de stock | Decidido | Tipo fijo (enum) más una nota libre opcional del administrador |
+| Motivo de los movimientos de stock | Decidido | Tipo fijo (enum) más una nota libre opcional del administrador. El tipo no se elige: el primer movimiento de una variante es la carga inicial y los siguientes son ajustes (CU-07) |
+| Ajustes de stock idempotentes | Decidido | Cada ajuste lleva un `Idempotency-Key` por variante: un reintento con la misma clave no cambia el stock dos veces (CU-07, R-09) |
 | Rate limiting solo en la app (Bucket4j en memoria) | Decidido | Sin Cloudflare ni plugin de Caddy |
 | Concurrencia: pool de hilos clásico y acotado | Recomendado | Delegado por el usuario; hilos virtuales como opción futura |
 | Backoffice: un único administrador (el dueño) | Decidido | Sin gestión de roles ni permisos |

@@ -13,13 +13,18 @@ import com.pijamaparty.store.inventory.domain.VariantId;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.testing.ContractTest;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-/** Contract of {@link LoadStockLevels}, {@link SaveStockLevels} and {@link StockHistory} over the same storage. */
-public abstract class StockStoreContractTest<T extends LoadStockLevels & SaveStockLevels & StockHistory>
-    extends ContractTest<T> {
+/**
+ * Contract of {@link LoadStockLevels}, {@link SaveStockLevels}, {@link StockHistory} and {@link AvailableStock} over
+ * the same storage.
+ */
+public abstract class StockStoreContractTest<
+    T extends LoadStockLevels & SaveStockLevels & StockHistory & AvailableStock> extends ContractTest<T> {
 
     private static final Instant OPENED = Instant.parse("2026-10-10T12:00:00Z");
     private static final UserId ADMIN = UserId.of(UUID.randomUUID());
@@ -131,6 +136,20 @@ public abstract class StockStoreContractTest<T extends LoadStockLevels & SaveSto
         assertThatThrownBy(() -> subject.save(stale)).isInstanceOf(RuntimeException.class);
         assertThat(subject.onHand(variant)).hasValue(3);
         assertThat(subject.movements(variant, 0, 10)).hasSize(1);
+    }
+
+    @Test
+    void givenStockLevels_whenAskingForTheAvailableStock_thenOnlyVariantsWithALevelAreAnswered() {
+        VariantId stocked = VariantId.of(UUID.randomUUID());
+        VariantId empty = VariantId.of(UUID.randomUUID());
+        VariantId unknown = VariantId.of(UUID.randomUUID());
+        givenStockLevel(stocked, OPENED);
+        givenStockLevel(empty, OPENED);
+        adjust(stocked, 4, Optional.empty(), AdjustmentKey.of(UUID.randomUUID()), OPENED.plusSeconds(60));
+
+        assertThat(subject.availableOf(List.of(stocked, empty, unknown, stocked)))
+            .isEqualTo(Map.of(stocked, 4, empty, 0));
+        assertThat(subject.availableOf(List.of())).isEmpty();
     }
 
     /** Loads the level, adjusts it and saves it, as the use case does; returns the recorded movement. */

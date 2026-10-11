@@ -6,6 +6,7 @@ import com.pijamaparty.store.inventory.domain.StockMovement;
 import com.pijamaparty.store.inventory.domain.VariantId;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -14,11 +15,11 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 /**
- * Fake of {@link LoadStockLevels}, {@link SaveStockLevels} and {@link StockHistory} over the same levels and
- * movements. It stores rows, not aggregates, like the database: a loaded level that is not saved changes nothing.
- * Locks are not modeled.
+ * Fake of {@link LoadStockLevels}, {@link SaveStockLevels}, {@link StockHistory} and {@link AvailableStock} over the
+ * same levels and movements. It stores rows, not aggregates, like the database: a loaded level that is not saved
+ * changes nothing. Locks are not modeled.
  */
-public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, StockHistory {
+public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock {
 
     /** Newest first; the id breaks ties as PostgreSQL orders uuids (by their bytes, as the canonical text does). */
     private static final Comparator<StockMovement> NEWEST_FIRST = Comparator.comparing(StockMovement::createdAt)
@@ -81,6 +82,15 @@ public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, Sto
             .skip(offset)
             .limit(limit)
             .toList();
+    }
+
+    /** Nothing is reserved before E3, so the available stock is the stock on hand. */
+    @Override
+    public synchronized Map<VariantId, Integer> availableOf(Collection<VariantId> variantIds) {
+        Map<VariantId, Integer> available = new HashMap<>();
+        variantIds.stream().filter(levels::containsKey)
+            .forEach(variantId -> available.put(variantId, levels.get(variantId).onHand()));
+        return available;
     }
 
     private boolean hasMovements(VariantId variantId) {

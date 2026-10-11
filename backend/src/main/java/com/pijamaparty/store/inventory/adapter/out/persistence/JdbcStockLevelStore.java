@@ -1,6 +1,7 @@
 package com.pijamaparty.store.inventory.adapter.out.persistence;
 
 import com.pijamaparty.store.inventory.application.AddStockLevels;
+import com.pijamaparty.store.inventory.application.AvailableStock;
 import com.pijamaparty.store.inventory.application.LoadStockLevels;
 import com.pijamaparty.store.inventory.application.SaveStockLevels;
 import com.pijamaparty.store.inventory.application.StockHistory;
@@ -14,23 +15,29 @@ import com.pijamaparty.store.inventory.domain.VariantId;
 import com.pijamaparty.store.platform.domain.UserId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
-/** Stock levels and movements in tables {@code stock_level} and {@code stock_movement} (V4, V8), in the caller's transaction. */
+/**
+ * Stock levels and movements in tables {@code stock_level} and {@code stock_movement} (V4, V8), and the available
+ * stock in the view {@code v_variant_availability} (V9), in the caller's transaction.
+ */
 @Repository
-class JdbcStockLevelStore implements AddStockLevels, LoadStockLevels, SaveStockLevels, StockHistory {
+class JdbcStockLevelStore implements AddStockLevels, LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock {
 
     // Idempotent: a variant opened twice keeps its stock.
     private static final String INSERT_EMPTY = """
@@ -77,6 +84,13 @@ class JdbcStockLevelStore implements AddStockLevels, LoadStockLevels, SaveStockL
     private static final String INSERT_MOVEMENT = """
         INSERT INTO stock_movement (id, variant_id, type, quantity, note, user_id, adjustment_key, created_at)
         VALUES (:id, :variantId, :type, :quantity, :note, :userId, :adjustmentKey, :createdAt)
+        """;
+
+    // The view holds the formula of the available stock (on hand − reserved), so it is written only once.
+    private static final String SELECT_AVAILABLE = """
+        SELECT variant_id, available
+        FROM v_variant_availability
+        WHERE variant_id = ANY (CAST(:variantIds AS uuid[]))
         """;
 
     private static final RowMapper<StockMovement> MOVEMENT = JdbcStockLevelStore::movement;
@@ -145,6 +159,15 @@ class JdbcStockLevelStore implements AddStockLevels, LoadStockLevels, SaveStockL
             .addValue("offset", offset)
             .addValue("limit", limit);
         return jdbc.query(SELECT_HISTORY, params, MOVEMENT);
+    }
+
+    @Override
+    public Map<VariantId, Integer> availableOf(Collection<VariantId> variantIds) {
+        UUID[] ids = variantIds.stream().map(VariantId::value).distinct().toArray(UUID[]::new);
+        return jdbc.query(SELECT_AVAILABLE, new MapSqlParameterSource().addValue("variantIds", ids, Types.ARRAY),
+                (row, n) -> Map.entry(VariantId.of(row.getObject("variant_id", UUID.class)), row.getInt("available")))
+            .stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private static StockMovement movement(ResultSet row, int rowNumber) throws SQLException {

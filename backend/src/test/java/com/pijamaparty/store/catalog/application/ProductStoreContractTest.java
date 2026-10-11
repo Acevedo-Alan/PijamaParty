@@ -16,6 +16,7 @@ import com.pijamaparty.store.catalog.domain.ProductId;
 import com.pijamaparty.store.catalog.domain.ProductImage;
 import com.pijamaparty.store.catalog.domain.ProductName;
 import com.pijamaparty.store.catalog.domain.Season;
+import com.pijamaparty.store.catalog.domain.Slug;
 import com.pijamaparty.store.catalog.domain.Sku;
 import com.pijamaparty.store.catalog.domain.StorageKey;
 import com.pijamaparty.store.catalog.domain.UploadKey;
@@ -60,6 +61,7 @@ public abstract class ProductStoreContractTest<T extends LoadProducts & SaveProd
         persistAndForget();
 
         assertSameState(subject.findById(product.id()).orElseThrow(), product);
+        assertSameState(subject.findBySlug(new Slug("pijama-de-algodon")).orElseThrow(), product);
         assertSameState(subject.lockById(product.id()).orElseThrow(), product);
         assertSameState(subject.lockByVariantId(product.variants().get(3).id()).orElseThrow(), product);
     }
@@ -195,6 +197,7 @@ public abstract class ProductStoreContractTest<T extends LoadProducts & SaveProd
     @Test
     void givenUnknownIds_whenLoading_thenTheyAreEmpty() {
         assertThat(subject.findById(ProductId.of(UUID.randomUUID()))).isEmpty();
+        assertThat(subject.findBySlug(new Slug("no-existe"))).isEmpty();
         assertThat(subject.lockById(ProductId.of(UUID.randomUUID()))).isEmpty();
         assertThat(subject.lockByVariantId(VariantId.of(UUID.randomUUID()))).isEmpty();
     }

@@ -26,6 +26,14 @@ public record Slug(String value) {
         }
     }
 
+    /** A slug as a visitor sent it (UC-03); empty when it is not one, so it cannot name anything. */
+    public static Optional<Slug> parse(String text) {
+        Objects.requireNonNull(text, "text");
+        return text.length() <= MAX_LENGTH && FORMAT.matcher(text).matches()
+            ? Optional.of(new Slug(text))
+            : Optional.empty();
+    }
+
     /**
      * UC-05: lower case, accents removed, every run of other characters turned into one hyphen and no hyphen at
      * either end ({@code "Pijamas de Niñas"} becomes {@code pijamas-de-ninas}). Empty when nothing is left or the

@@ -58,6 +58,12 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
         WHERE id = :id
         """;
 
+    private static final String SELECT_BY_SLUG = """
+        SELECT id, category_id, name, slug, description, material, season, audience, active, created_at, updated_at
+        FROM product
+        WHERE slug = :slug
+        """;
+
     private static final String LOCK_BY_ID = """
         SELECT id, category_id, name, slug, description, material, season, audience, active, created_at, updated_at
         FROM product
@@ -173,6 +179,11 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
     @Override
     public Optional<Product> findById(ProductId id) {
         return load(SELECT_BY_ID, new MapSqlParameterSource("id", id.value()));
+    }
+
+    @Override
+    public Optional<Product> findBySlug(Slug slug) {
+        return load(SELECT_BY_SLUG, new MapSqlParameterSource("slug", slug.value()));
     }
 
     @Override

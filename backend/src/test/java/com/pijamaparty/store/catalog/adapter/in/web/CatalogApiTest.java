@@ -1,7 +1,9 @@
 package com.pijamaparty.store.catalog.adapter.in.web;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -20,7 +22,9 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-/** UC-01, UC-02 through the public API, as an anonymous visitor, with the real security filter chain and PostgreSQL. */
+/**
+ * UC-01 to UC-03 through the public API, as an anonymous visitor, with the real security filter chain and PostgreSQL.
+ */
 @ApiTest
 class CatalogApiTest {
 
@@ -178,6 +182,52 @@ class CatalogApiTest {
             .andExpect(jsonPath("$.maxPriceCents").value(2500));
     }
 
+    @Test
+    void givenPinkMInStockAndLightBlueMOutOfStock_whenAVisitorOpensTheDetail_thenOnlyLightBlueMHasNothingAvailable()
+        throws Exception {
+        UUID pajama = product(summer, "Pijama rosa", "SUMMER", true);
+        UUID pinkM = variant(pajama, "M", "Rosa", 4500, 3);
+        variant(pajama, "M", "Celeste", 5200, 0);
+        String whole = image(pajama);
+        String pink = image(pajama, "Rosa", 1);
+
+        mvc.perform(get(PRODUCTS + "/pijama-rosa"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.slug").value("pijama-rosa"))
+            .andExpect(jsonPath("$.name").value("Pijama rosa"))
+            .andExpect(jsonPath("$.material").value("Algodón"))
+            .andExpect(jsonPath("$.season").value("SUMMER"))
+            .andExpect(jsonPath("$.audience").value("WOMEN"))
+            .andExpect(jsonPath("$.fromPriceCents").value(4500))
+            .andExpect(jsonPath("$.sizes", contains("M")))
+            .andExpect(jsonPath("$.colors", containsInAnyOrder("Rosa", "Celeste")))
+            .andExpect(jsonPath("$.variants", hasSize(2)))
+            .andExpect(jsonPath("$.variants[?(@.color == 'Rosa')].id", contains(pinkM.toString())))
+            .andExpect(jsonPath("$.variants[?(@.color == 'Rosa')].available", contains(3)))
+            .andExpect(jsonPath("$.variants[?(@.color == 'Celeste')].available", contains(0)))
+            .andExpect(jsonPath("$.variants[?(@.color == 'Celeste')].priceCents", contains(5200)))
+            .andExpect(jsonPath("$.images[*].color", contains(nullValue(), is("Rosa"))))
+            .andExpect(jsonPath("$.images[0].placeholder").value(PLACEHOLDER))
+            .andExpect(jsonPath("$.images[0].files[0].url").value("/uploads/" + whole + "-400.webp"))
+            .andExpect(jsonPath("$.images[1].files[2].url").value("/uploads/" + pink + "-1200.webp"));
+    }
+
+    @Test
+    void givenSlugsOfNoListedProduct_whenOpened_thenTheyAreNotFound() throws Exception {
+        variant(product(summer, "Oculto", "SUMMER", false), "M", "Rosa", 1000, 5);
+        UUID closed = category("cerrada", false);
+        variant(product(closed, "De cerrada", "SUMMER", true), "M", "Rosa", 1000, 5);
+
+        for (String slug : new String[] {"oculto", "de-cerrada", "no-existe", "No-Existe"}) {
+            mvc.perform(get(PRODUCTS + "/" + slug))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+        }
+        mvc.perform(get(PRODUCTS + "/" + "a".repeat(561)))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
     private UUID category(String slug, boolean active) {
         UUID id = UUID.randomUUID();
         app.update("""
@@ -213,12 +263,17 @@ class CatalogApiTest {
     }
 
     private String image(UUID product) {
+        return image(product, null, 0);
+    }
+
+    /** A photo of one color, or of the whole product when {@code color} is null. */
+    private String image(UUID product, String color, int position) {
         String storageKey = UUID.randomUUID().toString();
         app.update("""
-            insert into product_image (id, product_id, storage_key, placeholder, position, upload_key, content_sha256,
-                                       created_at)
-            values (?, ?, ?, ?, 0, gen_random_uuid(), sha256(?::bytea), now())
-            """, UUID.randomUUID(), product, storageKey, PLACEHOLDER, storageKey);
+            insert into product_image (id, product_id, color, storage_key, placeholder, position, upload_key,
+                                       content_sha256, created_at)
+            values (?, ?, ?, ?, ?, ?, gen_random_uuid(), sha256(?::bytea), now())
+            """, UUID.randomUUID(), product, color, storageKey, PLACEHOLDER, position, storageKey);
         return storageKey;
     }
 }

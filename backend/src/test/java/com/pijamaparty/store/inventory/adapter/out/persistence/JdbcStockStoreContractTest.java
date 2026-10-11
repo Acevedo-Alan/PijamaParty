@@ -1,6 +1,7 @@
 package com.pijamaparty.store.inventory.adapter.out.persistence;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
+import com.pijamaparty.store.inventory.application.AvailableStock;
 import com.pijamaparty.store.inventory.application.LoadStockLevels;
 import com.pijamaparty.store.inventory.application.SaveStockLevels;
 import com.pijamaparty.store.inventory.application.StockHistory;
@@ -11,7 +12,9 @@ import com.pijamaparty.store.inventory.domain.StockMovement;
 import com.pijamaparty.store.inventory.domain.VariantId;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.jupiter.api.AfterEach;
@@ -52,7 +55,7 @@ class JdbcStockStoreContractTest extends StockStoreContractTest<JdbcStockStoreCo
     }
 
     record InTransaction(JdbcStockLevelStore adapter, TransactionTemplate transactions)
-        implements LoadStockLevels, SaveStockLevels, StockHistory {
+        implements LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock {
 
         @Override
         public Optional<StockLevel> lockByVariantId(VariantId variantId) {
@@ -77,6 +80,11 @@ class JdbcStockStoreContractTest extends StockStoreContractTest<JdbcStockStoreCo
         @Override
         public List<StockMovement> movements(VariantId variantId, int offset, int limit) {
             return transactions.execute(status -> adapter.movements(variantId, offset, limit));
+        }
+
+        @Override
+        public Map<VariantId, Integer> availableOf(Collection<VariantId> variantIds) {
+            return transactions.execute(status -> adapter.availableOf(variantIds));
         }
     }
 }

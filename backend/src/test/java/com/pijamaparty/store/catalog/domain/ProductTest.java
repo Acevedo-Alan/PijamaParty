@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.catalog.domain.Product.MatrixOutcome;
 import com.pijamaparty.store.catalog.domain.Product.PublishOutcome;
@@ -206,6 +207,25 @@ class ProductTest {
         published.publish(CREATED);
         assertThat(published.publish(LATER)).isEqualTo(new PublishOutcome.Published());
         assertThat(published.updatedAt()).isEqualTo(CREATED);
+    }
+
+    @Test
+    void givenAPublishedProduct_whenAskedWhetherVisitorsSeeIt_thenOnlyAnActiveCategoryShowsItsSellableVariants() {
+        Category category = Category.create(CategoryId.of(new UUID(0, 1)), new CategoryName("Verano"), List.of(),
+            CREATED);
+        Product product = withVariants();
+        VariantId small = product.variants().getFirst().id();
+        product.changeVariant(small, Optional.of(Money.of(100)), Optional.empty(), CREATED);
+        assertThat(product.isListedIn(category)).isFalse();
+
+        product.publish(CREATED);
+
+        assertThat(product.isListedIn(category)).isTrue();
+        assertThat(product.sellableVariants()).extracting(Variant::id).containsExactly(small);
+        category.deactivate(LATER);
+        assertThat(product.isListedIn(category)).isFalse();
+        Category other = Category.create(CategoryId.of(UUID.randomUUID()), new CategoryName("Otra"), List.of(), CREATED);
+        assertThatThrownBy(() -> product.isListedIn(other)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

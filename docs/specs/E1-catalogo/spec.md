@@ -14,6 +14,13 @@
 **Alternativos**
 - Categoría sin productos: se muestra un mensaje y un enlace al catálogo completo.
 - Producto sin stock en ninguna variante: se muestra con la etiqueta "Agotado".
+- Categoría inexistente o inactiva: se muestra el mismo mensaje que para una categoría sin productos.
+
+**Reglas**
+- Se listan los productos publicados, de una categoría activa y con al menos una variante activa con precio.
+- El precio "desde" es el menor precio entre las variantes activas con precio, tengan stock o no.
+- Por defecto se ordena por novedades (los productos más nuevos primero).
+- La grilla muestra la primera foto del producto.
 
 **Criterios de aceptación**
 - Dado un producto inactivo, cuando se lista el catálogo, entonces no aparece.
@@ -33,6 +40,10 @@
 **Reglas**
 - Entre filtros distintos se combinan con "y"; dentro de un mismo filtro (varios talles) con "o".
 - Un talle o color solo cuenta si la variante tiene stock disponible.
+- Talle y color se aplican a la misma variante: con talle M y color rosa, aparece el producto solo si tiene una variante rosa M con stock.
+- El rango de precio se aplica al precio "desde" del producto.
+- Los ordenamientos por precio usan el precio "desde"; a igual precio, primero los más nuevos.
+- El panel ofrece las opciones de los productos de la categoría (o de toda la tienda), sin achicarse según los otros filtros elegidos: talles y colores con stock, materiales, temporadas, públicos y el rango de precios.
 
 **Criterios de aceptación**
 - Dados los filtros talle M y temporada verano, cuando se aplican, entonces solo aparecen productos con una variante M con stock y temporada verano.
@@ -50,6 +61,9 @@
 4. Con una combinación disponible, se habilita el botón de agregar al carrito (CU-08).
 
 **Reglas**
+- Un producto se puede abrir si aparece en el catálogo (CU-01): publicado, de una categoría activa y con al menos una variante activa con precio. Si no, se muestra la página 404.
+- Solo se muestran las variantes activas con precio; los talles y colores ofrecidos son los de esas variantes. La galería tiene las fotos de todo el producto y las de los colores mostrados.
+- Cada variante muestra su precio y su stock disponible exacto.
 - Las combinaciones sin stock se muestran deshabilitadas.
 - Hasta elegir talle y color, el botón de agregar está deshabilitado.
 
@@ -145,13 +159,23 @@
 1. El administrador elige una variante y registra un ajuste (suma o resta) con un motivo.
 2. El sistema actualiza el stock y guarda un movimiento en el historial.
 
+**Alternativos**
+- Ajuste que dejaría el stock negativo: se rechaza y se informa el stock actual.
+- Ajuste reintentado porque se perdió la respuesta: el stock cambia una sola vez.
+
 **Reglas**
-- El stock nunca queda negativo.
+- El stock nunca queda negativo y llega como máximo a 1.000.000 de unidades.
 - Todo cambio de stock genera un movimiento.
+- El primer movimiento de una variante es la carga inicial y los siguientes son ajustes; el administrador no elige el tipo.
+- Cada ajuste suma o resta de 1 a 10.000 unidades y puede llevar una nota de hasta 200 caracteres, que el historial muestra como motivo.
+- Se puede ajustar cualquier variante, activa o no, de un producto publicado o no.
+- El historial muestra los movimientos del más nuevo al más viejo, de a 50, junto con el stock actual.
 
 **Criterios de aceptación**
 - Dado un stock de 3, cuando se resta 5, entonces se rechaza.
 - Dado un ajuste válido, cuando se guarda, entonces el historial muestra fecha, usuario, cantidad y motivo.
+- Dado un ajuste cuya respuesta se perdió, cuando se reintenta, entonces el stock cambia una sola vez.
+- Dada una variante sin movimientos, cuando se suma stock, entonces el movimiento es la carga inicial.
 
 ## CU-26 Buscar productos por texto
 
