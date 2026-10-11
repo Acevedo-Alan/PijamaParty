@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { trackSearch } from '../analytics/catalogEvents.ts';
 import { FilterPanel } from '../catalog/FilterPanel.tsx';
 import { NO_FILTERS } from '../catalog/listingCriteria.ts';
 import { ProductListing } from '../catalog/ProductListing.tsx';
@@ -40,6 +42,15 @@ function NoResults({ text }: { text: string }) {
 export function SearchPage() {
   const [criteria, setCriteria] = useListingCriteria();
   const { text } = criteria;
+  const searched = useRef<string | null>(null);
+
+  // RNF-25: one search event per text whose results open.
+  useEffect(() => {
+    if (isSearchable(text) && searched.current !== text) {
+      searched.current = text;
+      trackSearch(text);
+    }
+  }, [text]);
 
   if (!isSearchable(text)) {
     return (

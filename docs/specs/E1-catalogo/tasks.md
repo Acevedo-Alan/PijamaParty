@@ -23,6 +23,6 @@
 - [x] **T-E1-21** Backoffice responsive desde 360 px en todas las pantallas (RNF-26).
 - [x] **T-E1-22** Carga de fotos desde el celular: selección múltiple, reducción en el navegador, progreso y reintento idempotente (CU-06, RNF-26).
 - [x] **T-E1-23** Banner de consentimiento y cargador de analítica (GA4 y Meta Pixel) que solo se activa tras aceptar (RNF-25).
-- [ ] **T-E1-24** Eventos de analítica del catálogo: `view_item_list`, `view_item` y `search` (RNF-25).
+- [x] **T-E1-24** Eventos de analítica del catálogo: `view_item_list`, `view_item` y `search` (RNF-25).
 
 **Terminado cuando:** el dueño carga un producto con su matriz de variantes y fotos desde el celular, un visitante lo encuentra filtrando o buscando por texto, y una variante sin stock figura agotada.

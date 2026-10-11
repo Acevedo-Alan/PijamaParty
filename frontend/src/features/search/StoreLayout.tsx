@@ -19,9 +19,10 @@ export function StoreLayout() {
           <HeaderSearch />
         </div>
       </header>
+      {/* Before the page, so a returning visitor's tools are loaded when the page sends its first events. */}
+      <Analytics />
       <Outlet />
       <StoreFooter />
-      <Analytics />
     </>
   );
 }

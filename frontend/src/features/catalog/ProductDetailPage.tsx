@@ -1,7 +1,8 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { trackItemView } from '../analytics/catalogEvents.ts';
 import { NotFoundPage } from '../errors/NotFoundPage.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
@@ -25,6 +26,15 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
   const variant = findVariant(product.variants, selection);
   const price = shownPrice(product.variants, selection) ?? { cents: product.fromPriceCents, from: true };
   const canAdd = variant !== undefined && variant.available > 0;
+  const viewed = useRef<string | null>(null);
+
+  // RNF-25: one view_item per product page opened.
+  useEffect(() => {
+    if (viewed.current !== product.slug) {
+      viewed.current = product.slug;
+      trackItemView(product);
+    }
+  }, [product]);
 
   return (
     <div className="pdp-layout">

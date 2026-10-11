@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { listId, trackItemList } from '../analytics/catalogEvents.ts';
 import { countFilters, type ListingCriteria } from './listingCriteria.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { useProductListing } from './useProductListing.ts';
@@ -40,6 +41,26 @@ interface ProductListingProps {
  */
 export function ProductListing({ category, criteria, onClearFilters, emptyState }: ProductListingProps) {
   const listing = useProductListing(category, criteria);
+  const sentPages = useRef(new Set<string>());
+  const pages = listing.data?.pages;
+
+  // RNF-25: each page of products shown is one view_item_list, once.
+  useEffect(() => {
+    if (pages === undefined) {
+      return;
+    }
+    const list = listId(category, criteria.text !== undefined);
+    let index = 0;
+    pages.forEach((page, number) => {
+      const items = page.status === 'listed' ? page.items : [];
+      const key = `${JSON.stringify([category ?? null, criteria])}#${String(number)}`;
+      if (!sentPages.current.has(key)) {
+        sentPages.current.add(key);
+        trackItemList(list, items, index);
+      }
+      index += items.length;
+    });
+  }, [pages, category, criteria]);
 
   if (listing.isPending) {
     return <Skeleton />;
