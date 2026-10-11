@@ -13,7 +13,7 @@
 - [x] **T-E1-11** Storefront: página de detalle, selector de talle y color, galería y blur-up (CU-03).
 - [x] **T-E1-12** Backoffice: pantallas de login, categorías, productos y stock (CU-04 a CU-07).
 - [x] **T-E1-13** Tests de los criterios de aceptación de CU-01 a CU-07. El criterio de la foto de 8 MB reducida en el celular (CU-06) se prueba en T-E1-22.
-- [ ] **T-E1-14** Límite de 2 conversiones de imagen simultáneas (RNF-21).
+- [x] **T-E1-14** Límite de 2 conversiones de imagen simultáneas (RNF-21).
 - [x] **T-E1-15** Activar las políticas de rate limiting de login, catálogo y búsqueda (RNF-22).
 - [ ] **T-E1-16** *Propuesto:* segundo factor TOTP para el administrador (RNF-24).
 - [ ] **T-E1-17** Migración de búsqueda: extensión `unaccent`, columna `busqueda` e índice GIN (CU-26).

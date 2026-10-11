@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -43,6 +44,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -53,6 +55,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -84,13 +87,16 @@ class ProductImageAdminApiTest {
     private final UploadProductImage uploadProductImage;
     private final JdbcTemplate owner;
     private final Path uploads;
+    private final SaturableImageProcessor processor;
     private String product;
 
     ProductImageAdminApiTest(MockMvc mvc, ObjectMapper json, UploadProductImage uploadProductImage,
-                             PostgreSQLContainer<?> postgres, @Value("${store.images.uploads-dir}") Path uploads) {
+                             PostgreSQLContainer<?> postgres, @Value("${store.images.uploads-dir}") Path uploads,
+                             SaturableImageProcessor processor) {
         this.mvc = mvc;
         this.json = json;
         this.uploadProductImage = uploadProductImage;
+        this.processor = processor;
         this.owner = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), "tienda_owner",
             TestcontainersConfiguration.OWNER_PASSWORD));
         this.uploads = uploads;
@@ -107,6 +113,7 @@ class ProductImageAdminApiTest {
 
     @AfterEach
     void cleanUp() throws IOException {
+        processor.saturated = false;
         owner.execute("truncate product_image, variant, product, category, stock_movement, stock_level");
         FileSystemUtils.deleteRecursively(uploads);
     }
@@ -178,6 +185,24 @@ class ProductImageAdminApiTest {
         assertThat(outcomes).filteredOn(UploadProductImage.Result.AlreadyUploaded.class::isInstance).hasSize(3);
         assertThat(owner.queryForObject("select count(*) from product_image", Integer.class)).isOne();
         assertThat(webpFiles()).hasSize(3);
+    }
+
+    @Test
+    void givenNoConversionSlotFreesUp_whenAPhotoIsUploaded_thenItAnswers503WithRetryAfterAndTheRetryStoresIt()
+        throws Exception {
+        String key = UUID.randomUUID().toString();
+        processor.saturated = true;
+
+        upload(key, PHOTO, null)
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(header().string(HttpHeaders.RETRY_AFTER, "5"))
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+        assertThat(owner.queryForObject("select count(*) from product_image", Integer.class)).isZero();
+        assertThat(webpFiles()).isEmpty();
+
+        processor.saturated = false;
+        upload(key, PHOTO, null).andExpect(status().isCreated());
+        assertThat(owner.queryForObject("select count(*) from product_image", Integer.class)).isOne();
     }
 
     @Test
@@ -317,8 +342,22 @@ class ProductImageAdminApiTest {
 
         @Bean
         @Primary
-        ImageProcessor fakeImageProcessor() {
-            return new InMemoryImageProcessor();
+        SaturableImageProcessor fakeImageProcessor() {
+            return new SaturableImageProcessor();
+        }
+    }
+
+    /** The fake; while saturated it refuses like the conversion limit does when no slot frees up (T-E1-14). */
+    static class SaturableImageProcessor extends InMemoryImageProcessor {
+
+        volatile boolean saturated;
+
+        @Override
+        public ImageProcessor.Result process(byte[] content) {
+            if (saturated) {
+                throw new RejectedExecutionException("no image conversion slot");
+            }
+            return super.process(content);
         }
     }
 }

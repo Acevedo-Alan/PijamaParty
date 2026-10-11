@@ -18,16 +18,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 /**
  * Converts photos with the libvips command line (UC-06, RNF-29.4), installed in the API image. Each step is a
  * separate process with a timeout, so a decoder crash or a decompression bomb never reaches the JVM or its heap.
  * {@code VIPS_BLOCK_UNTRUSTED} keeps libvips to its fuzzed loaders, and {@code vipsheader} reads the dimensions without
- * decoding the pixels.
+ * decoding the pixels. Wired behind {@link ConcurrencyLimitedImageProcessor} (ImageProcessorConfiguration).
  */
-@Component
 class VipsImageProcessor implements ImageProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(VipsImageProcessor.class);
@@ -43,8 +40,7 @@ class VipsImageProcessor implements ImageProcessor {
     private final Duration timeout;
 
     /** {@code binDir} empty: the commands are found on the PATH. */
-    VipsImageProcessor(@Value("${store.images.vips.bin-dir:}") String binDir,
-                       @Value("${store.images.vips.timeout:30s}") Duration timeout) {
+    VipsImageProcessor(String binDir, Duration timeout) {
         this.vips = command(binDir, "vips");
         this.vipsheader = command(binDir, "vipsheader");
         this.timeout = timeout;

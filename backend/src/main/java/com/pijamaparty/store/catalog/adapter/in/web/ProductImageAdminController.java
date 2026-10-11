@@ -87,6 +87,9 @@ class ProductImageAdminController {
     @ApiResponse(responseCode = "422", description = "See problem: UNSUPPORTED_FORMAT, TOO_LARGE, UNREADABLE, "
         + "UNKNOWN_COLOR or KEY_REUSED",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "503", description = "Other photos are being converted; retry with the same "
+        + "Idempotency-Key after Retry-After seconds",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> upload(
         @PathVariable UUID id,
         @Parameter(description = "A UUID per photo, repeated on retries") @RequestHeader("Idempotency-Key")

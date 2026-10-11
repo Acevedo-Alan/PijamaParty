@@ -79,6 +79,10 @@ store:
       bin-dir: ${VIPS_BIN_DIR:}
       # Each libvips step of a conversion; a photo the device already shrank takes well under a second
       timeout: 30s
+    # RNF-21 (T-E1-14): conversions running at a time; another upload waits this long for one to end, then gets 503
+    conversions:
+      max-concurrent: 2
+      queue-timeout: 10s
   saturation:
     # RNF-21: Retry-After of the 503 sent when a pool is exhausted
     retry-after: 5s
