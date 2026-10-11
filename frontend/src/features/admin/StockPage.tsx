@@ -153,13 +153,11 @@ function MovementItem({ movement }: { movement: StockMovement }) {
   return (
     <li className="admin-card movement">
       <p className="movement-quantity">{messages.signedQuantity(movement.quantity)}</p>
-      <div>
-        <p>{movement.note ?? messages.types[movement.type]}</p>
-        <p className="admin-card-meta">
-          <time dateTime={movement.createdAt.toISOString()}>{formatDateTime(movement.createdAt)}</time> ·{' '}
-          {movement.userName ?? messages.unknownUser}
-        </p>
-      </div>
+      <p className="movement-reason">{movement.note ?? messages.types[movement.type]}</p>
+      <p className="admin-card-meta movement-meta">
+        <time dateTime={movement.createdAt.toISOString()}>{formatDateTime(movement.createdAt)}</time> ·{' '}
+        {movement.userName ?? messages.unknownUser}
+      </p>
     </li>
   );
 }
@@ -221,7 +219,7 @@ export function StockPage() {
             {movements.length === 0 ? (
               <p>{messages.noMovements}</p>
             ) : (
-              <ol className="admin-list">
+              <ol className="admin-list movement-rows">
                 {movements.map((movement) => (
                   <MovementItem key={movement.id} movement={movement} />
                 ))}

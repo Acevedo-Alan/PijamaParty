@@ -127,6 +127,8 @@
 
 .inline-form {
   display: flex;
+  /* Also on .admin-form, whose column direction would turn the flex basis of a field into its height */
+  flex-direction: row;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 8px;
@@ -220,7 +222,7 @@
 
 .photo-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 12px;
   list-style: none;
 }
@@ -258,12 +260,28 @@
 }
 
 .movement {
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "quantity reason"
+    "quantity meta";
   align-items: center;
-  gap: 16px;
+  gap: 2px 16px;
 }
 
 .movement-quantity {
+  grid-area: quantity;
+}
+
+.movement-reason {
+  grid-area: reason;
+}
+
+.movement-meta {
+  grid-area: meta;
+}
+
+.movement .movement-quantity {
   min-width: 56px;
   font-size: 18px;
   font-weight: 700;
@@ -277,5 +295,49 @@
 @media (min-width: 860px) {
   .admin-form {
     max-width: 640px;
+  }
+}
+
+/* RNF-26 (T-E1-21): every link is a 44 px touch target, and long names, SKUs and notes wrap inside the screen. */
+.admin-main a:not(.btn),
+.admin-nav .link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.admin-main a:not(.btn) {
+  min-width: 44px;
+}
+
+.admin-main,
+.admin-card,
+.admin-lead {
+  overflow-wrap: anywhere;
+}
+
+.back-link {
+  align-self: flex-start;
+}
+
+/* From 860 px the product list and the stock history read as rows with aligned columns. */
+@media (min-width: 860px) {
+  .product-rows .admin-card-head {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 120px;
+    align-items: center;
+  }
+
+  .product-rows .admin-badge {
+    justify-self: start;
+  }
+
+  .movement-rows .movement {
+    grid-template-columns: 80px minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-areas: "quantity reason meta";
+  }
+
+  .movement-rows .movement-meta {
+    text-align: right;
   }
 }

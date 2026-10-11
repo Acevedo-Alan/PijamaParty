@@ -38,7 +38,7 @@ export function ProductsPage() {
       )}
       {products.isSuccess && items.length === 0 && <p>{messages.empty}</p>}
       {items.length > 0 && (
-        <ul className="admin-list">
+        <ul className="admin-list product-rows">
           {items.map((product) => (
             <li key={product.id} className="admin-card">
               <div className="admin-card-head">
