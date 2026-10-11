@@ -14,12 +14,12 @@
 	}
 }
 
-# RNF-29.9: HSTS and the content security policy live here, not in the application. The CSP allows only this
-# origin; E6 adds the analytics (RNF-25) and payment provider domains when they are integrated.
+# RNF-29.9: HSTS and the content security policy live here, not in the application. The CSP allows this origin and
+# the analytics domains of RNF-25 (loaded only after consent, T-E1-23); E3 adds the payment provider ones.
 (security_headers) {
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://connect.facebook.net; style-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com https://www.facebook.com; font-src 'self'; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"

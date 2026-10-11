@@ -1,9 +1,13 @@
 import { Link, Outlet } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { Analytics, StoreFooter } from '../analytics/Analytics.tsx';
 import { HeaderSearch } from './HeaderSearch.tsx';
 import './search.css';
 
-/** The header of every public page (UC-26): the store name, back to the shop, and the search. */
+/**
+ * The frame of every public page: the header with the store name and the search (UC-26), the footer, and the
+ * analytics consent (RNF-25), which the back office never shows.
+ */
 export function StoreLayout() {
   return (
     <>
@@ -16,6 +20,8 @@ export function StoreLayout() {
         </div>
       </header>
       <Outlet />
+      <StoreFooter />
+      <Analytics />
     </>
   );
 }

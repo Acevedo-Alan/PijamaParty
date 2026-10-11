@@ -1,0 +1,56 @@
+/* The consent banner (RNF-25): at the bottom, both choices with the same weight. */
+.consent {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 24px rgba(74, 58, 58, 0.08);
+  padding: 16px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.consent-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.consent-current {
+  font-weight: 700;
+}
+
+.consent-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 860px) {
+  .consent-inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .consent-actions {
+    flex: none;
+  }
+}
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  padding: 24px 0 calc(24px + env(safe-area-inset-bottom, 0px));
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.site-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}

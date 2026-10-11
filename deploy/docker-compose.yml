@@ -24,6 +24,9 @@ services:
     build:
       context: ..
       dockerfile: deploy/caddy/Dockerfile
+      args:
+        VITE_GA4_MEASUREMENT_ID: ${VITE_GA4_MEASUREMENT_ID:-}
+        VITE_META_PIXEL_ID: ${VITE_META_PIXEL_ID:-}
     restart: unless-stopped
     cap_drop: [ALL]
     cap_add: [NET_BIND_SERVICE]

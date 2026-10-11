@@ -74,6 +74,14 @@ export const es = {
     pickSizeAndColor: 'Elegí talle y color para agregarlo al carrito.',
     addToCart: 'Agregar al carrito',
   },
+  consent: {
+    title: 'Cookies',
+    text: 'Usamos Google Analytics y Meta Pixel para medir las visitas y mejorar la tienda. Solo se activan si aceptás.',
+    accept: 'Aceptar',
+    reject: 'Rechazar',
+    current: { accepted: 'Ahora están aceptadas.', rejected: 'Ahora están rechazadas.' },
+    footerLink: 'Cookies',
+  },
   search: {
     label: 'Buscar productos',
     placeholder: 'Buscar productos',
