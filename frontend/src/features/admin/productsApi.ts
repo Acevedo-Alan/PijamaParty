@@ -3,6 +3,7 @@ import type { components } from '../../api/schema.d.ts';
 import { toImage, type ListingImage } from '../catalog/catalogApi.ts';
 import type { Audience, Season } from '../catalog/listingCriteria.ts';
 import { ensureSignedIn, problemProperty, problemText } from './adminSession.ts';
+import { uploadTransport } from './uploadTransport.ts';
 
 type ProductResponse = components['schemas']['ProductResponse'];
 type SummaryResponse = components['schemas']['ProductSummaryResponse'];
@@ -99,7 +100,9 @@ export type UploadAnswer =
   | { status: 'tooManyImages' }
   | { status: 'fileTooLarge' }
   | { status: 'invalid'; problem: ImageProblem }
-  | { status: 'notFound' };
+  | { status: 'notFound' }
+  /** 503: two conversions are running; the same key and bytes can be sent again. */
+  | { status: 'busy' };
 
 const DETAILS_FIELDS: readonly DetailsField[] = ['CATEGORY', 'NAME', 'DESCRIPTION', 'MATERIAL', 'SEASON', 'AUDIENCE'];
 const MATRIX_PROBLEMS: readonly MatrixProblem[] = [
@@ -319,26 +322,23 @@ export async function updateVariant(
  */
 export async function uploadImage(
   productId: string,
-  file: File,
+  file: Blob,
+  fileName: string,
   color: string | null,
   idempotencyKey: string,
+  onProgress?: (sent: number) => void,
 ): Promise<UploadAnswer> {
-  const { error, response } = await api.POST('/api/admin/catalog/products/{id}/images', {
-    params: {
-      path: { id: productId },
-      header: { 'Idempotency-Key': idempotencyKey },
-      query: color === null ? {} : { color },
-    },
-    // The generated type says string for a binary part; the serializer sends the File itself.
-    body: { file: '' },
-    bodySerializer: () => {
-      const form = new FormData();
-      form.append('file', file);
-      return form;
-    },
+  const query = color === null ? '' : `?${new URLSearchParams({ color }).toString()}`;
+  const { status, body } = await uploadTransport.send({
+    url: `/api/admin/catalog/products/${encodeURIComponent(productId)}/images${query}`,
+    file,
+    fileName,
+    idempotencyKey,
+    ...(onProgress === undefined ? {} : { onProgress }),
   });
+  const response = new Response(null, { status });
   ensureSignedIn(response);
-  switch (response.status) {
+  switch (status) {
     case 404:
       return { status: 'notFound' };
     case 409:
@@ -346,12 +346,14 @@ export async function uploadImage(
     case 413:
       return { status: 'fileTooLarge' };
     case 422: {
-      const problem = problemProperty(error, 'problem');
+      const problem = problemProperty(body, 'problem');
       if (!oneOf(IMAGE_PROBLEMS, problem)) {
         throw failed('Photo upload', response);
       }
       return { status: 'invalid', problem };
     }
+    case 503:
+      return { status: 'busy' };
     default:
       if (!response.ok) {
         throw failed('Photo upload', response);

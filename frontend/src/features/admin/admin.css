@@ -341,3 +341,47 @@
     text-align: right;
   }
 }
+
+/* Uploads from the phone (T-E1-22) */
+.upload-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+}
+
+.upload-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+}
+
+.upload-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.upload-name {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.upload-row progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+}
+
+.photo-item[draggable='true'] {
+  cursor: grab;
+}
+
+.photo-item.dragging {
+  opacity: 0.5;
+}

@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
@@ -14,6 +14,7 @@ import {
 } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
+import { uploadTransport, type UploadReply } from './uploadTransport.ts';
 
 const edit = es.admin.productEdit;
 const variants = es.admin.variants;
@@ -240,72 +241,134 @@ describe('product photos (UC-06)', () => {
     expect(screen.getByRole('button', { name: photos.moveDown(2) })).toBeDisabled();
   });
 
-  it('given an upload cut by a lost connection, when retried, then the same key and file are sent', async () => {
-    const api = stubApi({
-      'GET /api/admin/auth/me': signedIn,
-      'GET /api/admin/catalog/categories': categories,
-      'GET /api/admin/catalog/products/{id}': answer(200, withColors),
-      'POST /api/admin/catalog/products/{id}/images': [connectionLost(), answer(200, photo('i-3', 'Rosa'))],
+  const routes = {
+    'GET /api/admin/auth/me': signedIn,
+    'GET /api/admin/catalog/categories': categories,
+    'GET /api/admin/catalog/products/{id}': answer(200, withColors),
+  };
+
+  /** Answers the uploads in order (the last one repeats), reporting half the body sent first. */
+  function stubUploads(...replies: (UploadReply | Error)[]) {
+    const queue = [...replies];
+    return vi.spyOn(uploadTransport, 'send').mockImplementation((request) => {
+      request.onProgress?.(0.5);
+      const next = queue.length > 1 ? queue.shift() : queue[0];
+      return next instanceof Error ? Promise.reject(next) : Promise.resolve(next as UploadReply);
     });
+  }
+
+  const created: UploadReply = { status: 201, body: photo('i-3', 'Rosa') };
+
+  it('given an upload cut by a lost connection, when retried, then the same key and bytes are sent', async () => {
+    const api = stubApi(routes);
+    const send = stubUploads(connectionLost(), created);
     renderRoute('/admin/productos/p-1');
 
-    await userEvent.upload(await screen.findByLabelText(photos.file), jpg());
-    await userEvent.selectOptions(screen.getByLabelText(photos.color), 'Rosa');
-    await userEvent.click(screen.getByRole('button', { name: photos.upload }));
+    await userEvent.selectOptions(await screen.findByLabelText(photos.color), 'Rosa');
+    await userEvent.upload(screen.getByLabelText(photos.file), jpg());
     expect(await screen.findByRole('alert')).toHaveTextContent(photos.connectionLost);
-    await userEvent.click(screen.getByRole('button', { name: photos.retry }));
+    await userEvent.click(screen.getByRole('button', { name: photos.retryOne('luna.jpg') }));
 
-    expect(await screen.findByText(photos.uploaded)).toBeInTheDocument();
-    const [first, retry] = api.callsTo('POST /api/admin/catalog/products/{id}/images');
-    const firstKey = first?.options.params?.header?.['Idempotency-Key'];
-    expect(firstKey).toMatch(/^[0-9a-f-]{36}$/);
-    expect(retry?.options.params?.header?.['Idempotency-Key']).toBe(firstKey);
-    expect(retry?.options.params?.query).toEqual({ color: 'Rosa' });
+    expect(await screen.findByText(photos.states.uploaded)).toBeInTheDocument();
+    const [first, retry] = send.mock.calls.map(([request]) => request);
+    expect(first?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
+    expect(retry?.idempotencyKey).toBe(first?.idempotencyKey);
+    expect(retry?.file).toBe(first?.file);
+    expect(retry?.url).toBe('/api/admin/catalog/products/p-1/images?color=Rosa');
+    expect(retry?.fileName).toBe('luna.jpg');
     expect(api.callsTo('GET /api/admin/catalog/products/{id}')).toHaveLength(2);
   });
 
-  it('given a failed upload, when another file is chosen, then it gets a new key', async () => {
-    const api = stubApi({
-      'GET /api/admin/auth/me': signedIn,
-      'GET /api/admin/catalog/categories': categories,
-      'GET /api/admin/catalog/products/{id}': answer(200, withColors),
-      'POST /api/admin/catalog/products/{id}/images': connectionLost(),
+  it('given several photos picked at once, when uploaded, then they go one after the other, each with its key', async () => {
+    stubApi(routes);
+    const send = stubUploads(created);
+    renderRoute('/admin/productos/p-1');
+
+    await userEvent.upload(await screen.findByLabelText(photos.file), [
+      jpg(),
+      new File(['png'], 'sol.png', { type: 'image/png' }),
+    ]);
+
+    await vi.waitFor(() => {
+      expect(screen.getAllByText(photos.states.uploaded)).toHaveLength(2);
+    });
+    const requests = send.mock.calls.map(([request]) => request);
+    expect(requests.map((request) => request.fileName)).toEqual(['luna.jpg', 'sol.png']);
+    expect(requests.map((request) => request.url)).toEqual([
+      '/api/admin/catalog/products/p-1/images',
+      '/api/admin/catalog/products/p-1/images',
+    ]);
+    expect(new Set(requests.map((request) => request.idempotencyKey)).size).toBe(2);
+    expect(screen.getByRole('progressbar', { name: photos.progress('sol.png') })).toHaveAttribute('value', '1');
+  });
+
+  it('given an upload in flight, when part of it is sent, then its progress shows', async () => {
+    stubApi(routes);
+    vi.spyOn(uploadTransport, 'send').mockImplementation((request) => {
+      request.onProgress?.(0.4);
+      return new Promise(() => undefined);
     });
     renderRoute('/admin/productos/p-1');
 
     await userEvent.upload(await screen.findByLabelText(photos.file), jpg());
-    await userEvent.click(screen.getByRole('button', { name: photos.upload }));
-    await screen.findByRole('alert');
-    await userEvent.upload(screen.getByLabelText(photos.file), new File(['png'], 'otra.png', { type: 'image/png' }));
-    await userEvent.click(screen.getByRole('button', { name: photos.upload }));
 
+    const bar = await screen.findByRole('progressbar', { name: photos.progress('luna.jpg') });
     await vi.waitFor(() => {
-      expect(api.callsTo('POST /api/admin/catalog/products/{id}/images')).toHaveLength(2);
+      expect(bar).toHaveAttribute('value', '0.4');
     });
-    const [first, second] = api.callsTo('POST /api/admin/catalog/products/{id}/images');
-    expect(second?.options.params?.header?.['Idempotency-Key']).not.toBe(
-      first?.options.params?.header?.['Idempotency-Key'],
-    );
-    expect(first?.options.params?.query).toEqual({});
+    expect(screen.getByText(photos.states.uploading)).toBeInTheDocument();
+  });
+
+  it('given the server busy converting, when uploading, then the photo can be retried', async () => {
+    stubApi(routes);
+    stubUploads({ status: 503, body: undefined }, created);
+    renderRoute('/admin/productos/p-1');
+
+    await userEvent.upload(await screen.findByLabelText(photos.file), jpg());
+    expect(await screen.findByRole('alert')).toHaveTextContent(photos.busy);
+    await userEvent.click(screen.getByRole('button', { name: photos.retryOne('luna.jpg') }));
+
+    expect(await screen.findByText(photos.states.uploaded)).toBeInTheDocument();
   });
 
   it.each([
-    ['a file that is not JPG, PNG or WebP', problem(422, { problem: 'UNSUPPORTED_FORMAT' }), photos.problems.UNSUPPORTED_FORMAT],
-    ['a product with 8 photos', problem(409), photos.tooMany],
-    ['a file over 10 MB', problem(413), photos.fileTooLarge],
+    ['a file that is not JPG, PNG or WebP', { status: 422, body: { problem: 'UNSUPPORTED_FORMAT' } }, photos.problems.UNSUPPORTED_FORMAT],
+    ['a product with 8 photos', { status: 409, body: {} }, photos.tooMany],
+    ['a file over 10 MB', { status: 413, body: {} }, photos.fileTooLarge],
   ])('given %s, when uploaded, then it is rejected with its reason', async (_case, reply, message) => {
-    stubApi({
-      'GET /api/admin/auth/me': signedIn,
-      'GET /api/admin/catalog/categories': categories,
-      'GET /api/admin/catalog/products/{id}': answer(200, withColors),
-      'POST /api/admin/catalog/products/{id}/images': reply,
-    });
+    stubApi(routes);
+    stubUploads(reply);
     renderRoute('/admin/productos/p-1');
 
     await userEvent.upload(await screen.findByLabelText(photos.file), jpg());
-    await userEvent.click(screen.getByRole('button', { name: photos.upload }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.getByText(photos.states.rejected)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: photos.retryOne('luna.jpg') })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: photos.dismiss('luna.jpg') }));
+    expect(screen.queryByText(photos.states.rejected)).not.toBeInTheDocument();
+  });
+
+  it('given two photos, when the first is dragged onto the second, then the whole new order is sent', async () => {
+    const api = stubApi({
+      ...routes,
+      'PUT /api/admin/catalog/products/{id}/images/order': answer(
+        200,
+        { ...withColors, images: [photo('i-2', 'Rosa'), photo('i-1')] },
+      ),
+    });
+    renderRoute('/admin/productos/p-1');
+    const first = (await screen.findByRole('img', { name: photos.alt(1, null) })).closest('li');
+    const second = screen.getByRole('img', { name: photos.alt(2, 'Rosa') }).closest('li');
+
+    fireEvent.dragStart(first as HTMLElement);
+    fireEvent.dragOver(second as HTMLElement);
+    fireEvent.drop(second as HTMLElement);
+
+    expect(await screen.findByRole('img', { name: photos.alt(1, 'Rosa') })).toBeInTheDocument();
+    expect(api.callsTo('PUT /api/admin/catalog/products/{id}/images/order')[0]?.options.body).toEqual({
+      imageIds: ['i-2', 'i-1'],
+    });
   });
 
   it('given two photos, when the first moves down, then the whole new order is sent', async () => {
