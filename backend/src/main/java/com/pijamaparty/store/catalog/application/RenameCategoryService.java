@@ -13,11 +13,13 @@ class RenameCategoryService implements RenameCategory {
 
     private final LoadCategories loadCategories;
     private final SaveCategory saveCategory;
+    private final CatalogEvents events;
     private final Clock clock;
 
-    RenameCategoryService(LoadCategories loadCategories, SaveCategory saveCategory, Clock clock) {
+    RenameCategoryService(LoadCategories loadCategories, SaveCategory saveCategory, CatalogEvents events, Clock clock) {
         this.loadCategories = loadCategories;
         this.saveCategory = saveCategory;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -38,7 +40,10 @@ class RenameCategoryService implements RenameCategory {
         Category category = found.get();
         category.rename(name.get(), clock.instant());
         return switch (saveCategory.update(category)) {
-            case SAVED -> new Result.Renamed(CategoryView.of(category));
+            case SAVED -> {
+                events.categoryRenamed(category.id());
+                yield new Result.Renamed(CategoryView.of(category));
+            }
             case SLUG_ALREADY_USED -> new Result.SlugAlreadyUsed(category.slug().value());
             case NOT_FOUND -> new Result.NotFound();
         };

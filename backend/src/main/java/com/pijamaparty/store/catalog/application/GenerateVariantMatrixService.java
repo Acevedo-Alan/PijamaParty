@@ -22,14 +22,16 @@ class GenerateVariantMatrixService implements GenerateVariantMatrix {
     private final LoadProducts loadProducts;
     private final SaveProduct saveProduct;
     private final OpenStockLevels openStockLevels;
+    private final CatalogEvents events;
     private final VariantIdentities identities;
     private final Clock clock;
 
     GenerateVariantMatrixService(LoadProducts loadProducts, SaveProduct saveProduct, OpenStockLevels openStockLevels,
-                                 IdGenerator ids, SkuGenerator skus, Clock clock) {
+                                 CatalogEvents events, IdGenerator ids, SkuGenerator skus, Clock clock) {
         this.loadProducts = loadProducts;
         this.saveProduct = saveProduct;
         this.openStockLevels = openStockLevels;
+        this.events = events;
         this.identities = new VariantIdentities() {
             @Override
             public VariantId nextId() {
@@ -72,6 +74,7 @@ class GenerateVariantMatrixService implements GenerateVariantMatrix {
                     switch (saveProduct.update(product)) {
                         case SAVED -> {
                             openStockLevels.open(generated.created().stream().map(Variant::id).toList());
+                            events.productChanged(product.id());
                             return new Result.Generated(ProductView.of(product), generated.created().size());
                         }
                         case SKU_ALREADY_USED -> {

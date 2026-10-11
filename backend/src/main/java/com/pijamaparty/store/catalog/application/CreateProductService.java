@@ -14,12 +14,15 @@ class CreateProductService implements CreateProduct {
 
     private final LoadCategories loadCategories;
     private final SaveProduct saveProduct;
+    private final CatalogEvents events;
     private final IdGenerator ids;
     private final Clock clock;
 
-    CreateProductService(LoadCategories loadCategories, SaveProduct saveProduct, IdGenerator ids, Clock clock) {
+    CreateProductService(LoadCategories loadCategories, SaveProduct saveProduct, CatalogEvents events, IdGenerator ids,
+                         Clock clock) {
         this.loadCategories = loadCategories;
         this.saveProduct = saveProduct;
+        this.events = events;
         this.ids = ids;
         this.clock = clock;
     }
@@ -42,7 +45,10 @@ class CreateProductService implements CreateProduct {
         }
         Product product = Product.create(ProductId.of(ids.newId()), details, clock.instant());
         return switch (saveProduct.add(product)) {
-            case SAVED -> new Result.Created(ProductView.of(product));
+            case SAVED -> {
+                events.productChanged(product.id());
+                yield new Result.Created(ProductView.of(product));
+            }
             case SLUG_ALREADY_USED -> new Result.SlugAlreadyUsed(product.slug().value());
             // The category was deleted after it was read.
             case UNKNOWN_CATEGORY -> new Result.UnknownCategory();

@@ -86,6 +86,7 @@ public final class ListingFixture {
         private final long cents;
         private final List<Consumer<Product>> variantChanges = new ArrayList<>();
         private final List<String> unpriced = new ArrayList<>();
+        private String description = "";
         private String material = "Algodón";
         private Season season = Season.SUMMER;
         private Audience audience = Audience.WOMEN;
@@ -100,6 +101,11 @@ public final class ListingFixture {
             this.sizes = sizes;
             this.colors = colors;
             this.cents = cents;
+        }
+
+        public Builder description(String newDescription) {
+            description = newDescription;
+            return this;
         }
 
         public Builder material(String newMaterial) {
@@ -147,7 +153,8 @@ public final class ListingFixture {
 
         private Product build() {
             Product product = Product.create(ProductId.of(UUID.randomUUID()), new ProductDetails(category,
-                new ProductName(name), new Description(""), new Material(material), season, audience), createdAt);
+                new ProductName(name), new Description(description), new Material(material), season, audience),
+                createdAt);
             String skuPrefix = "PP-L" + product.id().value().toString().substring(0, 8) + "-";
             var identities = new VariantIdentities() {
                 private int next;

@@ -14,11 +14,13 @@ class UpdateVariantService implements UpdateVariant {
 
     private final LoadProducts loadProducts;
     private final SaveProduct saveProduct;
+    private final CatalogEvents events;
     private final Clock clock;
 
-    UpdateVariantService(LoadProducts loadProducts, SaveProduct saveProduct, Clock clock) {
+    UpdateVariantService(LoadProducts loadProducts, SaveProduct saveProduct, CatalogEvents events, Clock clock) {
         this.loadProducts = loadProducts;
         this.saveProduct = saveProduct;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -45,6 +47,7 @@ class UpdateVariantService implements UpdateVariant {
                 if (saveProduct.update(product) != SaveProduct.Outcome.SAVED) {
                     throw new IllegalStateException("changing a variant touches no unique value or category");
                 }
+                events.productChanged(product.id());
                 yield new Result.Updated(ProductView.of(product));
             }
         };

@@ -334,6 +334,26 @@ export interface paths {
         patch: operations["rename"];
         trace?: never;
     };
+    "/api/catalog/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Up to 5 listed products while the visitor types
+         * @description Every word of q must match, the last one as a prefix; most relevant first. A text under 2 characters gets no suggestions.
+         */
+        get: operations["suggest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/catalog/products": {
         parameters: {
             query?: never;
@@ -342,8 +362,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listed products, filtered and sorted
-         * @description 24 per page, from page 0. Repeat a filter for several values: they combine with OR, and different filters with AND. Size and color apply to one variant with stock; prices are in cents and apply to the "from" price.
+         * Listed products, filtered and sorted, or searched by text
+         * @description 24 per page, from page 0. Repeat a filter for several values: they combine with OR, and different filters with AND. Size and color apply to one variant with stock; prices are in cents and apply to the "from" price. With q, only products matching the text (accents and case ignored, web search syntax) and, without a sort, the most relevant first; without q, the default sort is NEWEST.
          */
         get: operations["listProducts"];
         put?: never;
@@ -573,6 +593,14 @@ export interface components {
         ListingImageResponse: {
             placeholder?: string;
             files?: components["schemas"]["FileResponse"][];
+        };
+        SuggestionResponse: {
+            slug?: string;
+            name?: string;
+            image?: components["schemas"]["ListingImageResponse"];
+        };
+        SuggestionsResponse: {
+            items?: components["schemas"]["SuggestionResponse"][];
         };
         ProductListItemResponse: {
             slug?: string;
@@ -1684,9 +1712,59 @@ export interface operations {
             };
         };
     };
+    suggest: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The suggestions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionsResponse"];
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No active category has this slug */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over the catalog limit (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     listProducts: {
         parameters: {
             query?: {
+                q?: string;
                 category?: string;
                 season?: ("SUMMER" | "MID_SEASON" | "WINTER")[];
                 audience?: ("WOMEN" | "MEN" | "KIDS")[];

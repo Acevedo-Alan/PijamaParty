@@ -14,13 +14,15 @@ class UpdateProductService implements UpdateProduct {
     private final LoadCategories loadCategories;
     private final LoadProducts loadProducts;
     private final SaveProduct saveProduct;
+    private final CatalogEvents events;
     private final Clock clock;
 
     UpdateProductService(LoadCategories loadCategories, LoadProducts loadProducts, SaveProduct saveProduct,
-                         Clock clock) {
+                         CatalogEvents events, Clock clock) {
         this.loadCategories = loadCategories;
         this.loadProducts = loadProducts;
         this.saveProduct = saveProduct;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -47,7 +49,10 @@ class UpdateProductService implements UpdateProduct {
         Product product = found.get();
         product.update(details, clock.instant());
         return switch (saveProduct.update(product)) {
-            case SAVED -> new Result.Updated(ProductView.of(product));
+            case SAVED -> {
+                events.productChanged(product.id());
+                yield new Result.Updated(ProductView.of(product));
+            }
             case SLUG_ALREADY_USED -> new Result.SlugAlreadyUsed(product.slug().value());
             // The category was deleted after it was read.
             case UNKNOWN_CATEGORY -> new Result.UnknownCategory();

@@ -30,11 +30,13 @@ final class ProductFixture {
     final InMemoryOpenStockLevels stockLevels = new InMemoryOpenStockLevels();
     final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
-    final CreateProduct create = new CreateProductService(categories, products, ids, clock);
-    final UpdateProduct update = new UpdateProductService(categories, products, products, clock);
+    final InMemoryCatalogEvents events = new InMemoryCatalogEvents();
+
+    final CreateProduct create = new CreateProductService(categories, products, events, ids, clock);
+    final UpdateProduct update = new UpdateProductService(categories, products, products, events, clock);
     final GenerateVariantMatrix generate =
-        new GenerateVariantMatrixService(products, products, stockLevels, ids, skus, clock);
-    final UpdateVariant updateVariant = new UpdateVariantService(products, products, clock);
+        new GenerateVariantMatrixService(products, products, stockLevels, events, ids, skus, clock);
+    final UpdateVariant updateVariant = new UpdateVariantService(products, products, events, clock);
     final PublishProduct publish = new PublishProductService(products, products, clock);
     final HideProduct hide = new HideProductService(products, products, clock);
     final ListAllProducts listAll = new ListAllProductsService(products);

@@ -44,6 +44,12 @@ final class ListingTables {
         }
     }
 
+    void update(Category category) {
+        if (transactions.execute(status -> categories.update(category)) != SaveCategory.Outcome.SAVED) {
+            throw new IllegalArgumentException("category not saved");
+        }
+    }
+
     void add(Product product) {
         if (transactions.execute(status -> products.add(product)) != SaveProduct.Outcome.SAVED) {
             throw new IllegalArgumentException("product not saved");

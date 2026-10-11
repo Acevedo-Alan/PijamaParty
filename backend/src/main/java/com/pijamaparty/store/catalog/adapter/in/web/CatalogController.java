@@ -6,10 +6,14 @@ import com.pijamaparty.store.catalog.application.GetProductDetail;
 import com.pijamaparty.store.catalog.application.ListProducts;
 import com.pijamaparty.store.catalog.application.ProductDetail;
 import com.pijamaparty.store.catalog.application.ProductListingItem;
+import com.pijamaparty.store.catalog.application.ProductSuggestion;
 import com.pijamaparty.store.catalog.application.ProductView;
+import com.pijamaparty.store.catalog.application.SearchProducts;
+import com.pijamaparty.store.catalog.application.SuggestProducts;
 import com.pijamaparty.store.catalog.domain.Audience;
 import com.pijamaparty.store.catalog.domain.ProductFilter;
 import com.pijamaparty.store.catalog.domain.ProductSort;
+import com.pijamaparty.store.catalog.domain.SearchText;
 import com.pijamaparty.store.catalog.domain.Season;
 import com.pijamaparty.store.catalog.domain.Slug;
 import com.pijamaparty.store.platform.domain.Money;
@@ -57,45 +61,80 @@ class CatalogController {
     private static final int SLACK = 4;
 
     private final ListProducts listProducts;
+    private final SearchProducts searchProducts;
+    private final SuggestProducts suggestProducts;
     private final GetFilterOptions getFilterOptions;
     private final GetProductDetail getProductDetail;
 
-    CatalogController(ListProducts listProducts, GetFilterOptions getFilterOptions,
-                      GetProductDetail getProductDetail) {
+    CatalogController(ListProducts listProducts, SearchProducts searchProducts, SuggestProducts suggestProducts,
+                      GetFilterOptions getFilterOptions, GetProductDetail getProductDetail) {
         this.listProducts = listProducts;
+        this.searchProducts = searchProducts;
+        this.suggestProducts = suggestProducts;
         this.getFilterOptions = getFilterOptions;
         this.getProductDetail = getProductDetail;
     }
 
     @GetMapping("/products")
-    @Operation(summary = "Listed products, filtered and sorted",
+    @Operation(summary = "Listed products, filtered and sorted, or searched by text",
         description = "24 per page, from page 0. Repeat a filter for several values: they combine with OR, and "
             + "different filters with AND. Size and color apply to one variant with stock; prices are in cents and "
-            + "apply to the \"from\" price.")
+            + "apply to the \"from\" price. With q, only products matching the text (accents and case ignored, web "
+            + "search syntax) and, without a sort, the most relevant first; without q, the default sort is NEWEST.")
     @ApiResponse(responseCode = "200", description = "One page of products", content = @Content(
         mediaType = "application/json", schema = @Schema(implementation = ProductListPageResponse.class)))
     @Parameter(name = "size", in = ParameterIn.QUERY, array = @ArraySchema(schema = @Schema(type = "string")))
     @Parameter(name = "color", in = ParameterIn.QUERY, array = @ArraySchema(schema = @Schema(type = "string")))
     @Parameter(name = "material", in = ParameterIn.QUERY, array = @ArraySchema(schema = @Schema(type = "string")))
     ResponseEntity<?> listProducts(
+        @RequestParam(required = false) @Size(max = SLACK * SearchText.MAX_LENGTH) String q,
         @RequestParam(required = false) @Size(max = SLACK * Slug.MAX_LENGTH) String category,
         @RequestParam(name = "season", defaultValue = "") Set<Season> seasons,
         @RequestParam(name = "audience", defaultValue = "") Set<Audience> audiences,
         @RequestParam(required = false) Long minPrice,
         @RequestParam(required = false) Long maxPrice,
-        @RequestParam(defaultValue = "NEWEST") ProductSort sort,
+        @RequestParam(required = false) ProductSort sort,
         @RequestParam(defaultValue = "0") @Min(0) @Max(MAX_PAGE) int page,
         @Parameter(hidden = true) @RequestParam MultiValueMap<String, String> parameters) {
+        if (q != null) {
+            return search(q, category, seasons, audiences, minPrice, maxPrice, sort, page, parameters);
+        }
         var query = new ListProducts.Query(Optional.ofNullable(category), texts(parameters, "size"),
             texts(parameters, "color"), texts(parameters, "material"), seasons, audiences,
-            Optional.ofNullable(minPrice), Optional.ofNullable(maxPrice), sort, page);
+            Optional.ofNullable(minPrice), Optional.ofNullable(maxPrice), sort == null ? ProductSort.NEWEST : sort,
+            page);
         return switch (listProducts.execute(query)) {
-            case ListProducts.Result.Listed listed -> ResponseEntity.ok(new ProductListPageResponse(
-                listed.products().stream().map(ProductListItemResponse::of).toList(), listed.hasMore()));
+            case ListProducts.Result.Listed listed -> page(listed.products(), listed.hasMore());
             case ListProducts.Result.UnknownCategory unknown -> unknownCategory();
-            case ListProducts.Result.InvalidFilter invalid -> problem(HttpStatus.BAD_REQUEST, "Invalid filter",
-                "At most " + ProductFilter.MAX_VALUES + " values per filter, sizes, colors and materials as the shop "
-                    + "names them, and prices from 0 with the minimum not above the maximum.");
+            case ListProducts.Result.InvalidFilter invalid -> invalidFilter();
+        };
+    }
+
+    private ResponseEntity<?> search(String q, String category, Set<Season> seasons, Set<Audience> audiences,
+                                     Long minPrice, Long maxPrice, ProductSort sort, int page,
+                                     MultiValueMap<String, String> parameters) {
+        var query = new SearchProducts.Query(q, Optional.ofNullable(category), texts(parameters, "size"),
+            texts(parameters, "color"), texts(parameters, "material"), seasons, audiences,
+            Optional.ofNullable(minPrice), Optional.ofNullable(maxPrice), Optional.ofNullable(sort), page);
+        return switch (searchProducts.execute(query)) {
+            case SearchProducts.Result.Listed listed -> page(listed.products(), listed.hasMore());
+            case SearchProducts.Result.UnknownCategory unknown -> unknownCategory();
+            case SearchProducts.Result.InvalidFilter invalid -> invalidFilter();
+            case SearchProducts.Result.TextTooShort tooShort -> problem(HttpStatus.BAD_REQUEST, "Search text too short",
+                "Search with at least " + SearchText.MIN_LENGTH + " characters.");
+        };
+    }
+
+    @GetMapping("/suggestions")
+    @Operation(summary = "Up to 5 listed products while the visitor types",
+        description = "Every word of q must match, the last one as a prefix; most relevant first. A text under 2 "
+            + "characters gets no suggestions.")
+    @ApiResponse(responseCode = "200", description = "The suggestions", content = @Content(
+        mediaType = "application/json", schema = @Schema(implementation = SuggestionsResponse.class)))
+    ResponseEntity<?> suggest(@RequestParam @Size(max = SLACK * SearchText.MAX_LENGTH) String q) {
+        return switch (suggestProducts.execute(new SuggestProducts.Query(q))) {
+            case SuggestProducts.Result.Suggested suggested -> ResponseEntity.ok(new SuggestionsResponse(
+                suggested.products().stream().map(SuggestionResponse::of).toList()));
         };
     }
 
@@ -136,6 +175,17 @@ class CatalogController {
         return parameters.getOrDefault(name, List.of());
     }
 
+    private static ResponseEntity<ProductListPageResponse> page(List<ProductListingItem> products, boolean hasMore) {
+        return ResponseEntity.ok(new ProductListPageResponse(products.stream().map(ProductListItemResponse::of).toList(),
+            hasMore));
+    }
+
+    private static ResponseEntity<ProblemDetail> invalidFilter() {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid filter",
+            "At most " + ProductFilter.MAX_VALUES + " values per filter, sizes, colors and materials as the shop "
+                + "names them, and prices from 0 with the minimum not above the maximum.");
+    }
+
     private static ResponseEntity<ProblemDetail> unknownCategory() {
         return problem(HttpStatus.NOT_FOUND, "Category not found", null);
     }
@@ -165,6 +215,17 @@ class CatalogController {
             return new ListingImageResponse(image.placeholder(), image.files().stream()
                 .map(file -> new ImageResponse.FileResponse(file.width(), ImageResponse.UPLOADS_PATH + file.fileName()))
                 .toList());
+        }
+    }
+
+    record SuggestionsResponse(List<SuggestionResponse> items) {}
+
+    /** {@code image} is the product's first photo, null when it has none. */
+    record SuggestionResponse(String slug, String name, @Schema(nullable = true) ListingImageResponse image) {
+
+        static SuggestionResponse of(ProductSuggestion suggestion) {
+            return new SuggestionResponse(suggestion.slug(), suggestion.name(),
+                suggestion.image().map(ListingImageResponse::of).orElse(null));
         }
     }
 
