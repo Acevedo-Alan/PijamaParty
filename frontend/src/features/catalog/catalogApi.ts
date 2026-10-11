@@ -1,7 +1,7 @@
 import { api } from '../../api/client.ts';
 import type { components, paths } from '../../api/schema.d.ts';
 import type { PlaceholderDataUrl } from '../../components/BlurredImage.tsx';
-import type { Audience, ListingCriteria, Season } from './listingCriteria.ts';
+import { defaultSort, type Audience, type ListingCriteria, type Season } from './listingCriteria.ts';
 
 type ListItemResponse = components['schemas']['ProductListItemResponse'];
 /** The placeholder and files of a photo, as the listing and the detail send them. */
@@ -61,9 +61,11 @@ function toProduct(item: ListItemResponse): ListedProduct {
   return { slug, name, image: toImage(item.image), fromPriceCents, soldOut: item.soldOut === true };
 }
 
-/** The API query of a listing page: empty filters and the default sort are left out. */
-function toQuery(category: string | undefined, { filters, sort }: ListingCriteria, page: number): ListingQuery {
+/** The API query of a listing or search page: empty filters and the default sort are left out. */
+function toQuery(category: string | undefined, criteria: ListingCriteria, page: number): ListingQuery {
+  const { filters, sort, text } = criteria;
   return {
+    ...(text === undefined ? {} : { q: text }),
     ...(category === undefined ? {} : { category }),
     ...(filters.sizes.length === 0 ? {} : { size: filters.sizes }),
     ...(filters.colors.length === 0 ? {} : { color: filters.colors }),
@@ -72,7 +74,7 @@ function toQuery(category: string | undefined, { filters, sort }: ListingCriteri
     ...(filters.audiences.length === 0 ? {} : { audience: filters.audiences }),
     ...(filters.minPriceCents === undefined ? {} : { minPrice: filters.minPriceCents }),
     ...(filters.maxPriceCents === undefined ? {} : { maxPrice: filters.maxPriceCents }),
-    ...(sort === 'NEWEST' ? {} : { sort }),
+    ...(sort === defaultSort(criteria) || sort === 'RELEVANCE' ? {} : { sort }),
     page,
   };
 }

@@ -414,6 +414,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/catalog/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The active categories, by position */
+        get: operations["listCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/variants/{id}/stock-movements": {
         parameters: {
             query?: never;
@@ -655,6 +672,13 @@ export interface components {
             minPriceCents?: number | null;
             /** Format: int64 */
             maxPriceCents?: number | null;
+        };
+        ShopCategoriesResponse: {
+            items?: components["schemas"]["ShopCategoryResponse"][];
+        };
+        ShopCategoryResponse: {
+            slug?: string;
+            name?: string;
         };
         MovementPageResponse: {
             /** Format: uuid */
@@ -1887,6 +1911,53 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FilterOptionsResponse"];
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No active category has this slug */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over the catalog limit (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The categories */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopCategoriesResponse"];
                 };
             };
             /** @description Invalid parameters */

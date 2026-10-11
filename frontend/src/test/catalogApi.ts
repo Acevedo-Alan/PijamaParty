@@ -58,18 +58,43 @@ interface CatalogAnswers {
   listings: unknown[];
   /** Answer of GET /api/catalog/filters. */
   filters?: unknown;
+  /** Answer of GET /api/catalog/suggestions, or a function of the text. */
+  suggestions?: unknown;
+  /** Answer of GET /api/catalog/categories. */
+  categories?: unknown;
 }
 
 /** Serves the catalog GET calls by path, so the listing and the filter options can load in any order. */
-export function stubCatalogApi({ listings, filters = filterOptions() }: CatalogAnswers): MockInstance {
+export function stubCatalogApi({
+  listings,
+  filters = filterOptions(),
+  suggestions = suggested([]),
+  categories = shopCategories([]),
+}: CatalogAnswers): MockInstance {
   const queue = [...listings];
-  return vi.spyOn(api, 'GET').mockImplementation(((path: string) => {
+  return vi.spyOn(api, 'GET').mockImplementation(((path: string, init?: { params?: { query?: { q?: string } } }) => {
     if (path === '/api/catalog/filters') {
       return Promise.resolve(filters);
+    }
+    if (path === '/api/catalog/suggestions') {
+      return Promise.resolve(
+        typeof suggestions === 'function' ? (suggestions as (q: string) => unknown)(init?.params?.query?.q ?? '') : suggestions,
+      );
+    }
+    if (path === '/api/catalog/categories') {
+      return Promise.resolve(categories);
     }
     const next = queue.length > 1 ? queue.shift() : queue[0];
     return Promise.resolve(next);
   }) as never);
+}
+
+export function suggested(items: ListItem[]) {
+  return answer(200, { items: items.map(({ slug, name, image }) => ({ slug, name, image })) });
+}
+
+export function shopCategories(items: { slug: string; name: string }[]) {
+  return answer(200, { items });
 }
 
 /** The query sent with each call to the given path, in call order. */

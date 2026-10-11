@@ -1,0 +1,218 @@
+/* The store header and its search (UC-26), from the prototype's header: a field from 960 px, a full-screen search below. */
+header.site {
+  position: sticky;
+  top: 0;
+  z-index: 46;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 64px;
+}
+
+.logo {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-family: var(--ff-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-search {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: none;
+}
+
+/* The field shows in the header from 960 px; below, the icon opens the full-screen search. The wide layout is the
+   base so that the field is what a test environment without media queries (jsdom) sees. */
+.header-search-inline {
+  width: 260px;
+}
+
+.icon-btn.search-trigger {
+  display: none;
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.icon-btn svg,
+.search-icon {
+  width: 20px;
+  height: 20px;
+  stroke: var(--ink);
+  fill: none;
+  stroke-width: 1.5;
+  flex: none;
+}
+
+@media (hover: hover) {
+  .icon-btn:hover {
+    background: var(--surface);
+  }
+}
+
+@media (max-width: 959px) {
+  .header-search-inline {
+    display: none;
+  }
+
+  .icon-btn.search-trigger {
+    display: flex;
+  }
+}
+
+/* The field and its suggestions */
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  min-width: 0;
+  flex: 1;
+}
+
+.search-box .search-icon {
+  width: 16px;
+  height: 16px;
+  stroke: var(--ink-soft);
+  stroke-width: 1.8;
+}
+
+.search-box input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  /* 16 px keeps iOS from zooming into the field */
+  font-size: 16px;
+  outline: none;
+}
+
+.search-box:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  box-shadow: 0 12px 24px rgba(194, 80, 106, 0.12);
+  padding: 6px;
+  z-index: 50;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.suggestion[aria-selected='true'] {
+  background: var(--rose-soft);
+}
+
+@media (hover: hover) {
+  .suggestion:hover {
+    background: var(--peach-soft);
+  }
+}
+
+.suggestion-ph {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--peach-soft);
+}
+
+.suggestion-ph .ph {
+  width: 100%;
+  height: 100%;
+}
+
+/* Full-screen search below 960 px */
+.search-screen {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border: none;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 16px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.search-screen::backdrop {
+  background: rgba(74, 58, 58, 0.25);
+}
+
+.search-screen-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-screen-close {
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+/* Links to the categories when nothing matches */
+.category-links {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+  margin-top: 12px;
+}
+
+.category-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

@@ -228,6 +228,17 @@ class CatalogApiTest {
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
 
+    @Test
+    void givenActiveAndInactiveCategories_whenAVisitorListsThem_thenOnlyTheActiveOnesAppear() throws Exception {
+        category("invierno", true);
+        category("cerrada", false);
+
+        mvc.perform(get("/api/catalog/categories"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[*].slug", containsInAnyOrder("verano", "invierno")))
+            .andExpect(jsonPath("$.items[?(@.slug == 'invierno')].name", contains("invierno")));
+    }
+
     private UUID category(String slug, boolean active) {
         UUID id = UUID.randomUUID();
         app.update("""

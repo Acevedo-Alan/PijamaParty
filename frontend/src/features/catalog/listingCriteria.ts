@@ -4,7 +4,8 @@ type FilterOptionsResponse = components['schemas']['FilterOptionsResponse'];
 
 export type Season = NonNullable<FilterOptionsResponse['seasons']>[number];
 export type Audience = NonNullable<FilterOptionsResponse['audiences']>[number];
-export type ProductSort = 'NEWEST' | 'PRICE_ASC' | 'PRICE_DESC';
+/** RELEVANCE only applies to a search (UC-26), where it is the default; NEWEST is the default otherwise. */
+export type ProductSort = 'RELEVANCE' | 'NEWEST' | 'PRICE_ASC' | 'PRICE_DESC';
 
 /** The filters of UC-02. Prices are in cents and bound the "from" price, both included. */
 export interface ProductFilters {
@@ -20,6 +21,13 @@ export interface ProductFilters {
 export interface ListingCriteria {
   filters: ProductFilters;
   sort: ProductSort;
+  /** What the visitor searches for (UC-26), trimmed; absent outside a search. */
+  text?: string;
+}
+
+/** The sort applied when none is chosen: by relevance for a search, newest first otherwise. */
+export function defaultSort(criteria: { text?: string | undefined }): ProductSort {
+  return criteria.text === undefined ? 'NEWEST' : 'RELEVANCE';
 }
 
 /** The API accepts at most 20 values per filter (UC-02). */
@@ -41,11 +49,14 @@ const KEYS = {
   minPrice: 'precio-desde',
   maxPrice: 'precio-hasta',
   sort: 'orden',
+  text: 'q',
 } as const;
 
 const SEASON_SLUGS: Record<Season, string> = { SUMMER: 'verano', MID_SEASON: 'media-estacion', WINTER: 'invierno' };
 const AUDIENCE_SLUGS: Record<Audience, string> = { WOMEN: 'mujer', MEN: 'hombre', KIDS: 'infantil' };
-const SORT_SLUGS: Record<Exclude<ProductSort, 'NEWEST'>, string> = {
+/** RELEVANCE is never written: it is only ever the default. NEWEST is written in a search, where it is not. */
+const SORT_SLUGS: Record<Exclude<ProductSort, 'RELEVANCE'>, string> = {
+  NEWEST: 'novedades',
   PRICE_ASC: 'menor-precio',
   PRICE_DESC: 'mayor-precio',
 };
@@ -74,14 +85,25 @@ function priceRange(params: URLSearchParams): Pick<ProductFilters, 'minPriceCent
   return { ...(min === undefined ? {} : { minPriceCents: min }), ...(max === undefined ? {} : { maxPriceCents: max }) };
 }
 
-function sortOf(params: URLSearchParams): ProductSort {
-  const slug = params.get(KEYS.sort);
-  const match = Object.entries(SORT_SLUGS).find(([, value]) => value === slug);
-  return match === undefined ? 'NEWEST' : (match[0] as ProductSort);
+/** The server reads only the first 100 characters of a search (UC-26). */
+export const MAX_TEXT_LENGTH = 100;
+
+/** A search text as the server reads it: trimmed and cut to its first 100 characters; absent when empty. */
+export function searchText(raw: string | null): string | undefined {
+  // Characters as the server counts them: code points.
+  const text = Array.from((raw ?? '').trim()).slice(0, MAX_TEXT_LENGTH).join('').trim();
+  return text === '' ? undefined : text;
 }
 
-/** Reads the filters and sort of a shared or typed URL, ignoring what is unknown or out of bounds. */
+function sortOf(params: URLSearchParams, text: string | undefined): ProductSort {
+  const slug = params.get(KEYS.sort);
+  const match = Object.entries(SORT_SLUGS).find(([, value]) => value === slug);
+  return match === undefined ? defaultSort({ text }) : (match[0] as ProductSort);
+}
+
+/** Reads the text, filters and sort of a shared or typed URL, ignoring what is unknown or out of bounds. */
 export function parseCriteria(params: URLSearchParams): ListingCriteria {
+  const text = searchText(params.get(KEYS.text));
   return {
     filters: {
       sizes: texts(params, KEYS.sizes),
@@ -91,13 +113,18 @@ export function parseCriteria(params: URLSearchParams): ListingCriteria {
       audiences: fromSlugs(params, KEYS.audiences, AUDIENCE_SLUGS),
       ...priceRange(params),
     },
-    sort: sortOf(params),
+    sort: sortOf(params, text),
+    ...(text === undefined ? {} : { text }),
   };
 }
 
 /** The URL query of some criteria; the default sort and empty filters leave no trace. */
-export function toSearchParams({ filters, sort }: ListingCriteria): URLSearchParams {
+export function toSearchParams(criteria: ListingCriteria): URLSearchParams {
+  const { filters, sort, text } = criteria;
   const params = new URLSearchParams();
+  if (text !== undefined) {
+    params.set(KEYS.text, text);
+  }
   filters.sizes.forEach((size) => {
     params.append(KEYS.sizes, size);
   });
@@ -119,7 +146,7 @@ export function toSearchParams({ filters, sort }: ListingCriteria): URLSearchPar
   if (filters.maxPriceCents !== undefined) {
     params.set(KEYS.maxPrice, String(Math.floor(filters.maxPriceCents / CENTS_PER_PESO)));
   }
-  if (sort !== 'NEWEST') {
+  if (sort !== defaultSort(criteria) && sort !== 'RELEVANCE') {
     params.set(KEYS.sort, SORT_SLUGS[sort]);
   }
   return params;
@@ -135,4 +162,9 @@ export function countFilters(filters: ProductFilters): number {
     filters.audiences.length;
   const price = filters.minPriceCents !== undefined || filters.maxPriceCents !== undefined ? 1 : 0;
   return values + price;
+}
+
+/** The criteria of a listing that is not a search: a text in its URL is ignored, and so is a sort by relevance. */
+export function withoutText({ filters, sort }: ListingCriteria): ListingCriteria {
+  return { filters, sort: sort === 'RELEVANCE' ? 'NEWEST' : sort };
 }

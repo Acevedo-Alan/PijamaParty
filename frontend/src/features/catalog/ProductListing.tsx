@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { countFilters, type ListingCriteria } from './listingCriteria.ts';
@@ -29,13 +30,15 @@ interface ProductListingProps {
   category: string | undefined;
   criteria: ListingCriteria;
   onClearFilters: () => void;
+  /** Shown instead of the empty-shop or empty-category message when nothing matches without filters (UC-26). */
+  emptyState?: ReactNode;
 }
 
 /**
  * The grid of UC-01: 24 products at a time with "Show more", and one message for an empty or unknown category.
  * With filters and no matches it offers to clear them (UC-02).
  */
-export function ProductListing({ category, criteria, onClearFilters }: ProductListingProps) {
+export function ProductListing({ category, criteria, onClearFilters, emptyState }: ProductListingProps) {
   const listing = useProductListing(category, criteria);
 
   if (listing.isPending) {
@@ -64,6 +67,9 @@ export function ProductListing({ category, criteria, onClearFilters }: ProductLi
         </button>
       </div>
     );
+  }
+  if (products.length === 0 && emptyState !== undefined && !unknownCategory) {
+    return emptyState;
   }
   if (products.length === 0) {
     return category === undefined ? (

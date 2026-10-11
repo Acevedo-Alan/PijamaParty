@@ -5,12 +5,14 @@ import static com.pijamaparty.store.catalog.application.ListingFixture.product;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.catalog.domain.Category;
+import com.pijamaparty.store.catalog.domain.CategoryId;
 import com.pijamaparty.store.catalog.domain.CategoryName;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductSort;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /** UC-26: the search, its suggestions and the refresh of the index. */
@@ -103,6 +105,19 @@ class CatalogSearchServicesTest {
 
         var listed = (SearchProducts.Result.Listed) search.execute(query("noche", Optional.empty(), List.of(), 0));
         assertThat(listed.products()).extracting(ProductListingItem::name).containsExactly("Pijama");
+    }
+
+    @Test
+    void givenActiveAndInactiveCategories_whenListedForTheShop_thenOnlyActiveOnesComeByPosition() {
+        Category winter = saved(Category.create(CategoryId.of(UUID.randomUUID()), new CategoryName("Invierno"),
+            categories.findAll(), ListingFixture.T0));
+        saved(category("Cerrada", false));
+
+        var listed = (ListShopCategories.Result.Listed) new ListShopCategoriesService(categories).execute();
+
+        assertThat(listed.categories()).containsExactly(
+            new ListShopCategories.ShopCategory("verano", "Verano"),
+            new ListShopCategories.ShopCategory(winter.slug().value(), "Invierno"));
     }
 
     private static SearchProducts.Query query(String text, Optional<String> category, List<String> sizes, int page) {

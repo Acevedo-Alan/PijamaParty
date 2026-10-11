@@ -18,7 +18,7 @@
 - [ ] **T-E1-16** *Propuesto:* segundo factor TOTP para el administrador (RNF-24).
 - [x] **T-E1-17** Migración de búsqueda: extensión `unaccent`, columna `busqueda` e índice GIN (CU-26).
 - [x] **T-E1-18** Backend: búsqueda y sugerencias, y recálculo de `busqueda` al guardar productos y variantes (CU-26).
-- [ ] **T-E1-19** Storefront: barra de búsqueda con sugerencias y pantalla de búsqueda en celular (CU-26).
+- [x] **T-E1-19** Storefront: barra de búsqueda con sugerencias y pantalla de búsqueda en celular (CU-26).
 - [ ] **T-E1-20** Tests de los criterios de aceptación de CU-26.
 - [ ] **T-E1-21** Backoffice responsive desde 360 px en todas las pantallas (RNF-26).
 - [ ] **T-E1-22** Carga de fotos desde el celular: selección múltiple, reducción en el navegador, progreso y reintento idempotente (CU-06, RNF-26).

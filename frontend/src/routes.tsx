@@ -2,15 +2,24 @@ import { Navigate, type RouteObject } from 'react-router';
 import { CatalogPage } from './features/catalog/CatalogPage.tsx';
 import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
+import { SearchPage } from './features/search/SearchPage.tsx';
+import { StoreLayout } from './features/search/StoreLayout.tsx';
 
 /** The back office loads on demand, so shoppers never download it. */
 const admin = () => import('./features/admin/adminPages.ts');
 
 /** Feature folders add their routes here (catalog, cart, checkout, account, admin: ARCHITECTURE.md section 11). */
 export const routes: RouteObject[] = [
-  { path: '/', element: <CatalogPage /> },
-  { path: '/categoria/:categorySlug', element: <CatalogPage /> },
-  { path: '/producto/:productSlug', element: <ProductDetailPage /> },
+  {
+    element: <StoreLayout />,
+    children: [
+      { path: '/', element: <CatalogPage /> },
+      { path: '/categoria/:categorySlug', element: <CatalogPage /> },
+      { path: '/producto/:productSlug', element: <ProductDetailPage /> },
+      { path: '/buscar', element: <SearchPage /> },
+      { path: '*', element: <NotFoundPage /> },
+    ],
+  },
   { path: '/admin/ingresar', lazy: async () => ({ Component: (await admin()).SignInPage }) },
   {
     path: '/admin',
@@ -28,5 +37,4 @@ export const routes: RouteObject[] = [
       { path: '*', element: <NotFoundPage /> },
     ],
   },
-  { path: '*', element: <NotFoundPage /> },
 ];

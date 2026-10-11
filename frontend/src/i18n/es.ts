@@ -74,8 +74,22 @@ export const es = {
     pickSizeAndColor: 'Elegí talle y color para agregarlo al carrito.',
     addToCart: 'Agregar al carrito',
   },
+  search: {
+    label: 'Buscar productos',
+    placeholder: 'Buscar productos',
+    open: 'Buscar productos',
+    close: 'Cerrar',
+    title: 'Buscar',
+    suggestions: 'Sugerencias',
+    /** The title of the results page, e.g. "Resultados para "pijama"". */
+    resultsFor: (text: string) => `Resultados para "${text}"`,
+    noResults: (text: string) => `No encontramos productos para "${text}". Probá con otra palabra o mirá las categorías.`,
+    categories: 'Categorías',
+    tooShort: 'Escribí al menos 2 letras para buscar.',
+  },
   sort: {
     label: 'Ordenar por',
+    RELEVANCE: 'Relevancia',
     NEWEST: 'Novedades',
     PRICE_ASC: 'Menor precio',
     PRICE_DESC: 'Mayor precio',

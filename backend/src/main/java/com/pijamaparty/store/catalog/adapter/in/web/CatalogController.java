@@ -4,6 +4,7 @@ import com.pijamaparty.store.catalog.application.FilterOptions;
 import com.pijamaparty.store.catalog.application.GetFilterOptions;
 import com.pijamaparty.store.catalog.application.GetProductDetail;
 import com.pijamaparty.store.catalog.application.ListProducts;
+import com.pijamaparty.store.catalog.application.ListShopCategories;
 import com.pijamaparty.store.catalog.application.ProductDetail;
 import com.pijamaparty.store.catalog.application.ProductListingItem;
 import com.pijamaparty.store.catalog.application.ProductSuggestion;
@@ -65,14 +66,28 @@ class CatalogController {
     private final SuggestProducts suggestProducts;
     private final GetFilterOptions getFilterOptions;
     private final GetProductDetail getProductDetail;
+    private final ListShopCategories listShopCategories;
 
     CatalogController(ListProducts listProducts, SearchProducts searchProducts, SuggestProducts suggestProducts,
-                      GetFilterOptions getFilterOptions, GetProductDetail getProductDetail) {
+                      GetFilterOptions getFilterOptions, GetProductDetail getProductDetail,
+                      ListShopCategories listShopCategories) {
         this.listProducts = listProducts;
         this.searchProducts = searchProducts;
         this.suggestProducts = suggestProducts;
         this.getFilterOptions = getFilterOptions;
         this.getProductDetail = getProductDetail;
+        this.listShopCategories = listShopCategories;
+    }
+
+    @GetMapping("/categories")
+    @Operation(summary = "The active categories, by position")
+    @ApiResponse(responseCode = "200", description = "The categories", content = @Content(
+        mediaType = "application/json", schema = @Schema(implementation = ShopCategoriesResponse.class)))
+    ResponseEntity<?> listCategories() {
+        return switch (listShopCategories.execute()) {
+            case ListShopCategories.Result.Listed listed -> ResponseEntity.ok(new ShopCategoriesResponse(
+                listed.categories().stream().map(c -> new ShopCategoryResponse(c.slug(), c.name())).toList()));
+        };
     }
 
     @GetMapping("/products")
@@ -217,6 +232,10 @@ class CatalogController {
                 .toList());
         }
     }
+
+    record ShopCategoriesResponse(List<ShopCategoryResponse> items) {}
+
+    record ShopCategoryResponse(String slug, String name) {}
 
     record SuggestionsResponse(List<SuggestionResponse> items) {}
 

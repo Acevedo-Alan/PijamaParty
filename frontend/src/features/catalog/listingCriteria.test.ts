@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { countFilters, NO_FILTERS, parseCriteria, toSearchParams, type ListingCriteria } from './listingCriteria.ts';
+import {
+  countFilters,
+  NO_FILTERS,
+  parseCriteria,
+  toSearchParams,
+  withoutText,
+  type ListingCriteria,
+} from './listingCriteria.ts';
 
 function parse(query: string): ListingCriteria {
   return parseCriteria(new URLSearchParams(query));
@@ -78,5 +85,33 @@ describe('listing criteria in the URL (UC-02)', () => {
   it('given chosen values and a price range, when counted, then each value counts and the range counts once', () => {
     expect(countFilters({ ...NO_FILTERS, sizes: ['M', 'L'], seasons: ['SUMMER'], minPriceCents: 1, maxPriceCents: 2 }))
       .toBe(4);
+  });
+});
+
+describe('search criteria in the URL (UC-26)', () => {
+  it('given a text, when read, then it is trimmed and the default sort is relevance', () => {
+    expect(parse('q=++pijama+rosa++&talle=M')).toEqual({
+      filters: { ...NO_FILTERS, sizes: ['M'] },
+      sort: 'RELEVANCE',
+      text: 'pijama rosa',
+    });
+    expect(parse('q=+++').text).toBeUndefined();
+  });
+
+  it('given a text longer than 100 characters, when read, then only the first 100 stay', () => {
+    expect(parse(`q=${'ñ'.repeat(150)}`).text).toBe('ñ'.repeat(100));
+  });
+
+  it('given a search sorted by newest, when written and read back, then the sort stays and relevance leaves no trace', () => {
+    const newest: ListingCriteria = { filters: NO_FILTERS, sort: 'NEWEST', text: 'pijama' };
+
+    expect(toSearchParams(newest).toString()).toBe('q=pijama&orden=novedades');
+    expect(parseCriteria(toSearchParams(newest))).toEqual(newest);
+    expect(toSearchParams({ ...newest, sort: 'RELEVANCE' }).toString()).toBe('q=pijama');
+  });
+
+  it('given a listing that is not a search, when its text is dropped, then a relevance sort becomes newest', () => {
+    expect(withoutText(parse('q=pijama&orden=menor-precio'))).toEqual({ filters: NO_FILTERS, sort: 'PRICE_ASC' });
+    expect(withoutText(parse('q=pijama'))).toEqual({ filters: NO_FILTERS, sort: 'NEWEST' });
   });
 });
