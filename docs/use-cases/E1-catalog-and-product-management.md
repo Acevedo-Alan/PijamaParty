@@ -143,7 +143,10 @@
 - A second factor (TOTP) is mandatory for the administrator: the password alone never opens the back office (RNF-24, RNF-29.8).
 
 **Acceptance criteria**
-- Given correct credentials, when signing in, then the administrator reaches the panel.
+- Given correct credentials and a valid code of the authenticator app, when signing in, then the administrator reaches the panel.
+- Given the right password and a wrong or already used code, when signing in, then the back office stays closed and the attempt counts as a failure.
+- Given an administrator without a second factor, when the password is right, then the back office only opens after enrolling an authenticator app, and the recovery codes are shown once.
+- Given an unused recovery code, when used instead of a code, then the administrator gets in once with it.
 - Given wrong credentials, when trying, then a generic message is shown.
 - Given a user with role `CUSTOMER`, when opening `/admin`, then access is denied.
 - Given more than 5 sign-in attempts in a minute from the same IP, when another arrives, then it receives `429` with `Retry-After`.
