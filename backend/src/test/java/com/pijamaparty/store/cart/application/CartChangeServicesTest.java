@@ -43,13 +43,15 @@ class CartChangeServicesTest {
     private final InMemoryCartStore carts = new InMemoryCartStore();
     private final InMemoryVariantAvailability availability = new InMemoryVariantAvailability();
     private final InMemoryCoupons coupons = new InMemoryCoupons();
+    private final InMemoryItemDescriptions descriptions = new InMemoryItemDescriptions();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-    private final GetCartService getCart = new GetCartService(carts, availability, coupons);
+    private final GetCartService getCart = new GetCartService(carts, availability, coupons, descriptions);
     private final ChangeItemQuantityService changeQuantity =
-        new ChangeItemQuantityService(carts, carts, availability, coupons, clock);
-    private final RemoveItemService removeItem = new RemoveItemService(carts, carts, availability, coupons, clock);
+        new ChangeItemQuantityService(carts, carts, availability, coupons, descriptions, clock);
+    private final RemoveItemService removeItem =
+        new RemoveItemService(carts, carts, availability, coupons, descriptions, clock);
     private final AcknowledgePriceChangesService acknowledgePrices =
-        new AcknowledgePriceChangesService(carts, carts, availability, coupons, clock);
+        new AcknowledgePriceChangesService(carts, carts, availability, coupons, descriptions, clock);
 
     /** The guest's cart holds 2 pijamas and 1 camisón; 5 of each are available. */
     @BeforeEach
@@ -66,6 +68,22 @@ class CartChangeServicesTest {
     void givenACart_whenGettingIt_thenItHasItsItemsInTheOrderTheyWereAdded() {
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(cart(List.of(
             item(PIJAMA_ITEM, PIJAMA, 2), item(CAMISON_ITEM, CAMISON, 1))));
+    }
+
+    @Test
+    void givenDescribedVariants_whenGettingTheCart_thenEachItemShowsItsVariantAlsoWhenItIsNoLongerSold() {
+        var pijama = new ItemDescription("Pijama Luna", "pijama-luna", "M", "Rosa", Optional.of(
+            new ItemDescription.Photo("data:image/webp;base64,UklGRg==",
+                List.of(new ItemDescription.PhotoFile(400, "luna-400.webp")))));
+        var camison = new ItemDescription("Camisón Sol", "camison-sol", "S", "Gris", Optional.empty());
+        descriptions.add(PIJAMA, pijama);
+        descriptions.add(CAMISON, camison);
+        availability.stopSelling(CAMISON);
+
+        var items = getCart.execute(new GetCart.Query(GUEST)).items();
+
+        assertThat(items).extracting(ItemView::description).containsExactly(Optional.of(pijama), Optional.of(camison));
+        assertThat(items.get(1).status()).isEqualTo(LineStatus.UNAVAILABLE);
     }
 
     @Test
@@ -150,7 +168,7 @@ class CartChangeServicesTest {
         availability.sell(PIJAMA, PRICE, 0);
 
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(new CartView(List.of(
-                new ItemView(PIJAMA_ITEM, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.UNAVAILABLE, 0),
+                line(PIJAMA_ITEM, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.UNAVAILABLE, 0),
                 item(CAMISON_ITEM, CAMISON, 1)),
             Optional.empty(), PRICE, Money.zero(), PRICE));
     }
@@ -160,7 +178,7 @@ class CartChangeServicesTest {
         availability.stopSelling(CAMISON);
 
         assertThat(getCart.execute(new GetCart.Query(GUEST)).items().get(1))
-            .isEqualTo(new ItemView(CAMISON_ITEM, CAMISON, 1, PRICE, Optional.empty(), LineStatus.UNAVAILABLE, 0));
+            .isEqualTo(line(CAMISON_ITEM, CAMISON, 1, PRICE, Optional.empty(), LineStatus.UNAVAILABLE, 0));
     }
 
     @Test
@@ -170,7 +188,7 @@ class CartChangeServicesTest {
         CartView cart = getCart.execute(new GetCart.Query(GUEST));
 
         assertThat(cart.items().get(0))
-            .isEqualTo(new ItemView(PIJAMA_ITEM, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.INSUFFICIENT_STOCK, 1));
+            .isEqualTo(line(PIJAMA_ITEM, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.INSUFFICIENT_STOCK, 1));
         assertThat(cart.total()).isEqualTo(PRICE);
     }
 
@@ -181,7 +199,7 @@ class CartChangeServicesTest {
         CartView cart = getCart.execute(new GetCart.Query(GUEST));
 
         assertThat(cart.items().get(0)).isEqualTo(
-            new ItemView(PIJAMA_ITEM, PIJAMA, 2, NEW_PRICE, Optional.of(PRICE), LineStatus.AVAILABLE, 5));
+            line(PIJAMA_ITEM, PIJAMA, 2, NEW_PRICE, Optional.of(PRICE), LineStatus.AVAILABLE, 5));
         assertThat(cart.total()).isEqualTo(Money.of(4_700_000));
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(cart);
     }
@@ -193,7 +211,7 @@ class CartChangeServicesTest {
         var result = acknowledgePrices.execute(new AcknowledgePriceChanges.Command(GUEST));
 
         CartView expected = new CartView(List.of(
-                new ItemView(PIJAMA_ITEM, PIJAMA, 2, NEW_PRICE, Optional.empty(), LineStatus.AVAILABLE, 5),
+                line(PIJAMA_ITEM, PIJAMA, 2, NEW_PRICE, Optional.empty(), LineStatus.AVAILABLE, 5),
                 item(CAMISON_ITEM, CAMISON, 1)),
             Optional.empty(), Money.of(4_700_000), Money.zero(), Money.of(4_700_000));
         assertThat(result).isEqualTo(new AcknowledgePriceChanges.Result.Acknowledged(expected));
@@ -230,9 +248,15 @@ class CartChangeServicesTest {
         assertThat(getCart.execute(new GetCart.Query(GUEST)).items()).hasSize(2);
     }
 
+    /** A line whose variant the catalog does not describe. */
+    private static ItemView line(CartItemId id, VariantId variant, int quantity, Money unitPrice,
+                                 Optional<Money> previousUnitPrice, LineStatus status, int available) {
+        return new ItemView(id, variant, quantity, unitPrice, previousUnitPrice, status, available, Optional.empty());
+    }
+
     /** An item in stock (5 available) at {@link #PRICE}, with no price change. */
     private static ItemView item(CartItemId id, VariantId variant, int quantity) {
-        return new ItemView(id, variant, quantity, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5);
+        return new ItemView(id, variant, quantity, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5, Optional.empty());
     }
 
     /** A cart of {@code items} in stock at {@link #PRICE}. */

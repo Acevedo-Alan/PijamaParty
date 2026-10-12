@@ -3,15 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
-import { answer, detailImage, detailVariant, productDetail } from '../../test/catalogApi.ts';
+import { answer, detailImage, detailVariant, NO_CART, productDetail } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
+/** Answers the product detail calls in order; the header's cart is empty. */
 function stubDetail(...answers: never[]) {
-  const get = vi.spyOn(api, 'GET');
-  for (const next of answers) {
-    get.mockResolvedValueOnce(next);
-  }
-  return get;
+  const queue: unknown[] = [...answers];
+  return vi.spyOn(api, 'GET').mockImplementation(((path: string) =>
+    Promise.resolve(path === '/api/cart' ? NO_CART : queue.shift())) as never);
 }
 
 const addToCart = () => screen.getByRole('button', { name: es.product.addToCart });

@@ -1,6 +1,8 @@
 package com.pijamaparty.store.cart.adapter.in.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -299,6 +301,34 @@ class CartApiTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items.length()").value(1))
             .andExpect(jsonPath("$.items[0].variantId").value(other.toString()));
+    }
+
+    @Test
+    void givenAnItem_whenReadingTheCart_thenItShowsItsProductSizeColorAndPhotoAlsoOnceTheShopStopsSellingIt()
+        throws Exception {
+        owner.update("""
+            insert into product_image (id, product_id, color, storage_key, placeholder, position, upload_key,
+                                       content_sha256, created_at)
+            select ?, v.product_id, 'Rosa', 'luna-rosa', 'data:image/webp;base64,UklGRg==', 0, ?, ?, now()
+            from variant v
+            where v.id = ?
+            """, UUID.randomUUID(), UUID.randomUUID(), new byte[32], variant);
+
+        add(variant, 1)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].product.name").value("Pijama"))
+            .andExpect(jsonPath("$.items[0].product.slug").value(startsWith("pijama-")))
+            .andExpect(jsonPath("$.items[0].product.size").value("M"))
+            .andExpect(jsonPath("$.items[0].product.color").value("Rosa"))
+            .andExpect(jsonPath("$.items[0].product.image.placeholder").value("data:image/webp;base64,UklGRg=="))
+            .andExpect(jsonPath("$.items[0].product.image.files[*].width").value(contains(400, 800, 1200)))
+            .andExpect(jsonPath("$.items[0].product.image.files[0].url").value("/uploads/luna-rosa-400.webp"));
+        owner.update("update product set active = false");
+
+        mvc.perform(guest(get("/api/cart")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].status").value("UNAVAILABLE"))
+            .andExpect(jsonPath("$.items[0].product.name").value("Pijama"));
     }
 
     @Test

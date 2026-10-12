@@ -91,7 +91,8 @@ public final class ListingFixture {
         private Season season = Season.SUMMER;
         private Audience audience = Audience.WOMEN;
         private boolean published = true;
-        private int images;
+        /** The color of each photo in position order; empty for a photo of the whole product. */
+        private final List<Optional<Color>> images = new ArrayList<>();
 
         private Builder(CategoryId category, String name, Instant createdAt, List<String> sizes, List<String> colors,
                         long cents) {
@@ -147,7 +148,15 @@ public final class ListingFixture {
 
         /** Adds photos of the whole product; the first one is the one the grid shows. */
         public Builder images(int count) {
-            images = count;
+            for (int i = 0; i < count; i++) {
+                images.add(Optional.empty());
+            }
+            return this;
+        }
+
+        /** Adds a photo of one of the product's colors after the photos added before. */
+        public Builder colorImage(String color) {
+            images.add(Optional.of(new Color(color)));
             return this;
         }
 
@@ -176,8 +185,8 @@ public final class ListingFixture {
                 .forEach(variant -> product.changeVariant(variant.id(), Optional.of(Money.of(cents)),
                     Optional.empty(), createdAt));
             variantChanges.forEach(change -> change.accept(product));
-            for (int i = 0; i < images; i++) {
-                product.addImage(new Product.NewImage(ImageId.of(UUID.randomUUID()), Optional.<Color>empty(),
+            for (int i = 0; i < images.size(); i++) {
+                product.addImage(new Product.NewImage(ImageId.of(UUID.randomUUID()), images.get(i),
                     StorageKey.of(UUID.randomUUID()), new ImagePlaceholder(PLACEHOLDER), UploadKey.of(UUID.randomUUID()),
                     ContentHash.of((name + i).getBytes(StandardCharsets.UTF_8))), createdAt);
             }

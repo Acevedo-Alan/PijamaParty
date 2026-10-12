@@ -34,20 +34,25 @@ class AddItemToCartServiceTest {
     private static final CartOwner GUEST_OWNER = new CartOwner.Guest(TOKEN.hash());
     private static final VariantId PIJAMA = VariantId.of(UUID.randomUUID());
     private static final Money PRICE = Money.of(1_500_000);
+    private static final ItemDescription PIJAMA_DESCRIPTION =
+        new ItemDescription("Pijama Luna", "pijama-luna", "M", "Rosa", Optional.empty());
 
     private final InMemoryCartStore carts = new InMemoryCartStore();
     private final InMemoryVariantAvailability availability = new InMemoryVariantAvailability();
+    private final InMemoryItemDescriptions descriptions = new InMemoryItemDescriptions();
     private final AddItemToCartService service = new AddItemToCartService(carts, carts, availability,
-        new InMemoryCoupons(), new InMemoryIdGenerator(), Clock.fixed(NOW, ZoneOffset.UTC));
+        new InMemoryCoupons(), descriptions, new InMemoryIdGenerator(), Clock.fixed(NOW, ZoneOffset.UTC));
 
     @Test
     void givenAVisitorWithoutACart_whenAddingTheFirstProduct_thenACartTiedToTheirBrowserIsCreated() {
         availability.sell(PIJAMA, PRICE, 5);
+        descriptions.add(PIJAMA, PIJAMA_DESCRIPTION);
 
         Result result = service.execute(new Command(GUEST, PIJAMA, 2));
 
         CartItemId itemId = CartItemId.of(InMemoryIdGenerator.nth(2));
-        ItemView item = new ItemView(itemId, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5);
+        ItemView item = new ItemView(itemId, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5,
+            Optional.of(PIJAMA_DESCRIPTION));
         assertThat(result).isEqualTo(new Result.Added(
             new CartView(List.of(item), Optional.empty(), Money.of(3_000_000), Money.zero(), Money.of(3_000_000))));
         assertThat(carts.findByOwner(GUEST_OWNER)).hasValueSatisfying(cart -> {
@@ -79,7 +84,8 @@ class AddItemToCartServiceTest {
 
         assertThat(result).isEqualTo(new Result.Added(new CartView(List.of(
             new ItemView(CartItemId.of(InMemoryIdGenerator.nth(2)), PIJAMA, 5, Money.of(1_400_000), Optional.empty(),
-                LineStatus.AVAILABLE, 5)), Optional.empty(), Money.of(7_000_000), Money.zero(), Money.of(7_000_000))));
+                LineStatus.AVAILABLE, 5, Optional.empty())),
+            Optional.empty(), Money.of(7_000_000), Money.zero(), Money.of(7_000_000))));
         assertThat(carts.size()).isEqualTo(1);
     }
 

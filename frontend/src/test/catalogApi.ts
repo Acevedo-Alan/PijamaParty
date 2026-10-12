@@ -53,6 +53,9 @@ export function filterOptions(overrides: Partial<FilterOptionsBody> = {}) {
   });
 }
 
+/** The cart of a visitor without one, which the header of every public page reads (UC-08). */
+export const NO_CART = answer(200, { items: [], subtotalCents: 0, discountCents: 0, totalCents: 0 });
+
 interface CatalogAnswers {
   /** Answers of GET /api/catalog/products in call order; the last one repeats. */
   listings: unknown[];
@@ -62,6 +65,8 @@ interface CatalogAnswers {
   suggestions?: unknown;
   /** Answer of GET /api/catalog/categories. */
   categories?: unknown;
+  /** Answer of GET /api/cart. */
+  cart?: unknown;
 }
 
 /** Serves the catalog GET calls by path, so the listing and the filter options can load in any order. */
@@ -70,6 +75,7 @@ export function stubCatalogApi({
   filters = filterOptions(),
   suggestions = suggested([]),
   categories = shopCategories([]),
+  cart = NO_CART,
 }: CatalogAnswers): MockInstance {
   const queue = [...listings];
   return vi.spyOn(api, 'GET').mockImplementation(((path: string, init?: { params?: { query?: { q?: string } } }) => {
@@ -83,6 +89,9 @@ export function stubCatalogApi({
     }
     if (path === '/api/catalog/categories') {
       return Promise.resolve(categories);
+    }
+    if (path === '/api/cart') {
+      return Promise.resolve(cart);
     }
     const next = queue.length > 1 ? queue.shift() : queue[0];
     return Promise.resolve(next);

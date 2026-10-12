@@ -73,6 +73,34 @@ export const es = {
     noStock: 'Sin stock en este talle y color',
     pickSizeAndColor: 'Elegí talle y color para agregarlo al carrito.',
     addToCart: 'Agregar al carrito',
+    adding: 'Agregando…',
+    /** UC-08: an add above the available stock, e.g. "Solo quedan 3". */
+    onlyLeft: (count: number) =>
+      count === 0 ? 'Sin stock' : count === 1 ? 'Solo queda 1' : `Solo quedan ${String(count)}`,
+    noLongerAvailable: 'Este producto ya no está disponible.',
+    addError: 'No pudimos agregar el producto. Probá de nuevo.',
+  },
+  cart: {
+    title: 'Mi carrito',
+    /** The header button with the units in the cart, e.g. "Carrito, 3 productos". */
+    open: (count: number) =>
+      count === 0 ? 'Carrito' : count === 1 ? 'Carrito, 1 producto' : `Carrito, ${String(count)} productos`,
+    close: 'Cerrar carrito',
+    loading: 'Cargando carrito…',
+    loadError: 'No pudimos cargar el carrito.',
+    retry: 'Reintentar',
+    empty: 'Tu carrito está vacío.',
+    emptyHint: 'Explorá la colección para empezar.',
+    keepShopping: 'Empezar a comprar',
+    /** Alternative text of an item's photo (RNF-31.4), e.g. "Pijama Luna, Rosa". */
+    photoAlt: (name: string, color: string) => `${name}, ${color}`,
+    /** An item's color and size, e.g. "Rosa · Talle M". */
+    variant: (color: string, size: string) => `${color} · Talle ${size}`,
+    quantity: (count: number) => `Cantidad: ${String(count)}`,
+    unknownProduct: 'Producto no disponible',
+    subtotal: 'Subtotal',
+    discount: 'Descuento',
+    total: 'Total',
   },
   consent: {
     title: 'Cookies',

@@ -7,6 +7,7 @@ import com.pijamaparty.store.cart.application.CartView;
 import com.pijamaparty.store.cart.application.ChangeItemQuantity;
 import com.pijamaparty.store.cart.application.CouponCheck;
 import com.pijamaparty.store.cart.application.GetCart;
+import com.pijamaparty.store.cart.application.ItemDescription;
 import com.pijamaparty.store.cart.application.RemoveCoupon;
 import com.pijamaparty.store.cart.application.RemoveItem;
 import com.pijamaparty.store.cart.domain.Cart;
@@ -347,14 +348,44 @@ class CartController {
     /**
      * {@code unitPriceCents} is the current price, or the last seen one when the shop no longer sells the variant;
      * {@code previousUnitPriceCents} is the last seen price when the current one differs, a change to announce.
+     * {@code product} is null only for a variant the catalog does not have.
      */
     record ItemResponse(UUID id, UUID variantId, int quantity, long unitPriceCents,
-                        @Schema(nullable = true) Long previousUnitPriceCents, LineStatus status, int available) {
+                        @Schema(nullable = true) Long previousUnitPriceCents, LineStatus status, int available,
+                        @Schema(nullable = true) ItemProductResponse product) {
 
         static ItemResponse of(CartView.ItemView item) {
             return new ItemResponse(item.id().value(), item.variantId().value(), item.quantity(),
                 item.unitPrice().cents(), item.previousUnitPrice().map(Money::cents).orElse(null), item.status(),
-                item.available());
+                item.available(), item.description().map(ItemProductResponse::of).orElse(null));
         }
     }
+
+    /**
+     * What the panel shows of an item's variant (UC-08), also when the shop no longer sells it: {@code image} is the
+     * first photo of its color, or else of the whole product, or null without one.
+     */
+    record ItemProductResponse(String name, String slug, String size, String color,
+                               @Schema(nullable = true) ItemImageResponse image) {
+
+        static ItemProductResponse of(ItemDescription description) {
+            return new ItemProductResponse(description.productName(), description.productSlug(), description.size(),
+                description.color(), description.photo().map(ItemImageResponse::of).orElse(null));
+        }
+    }
+
+    /** A photo as in the catalog (UC-06): each file is a WebP at most {@code width} pixels wide. */
+    record ItemImageResponse(String placeholder, List<ItemImageFileResponse> files) {
+
+        /** Where Caddy serves the uploads volume (deploy/caddy/Caddyfile), as the catalog's photos. */
+        private static final String UPLOADS_PATH = "/uploads/";
+
+        static ItemImageResponse of(ItemDescription.Photo photo) {
+            return new ItemImageResponse(photo.placeholder(), photo.files().stream()
+                .map(file -> new ItemImageFileResponse(file.width(), UPLOADS_PATH + file.fileName()))
+                .toList());
+        }
+    }
+
+    record ItemImageFileResponse(int width, String url) {}
 }

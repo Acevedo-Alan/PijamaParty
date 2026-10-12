@@ -1,12 +1,15 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { trackItemView } from '../analytics/catalogEvents.ts';
+import type { AddAnswer } from '../cart/cartApi.ts';
+import { useAddToCart } from '../cart/useCart.ts';
 import { NotFoundPage } from '../errors/NotFoundPage.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
-import { useProductDetail } from './useProductDetail.ts';
+import { productDetailKey, useProductDetail } from './useProductDetail.ts';
 import { VariantPicker } from './VariantPicker.tsx';
 import { findVariant, galleryFor, initialSelection, pickColor, shownPrice } from './variantSelection.ts';
 import './catalog.css';
@@ -19,7 +22,21 @@ function StockNote({ available }: { available: number | undefined }) {
   return <>{available > 0 ? es.product.available(available) : es.product.noStock}</>;
 }
 
-/** Gallery, description, material, season, price and the size and color picker of one product (UC-03). */
+/** Why the last add failed (UC-08); nothing after a successful add, which the cart panel confirms. */
+function AddProblem({ answer, failed }: { answer: AddAnswer | undefined; failed: boolean }) {
+  if (failed) {
+    return <>{es.product.addError}</>;
+  }
+  if (answer?.status === 'insufficientStock') {
+    return <>{es.product.onlyLeft(answer.available)}</>;
+  }
+  if (answer?.status === 'unavailable') {
+    return <>{es.product.noLongerAvailable}</>;
+  }
+  return null;
+}
+
+/** Gallery, description, material, season, price, the size and color picker and the add to cart of one product. */
 function ProductDetailView({ product }: { product: ProductDetail }) {
   const [selection, setSelection] = useState(() => initialSelection(product));
   const hintId = useId();
@@ -27,6 +44,22 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
   const price = shownPrice(product.variants, selection) ?? { cents: product.fromPriceCents, from: true };
   const canAdd = variant !== undefined && variant.available > 0;
   const viewed = useRef<string | null>(null);
+  const add = useAddToCart();
+  const queryClient = useQueryClient();
+
+  // UC-08: one unit per tap. A rejected add reloads the product, so its stock is current.
+  function addPicked() {
+    if (variant === undefined) {
+      return;
+    }
+    add.mutate({ variantId: variant.id, quantity: 1 }, {
+      onSuccess: (answer) => {
+        if (answer.status !== 'added') {
+          void queryClient.invalidateQueries({ queryKey: productDetailKey(product.slug) });
+        }
+      },
+    });
+  }
 
   // RNF-25: one view_item per product page opened.
   useEffect(() => {
@@ -69,28 +102,33 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
           selection={selection}
           onPickSize={(size) => {
             setSelection({ ...selection, size });
+            add.reset();
           }}
           onPickColor={(color) => {
             setSelection(pickColor(product.variants, selection, color));
+            add.reset();
           }}
         />
         <p className="stock-note" role="status">
           <StockNote available={variant?.available} />
         </p>
-        {/* UC-08 (E2) adds the picked variant to the cart. */}
         <button
           type="button"
           className="btn add-cart"
-          disabled={!canAdd}
+          disabled={!canAdd || add.isPending}
+          onClick={addPicked}
           {...(variant === undefined ? { 'aria-describedby': hintId } : {})}
         >
-          {es.product.addToCart}
+          {add.isPending ? es.product.adding : es.product.addToCart}
         </button>
         {variant === undefined && (
           <p id={hintId} className="pdp-hint">
             {es.product.pickSizeAndColor}
           </p>
         )}
+        <p className="pdp-add-error" role="alert">
+          <AddProblem answer={add.data} failed={add.isError} />
+        </p>
       </div>
     </div>
   );

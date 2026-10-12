@@ -18,15 +18,17 @@ class AddItemToCartService implements AddItemToCart {
     private final SaveCart saveCart;
     private final VariantAvailability availability;
     private final Coupons coupons;
+    private final ItemDescriptions descriptions;
     private final IdGenerator ids;
     private final Clock clock;
 
     AddItemToCartService(LoadCart loadCart, SaveCart saveCart, VariantAvailability availability, Coupons coupons,
-                         IdGenerator ids, Clock clock) {
+                         ItemDescriptions descriptions, IdGenerator ids, Clock clock) {
         this.loadCart = loadCart;
         this.saveCart = saveCart;
         this.availability = availability;
         this.coupons = coupons;
+        this.descriptions = descriptions;
         this.ids = ids;
         this.clock = clock;
     }
@@ -50,7 +52,7 @@ class AddItemToCartService implements AddItemToCart {
         return switch (outcome) {
             case Cart.AddOutcome.Added added -> {
                 saveCart.save(cart);
-                yield new Result.Added(CartPricing.view(cart, availability, coupons));
+                yield new Result.Added(CartPricing.view(cart, availability, coupons, descriptions));
             }
             case Cart.AddOutcome.ExceedsStock exceeds ->
                 new Result.InsufficientStock(command.variantId(), exceeds.available());

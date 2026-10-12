@@ -43,13 +43,15 @@ class CouponServicesTest {
     private final InMemoryCartStore carts = new InMemoryCartStore();
     private final InMemoryVariantAvailability availability = new InMemoryVariantAvailability();
     private final InMemoryCoupons coupons = new InMemoryCoupons();
+    private final InMemoryItemDescriptions descriptions = new InMemoryItemDescriptions();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-    private final ApplyCouponService applyCoupon = new ApplyCouponService(carts, carts, availability, coupons, clock);
+    private final ApplyCouponService applyCoupon =
+        new ApplyCouponService(carts, carts, availability, coupons, descriptions, clock);
     private final RemoveCouponService removeCoupon =
-        new RemoveCouponService(carts, carts, availability, coupons, clock);
-    private final GetCartService getCart = new GetCartService(carts, availability, coupons);
+        new RemoveCouponService(carts, carts, availability, coupons, descriptions, clock);
+    private final GetCartService getCart = new GetCartService(carts, availability, coupons, descriptions);
     private final ChangeItemQuantityService changeQuantity =
-        new ChangeItemQuantityService(carts, carts, availability, coupons, clock);
+        new ChangeItemQuantityService(carts, carts, availability, coupons, descriptions, clock);
 
     /** The guest's cart holds 1 pijama at ARS 20,000; 5 are available. */
     @BeforeEach
@@ -212,7 +214,8 @@ class CouponServicesTest {
 
     /** The guest's cart, 1 pijama at ARS 20,000, with {@code coupon} and its {@code discount}. */
     private static CartView cart(Optional<CouponView> coupon, Money discount) {
-        ItemView pijama = new ItemView(PIJAMA_ITEM, PIJAMA, 1, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5);
+        ItemView pijama =
+            new ItemView(PIJAMA_ITEM, PIJAMA, 1, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5, Optional.empty());
         return new CartView(List.of(pijama), coupon, PRICE, discount, PRICE.minus(discount));
     }
 }

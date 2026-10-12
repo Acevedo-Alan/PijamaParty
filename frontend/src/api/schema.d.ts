@@ -867,6 +867,22 @@ export interface components {
             /** Format: int64 */
             missingCents?: number;
         };
+        ItemImageFileResponse: {
+            /** Format: int32 */
+            width?: number;
+            url?: string;
+        };
+        ItemImageResponse: {
+            placeholder?: string;
+            files?: components["schemas"]["ItemImageFileResponse"][];
+        };
+        ItemProductResponse: {
+            name?: string;
+            slug?: string;
+            size?: string;
+            color?: string;
+            image?: components["schemas"]["ItemImageResponse"];
+        };
         ItemResponse: {
             /** Format: uuid */
             id?: string;
@@ -882,6 +898,7 @@ export interface components {
             status?: "AVAILABLE" | "INSUFFICIENT_STOCK" | "UNAVAILABLE";
             /** Format: int32 */
             available?: number;
+            product?: components["schemas"]["ItemProductResponse"];
         };
         ApplyCouponRequest: {
             code: string;

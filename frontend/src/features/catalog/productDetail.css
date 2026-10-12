@@ -147,6 +147,13 @@
   color: var(--ink-soft);
 }
 
+/* Why the last add to the cart failed (UC-08) */
+.pdp-add-error {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+}
+
 @media (hover: hover) {
   .pdp-thumb:hover {
     opacity: 1;

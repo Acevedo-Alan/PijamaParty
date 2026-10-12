@@ -14,14 +14,16 @@ class RemoveCouponService implements RemoveCoupon {
     private final SaveCart saveCart;
     private final VariantAvailability availability;
     private final Coupons coupons;
+    private final ItemDescriptions descriptions;
     private final Clock clock;
 
     RemoveCouponService(LoadCart loadCart, SaveCart saveCart, VariantAvailability availability, Coupons coupons,
-                        Clock clock) {
+                        ItemDescriptions descriptions, Clock clock) {
         this.loadCart = loadCart;
         this.saveCart = saveCart;
         this.availability = availability;
         this.coupons = coupons;
+        this.descriptions = descriptions;
         this.clock = clock;
     }
 
@@ -40,6 +42,6 @@ class RemoveCouponService implements RemoveCoupon {
         if (cart.removeCoupon(clock.instant())) {
             saveCart.save(cart);
         }
-        return new Result.Removed(CartPricing.view(cart, availability, coupons));
+        return new Result.Removed(CartPricing.view(cart, availability, coupons, descriptions));
     }
 }

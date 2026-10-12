@@ -1,0 +1,189 @@
+/* The cart button of the header and the cart side panel (UC-08), from the prototype's .cart-badge and .drawer */
+.cart-btn {
+  position: relative;
+  flex: none;
+}
+
+.cart-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.cart-badge.bump {
+  animation: bump 0.34s ease;
+}
+
+@keyframes bump {
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.55);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* The sliding panel: a modal dialog from the right edge, full height, over the dimmed page */
+html:has(.cart-panel[open]) {
+  overflow: hidden;
+}
+
+.cart-panel {
+  width: min(400px, 92vw);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-m) 0 0 var(--radius-m);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.cart-panel[open] {
+  animation: cart-slide-in 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cart-panel::backdrop {
+  background: rgba(58, 50, 45, 0.35);
+}
+
+@keyframes cart-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.cart-panel-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cart-head h2 {
+  font-family: var(--ff-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cart-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 20px;
+}
+
+.cart-items {
+  list-style: none;
+}
+
+.cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.cart-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.cart-item .ph {
+  width: 66px;
+  height: 84px;
+  flex: none;
+  border-radius: var(--radius-s);
+}
+
+.cart-item-info {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.cart-item-name {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cart-item-meta {
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.cart-item-price {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cart-foot {
+  padding: 18px 20px 22px;
+  border-top: 1px solid var(--line);
+}
+
+.cart-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+
+.cart-row.total {
+  margin: 10px 0 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  .cart-item-name:hover {
+    color: var(--accent-text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-badge.bump,
+  .cart-panel[open] {
+    animation: none;
+  }
+}
