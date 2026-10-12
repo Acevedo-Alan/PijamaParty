@@ -85,6 +85,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cart/coupon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply a coupon code
+         * @description The code is matched ignoring surrounding spaces and case. A coupon that applies to the cart's subtotal replaces the one the cart had; a rejected code leaves the cart as it was. The discount is calculated on the server. Requires the CSRF token.
+         */
+        post: operations["applyCoupon"];
+        /**
+         * Remove the coupon
+         * @description Without a coupon it changes nothing. Requires the CSRF token.
+         */
+        delete: operations["removeCoupon"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cart/acknowledge-prices": {
         parameters: {
             query?: never;
@@ -708,12 +732,20 @@ export interface components {
         };
         CartResponse: {
             items?: components["schemas"]["ItemResponse"][];
+            coupon?: components["schemas"]["CouponResponse"];
             /** Format: int64 */
             subtotalCents?: number;
             /** Format: int64 */
             discountCents?: number;
             /** Format: int64 */
             totalCents?: number;
+        };
+        CouponResponse: {
+            code?: string;
+            /** @enum {string} */
+            status?: "APPLICABLE" | "INACTIVE" | "NOT_STARTED" | "EXPIRED" | "USED_UP" | "BELOW_MINIMUM";
+            /** Format: int64 */
+            missingCents?: number;
         };
         ItemResponse: {
             /** Format: uuid */
@@ -730,6 +762,9 @@ export interface components {
             status?: "AVAILABLE" | "INSUFFICIENT_STOCK" | "UNAVAILABLE";
             /** Format: int32 */
             available?: number;
+        };
+        ApplyCouponRequest: {
+            code: string;
         };
         AdjustmentRequest: {
             /** Format: uuid */
@@ -1155,6 +1190,99 @@ export interface operations {
             };
             /** @description Not enough stock (problem INSUFFICIENT_STOCK): the units left are in available */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    applyCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyCouponRequest"];
+            };
+        };
+        responses: {
+            /** @description The full cart with the discount */
+            200: {
+                headers: {
+                    /** @description A guest's __Host-cart_token cookie (HttpOnly, Secure, SameSite=Lax, path /), set again so it lives 30 days from the last cart change, like the cart */
+                    "Set-Cookie"?: unknown;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartResponse"];
+                };
+            };
+            /** @description Invalid body: a code of up to 100 characters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description This actor cannot have a cart */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No cart, or a cart without items (problem EMPTY_CART) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The coupon does not apply (problem COUPON_UNKNOWN, COUPON_INACTIVE, COUPON_NOT_STARTED, COUPON_EXPIRED, COUPON_USED_UP or COUPON_BELOW_MINIMUM, the last one with missingCents: what the subtotal lacks to reach the minimum purchase) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    removeCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The full cart, empty when there is none */
+            200: {
+                headers: {
+                    /** @description A guest's __Host-cart_token cookie (HttpOnly, Secure, SameSite=Lax, path /), set again so it lives 30 days from the last cart change, like the cart */
+                    "Set-Cookie"?: unknown;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartResponse"];
+                };
+            };
+            /** @description This actor cannot have a cart */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

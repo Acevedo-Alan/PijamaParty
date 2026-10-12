@@ -15,12 +15,15 @@ class ChangeItemQuantityService implements ChangeItemQuantity {
     private final LoadCart loadCart;
     private final SaveCart saveCart;
     private final VariantAvailability availability;
+    private final Coupons coupons;
     private final Clock clock;
 
-    ChangeItemQuantityService(LoadCart loadCart, SaveCart saveCart, VariantAvailability availability, Clock clock) {
+    ChangeItemQuantityService(LoadCart loadCart, SaveCart saveCart, VariantAvailability availability, Coupons coupons,
+                              Clock clock) {
         this.loadCart = loadCart;
         this.saveCart = saveCart;
         this.availability = availability;
+        this.coupons = coupons;
         this.clock = clock;
     }
 
@@ -52,6 +55,6 @@ class ChangeItemQuantityService implements ChangeItemQuantity {
 
     private Result saved(Cart cart) {
         saveCart.save(cart);
-        return new Result.Changed(CartPricing.view(cart, availability));
+        return new Result.Changed(CartPricing.view(cart, availability, coupons));
     }
 }

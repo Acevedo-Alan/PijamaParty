@@ -56,4 +56,25 @@ class MoneyTest {
         assertThat(Money.of(1999)).hasToString("ARS 19.99");
         assertThat(Money.of(5)).hasToString("ARS 0.05");
     }
+
+    @Test
+    void givenAnAmount_whenTakingAPercent_thenItIsRoundedDownToTheCent() {
+        assertThat(Money.of(2_000_000).percent(10)).isEqualTo(Money.of(200_000));
+        assertThat(Money.of(33_333).percent(15)).isEqualTo(Money.of(4_999));
+        assertThat(Money.of(199).percent(1)).isEqualTo(Money.of(1));
+        assertThat(Money.of(1999).percent(100)).isEqualTo(Money.of(1999));
+        assertThat(Money.of(1999).percent(0)).isEqualTo(Money.zero());
+    }
+
+    @Test
+    void givenAPercentOutOfRange_whenTakingIt_thenItIsRejected() {
+        assertThatThrownBy(() -> Money.of(100).percent(-1)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Money.of(100).percent(101)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void givenTwoAmounts_whenTakingTheMinimum_thenItIsTheSmaller() {
+        assertThat(Money.of(5).min(Money.of(7))).isEqualTo(Money.of(5));
+        assertThat(Money.of(7).min(Money.of(5))).isEqualTo(Money.of(5));
+    }
 }

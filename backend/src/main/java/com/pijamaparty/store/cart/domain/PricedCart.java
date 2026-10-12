@@ -20,6 +20,9 @@ public record PricedCart(List<PricedLine> lines, Money subtotal, Money discount,
         Objects.requireNonNull(subtotal, "subtotal");
         Objects.requireNonNull(discount, "discount");
         Objects.requireNonNull(total, "total");
+        if (discount.isGreaterThan(subtotal) || !total.equals(subtotal.minus(discount))) {
+            throw new IllegalArgumentException("the discount is at most the subtotal, and the total is what is left");
+        }
     }
 
     public static PricedCart empty() {
@@ -27,8 +30,8 @@ public record PricedCart(List<PricedLine> lines, Money subtotal, Money discount,
     }
 
     /**
-     * Prices {@code cart}; {@code sellable} has the variants the shop sells now, the others are unavailable. No
-     * discount until the coupons of UC-10 (T-E2-05).
+     * Prices {@code cart}; {@code sellable} has the variants the shop sells now, the others are unavailable. Without
+     * a discount: the coupon's is calculated on this subtotal, then {@link #withDiscount} takes it off.
      */
     public static PricedCart of(Cart cart, Map<VariantId, SellableVariant> sellable) {
         List<PricedLine> lines = cart.items().stream()
@@ -39,6 +42,11 @@ public record PricedCart(List<PricedLine> lines, Money subtotal, Money discount,
             .map(line -> line.unitPrice().times(line.item().quantity()))
             .reduce(Money.zero(), Money::plus);
         Money discount = Money.zero();
+        return new PricedCart(lines, subtotal, discount, subtotal.minus(discount));
+    }
+
+    /** UC-10: the coupon's {@code discount}, at most the subtotal, comes off the total. */
+    public PricedCart withDiscount(Money discount) {
         return new PricedCart(lines, subtotal, discount, subtotal.minus(discount));
     }
 

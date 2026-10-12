@@ -2,7 +2,6 @@ package com.pijamaparty.store.cart.application;
 
 import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartOwner;
-import com.pijamaparty.store.cart.domain.PricedCart;
 import com.pijamaparty.store.cart.domain.SellableVariant;
 import com.pijamaparty.store.cart.domain.VariantId;
 import java.time.Clock;
@@ -17,13 +16,15 @@ class AcknowledgePriceChangesService implements AcknowledgePriceChanges {
     private final LoadCart loadCart;
     private final SaveCart saveCart;
     private final VariantAvailability availability;
+    private final Coupons coupons;
     private final Clock clock;
 
     AcknowledgePriceChangesService(LoadCart loadCart, SaveCart saveCart, VariantAvailability availability,
-                                   Clock clock) {
+                                   Coupons coupons, Clock clock) {
         this.loadCart = loadCart;
         this.saveCart = saveCart;
         this.availability = availability;
+        this.coupons = coupons;
         this.clock = clock;
     }
 
@@ -43,6 +44,6 @@ class AcknowledgePriceChangesService implements AcknowledgePriceChanges {
         if (cart.acknowledgePrices(sellable, clock.instant())) {
             saveCart.save(cart);
         }
-        return new Result.Acknowledged(CartView.of(PricedCart.of(cart, sellable)));
+        return new Result.Acknowledged(CartPricing.view(cart, sellable, coupons));
     }
 }

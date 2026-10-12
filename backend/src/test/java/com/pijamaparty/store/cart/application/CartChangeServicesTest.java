@@ -42,13 +42,14 @@ class CartChangeServicesTest {
 
     private final InMemoryCartStore carts = new InMemoryCartStore();
     private final InMemoryVariantAvailability availability = new InMemoryVariantAvailability();
+    private final InMemoryCoupons coupons = new InMemoryCoupons();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-    private final GetCartService getCart = new GetCartService(carts, availability);
+    private final GetCartService getCart = new GetCartService(carts, availability, coupons);
     private final ChangeItemQuantityService changeQuantity =
-        new ChangeItemQuantityService(carts, carts, availability, clock);
-    private final RemoveItemService removeItem = new RemoveItemService(carts, carts, availability, clock);
+        new ChangeItemQuantityService(carts, carts, availability, coupons, clock);
+    private final RemoveItemService removeItem = new RemoveItemService(carts, carts, availability, coupons, clock);
     private final AcknowledgePriceChangesService acknowledgePrices =
-        new AcknowledgePriceChangesService(carts, carts, availability, clock);
+        new AcknowledgePriceChangesService(carts, carts, availability, coupons, clock);
 
     /** The guest's cart holds 2 pijamas and 1 camisón; 5 of each are available. */
     @BeforeEach
@@ -151,7 +152,7 @@ class CartChangeServicesTest {
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(new CartView(List.of(
                 new ItemView(PIJAMA_ITEM, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.UNAVAILABLE, 0),
                 item(CAMISON_ITEM, CAMISON, 1)),
-            PRICE, Money.zero(), PRICE));
+            Optional.empty(), PRICE, Money.zero(), PRICE));
     }
 
     @Test
@@ -194,7 +195,7 @@ class CartChangeServicesTest {
         CartView expected = new CartView(List.of(
                 new ItemView(PIJAMA_ITEM, PIJAMA, 2, NEW_PRICE, Optional.empty(), LineStatus.AVAILABLE, 5),
                 item(CAMISON_ITEM, CAMISON, 1)),
-            Money.of(4_700_000), Money.zero(), Money.of(4_700_000));
+            Optional.empty(), Money.of(4_700_000), Money.zero(), Money.of(4_700_000));
         assertThat(result).isEqualTo(new AcknowledgePriceChanges.Result.Acknowledged(expected));
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(expected);
         assertThat(carts.findByOwner(GUEST_OWNER).orElseThrow().updatedAt()).isEqualTo(NOW);
@@ -237,6 +238,6 @@ class CartChangeServicesTest {
     /** A cart of {@code items} in stock at {@link #PRICE}. */
     private static CartView cart(List<ItemView> items) {
         Money total = PRICE.times(items.stream().mapToInt(ItemView::quantity).sum());
-        return new CartView(items, total, Money.zero(), total);
+        return new CartView(items, Optional.empty(), total, Money.zero(), total);
     }
 }

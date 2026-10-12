@@ -2,9 +2,12 @@ package com.pijamaparty.store.cart.adapter.in.web;
 
 import com.pijamaparty.store.cart.application.AcknowledgePriceChanges;
 import com.pijamaparty.store.cart.application.AddItemToCart;
+import com.pijamaparty.store.cart.application.ApplyCoupon;
 import com.pijamaparty.store.cart.application.CartView;
 import com.pijamaparty.store.cart.application.ChangeItemQuantity;
+import com.pijamaparty.store.cart.application.CouponCheck;
 import com.pijamaparty.store.cart.application.GetCart;
+import com.pijamaparty.store.cart.application.RemoveCoupon;
 import com.pijamaparty.store.cart.application.RemoveItem;
 import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartItemId;
@@ -26,6 +29,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,7 +46,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** UC-08, UC-09: the visitor's or customer's cart. Only translates between HTTP and the use cases. */
+/** UC-08, UC-09, UC-10: the visitor's or customer's cart. Only translates between HTTP and the use cases. */
 @RestController
 @RequestMapping("/api/cart")
 @Tag(name = "Cart")
@@ -56,15 +60,20 @@ class CartController {
     private final ChangeItemQuantity changeQuantity;
     private final RemoveItem removeItem;
     private final AcknowledgePriceChanges acknowledgePrices;
+    private final ApplyCoupon applyCoupon;
+    private final RemoveCoupon removeCoupon;
     private final TokenGenerator tokens;
 
     CartController(GetCart getCart, AddItemToCart addItem, ChangeItemQuantity changeQuantity, RemoveItem removeItem,
-                   AcknowledgePriceChanges acknowledgePrices, TokenGenerator tokens) {
+                   AcknowledgePriceChanges acknowledgePrices, ApplyCoupon applyCoupon, RemoveCoupon removeCoupon,
+                   TokenGenerator tokens) {
         this.getCart = getCart;
         this.addItem = addItem;
         this.changeQuantity = changeQuantity;
         this.removeItem = removeItem;
         this.acknowledgePrices = acknowledgePrices;
+        this.applyCoupon = applyCoupon;
+        this.removeCoupon = removeCoupon;
         this.tokens = tokens;
     }
 
@@ -173,6 +182,60 @@ class CartController {
         };
     }
 
+    @PostMapping("/coupon")
+    @Operation(summary = "Apply a coupon code",
+        description = "The code is matched ignoring surrounding spaces and case. A coupon that applies to the cart's "
+            + "subtotal replaces the one the cart had; a rejected code leaves the cart as it was. The discount is "
+            + "calculated on the server. Requires the CSRF token.")
+    @ApiResponse(responseCode = "200", description = "The full cart with the discount",
+        headers = @Header(name = HttpHeaders.SET_COOKIE, description = CART_TOKEN_COOKIE), content = @Content(
+        mediaType = "application/json", schema = @Schema(implementation = CartResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid body: a code of up to 100 characters",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403", description = "This actor cannot have a cart",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "409", description = "No cart, or a cart without items (problem EMPTY_CART)",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "422", description = "The coupon does not apply (problem COUPON_UNKNOWN, "
+        + "COUPON_INACTIVE, COUPON_NOT_STARTED, COUPON_EXPIRED, COUPON_USED_UP or COUPON_BELOW_MINIMUM, the last one "
+        + "with missingCents: what the subtotal lacks to reach the minimum purchase)",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<?> applyCoupon(@Valid @RequestBody ApplyCouponRequest body) {
+        Actor actor = actor();
+        return switch (applyCoupon.execute(new ApplyCoupon.Command(actor, body.code()))) {
+            case ApplyCoupon.Result.Applied applied -> cartChanged(actor, applied.cart());
+            case ApplyCoupon.Result.Unknown unknown -> couponRejected("COUPON_UNKNOWN", "Unknown coupon",
+                "No coupon has this code.");
+            case ApplyCoupon.Result.Inactive inactive -> couponRejected("COUPON_INACTIVE", "Inactive coupon",
+                "The coupon is not active.");
+            case ApplyCoupon.Result.NotStarted notStarted -> couponRejected("COUPON_NOT_STARTED",
+                "Coupon not valid yet", "The coupon's validity has not started.");
+            case ApplyCoupon.Result.Expired expired -> couponRejected("COUPON_EXPIRED", "Expired coupon",
+                "The coupon's validity has ended.");
+            case ApplyCoupon.Result.UsedUp usedUp -> couponRejected("COUPON_USED_UP", "Used-up coupon",
+                "All the coupon's uses are taken.");
+            case ApplyCoupon.Result.BelowMinimum below -> belowMinimum(below.missing());
+            case ApplyCoupon.Result.EmptyCart empty -> emptyCart();
+            case ApplyCoupon.Result.Forbidden forbidden -> forbidden();
+        };
+    }
+
+    @DeleteMapping("/coupon")
+    @Operation(summary = "Remove the coupon",
+        description = "Without a coupon it changes nothing. Requires the CSRF token.")
+    @ApiResponse(responseCode = "200", description = "The full cart, empty when there is none",
+        headers = @Header(name = HttpHeaders.SET_COOKIE, description = CART_TOKEN_COOKIE), content = @Content(
+        mediaType = "application/json", schema = @Schema(implementation = CartResponse.class)))
+    @ApiResponse(responseCode = "403", description = "This actor cannot have a cart",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<?> removeCoupon() {
+        Actor actor = actor();
+        return switch (removeCoupon.execute(new RemoveCoupon.Command(actor))) {
+            case RemoveCoupon.Result.Removed removed -> cartChanged(actor, removed.cart());
+            case RemoveCoupon.Result.Forbidden forbidden -> forbidden();
+        };
+    }
+
     private static Actor actor() {
         return CurrentActor.get().orElseThrow();
     }
@@ -206,6 +269,33 @@ class CartController {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
     }
 
+    /** UC-10: the client shows why ("El cupón venció"); {@code problem} tells the reasons apart. */
+    private static ResponseEntity<ProblemDetail> couponRejected(String reason, String title, String detail) {
+        return ResponseEntity.unprocessableEntity().body(couponProblem(reason, title, detail));
+    }
+
+    /** UC-10: the client tells how much is missing to reach the minimum purchase. */
+    private static ResponseEntity<ProblemDetail> belowMinimum(Money missing) {
+        var problem = couponProblem("COUPON_BELOW_MINIMUM", "Below the minimum purchase",
+            "The cart's subtotal is below the coupon's minimum purchase.");
+        problem.setProperty("missingCents", missing.cents());
+        return ResponseEntity.unprocessableEntity().body(problem);
+    }
+
+    private static ProblemDetail couponProblem(String reason, String title, String detail) {
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, detail);
+        problem.setTitle(title);
+        problem.setProperty("problem", reason);
+        return problem;
+    }
+
+    private static ResponseEntity<ProblemDetail> emptyCart() {
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "A coupon needs a cart with items.");
+        problem.setTitle("Empty cart");
+        problem.setProperty("problem", "EMPTY_CART");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
     private static ResponseEntity<ProblemDetail> itemNotFound() {
         return problem(HttpStatus.NOT_FOUND, "Cart item not found");
     }
@@ -225,12 +315,32 @@ class CartController {
     /** {@code quantity} 0 removes the item. */
     record ChangeQuantityRequest(@NotNull @Min(0) @Max(Cart.MAX_QUANTITY) Integer quantity) {}
 
-    /** {@code subtotalCents} counts only the {@code AVAILABLE} items; {@code totalCents} is subtotal − discount. */
-    record CartResponse(List<ItemResponse> items, long subtotalCents, long discountCents, long totalCents) {
+    /** {@code code} as the customer typed it. */
+    record ApplyCouponRequest(@NotNull @Size(max = 100) String code) {}
+
+    /**
+     * {@code subtotalCents} counts only the {@code AVAILABLE} items; {@code discountCents} is the coupon's discount
+     * when it applies, 0 otherwise; {@code totalCents} is subtotal − discount.
+     */
+    record CartResponse(List<ItemResponse> items, @Schema(nullable = true) CouponResponse coupon, long subtotalCents,
+                        long discountCents, long totalCents) {
 
         static CartResponse of(CartView cart) {
-            return new CartResponse(cart.items().stream().map(ItemResponse::of).toList(), cart.subtotal().cents(),
-                cart.discount().cents(), cart.total().cents());
+            return new CartResponse(cart.items().stream().map(ItemResponse::of).toList(),
+                cart.coupon().map(CouponResponse::of).orElse(null), cart.subtotal().cents(), cart.discount().cents(),
+                cart.total().cents());
+        }
+    }
+
+    /**
+     * The applied coupon. It stays in the cart when it stops applying, with the reason in {@code status} and no
+     * discount, and applies again on its own if the cart qualifies again. {@code missingCents} is what the subtotal
+     * lacks to reach the minimum purchase when {@code status} is {@code BELOW_MINIMUM}, 0 otherwise.
+     */
+    record CouponResponse(String code, CouponCheck.Status status, long missingCents) {
+
+        static CouponResponse of(CartView.CouponView coupon) {
+            return new CouponResponse(coupon.code(), coupon.status(), coupon.missing().cents());
         }
     }
 

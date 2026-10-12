@@ -40,6 +40,18 @@ public record Money(long cents) implements Comparable<Money> {
         return new Money(Math.multiplyExact(cents, quantity));
     }
 
+    /** {@code percent} percent of this amount, rounded down to the cent (UC-10); {@code percent} from 0 to 100. */
+    public Money percent(int percent) {
+        if (percent < 0 || percent > 100) {
+            throw new IllegalArgumentException("Percent out of range: " + percent);
+        }
+        return new Money(Math.multiplyExact(cents, percent) / 100);
+    }
+
+    public Money min(Money other) {
+        return isGreaterThan(other) ? other : this;
+    }
+
     public boolean isZero() {
         return cents == 0;
     }

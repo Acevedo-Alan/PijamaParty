@@ -184,11 +184,44 @@ class CartTest {
     }
 
     @Test
+    void givenACart_whenApplyingACouponAndThenAnother_thenTheLastOneReplacesTheFirst() {
+        CouponId first = CouponId.of(UUID.randomUUID());
+        CouponId second = CouponId.of(UUID.randomUUID());
+
+        cart.applyCoupon(first, LATER);
+        assertThat(cart.coupon()).contains(first);
+        cart.applyCoupon(second, LATER.plusSeconds(60));
+
+        assertThat(cart.coupon()).contains(second);
+        assertThat(cart.updatedAt()).isEqualTo(LATER.plusSeconds(60));
+    }
+
+    @Test
+    void givenACartWithACoupon_whenRemovingIt_thenItHasNoneAndRemovingAgainChangesNothing() {
+        cart.applyCoupon(CouponId.of(UUID.randomUUID()), OPENED);
+
+        assertThat(cart.removeCoupon(LATER)).isTrue();
+        assertThat(cart.coupon()).isEmpty();
+        assertThat(cart.updatedAt()).isEqualTo(LATER);
+        assertThat(cart.removeCoupon(LATER.plusSeconds(60))).isFalse();
+        assertThat(cart.updatedAt()).isEqualTo(LATER);
+    }
+
+    @Test
+    void givenACartWithACoupon_whenCopied_thenTheCopyHasItToo() {
+        CouponId coupon = CouponId.of(UUID.randomUUID());
+        cart.applyCoupon(coupon, LATER);
+
+        assertThat(cart.copy().coupon()).contains(coupon);
+    }
+
+    @Test
     void givenTwoLinesOfOneVariant_whenRebuildingTheCart_thenItFails() {
         var first = new CartItem(CartItemId.of(UUID.randomUUID()), PIJAMA, 1, PRICE, OPENED);
         var second = new CartItem(CartItemId.of(UUID.randomUUID()), PIJAMA, 1, PRICE, OPENED);
 
-        assertThatThrownBy(() -> Cart.of(CartId.of(UUID.randomUUID()), GUEST, List.of(first, second), OPENED, OPENED))
+        assertThatThrownBy(() -> Cart.of(CartId.of(UUID.randomUUID()), GUEST, List.of(first, second), Optional.empty(),
+            OPENED, OPENED))
             .isInstanceOf(IllegalArgumentException.class);
     }
 

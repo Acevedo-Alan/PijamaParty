@@ -8,6 +8,7 @@ import com.pijamaparty.store.cart.domain.CartId;
 import com.pijamaparty.store.cart.domain.CartItem;
 import com.pijamaparty.store.cart.domain.CartItemId;
 import com.pijamaparty.store.cart.domain.CartOwner;
+import com.pijamaparty.store.cart.domain.CouponId;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
@@ -35,7 +36,7 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
 
     // One of :tokenHash and :userId is null, and a comparison with null matches nothing.
     private static final String SELECT_CART = """
-        SELECT id, token_hash, user_id, created_at, updated_at
+        SELECT id, token_hash, user_id, coupon_id, created_at, updated_at
         FROM cart
         WHERE token_hash = :tokenHash OR user_id = :userId
         """;
@@ -52,11 +53,10 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
         ORDER BY created_at, id
         """;
 
-    // coupon_id belongs to UC-10 (T-E2-05) and is left as it is.
     private static final String UPSERT_CART = """
-        INSERT INTO cart (id, token_hash, user_id, created_at, updated_at)
-        VALUES (:id, :tokenHash, :userId, :createdAt, :updatedAt)
-        ON CONFLICT (id) DO UPDATE SET updated_at = excluded.updated_at
+        INSERT INTO cart (id, token_hash, user_id, coupon_id, created_at, updated_at)
+        VALUES (:id, :tokenHash, :userId, :couponId, :createdAt, :updatedAt)
+        ON CONFLICT (id) DO UPDATE SET coupon_id = excluded.coupon_id, updated_at = excluded.updated_at
         """;
 
     private static final String DELETE_OTHER_ITEMS = """
@@ -98,6 +98,7 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
     public void save(Cart cart) {
         jdbc.update(UPSERT_CART, owner(cart.owner())
             .addValue("id", cart.id().value())
+            .addValue("couponId", cart.coupon().map(CouponId::value).orElse(null), Types.OTHER)
             .addValue("createdAt", cart.createdAt().atOffset(ZoneOffset.UTC))
             .addValue("updatedAt", cart.updatedAt().atOffset(ZoneOffset.UTC)));
         UUID[] keep = cart.items().stream().map(item -> item.id().value()).toArray(UUID[]::new);
@@ -121,7 +122,8 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
 
     private Optional<Cart> load(String sql, CartOwner owner) {
         return jdbc.query(sql, owner(owner), JdbcCartStore::row).stream().findFirst()
-            .map(row -> Cart.of(row.id(), row.owner(), items(row.id()), row.createdAt(), row.updatedAt()));
+            .map(row -> Cart.of(row.id(), row.owner(), items(row.id()), row.coupon(), row.createdAt(),
+                row.updatedAt()));
     }
 
     private List<CartItem> items(CartId cartId) {
@@ -151,7 +153,8 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
         CartOwner owner = tokenHash != null
             ? new CartOwner.Guest(tokenHash)
             : new CartOwner.Customer(UserId.of(row.getObject("user_id", UUID.class)));
-        return new CartRow(CartId.of(row.getObject("id", UUID.class)), owner, instant(row, "created_at"),
+        Optional<CouponId> coupon = Optional.ofNullable(row.getObject("coupon_id", UUID.class)).map(CouponId::of);
+        return new CartRow(CartId.of(row.getObject("id", UUID.class)), owner, coupon, instant(row, "created_at"),
             instant(row, "updated_at"));
     }
 
@@ -159,5 +162,6 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
         return row.getObject(column, OffsetDateTime.class).toInstant();
     }
 
-    private record CartRow(CartId id, CartOwner owner, Instant createdAt, Instant updatedAt) {}
+    private record CartRow(CartId id, CartOwner owner, Optional<CouponId> coupon, Instant createdAt,
+                           Instant updatedAt) {}
 }

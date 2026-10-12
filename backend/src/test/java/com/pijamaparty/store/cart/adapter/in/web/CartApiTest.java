@@ -19,6 +19,8 @@ import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import jakarta.servlet.http.Cookie;
 import java.security.SecureRandom;
+import java.sql.Types;
+import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SqlParameterValue;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.mock.web.MockCookie;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -36,13 +39,14 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * UC-08, UC-09 and the {@code __Host-cart_token} cookie of T-E2-04 through the cart API, with the real security filter
- * chain, Row Level Security and PostgreSQL. The guest of most tests already holds a cookie.
+ * UC-08, UC-09, UC-10 and the {@code __Host-cart_token} cookie of T-E2-04 through the cart API, with the real security
+ * filter chain, Row Level Security and PostgreSQL. The guest of most tests already holds a cookie.
  */
 @ApiTest
 class CartApiTest {
 
     private static final String ITEMS = "/api/cart/items";
+    private static final String COUPON = "/api/cart/coupon";
     private static final String CART_COOKIE = "__Host-cart_token";
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -67,7 +71,8 @@ class CartApiTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate cart_item, cart, stock_movement, stock_level, product_image, variant, product, category");
+        owner.execute("truncate cart_item, cart, coupon_redemption, coupon, stock_movement, stock_level, "
+            + "product_image, variant, product, category");
     }
 
     @Test
@@ -366,6 +371,169 @@ class CartApiTest {
         mvc.perform(delete(ITEMS + "/" + item).cookie(cartToken(newToken())).with(csrf()))
             .andExpect(status().isNotFound());
         mvc.perform(guest(get("/api/cart"))).andExpect(jsonPath("$.items[0].quantity").value(1));
+    }
+
+    @Test
+    void givenAValid10PercentCoupon_whenAppliedToA20000Cart_thenTheDiscountIs2000() throws Exception {
+        add(sellable(2_000_000, 5), 1).andExpect(status().isOk());
+        coupon("VERANO10", null, null, null);
+
+        applyCoupon(" verano10 ")
+            .andExpect(status().isOk())
+            .andExpect(cookie().value(CART_COOKIE, token))
+            .andExpect(jsonPath("$.coupon.code").value("VERANO10"))
+            .andExpect(jsonPath("$.coupon.status").value("APPLICABLE"))
+            .andExpect(jsonPath("$.coupon.missingCents").value(0))
+            .andExpect(jsonPath("$.subtotalCents").value(2_000_000))
+            .andExpect(jsonPath("$.discountCents").value(200_000))
+            .andExpect(jsonPath("$.totalCents").value(1_800_000));
+
+        mvc.perform(guest(get("/api/cart")))
+            .andExpect(jsonPath("$.coupon.code").value("VERANO10"))
+            .andExpect(jsonPath("$.discountCents").value(200_000))
+            .andExpect(jsonPath("$.totalCents").value(1_800_000));
+    }
+
+    @Test
+    void givenACouponAlreadyApplied_whenAnotherIsApplied_thenItReplacesIt() throws Exception {
+        add(sellable(2_000_000, 5), 1).andExpect(status().isOk());
+        coupon("VERANO10", null, null, null);
+        coupon("PIJAMA25", null, null, null);
+        owner.update("update coupon set discount_value = 25 where code = 'PIJAMA25'");
+        applyCoupon("VERANO10").andExpect(status().isOk());
+
+        applyCoupon("PIJAMA25")
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.coupon.code").value("PIJAMA25"))
+            .andExpect(jsonPath("$.discountCents").value(500_000));
+    }
+
+    @Test
+    void givenAnExpiredCoupon_whenApplied_thenItIsRejectedAndTheCartKeepsItsCoupon() throws Exception {
+        add(variant, 1).andExpect(status().isOk());
+        coupon("VERANO10", null, null, null);
+        coupon("VENCIDO", LocalDate.of(2020, 1, 31), null, null);
+        applyCoupon("VERANO10").andExpect(status().isOk());
+
+        applyCoupon("VENCIDO")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.problem").value("COUPON_EXPIRED"))
+            .andExpect(cookie().doesNotExist(CART_COOKIE));
+
+        mvc.perform(guest(get("/api/cart"))).andExpect(jsonPath("$.coupon.code").value("VERANO10"));
+    }
+
+    @Test
+    void givenACartBelowTheMinimum_whenTheCouponIsApplied_thenTheUserIsToldHowMuchIsMissing() throws Exception {
+        add(variant, 1).andExpect(status().isOk());
+        coupon("MINIMO", null, null, 2_000_000L);
+
+        applyCoupon("MINIMO")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.problem").value("COUPON_BELOW_MINIMUM"))
+            .andExpect(jsonPath("$.missingCents").value(500_000));
+    }
+
+    @Test
+    void givenAUsedUpCoupon_whenApplied_thenItIsRejected() throws Exception {
+        add(variant, 1).andExpect(status().isOk());
+        UUID agotado = coupon("AGOTADO", null, 1, null);
+        owner.update("insert into coupon_redemption (coupon_id, order_id, redeemed_at) values (?, ?, now())",
+            agotado, UUID.randomUUID());
+
+        applyCoupon("AGOTADO")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.problem").value("COUPON_USED_UP"));
+    }
+
+    @Test
+    void givenAnUnknownCodeOrAnInactiveCoupon_whenApplied_thenEachIsRejectedWithItsReason() throws Exception {
+        add(variant, 1).andExpect(status().isOk());
+        coupon("APAGADO", null, null, null);
+        owner.update("update coupon set active = false");
+
+        applyCoupon("NO-EXISTE")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.problem").value("COUPON_UNKNOWN"));
+        applyCoupon("APAGADO")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.problem").value("COUPON_INACTIVE"));
+    }
+
+    @Test
+    void givenNoCartOrAnInvalidBodyOrAnActorWithoutACart_whenApplyingACoupon_thenItIsRejected() throws Exception {
+        coupon("VERANO10", null, null, null);
+
+        applyCoupon("VERANO10")
+            .andExpect(status().isConflict())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.problem").value("EMPTY_CART"));
+        applyCoupon("A".repeat(101)).andExpect(status().isBadRequest());
+        mvc.perform(guest(post(COUPON)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isBadRequest());
+        mvc.perform(post(COUPON).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("code", "VERANO10"))))
+            .andExpect(status().isForbidden())
+            .andExpect(cookie().doesNotExist(CART_COOKIE));
+        mvc.perform(post(COUPON).with(csrf()).with(user(UUID.randomUUID().toString()).roles("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("code", "VERANO10"))))
+            .andExpect(status().isForbidden());
+        mvc.perform(guest(post(COUPON)).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("code", "VERANO10"))))
+            .andExpect(status().isForbidden());
+        assertThat(owner.queryForObject("select count(*) from cart", Long.class)).isZero();
+    }
+
+    @Test
+    void givenAnAppliedCoupon_whenRemovingIt_thenTheCartHasNoCouponOrDiscount() throws Exception {
+        add(variant, 1).andExpect(status().isOk());
+        coupon("VERANO10", null, null, null);
+        applyCoupon("VERANO10").andExpect(status().isOk());
+
+        mvc.perform(guest(delete(COUPON)).with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(cookie().value(CART_COOKIE, token))
+            .andExpect(jsonPath("$.coupon").isEmpty())
+            .andExpect(jsonPath("$.discountCents").value(0))
+            .andExpect(jsonPath("$.totalCents").value(1_500_000));
+        mvc.perform(guest(get("/api/cart"))).andExpect(jsonPath("$.coupon").isEmpty());
+        mvc.perform(delete(COUPON).with(csrf())).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void givenAnAppliedCouponWithAMinimum_whenTheCartFallsBelowIt_thenItStaysWithoutDiscount() throws Exception {
+        String item = itemIdOf(add(variant, 2));
+        coupon("MINIMO", null, null, 3_000_000L);
+        applyCoupon("MINIMO").andExpect(status().isOk()).andExpect(jsonPath("$.discountCents").value(300_000));
+
+        changeQuantity(item, 1)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.coupon.code").value("MINIMO"))
+            .andExpect(jsonPath("$.coupon.status").value("BELOW_MINIMUM"))
+            .andExpect(jsonPath("$.coupon.missingCents").value(1_500_000))
+            .andExpect(jsonPath("$.discountCents").value(0))
+            .andExpect(jsonPath("$.totalCents").value(1_500_000));
+        changeQuantity(item, 2)
+            .andExpect(jsonPath("$.coupon.status").value("APPLICABLE"))
+            .andExpect(jsonPath("$.discountCents").value(300_000));
+    }
+
+    /** A 10% coupon; {@code validUntil}, {@code maxUses} and {@code minimumCents} null when not limited. */
+    private UUID coupon(String code, LocalDate validUntil, Integer maxUses, Long minimumCents) {
+        UUID id = UUID.randomUUID();
+        owner.update("""
+            insert into coupon (id, code, type, discount_value, valid_until, max_uses, minimum_purchase_cents, active,
+                                created_at, updated_at)
+            values (?, ?, 'PERCENTAGE', 10, ?, ?, ?, true, now(), now())
+            """, id, code, new SqlParameterValue(Types.DATE, validUntil), new SqlParameterValue(Types.INTEGER, maxUses),
+            new SqlParameterValue(Types.BIGINT, minimumCents));
+        return id;
+    }
+
+    private ResultActions applyCoupon(String code) throws Exception {
+        return mvc.perform(guest(post(COUPON)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+            .content(json.writeValueAsString(Map.of("code", code))));
     }
 
     private UUID sellable(long priceCents, int available) {

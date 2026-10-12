@@ -1,6 +1,7 @@
 package com.pijamaparty.store.cart.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.cart.domain.PricedCart.LineStatus;
 import com.pijamaparty.store.cart.domain.PricedCart.PricedLine;
@@ -13,7 +14,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** UC-09: a cart priced with the current catalog prices and stock. */
+/** UC-09, UC-10: a cart priced with the current catalog prices and stock, and its coupon discount. */
 class PricedCartTest {
 
     private static final Instant OPENED = Instant.parse("2026-10-10T12:00:00Z");
@@ -109,5 +110,28 @@ class PricedCartTest {
         PricedCart priced = PricedCart.of(Cart.open(CartId.of(UUID.randomUUID()), GUEST, OPENED), Map.of());
 
         assertThat(priced).isEqualTo(PricedCart.empty());
+    }
+
+    @Test
+    void givenAPricedCart_whenACouponDiscountIsTakenOff_thenTheTotalIsWhatIsLeftOfTheSubtotal() {
+        PricedCart priced = PricedCart.of(cart, Map.of(
+            PIJAMA, new SellableVariant(PIJAMA_PRICE, 5),
+            CAMISON, new SellableVariant(CAMISON_PRICE, 5)));
+
+        PricedCart discounted = priced.withDiscount(Money.of(597_000));
+
+        assertThat(discounted.subtotal()).isEqualTo(Money.of(5_970_000));
+        assertThat(discounted.discount()).isEqualTo(Money.of(597_000));
+        assertThat(discounted.total()).isEqualTo(Money.of(5_373_000));
+        assertThat(discounted.lines()).isEqualTo(priced.lines());
+        assertThat(priced.withDiscount(priced.subtotal()).total()).isEqualTo(Money.zero());
+    }
+
+    @Test
+    void givenAPricedCart_whenADiscountAboveTheSubtotalIsTakenOff_thenItFails() {
+        PricedCart priced = PricedCart.of(cart, Map.of(PIJAMA, new SellableVariant(PIJAMA_PRICE, 5)));
+
+        assertThatThrownBy(() -> priced.withDiscount(priced.subtotal().plus(Money.of(1))))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -9,10 +9,12 @@ class GetCartService implements GetCart {
 
     private final LoadCart loadCart;
     private final VariantAvailability availability;
+    private final Coupons coupons;
 
-    GetCartService(LoadCart loadCart, VariantAvailability availability) {
+    GetCartService(LoadCart loadCart, VariantAvailability availability, Coupons coupons) {
         this.loadCart = loadCart;
         this.availability = availability;
+        this.coupons = coupons;
     }
 
     @Override
@@ -20,7 +22,7 @@ class GetCartService implements GetCart {
     public CartView execute(Query query) {
         return CartOwner.of(query.actor())
             .flatMap(loadCart::findByOwner)
-            .map(cart -> CartPricing.view(cart, availability))
+            .map(cart -> CartPricing.view(cart, availability, coupons))
             .orElse(CartView.empty());
     }
 }

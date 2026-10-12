@@ -7,6 +7,7 @@ import com.pijamaparty.store.cart.domain.CartId;
 import com.pijamaparty.store.cart.domain.CartItem;
 import com.pijamaparty.store.cart.domain.CartItemId;
 import com.pijamaparty.store.cart.domain.CartOwner;
+import com.pijamaparty.store.cart.domain.CouponId;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
 import com.pijamaparty.store.platform.domain.Money;
@@ -47,6 +48,27 @@ public abstract class CartStoreContractTest<T extends LoadCart & SaveCart & Dele
 
         assertSameState(subject.findByOwner(GUEST), cart);
         assertSameState(subject.lockByOwner(GUEST), cart);
+    }
+
+    @Test
+    void givenACartWithACoupon_whenTheCouponIsAppliedAndThenRemoved_thenEachSaveKeepsIt() {
+        Cart cart = Cart.open(CartId.of(UUID.randomUUID()), GUEST, OPENED);
+        cart.add(CartItemId.of(UUID.randomUUID()), VariantId.of(UUID.randomUUID()), 1, 5, PRICE, OPENED);
+        CouponId coupon = CouponId.of(UUID.randomUUID());
+        cart.applyCoupon(coupon, OPENED.plusSeconds(60));
+        subject.save(cart);
+        persistAndForget();
+
+        Cart loaded = subject.lockByOwner(GUEST).orElseThrow();
+        assertSameState(Optional.of(loaded), cart);
+        assertThat(loaded.coupon()).contains(coupon);
+
+        loaded.removeCoupon(OPENED.plusSeconds(120));
+        subject.save(loaded);
+        persistAndForget();
+
+        assertSameState(subject.findByOwner(GUEST), loaded);
+        assertThat(subject.findByOwner(GUEST).orElseThrow().coupon()).isEmpty();
     }
 
     @Test

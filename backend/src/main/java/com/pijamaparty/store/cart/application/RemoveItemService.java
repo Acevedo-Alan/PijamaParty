@@ -13,12 +13,15 @@ class RemoveItemService implements RemoveItem {
     private final LoadCart loadCart;
     private final SaveCart saveCart;
     private final VariantAvailability availability;
+    private final Coupons coupons;
     private final Clock clock;
 
-    RemoveItemService(LoadCart loadCart, SaveCart saveCart, VariantAvailability availability, Clock clock) {
+    RemoveItemService(LoadCart loadCart, SaveCart saveCart, VariantAvailability availability, Coupons coupons,
+                      Clock clock) {
         this.loadCart = loadCart;
         this.saveCart = saveCart;
         this.availability = availability;
+        this.coupons = coupons;
         this.clock = clock;
     }
 
@@ -34,6 +37,6 @@ class RemoveItemService implements RemoveItem {
             return new Result.ItemNotFound();
         }
         saveCart.save(cart.get());
-        return new Result.Removed(CartPricing.view(cart.get(), availability));
+        return new Result.Removed(CartPricing.view(cart.get(), availability, coupons));
     }
 }

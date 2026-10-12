@@ -10,9 +10,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * A guest's or a customer's cart (UC-08, UC-09): one line per variant, in the order they were added. It holds the
- * stock rule: the quantity of a line never exceeds the variant's available stock (on hand − reserved) at the moment
- * it is added or changed. The cart reserves nothing; the reservation starts with the payment (E3).
+ * A guest's or a customer's cart (UC-08, UC-09): one line per variant, in the order they were added, and at most one
+ * coupon (UC-10). It holds the stock rule: the quantity of a line never exceeds the variant's available stock (on
+ * hand − reserved) at the moment it is added or changed. The cart reserves nothing; the reservation starts with the
+ * payment (E3).
  */
 public final class Cart {
 
@@ -22,13 +23,16 @@ public final class Cart {
     private final CartId id;
     private final CartOwner owner;
     private final List<CartItem> items;
+    private Optional<CouponId> coupon;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private Cart(CartId id, CartOwner owner, List<CartItem> items, Instant createdAt, Instant updatedAt) {
+    private Cart(CartId id, CartOwner owner, List<CartItem> items, Optional<CouponId> coupon, Instant createdAt,
+                 Instant updatedAt) {
         this.id = Objects.requireNonNull(id, "id");
         this.owner = Objects.requireNonNull(owner, "owner");
         this.items = new ArrayList<>(items);
+        this.coupon = Objects.requireNonNull(coupon, "coupon");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
         this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt");
         if (new HashSet<>(items.stream().map(CartItem::variantId).toList()).size() != items.size()
@@ -39,12 +43,13 @@ public final class Cart {
 
     /** UC-08: the first product added creates the cart. */
     public static Cart open(CartId id, CartOwner owner, Instant at) {
-        return new Cart(id, owner, List.of(), at, at);
+        return new Cart(id, owner, List.of(), Optional.empty(), at, at);
     }
 
     /** Rebuilds a stored cart; {@code items} in the order they were added. */
-    public static Cart of(CartId id, CartOwner owner, List<CartItem> items, Instant createdAt, Instant updatedAt) {
-        return new Cart(id, owner, items, createdAt, updatedAt);
+    public static Cart of(CartId id, CartOwner owner, List<CartItem> items, Optional<CouponId> coupon,
+                          Instant createdAt, Instant updatedAt) {
+        return new Cart(id, owner, items, coupon, createdAt, updatedAt);
     }
 
     /** Whether {@code quantity} can be asked for when adding (UC-08). */
@@ -141,6 +146,22 @@ public final class Cart {
         return changed;
     }
 
+    /** UC-10: the coupon, which promotions found applicable, replaces the one the cart had. */
+    public void applyCoupon(CouponId couponId, Instant at) {
+        coupon = Optional.of(Objects.requireNonNull(couponId, "couponId"));
+        updatedAt = at;
+    }
+
+    /** UC-10: returns whether the cart had a coupon. */
+    public boolean removeCoupon(Instant at) {
+        if (coupon.isEmpty()) {
+            return false;
+        }
+        coupon = Optional.empty();
+        updatedAt = at;
+        return true;
+    }
+
     public Optional<CartItem> item(CartItemId itemId) {
         return items.stream().filter(item -> item.id().equals(itemId)).findFirst();
     }
@@ -151,7 +172,7 @@ public final class Cart {
 
     /** An independent copy, for stores that hand out copies like a database does. */
     public Cart copy() {
-        return new Cart(id, owner, items, createdAt, updatedAt);
+        return new Cart(id, owner, items, coupon, createdAt, updatedAt);
     }
 
     public CartId id() {
@@ -165,6 +186,11 @@ public final class Cart {
     /** In the order they were added. */
     public List<CartItem> items() {
         return List.copyOf(items);
+    }
+
+    /** UC-10: the applied coupon, whether or not it still applies; promotions decides that each time it is priced. */
+    public Optional<CouponId> coupon() {
+        return coupon;
     }
 
     public Instant createdAt() {

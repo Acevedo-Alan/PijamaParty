@@ -38,7 +38,7 @@ class AddItemToCartServiceTest {
     private final InMemoryCartStore carts = new InMemoryCartStore();
     private final InMemoryVariantAvailability availability = new InMemoryVariantAvailability();
     private final AddItemToCartService service = new AddItemToCartService(carts, carts, availability,
-        new InMemoryIdGenerator(), Clock.fixed(NOW, ZoneOffset.UTC));
+        new InMemoryCoupons(), new InMemoryIdGenerator(), Clock.fixed(NOW, ZoneOffset.UTC));
 
     @Test
     void givenAVisitorWithoutACart_whenAddingTheFirstProduct_thenACartTiedToTheirBrowserIsCreated() {
@@ -49,7 +49,7 @@ class AddItemToCartServiceTest {
         CartItemId itemId = CartItemId.of(InMemoryIdGenerator.nth(2));
         ItemView item = new ItemView(itemId, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5);
         assertThat(result).isEqualTo(new Result.Added(
-            new CartView(List.of(item), Money.of(3_000_000), Money.zero(), Money.of(3_000_000))));
+            new CartView(List.of(item), Optional.empty(), Money.of(3_000_000), Money.zero(), Money.of(3_000_000))));
         assertThat(carts.findByOwner(GUEST_OWNER)).hasValueSatisfying(cart -> {
             assertThat(cart.id()).isEqualTo(CartId.of(InMemoryIdGenerator.nth(1)));
             assertThat(cart.createdAt()).isEqualTo(NOW);
@@ -79,7 +79,7 @@ class AddItemToCartServiceTest {
 
         assertThat(result).isEqualTo(new Result.Added(new CartView(List.of(
             new ItemView(CartItemId.of(InMemoryIdGenerator.nth(2)), PIJAMA, 5, Money.of(1_400_000), Optional.empty(),
-                LineStatus.AVAILABLE, 5)), Money.of(7_000_000), Money.zero(), Money.of(7_000_000))));
+                LineStatus.AVAILABLE, 5)), Optional.empty(), Money.of(7_000_000), Money.zero(), Money.of(7_000_000))));
         assertThat(carts.size()).isEqualTo(1);
     }
 
