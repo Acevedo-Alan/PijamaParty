@@ -34,6 +34,18 @@ public record ShippingSettings(Optional<Money> freeShippingThreshold) {
         return Optional.of(new ShippingSettings(thresholdCents.map(Money::of)));
     }
 
+    /**
+     * UC-12: what a shipping of {@code cost} charges for a subtotal after the discount: nothing once it reaches the
+     * threshold, {@code cost} otherwise.
+     */
+    public Money chargeFor(Money cost, Money subtotalAfterDiscount) {
+        Objects.requireNonNull(cost, "cost");
+        Objects.requireNonNull(subtotalAfterDiscount, "subtotalAfterDiscount");
+        boolean free = freeShippingThreshold.filter(threshold -> !subtotalAfterDiscount.isLessThan(threshold))
+            .isPresent();
+        return free ? Money.zero() : cost;
+    }
+
     private static boolean outOfRange(Money threshold) {
         return threshold.isZero() || threshold.isGreaterThan(MAX_THRESHOLD);
     }

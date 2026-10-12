@@ -30,15 +30,27 @@ final class CartPricing {
     static CartView view(Cart cart, Map<VariantId, SellableVariant> sellable, Coupons coupons,
                          ItemDescriptions descriptions) {
         PricedCart priced = PricedCart.of(cart, sellable);
-        Optional<CouponCheck> coupon = cart.coupon().flatMap(id -> coupons.byId(id, priced.subtotal()));
-        return discounted(priced, coupon, descriptions);
+        return discounted(priced, couponOf(cart, priced, coupons), descriptions);
+    }
+
+    /** {@code cart} priced now, with the discount of its coupon when it applies; without line descriptions. */
+    static PricedCart priced(Cart cart, VariantAvailability availability, Coupons coupons) {
+        PricedCart priced = PricedCart.of(cart, sellableIn(cart, availability));
+        return priced.withDiscount(discountOf(couponOf(cart, priced, coupons)));
     }
 
     /** {@code priced} with the discount of {@code coupon} when it applies. */
     static CartView discounted(PricedCart priced, Optional<CouponCheck> coupon, ItemDescriptions descriptions) {
-        Money discount = coupon.filter(CouponCheck::applies).map(CouponCheck::discount).orElse(Money.zero());
         var variants = priced.lines().stream().map(line -> line.item().variantId()).toList();
-        return CartView.of(priced.withDiscount(discount), coupon,
+        return CartView.of(priced.withDiscount(discountOf(coupon)), coupon,
             variants.isEmpty() ? Map.of() : descriptions.describe(variants));
+    }
+
+    private static Optional<CouponCheck> couponOf(Cart cart, PricedCart priced, Coupons coupons) {
+        return cart.coupon().flatMap(id -> coupons.byId(id, priced.subtotal()));
+    }
+
+    private static Money discountOf(Optional<CouponCheck> coupon) {
+        return coupon.filter(CouponCheck::applies).map(CouponCheck::discount).orElse(Money.zero());
     }
 }

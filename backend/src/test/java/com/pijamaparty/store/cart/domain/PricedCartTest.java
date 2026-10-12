@@ -134,4 +134,16 @@ class PricedCartTest {
         assertThatThrownBy(() -> priced.withDiscount(priced.subtotal().plus(Money.of(1))))
             .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void givenTheLineStatuses_whenPricing_thenTheCartHasSomethingToSellOnlyWithAnAvailableLine() {
+        PricedCart priced = PricedCart.of(cart, Map.of(PIJAMA, new SellableVariant(PIJAMA_PRICE, 1)));
+
+        assertThat(priced.lines()).extracting(PricedLine::status)
+            .containsExactly(LineStatus.INSUFFICIENT_STOCK, LineStatus.UNAVAILABLE);
+        assertThat(priced.hasAvailableLines()).isFalse();
+        assertThat(PricedCart.of(cart, Map.of(CAMISON, new SellableVariant(CAMISON_PRICE, 3))).hasAvailableLines())
+            .isTrue();
+        assertThat(PricedCart.empty().hasAvailableLines()).isFalse();
+    }
 }

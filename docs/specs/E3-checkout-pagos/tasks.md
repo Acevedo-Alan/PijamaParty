@@ -2,7 +2,7 @@
 
 - [x] **T-E3-01** Migraciones: `pedido`, `pedido_item`, `pago`, `costo_envio_zona`, `config_tienda`, `variante.stock_reservado`. En el código: `orders`, `order_item`, `payment`, `shipping_zone_rate`, `shop_setting` y `stock_level.reserved`; `orders`, `order_item` y `payment` nacen con Row Level Security activo y forzado, con sus políticas (RNF-27).
 - [x] **T-E3-02** Backoffice y API: costos de envío por zona y envío gratis (CU-12).
-- [ ] **T-E3-03** Cálculo de envío en el servidor según provincia y subtotal (CU-12, CU-13).
+- [x] **T-E3-03** Cálculo de envío en el servidor según provincia y subtotal (CU-12, CU-13).
 - [ ] **T-E3-04** Reserva atómica de stock y proceso de vencimiento (CU-16).
 - [ ] **T-E3-05** `POST /api/checkout`: validaciones, creación del pedido y reserva (CU-13, CU-14).
 - [ ] **T-E3-06** Integración con MercadoPago: creación del pago y redirección (CU-14).

@@ -45,6 +45,11 @@ public record PricedCart(List<PricedLine> lines, Money subtotal, Money discount,
         return new PricedCart(lines, subtotal, discount, subtotal.minus(discount));
     }
 
+    /** UC-13: whether any line can be bought now; without one, the cart has nothing to sell. */
+    public boolean hasAvailableLines() {
+        return lines.stream().anyMatch(line -> line.status() == LineStatus.AVAILABLE);
+    }
+
     /** UC-10: the coupon's {@code discount}, at most the subtotal, comes off the total. */
     public PricedCart withDiscount(Money discount) {
         return new PricedCart(lines, subtotal, discount, subtotal.minus(discount));

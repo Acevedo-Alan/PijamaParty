@@ -31,4 +31,19 @@ class ShippingSettingsTest {
         assertThatThrownBy(() -> new ShippingSettings(Optional.of(Money.zero())))
             .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void givenFreeShippingFrom50000_whenTheSubtotalAfterTheDiscountReachesIt_thenShippingChargesNothing() {
+        ShippingSettings settings = new ShippingSettings(Optional.of(Money.of(5_000_000)));
+
+        assertThat(settings.chargeFor(Money.of(450_000), Money.of(5_000_000))).isEqualTo(Money.zero());
+        assertThat(settings.chargeFor(Money.of(450_000), Money.of(7_000_000))).isEqualTo(Money.zero());
+        assertThat(settings.chargeFor(Money.of(450_000), Money.of(4_999_999))).isEqualTo(Money.of(450_000));
+    }
+
+    @Test
+    void givenNoFreeShipping_whenCharging_thenTheCostIsAlwaysCharged() {
+        assertThat(ShippingSettings.withoutFreeShipping().chargeFor(Money.of(450_000), Money.of(1_000_000_000L)))
+            .isEqualTo(Money.of(450_000));
+    }
 }

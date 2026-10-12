@@ -591,6 +591,26 @@ export interface paths {
         patch: operations["rename"];
         trace?: never;
     };
+    "/api/checkout/shipping-cost": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The shipping cost of the cart to a province, and the summary amounts
+         * @description Step 1 of the checkout. The cart is priced as GET /api/cart: only AVAILABLE items count in the subtotal, and the coupon is evaluated again. Shipping is free when the subtotal after the discount reaches the free-shipping threshold. total = subtotal - discount + shipping. Amounts are in cents.
+         */
+        get: operations["shippingCost"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/catalog/suggestions": {
         parameters: {
             query?: never;
@@ -1033,6 +1053,18 @@ export interface components {
             /** Format: int64 */
             priceCents?: number;
             active?: boolean;
+        };
+        ShippingCostResponse: {
+            /** @enum {string} */
+            province?: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            /** Format: int64 */
+            subtotalCents?: number;
+            /** Format: int64 */
+            discountCents?: number;
+            /** Format: int64 */
+            shippingCents?: number;
+            /** Format: int64 */
+            totalCents?: number;
         };
         ListingImageResponse: {
             placeholder?: string;
@@ -2991,6 +3023,55 @@ export interface operations {
                 };
             };
             /** @description The name has no letters or digits to build a slug from */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    shippingCost: {
+        parameters: {
+            query: {
+                province: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The amounts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShippingCostResponse"];
+                };
+            };
+            /** @description Without province, or an unknown one */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No cart, or none of its items available (problem EMPTY_CART) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No shipping to the province (problem NO_SHIPPING, with province) */
             422: {
                 headers: {
                     [name: string]: unknown;
