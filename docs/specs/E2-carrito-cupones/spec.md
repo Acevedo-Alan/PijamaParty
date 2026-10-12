@@ -17,6 +17,10 @@
 **Reglas**
 - No se muestra toast: el panel abierto es la confirmación.
 - La cantidad en el carrito no puede superar el stock disponible.
+- El botón del carrito en el encabezado muestra cuántas unidades hay en el carrito; tocarlo abre el panel.
+- Desde la página del producto se agrega una unidad por vez.
+- El panel muestra cada producto con su foto, su nombre, color, talle, cantidad e importe, y el subtotal, el descuento si lo hay y el total. Si está vacío lo dice y ofrece seguir comprando.
+- Si el producto no se puede agregar, el panel no se abre y la página del producto explica por qué ("Solo quedan 3", "Sin stock" o que ya no está disponible).
 
 **Criterios de aceptación**
 - Dada una variante con stock 3 y 2 unidades ya en el carrito, cuando se agregan 2 más, entonces se rechaza e informa "Solo quedan 3".
