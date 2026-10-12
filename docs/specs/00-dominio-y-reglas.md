@@ -25,8 +25,9 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | NivelStock | varianteId, enMano (módulo de inventario; la reserva se suma en E3) |
 | Imagen | id, productoId, color? (uno de los colores del producto), claveArchivo (nombre generado por el servidor; la URL se deriva de ella, RNF-29.4), placeholder, orden, claveSubida y hash del archivo (reintentos sin duplicar) |
 | MovimientoStock | id, varianteId, tipo (CARGA_INICIAL, AJUSTE, RESERVA, DESCUENTO, LIBERACION), cantidad (con signo), nota? (texto libre del administrador), pedidoId?, usuarioId?, claveAjuste? (reintentos sin duplicar), fecha |
-| Carrito / CarritoItem | id, token, usuarioId?, cuponId?, items(varianteId, cantidad) |
-| Cupon | id, codigo, tipo, valor, vigenciaDesde/Hasta, usosMax, usosActuales, minimoCompra, automatico, regla, activo |
+| Carrito / CarritoItem | id, hashToken? (SHA-256 del `cart_token`) o usuarioId? (uno de los dos), cuponId?, actualizadoEn, items(varianteId, cantidad, ultimoPrecioVisto) |
+| Cupon | id, codigo, tipo (PORCENTAJE / MONTO_FIJO), valor, vigenciaDesde?/Hasta? (fechas), usosMax?, minimoCompra?, automatico (E5), regla (E5), activo |
+| UsoCupon | cuponId, pedidoId, fecha (una fila por pedido confirmado; los usos del cupón se cuentan de acá) |
 | Usuario | id, email, emailVerificado, passwordHash?, nombre, rol (CLIENTE / ADMIN), intentosFallidos, bloqueadoHasta? |
 | IdentidadExterna | id, usuarioId, proveedor (GOOGLE / FACEBOOK), sujeto, email, creadoEn |
 | Direccion | id, usuarioId, calle, numero, piso, depto, ciudad, provincia, codigoPostal, principal |
@@ -98,6 +99,9 @@ PAGADO | PREPARANDO → CANCELADO
 | Correos: servicio transaccional (Resend) con outbox | Recomendado | Delegado por el usuario; verificar límites del plan gratuito |
 | Segundo factor (TOTP) para el administrador | Recomendado como obligatorio | La cuenta accede a datos personales de clientes (RNF-29.8) |
 | Factura electrónica (ARCA) | Pendiente | Consultar al contador del negocio; propuesta para v1: la emite el negocio por fuera del sistema |
+| Usos de un cupón | Decidido | Una fila por pedido confirmado (`coupon_redemption`), única por cupón y pedido: un reintento no cuenta dos veces y un cupón con usos no se puede borrar (CU-11, E3) |
+| Vigencia de un cupón | Decidido | Fechas opcionales, ambas inclusive, en hora de Argentina (R-07) (CU-10, CU-11) |
+| Código y valor de un cupón | Decidido | Código de 3 a 20 letras, números o guiones, guardado en mayúsculas; porcentaje entero de 1 a 100 o monto fijo en centavos mayor a 0, nunca mayor que el subtotal; usos máximos y monto mínimo opcionales (CU-10, CU-11) |
 | Búsqueda por texto en la primera versión | Decidido | PostgreSQL full-text en español, sin motor externo (CU-26) |
 | Analítica: Google Analytics 4 y Meta Pixel | Decidido | Detalle en RNF-25 |
 | Banner de consentimiento antes de cargar la analítica | Propuesto | Validar el texto con un profesional |
