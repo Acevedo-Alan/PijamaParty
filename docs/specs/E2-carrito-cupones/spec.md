@@ -62,6 +62,8 @@
 - Se valida: activo, dentro de la vigencia, usos disponibles y monto mínimo de compra.
 - El descuento se calcula siempre en el servidor. Un descuento por porcentaje se redondea hacia abajo al centavo: la tienda nunca descuenta más que el porcentaje indicado.
 - Si un cupón aplicado deja de cumplir las condiciones (el carrito baja del mínimo, o el cupón vence, se desactiva o se agota), queda en el carrito sin descuento y con el motivo. Vuelve a aplicarse solo si el carrito vuelve a cumplirlas.
+- En el panel, arriba de los totales, siempre está el campo "Código de cupón" con el botón "Aplicar". Si el cupón no aplica, se dice por qué debajo del campo (por ejemplo "El cupón venció." o "Te faltan $ 3.000 para usar este cupón.").
+- El cupón aplicado se ve con su código y un botón "Quitar"; su descuento aparece en los totales como "Descuento PIJAMA10". Si dejó de cumplir las condiciones, se ve el motivo y no descuenta.
 
 **Criterios de aceptación**
 - Dado un cupón del 10% válido, cuando se aplica a un carrito de $20.000, entonces el descuento es $2.000.
