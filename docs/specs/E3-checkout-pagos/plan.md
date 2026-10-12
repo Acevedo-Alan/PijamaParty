@@ -8,7 +8,7 @@
 
 | Método | Ruta | Uso |
 |---|---|---|
-| GET | `/api/checkout/costo-envio?provincia=` | Costo de envío para el paso 1 |
+| GET | `/api/checkout/shipping-cost?province=` | Subtotal, descuento, costo de envío y total para el paso 1 (CU-12, CU-13) |
 | POST | `/api/checkout` | Crea el pedido, reserva stock y devuelve la URL de pago (exige `Idempotency-Key`) |
 | GET | `/api/pedidos/{token}` | Seguimiento por enlace (invitado o cliente) |
 | POST | `/api/pedidos/{token}/reintentar-pago` | Nuevo intento de pago |

@@ -38,6 +38,7 @@
 - En escritorio el resumen se muestra en una segunda columna.
 - No se muestra el botón flotante de WhatsApp durante el checkout.
 - Los totales los calcula el servidor.
+- Al elegir la provincia, el servidor devuelve el subtotal, el descuento, el envío y el total del carrito (solo cuentan los ítems disponibles). Si no hay envío a esa provincia, se informa; si el carrito no tiene ítems disponibles, no se puede seguir.
 
 **Criterios de aceptación**
 - Dado un dato obligatorio vacío, cuando se intenta avanzar, entonces no se avanza y se indica cuál falta.
