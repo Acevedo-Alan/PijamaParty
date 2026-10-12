@@ -56,6 +56,7 @@ Implementado en la aplicación con Bucket4j en memoria. Los contadores se reinic
 - La IP real se toma de la cabecera que escribe Caddy; solo se confía en esa cabecera cuando viene del proxy.
 - Los buckets inactivos expiran para que la memoria no crezca.
 - Los logs registran la ruta y la política excedida, nunca la IP en claro.
+- La clave de usuario del backoffice sale de la sesión iniciada, porque el límite corre antes de Spring Security. Sin sesión iniciada la política no aplica y la ruta responde `401`; el login tiene sus propios límites.
 - Muchos clientes navegan desde datos móviles con IP compartida: por eso el catálogo es holgado y los endpoints sensibles combinan IP con el token de carrito.
 
 ## RNF-23 Correos transaccionales
