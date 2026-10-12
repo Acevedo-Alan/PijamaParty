@@ -63,7 +63,10 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
   - The panel is a dialog over a dimmed page (overlay), sliding in from the right: title "Mi carrito" and a close button; each item with its photo, its product's name (a link to the product), its color and size, its quantity and its line amount (unit price × quantity); and the subtotal, the discount when there is one, and the total, all as the server sent them. Empty, it says the cart is empty, with a button that closes it to keep shopping. Changing quantities and the warnings of UC-09 come with T-E2-08; the coupon field of UC-10 with T-E2-09; the checkout button with E3.
   - It closes with its close button, a tap on the overlay or `Escape`, and gives the focus back to what opened it. While open it keeps the focus inside and the page behind does not scroll. Its motion respects `prefers-reduced-motion`.
 - Rate-limit policy: cart changes (60 per minute per IP), activated in T-E2-04 (brought forward from T-E2-11: a client without a cookie creates a cart with each add, so the policy also bounds cart creation per IP).
-- Analytics: `add_to_cart` (T-E2-12, RNF-25).
+- **Analytics (T-E2-12, RNF-25):**
+  - `add_to_cart` (GA4) and `AddToCart` (Pixel): once per successful add from the product page (`200`), and, like the catalog events, only once the tools are loaded (after "Aceptar"). A rejected or failed add sends nothing. Changing a quantity in the panel (UC-09) is not an add and sends nothing.
+  - The item is the added variant, identified by its SKU: the product detail gives each variant its `sku` (UC-03). GA4: `currency: "ARS"`, `value` (unit price × quantity added) and `items` with the one item: `item_id` (SKU), `item_name` (product name), `item_variant` (`"{color} / {size}"`), `price` (unit price) and `quantity`. Pixel: `content_ids: [sku]`, `content_type: "product"`, `contents: [{id: sku, quantity}]`, `value` and `currency: "ARS"`.
+  - The unit price is the added item's in the cart of the answer (the server's price, R-01). Amounts in pesos (`cents / 100`).
 
 ---
 
