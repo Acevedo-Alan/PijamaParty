@@ -41,10 +41,13 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
 - Given a visitor without a cart, when adding the first product, then a cart tied to their browser is created.
 
 **Design notes**
-- Inbound port: `AddItemToCart` (`cart.application`, ARCHITECTURE.md section 7); `Command(actor, variantId, quantity)`; sealed result `Added(CartView)`, `InsufficientStock(variantId, available)` or `VariantUnavailable(variantId)`.
+- Inbound port: `AddItemToCart` (`cart.application`, ARCHITECTURE.md section 7); `Command(actor, variantId, quantity)`; sealed result `Added(CartView)`, `InsufficientStock(variantId, available)`, `VariantUnavailable(variantId)` or `Forbidden`.
 - Outbound ports: `LoadCart`, `SaveCart`, and `VariantAvailability` (backed by `catalog.api` and `inventory.api`). The `Cart` aggregate holds the stock rule (`add(variantId, quantity, available)`).
-- Endpoint: `POST /api/cart/items {variantId, quantity}` → `200` with the full cart; `409` `problem+json` for insufficient stock (with `available`); `404` for an unknown or unavailable variant; `400` invalid body.
+- Endpoint: `POST /api/cart/items {variantId, quantity}` → `200` with the full cart; `409` `problem+json` for insufficient stock (with `variantId` and `available`); `404` for an unknown or unavailable variant; `400` invalid body (quantity from 1 to 1,000,000); `403` for an actor that cannot own a cart.
+- A variant can be added when the catalog sells it (published product of an active category, variant active and priced: `catalog.api.SellableVariants`); its available stock comes from `inventory.api.StockAvailability`. Adding a variant already in the cart adds to its line and records the current price as its `last_seen_price_cents`.
+- The cart's owner comes from the actor: a customer by its user id, a guest by the hash of its `cart_token`. An actor that cannot own a cart (the administrator, a guest without a token) gets `403` on every cart change and an empty cart on `GET /api/cart`: Row Level Security gives them no cart (T-E2-01). From T-E2-04 every guest has a token.
 - A guest without a cart gets one with a new `cart_token` cookie (T-E2-04).
+- Cart responses from T-E2-02: the items in the order they were added, each with `id`, `variantId`, `quantity` and `unitPriceCents` (the last seen price). Totals, the price and stock warnings and the unavailable flag come with T-E2-03.
 - Rate-limit policy: cart changes (60 per minute per IP), activated in T-E2-11.
 - Analytics: `add_to_cart` (T-E2-12, RNF-25).
 
@@ -71,7 +74,8 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
 **Design notes**
 - Inbound ports: `GetCart`, `ChangeItemQuantity`, `RemoveItem` (one class per use case).
 - Endpoints: `GET /api/cart` (current cart with totals), `PATCH /api/cart/items/{id} {quantity}`, `DELETE /api/cart/items/{id}`. Every response returns the full cart state.
-- Two tabs changing the same cart: the last action wins, and the server always returns the full state.
+- `PATCH` answers like `POST /api/cart/items`: `200` with the full cart; `409` `problem+json` when the new quantity is above the available stock (with `variantId` and `available`); `404` for an item that is not in the actor's cart; `400` for a quantity outside 0 to 1,000,000; `403` as in UC-08. A variant the catalog no longer sells has 0 available, so it can only be set to 0 or removed. Quantity 0 removes the item without checking stock. `DELETE` answers `200` with the full cart, `404` or `403`.
+- Two tabs changing the same cart: the last action wins, and the server always returns the full state. A change locks the cart row, so two changes of one cart run one after the other.
 - The price warning compares the current variant price with `cart_item.last_seen_price_cents` (T-E2-03).
 - Rate-limit policy: cart changes (60 per minute per IP), activated in T-E2-11.
 
