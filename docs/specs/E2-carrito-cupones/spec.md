@@ -39,6 +39,9 @@
 **Reglas**
 - Si el precio o el stock cambiaron desde que se agregó el ítem, se avisa antes de continuar.
 - Un ítem cuya variante quedó sin stock se marca como no disponible y no se puede comprar.
+- En el panel, cada ítem tiene botones "−" y "+" alrededor de la cantidad, y "Quitar". "+" no deja pasar del stock disponible y "−" con cantidad 1 quita el ítem.
+- Un ítem con menos stock que su cantidad dice "Solo quedan N" y pide bajar la cantidad. Un ítem agotado se ve atenuado y dice "Sin stock". Ninguno de los dos muestra importe, porque no suma al subtotal.
+- Si cambió el precio de un ítem, se ve el precio anterior tachado junto al nuevo, y un aviso arriba de los totales con un botón "Entendido" que lo confirma.
 
 **Criterios de aceptación**
 - Dado un ítem en el carrito, cuando se cambia la cantidad a 0, entonces se elimina.
