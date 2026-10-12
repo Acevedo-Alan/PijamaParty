@@ -150,27 +150,26 @@ describe('cart side panel (UC-08)', () => {
   });
 });
 
+/** Opens the panel from the header; GET /api/cart answers these carts in order, and the last one repeats. */
+async function openWith(...carts: unknown[]) {
+  const queue = [...carts];
+  const get = vi.spyOn(api, 'GET').mockImplementation(((path: string) => {
+    if (path !== '/api/cart') {
+      return Promise.resolve(answer(200, productDetail()));
+    }
+    return Promise.resolve(queue.length > 1 ? queue.shift() : queue[0]);
+  }) as never);
+  renderRoute('/producto/luna');
+  await userEvent.click(await screen.findByRole('button', { name: /^Carrito/ }));
+  return get;
+}
+
+const cartReads = (get: { mock: { calls: unknown[][] } }) => get.mock.calls.filter((call) => call[0] === '/api/cart');
+
 describe('cart side panel changes (UC-09)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
-
-  /** Opens the panel from the header; GET /api/cart answers these carts in order, and the last one repeats. */
-  async function openWith(...carts: unknown[]) {
-    const queue = [...carts];
-    const get = vi.spyOn(api, 'GET').mockImplementation(((path: string) => {
-      if (path !== '/api/cart') {
-        return Promise.resolve(answer(200, productDetail()));
-      }
-      return Promise.resolve(queue.length > 1 ? queue.shift() : queue[0]);
-    }) as never);
-    renderRoute('/producto/luna');
-    await userEvent.click(await screen.findByRole('button', { name: /^Carrito/ }));
-    return get;
-  }
-
-  const cartReads = (get: { mock: { calls: unknown[][] } }) =>
-    get.mock.calls.filter((call) => call[0] === '/api/cart');
 
   it('given an item in the cart, when its quantity is changed to 0, then it is removed', async () => {
     await openWith(cart([cartItem()]));
@@ -291,5 +290,159 @@ describe('cart side panel changes (UC-09)', () => {
       expect(within(panel()).queryByText(es.cart.pricesChanged)).not.toBeInTheDocument();
     });
     expect(within(panel()).queryByRole('deletion')).not.toBeInTheDocument();
+  });
+});
+
+describe('cart side panel coupon (UC-10)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** A $20,000 cart: one pijama at ARS 20,000. */
+  const item = () => cartItem({ unitPriceCents: 2_000_000 });
+  const pijama10 = { code: 'PIJAMA10', status: 'APPLICABLE', missingCents: 0 } as const;
+  const codeField = () => within(panel()).getByRole('textbox', { name: es.cart.couponCode });
+  const applyButton = () => within(panel()).getByRole('button', { name: es.cart.applyCoupon });
+
+  async function applyCode(code: string) {
+    await userEvent.type(codeField(), code);
+    await userEvent.click(applyButton());
+  }
+
+  it('given a valid 10% coupon, when applied to a $20,000 cart, then the discount is $2,000', async () => {
+    await openWith(cart([item()]));
+    const post = vi.spyOn(api, 'POST').mockResolvedValue(cart([item()], 200_000, pijama10));
+
+    await applyCode('pijama10');
+
+    expect(post).toHaveBeenCalledWith('/api/cart/coupon', { body: { code: 'pijama10' } });
+    const discount = await within(panel()).findByText(es.cart.discountWith('PIJAMA10'));
+    expect(discount.nextElementSibling).toHaveTextContent(/^−\$\s2\.000$/);
+    expect(within(panel()).getByText(es.cart.total).nextElementSibling).toHaveTextContent(/^\$\s18\.000$/);
+    expect(within(panel()).getByText(es.cart.coupon('PIJAMA10'))).toBeInTheDocument();
+    expect(codeField()).toHaveValue('');
+  });
+
+  it('given a blank field, when the panel opens, then "Aplicar" is disabled', async () => {
+    await openWith(cart([item()]));
+
+    expect(applyButton()).toBeDisabled();
+    await userEvent.type(codeField(), '   ');
+    expect(applyButton()).toBeDisabled();
+  });
+
+  it('given an expired coupon, when applied, then "El cupón venció" is shown until the code is edited', async () => {
+    await openWith(cart([item()]));
+    vi.spyOn(api, 'POST').mockResolvedValue(answer(422, { problem: 'COUPON_EXPIRED' }));
+
+    await applyCode('verano');
+
+    expect(await within(panel()).findByText(es.cart.couponRefused.EXPIRED)).toHaveAttribute('role', 'alert');
+    expect(es.cart.couponRefused.EXPIRED).toBe('El cupón venció.');
+    expect(codeField()).toHaveValue('verano');
+    expect(codeField()).toHaveAttribute('aria-invalid', 'true');
+
+    await userEvent.type(codeField(), '2');
+
+    expect(within(panel()).queryByText(es.cart.couponRefused.EXPIRED)).not.toBeInTheDocument();
+  });
+
+  it('given a cart below the minimum, when applied, then the user is told how much is missing', async () => {
+    await openWith(cart([item()]));
+    vi.spyOn(api, 'POST').mockResolvedValue(answer(422, { problem: 'COUPON_BELOW_MINIMUM', missingCents: 300_000 }));
+
+    await applyCode('grande');
+
+    expect(await within(panel()).findByText(/^Te faltan \$\s3\.000 para usar este cupón\.$/)).toHaveAttribute(
+      'role',
+      'alert',
+    );
+  });
+
+  it.each([
+    ['COUPON_UNKNOWN', es.cart.couponRefused.UNKNOWN],
+    ['COUPON_INACTIVE', es.cart.couponRefused.INACTIVE],
+    ['COUPON_NOT_STARTED', es.cart.couponRefused.NOT_STARTED],
+    ['COUPON_USED_UP', es.cart.couponRefused.USED_UP],
+  ])('given a refused code (%s), when applied, then it is rejected saying why', async (problem, message) => {
+    await openWith(cart([item()]));
+    vi.spyOn(api, 'POST').mockResolvedValue(answer(422, { problem }));
+
+    await applyCode('codigo');
+
+    expect(await within(panel()).findByText(message)).toHaveAttribute('role', 'alert');
+    expect(within(panel()).queryByText(es.cart.discount)).not.toBeInTheDocument();
+  });
+
+  it('given a coupon already applied, when another is applied, then it replaces it', async () => {
+    await openWith(cart([item()], 200_000, pijama10));
+    vi.spyOn(api, 'POST').mockResolvedValue(
+      cart([item()], 500_000, { code: 'FIJO5000', status: 'APPLICABLE', missingCents: 0 }),
+    );
+
+    await applyCode('fijo5000');
+
+    expect(await within(panel()).findByText(es.cart.coupon('FIJO5000'))).toBeInTheDocument();
+    expect(within(panel()).queryByText(es.cart.coupon('PIJAMA10'))).not.toBeInTheDocument();
+    expect(within(panel()).getByText(es.cart.total).nextElementSibling).toHaveTextContent(/^\$\s15\.000$/);
+  });
+
+  it('given an applied coupon that stopped qualifying, when the cart opens, then it says why and discounts nothing', async () => {
+    await openWith(cart([item()], 0, { code: 'GRANDE', status: 'BELOW_MINIMUM', missingCents: 100_000 }));
+
+    expect(within(panel()).getByText(es.cart.coupon('GRANDE'))).toBeInTheDocument();
+    expect(within(panel()).getByText(/^Te faltan \$\s1\.000 para usar este cupón\.$/)).toBeInTheDocument();
+    expect(within(panel()).queryByText(es.cart.discountWith('GRANDE'))).not.toBeInTheDocument();
+    expect(within(panel()).getByText(es.cart.total).nextElementSibling).toHaveTextContent(/^\$\s20\.000$/);
+  });
+
+  it('given an applied coupon, when "Quitar" is tapped, then it is removed', async () => {
+    await openWith(cart([item()], 200_000, pijama10));
+    const remove = vi.spyOn(api, 'DELETE').mockResolvedValue(cart([item()]));
+
+    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.removeCouponLabel('PIJAMA10') }));
+
+    expect(remove).toHaveBeenCalledWith('/api/cart/coupon');
+    await vi.waitFor(() => {
+      expect(within(panel()).queryByText(es.cart.coupon('PIJAMA10'))).not.toBeInTheDocument();
+    });
+    expect(within(panel()).queryByText(es.cart.discountWith('PIJAMA10'))).not.toBeInTheDocument();
+  });
+
+  it('given a failed removal, when "Quitar" is tapped, then the panel asks to try again', async () => {
+    await openWith(cart([item()], 200_000, pijama10));
+    vi.spyOn(api, 'DELETE').mockResolvedValue(answer(500));
+
+    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.removeCouponLabel('PIJAMA10') }));
+
+    expect(await within(panel()).findByText(es.cart.couponRemoveError)).toHaveAttribute('role', 'alert');
+  });
+
+  it('given a cart emptied in another tab, when a code is applied, then the cart is read again', async () => {
+    const get = await openWith(cart([item()]), cart([]));
+    vi.spyOn(api, 'POST').mockResolvedValue(answer(409, { problem: 'EMPTY_CART' }));
+
+    await applyCode('pijama10');
+
+    expect(await within(panel()).findByText(es.cart.empty)).toBeInTheDocument();
+    expect(cartReads(get)).toHaveLength(2);
+  });
+
+  it('given too many attempts, when a code is applied, then it asks to wait a minute', async () => {
+    await openWith(cart([item()]));
+    vi.spyOn(api, 'POST').mockResolvedValue(answer(429));
+
+    await applyCode('pijama10');
+
+    expect(await within(panel()).findByText(es.cart.couponTooManyAttempts)).toHaveAttribute('role', 'alert');
+  });
+
+  it('given a failed request, when a code is applied, then the panel asks to try again', async () => {
+    await openWith(cart([item()]));
+    vi.spyOn(api, 'POST').mockResolvedValue(answer(500));
+
+    await applyCode('pijama10');
+
+    expect(await within(panel()).findByText(es.cart.couponApplyError)).toHaveAttribute('role', 'alert');
   });
 });

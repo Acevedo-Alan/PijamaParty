@@ -5,6 +5,7 @@ import { toImage, type ListingImage } from '../catalog/catalogApi.ts';
 type CartResponse = components['schemas']['CartResponse'];
 type ItemResponse = components['schemas']['ItemResponse'];
 type ItemProductResponse = components['schemas']['ItemProductResponse'];
+type CouponResponse = components['schemas']['CouponResponse'];
 
 /** Whether an item can be bought now (UC-09): only AVAILABLE items count in the subtotal. */
 export type ItemStatus = NonNullable<ItemResponse['status']>;
@@ -32,15 +33,27 @@ export interface CartItem {
   product: CartProduct | null;
 }
 
+/** Whether the applied coupon discounts now (UC-10); any other status says why it does not. */
+export type CouponStatus = NonNullable<CouponResponse['status']>;
+
+/** The coupon applied to the cart; it stays when it stops qualifying, without a discount. */
+export interface CartCoupon {
+  code: string;
+  status: CouponStatus;
+  /** What the cart lacks to reach the minimum purchase; 0 unless BELOW_MINIMUM. */
+  missingCents: number;
+}
+
 /** The cart as the server prices it (R-01, R-02): the totals are never calculated here. */
 export interface Cart {
   items: CartItem[];
+  coupon: CartCoupon | null;
   subtotalCents: number;
   discountCents: number;
   totalCents: number;
 }
 
-export const EMPTY_CART: Cart = { items: [], subtotalCents: 0, discountCents: 0, totalCents: 0 };
+export const EMPTY_CART: Cart = { items: [], coupon: null, subtotalCents: 0, discountCents: 0, totalCents: 0 };
 
 /** The number the cart button shows: the units in the cart, not the lines. */
 export function unitCount(cart: Cart): number {
@@ -82,12 +95,29 @@ function toItem(item: ItemResponse): CartItem {
   };
 }
 
+function toCoupon(coupon: CouponResponse | null | undefined): CartCoupon | null {
+  if (coupon === null || coupon === undefined) {
+    return null;
+  }
+  const { code, status } = coupon;
+  if (code === undefined || status === undefined) {
+    throw new Error('Incomplete cart coupon');
+  }
+  return { code, status, missingCents: coupon.missingCents ?? 0 };
+}
+
 function toCart(data: CartResponse): Cart {
   const { subtotalCents, discountCents, totalCents } = data;
   if (subtotalCents === undefined || discountCents === undefined || totalCents === undefined) {
     throw new Error('Incomplete cart');
   }
-  return { items: (data.items ?? []).map(toItem), subtotalCents, discountCents, totalCents };
+  return {
+    items: (data.items ?? []).map(toItem),
+    coupon: toCoupon(data.coupon),
+    subtotalCents,
+    discountCents,
+    totalCents,
+  };
 }
 
 /** GET /api/cart: the actor's cart, empty when there is none. It never creates one. */
@@ -163,6 +193,61 @@ export async function acknowledgePrices(): Promise<Cart> {
   const { data, response } = await api.POST('/api/cart/acknowledge-prices');
   if (data === undefined) {
     throw new Error(`Acknowledging the prices failed with status ${String(response.status)}`);
+  }
+  return toCart(data);
+}
+
+/** Why a code was refused (UC-10): the status the coupon would have in the cart, or unknown. */
+export type CouponRefusal = Exclude<CouponStatus, 'APPLICABLE'> | 'UNKNOWN';
+
+const REFUSALS: Partial<Record<string, CouponRefusal>> = {
+  COUPON_UNKNOWN: 'UNKNOWN',
+  COUPON_INACTIVE: 'INACTIVE',
+  COUPON_NOT_STARTED: 'NOT_STARTED',
+  COUPON_EXPIRED: 'EXPIRED',
+  COUPON_USED_UP: 'USED_UP',
+  COUPON_BELOW_MINIMUM: 'BELOW_MINIMUM',
+};
+
+/** POST /api/cart/coupon. A refused code, a cart emptied elsewhere and too many attempts are expected answers. */
+export type CouponAnswer =
+  | { status: 'applied'; cart: Cart }
+  | { status: 'refused'; reason: CouponRefusal; missingCents: number }
+  | { status: 'emptyCart' }
+  | { status: 'tooManyAttempts' };
+
+function toRefusal(problem: unknown): CouponAnswer {
+  const body = typeof problem === 'object' && problem !== null ? (problem as Record<string, unknown>) : {};
+  const reason = typeof body.problem === 'string' ? REFUSALS[body.problem] : undefined;
+  if (reason === undefined) {
+    throw new Error('Unknown coupon refusal');
+  }
+  return { status: 'refused', reason, missingCents: typeof body.missingCents === 'number' ? body.missingCents : 0 };
+}
+
+/** The server ignores the code's surrounding spaces and case, so it goes as typed. */
+export async function applyCoupon(code: string): Promise<CouponAnswer> {
+  const { data, error, response } = await api.POST('/api/cart/coupon', { body: { code } });
+  if (data !== undefined) {
+    return { status: 'applied', cart: toCart(data) };
+  }
+  switch (response.status) {
+    case 422:
+      return toRefusal(error);
+    case 409:
+      return { status: 'emptyCart' };
+    case 429:
+      return { status: 'tooManyAttempts' };
+    default:
+      throw new Error(`Applying the coupon failed with status ${String(response.status)}`);
+  }
+}
+
+/** DELETE /api/cart/coupon: without a coupon it changes nothing. */
+export async function removeCoupon(): Promise<Cart> {
+  const { data, response } = await api.DELETE('/api/cart/coupon');
+  if (data === undefined) {
+    throw new Error(`Removing the coupon failed with status ${String(response.status)}`);
   }
   return toCart(data);
 }

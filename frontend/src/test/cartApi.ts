@@ -32,14 +32,16 @@ export function cartItem(overrides: Partial<CartItemBody> = {}): CartItemBody {
   };
 }
 
-/** A cart of these items, with the totals the server would send for them without a coupon. */
-export function cartBody(items: CartItemBody[], discountCents = 0): CartBody {
+export type CouponBody = components['schemas']['CouponResponse'];
+
+/** A cart of these items, with the totals the server would send for them and this discount and coupon. */
+export function cartBody(items: CartItemBody[], discountCents = 0, coupon: CouponBody | null = null): CartBody {
   const subtotalCents = items
     .filter((item) => item.status === 'AVAILABLE')
     .reduce((sum, item) => sum + (item.unitPriceCents ?? 0) * (item.quantity ?? 0), 0);
-  return { items, subtotalCents, discountCents, totalCents: subtotalCents - discountCents };
+  return { items, coupon: coupon as never, subtotalCents, discountCents, totalCents: subtotalCents - discountCents };
 }
 
-export function cart(items: CartItemBody[], discountCents = 0) {
-  return answer(200, cartBody(items, discountCents));
+export function cart(items: CartItemBody[], discountCents = 0, coupon: CouponBody | null = null) {
+  return answer(200, cartBody(items, discountCents, coupon));
 }

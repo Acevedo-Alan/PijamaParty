@@ -1,11 +1,17 @@
-import { useEffect, useId, useRef, type MouseEvent } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
-import type { Cart, CartItem } from './cartApi.ts';
+import type { Cart, CartCoupon, CartItem, CouponRefusal } from './cartApi.ts';
 import { useCartPanel } from './CartPanelContext.tsx';
-import { useAcknowledgePrices, useCart, useChangeItem } from './useCart.ts';
+import {
+  useAcknowledgePrices,
+  useApplyCoupon,
+  useCart,
+  useChangeItem,
+  useRemoveCoupon,
+} from './useCart.ts';
 import './cart.css';
 
 /** Why an item cannot be bought as it is (UC-09); an AVAILABLE item has nothing to say. */
@@ -156,6 +162,110 @@ function PriceChangeNotice() {
   );
 }
 
+/** Why a coupon does not discount (UC-10): a refused code, or the status of the applied one. */
+function couponReason(reason: CouponRefusal, missingCents: number): string {
+  return reason === 'BELOW_MINIMUM'
+    ? es.cart.couponBelowMinimum(formatMoney(missingCents))
+    : es.cart.couponRefused[reason];
+}
+
+/** The answer to the last code: why it was refused, too many attempts, or a request that failed. */
+function applyProblem(apply: ReturnType<typeof useApplyCoupon>): string | null {
+  if (apply.isError) {
+    return es.cart.couponApplyError;
+  }
+  switch (apply.data?.status) {
+    case 'refused':
+      return couponReason(apply.data.reason, apply.data.missingCents);
+    case 'tooManyAttempts':
+      return es.cart.couponTooManyAttempts;
+    default:
+      return null;
+  }
+}
+
+/** UC-10: the coupon field, and the applied coupon with "Quitar" and why it does not discount when it does not. */
+function CouponField({ coupon }: { coupon: CartCoupon | null }) {
+  const apply = useApplyCoupon();
+  const remove = useRemoveCoupon();
+  const [code, setCode] = useState('');
+  const inputId = useId();
+  const problemId = useId();
+  const busy = apply.isPending || remove.isPending;
+  const problem = applyProblem(apply);
+
+  function submit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (code.trim() === '' || busy) {
+      return;
+    }
+    apply.mutate(code, {
+      onSuccess: (answer) => {
+        if (answer.status === 'applied') {
+          setCode('');
+        }
+      },
+    });
+  }
+
+  return (
+    <div className="cart-coupon">
+      {coupon !== null && (
+        <>
+          <div className="cart-coupon-applied">
+            <p>{es.cart.coupon(coupon.code)}</p>
+            <button
+              type="button"
+              className="link-btn"
+              aria-label={es.cart.removeCouponLabel(coupon.code)}
+              disabled={busy}
+              onClick={() => {
+                remove.mutate();
+              }}
+            >
+              {es.cart.removeCoupon}
+            </button>
+          </div>
+          {coupon.status !== 'APPLICABLE' && (
+            <p className="cart-item-note">{couponReason(coupon.status, coupon.missingCents)}</p>
+          )}
+          <p className="cart-item-problem" role="alert">
+            {remove.isError ? es.cart.couponRemoveError : null}
+          </p>
+        </>
+      )}
+      <form className="cart-coupon-form" onSubmit={submit}>
+        <label htmlFor={inputId} className="visually-hidden">
+          {es.cart.couponCode}
+        </label>
+        <input
+          id={inputId}
+          value={code}
+          placeholder={es.cart.couponCode}
+          maxLength={20}
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+          // Read-only rather than disabled, so the field keeps the focus while the code is sent with Enter.
+          readOnly={busy}
+          aria-invalid={problem !== null}
+          aria-describedby={problemId}
+          onChange={(event) => {
+            setCode(event.target.value);
+            apply.reset();
+          }}
+        />
+        <button type="submit" className="btn btn-secondary" disabled={busy || code.trim() === ''}>
+          {es.cart.applyCoupon}
+        </button>
+      </form>
+      <p id={problemId} className="cart-item-problem" role="alert">
+        {problem}
+      </p>
+    </div>
+  );
+}
+
 function Totals({ cart }: { cart: Cart }) {
   return (
     <dl className="cart-totals">
@@ -165,7 +275,7 @@ function Totals({ cart }: { cart: Cart }) {
       </div>
       {cart.discountCents > 0 && (
         <div className="cart-row">
-          <dt>{es.cart.discount}</dt>
+          <dt>{cart.coupon === null ? es.cart.discount : es.cart.discountWith(cart.coupon.code)}</dt>
           <dd>−{formatMoney(cart.discountCents)}</dd>
         </div>
       )}
@@ -265,6 +375,7 @@ export function CartPanel() {
             </ul>
             <footer className="cart-foot">
               {cart.data.items.some((item) => item.previousUnitPriceCents !== null) && <PriceChangeNotice />}
+              <CouponField coupon={cart.data.coupon} />
               <Totals cart={cart.data} />
             </footer>
           </>

@@ -116,7 +116,28 @@ export const es = {
     unknownProduct: 'Producto no disponible',
     subtotal: 'Subtotal',
     discount: 'Descuento',
+    /** The discount line of an applied coupon (UC-10), e.g. "Descuento PIJAMA10". */
+    discountWith: (code: string) => `Descuento ${code}`,
     total: 'Total',
+    couponCode: 'Código de cupón',
+    applyCoupon: 'Aplicar',
+    /** The applied coupon, e.g. "Cupón PIJAMA10". */
+    coupon: (code: string) => `Cupón ${code}`,
+    removeCoupon: 'Quitar',
+    removeCouponLabel: (code: string) => `Quitar el cupón ${code}`,
+    /** Why a code was refused, or why the applied coupon does not discount now (UC-10). */
+    couponRefused: {
+      UNKNOWN: 'No encontramos ese cupón.',
+      INACTIVE: 'Este cupón no está activo.',
+      NOT_STARTED: 'Este cupón todavía no está vigente.',
+      EXPIRED: 'El cupón venció.',
+      USED_UP: 'Este cupón ya no tiene usos disponibles.',
+    },
+    /** A cart below the coupon's minimum purchase, with the missing amount already formatted, e.g. "$ 3.000". */
+    couponBelowMinimum: (missing: string) => `Te faltan ${missing} para usar este cupón.`,
+    couponTooManyAttempts: 'Hiciste muchos intentos. Esperá un minuto y probá de nuevo.',
+    couponApplyError: 'No pudimos aplicar el cupón. Probá de nuevo.',
+    couponRemoveError: 'No pudimos quitar el cupón. Probá de nuevo.',
   },
   consent: {
     title: 'Cookies',

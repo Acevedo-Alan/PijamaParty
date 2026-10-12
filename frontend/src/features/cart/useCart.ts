@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { acknowledgePrices, addToCart, changeQuantity, fetchCart, removeItem } from './cartApi.ts';
+import {
+  acknowledgePrices,
+  addToCart,
+  applyCoupon,
+  changeQuantity,
+  fetchCart,
+  removeCoupon,
+  removeItem,
+} from './cartApi.ts';
 import { useCartPanel } from './CartPanelContext.tsx';
 
 export const CART_KEY = ['cart'] as const;
@@ -51,6 +59,32 @@ export function useAcknowledgePrices() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: acknowledgePrices,
+    onSuccess: (cart) => {
+      queryClient.setQueryData(CART_KEY, cart);
+    },
+  });
+}
+
+/** UC-10: applies a code, replacing any coupon; a cart emptied elsewhere is read again. */
+export function useApplyCoupon() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: applyCoupon,
+    onSuccess: (answer) => {
+      if (answer.status === 'applied') {
+        queryClient.setQueryData(CART_KEY, answer.cart);
+      } else if (answer.status === 'emptyCart') {
+        void queryClient.invalidateQueries({ queryKey: CART_KEY });
+      }
+    },
+  });
+}
+
+/** UC-10: removes the applied coupon; the answer is the cart without it. */
+export function useRemoveCoupon() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: removeCoupon,
     onSuccess: (cart) => {
       queryClient.setQueryData(CART_KEY, cart);
     },
