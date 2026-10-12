@@ -42,3 +42,6 @@ deploy/secrets/*
 
 # Spring Modulith documentation written by the tests when run from the repository root
 /build/
+
+# Backend build output (also covered by target/ above)
+/backend/target/
