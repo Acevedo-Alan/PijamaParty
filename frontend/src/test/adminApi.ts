@@ -131,3 +131,23 @@ export function coupon(id: string, code: string, overrides: Partial<CouponBody> 
     ...overrides,
   };
 }
+
+type ShippingBody = components['schemas']['ShippingConfigurationResponse'];
+type ProvinceCode = NonNullable<components['schemas']['ZoneResponse']['province']>;
+
+const PROVINCES: readonly ProvinceCode[] = [
+  'BUENOS_AIRES', 'CIUDAD_DE_BUENOS_AIRES', 'CATAMARCA', 'CHACO', 'CHUBUT', 'CORDOBA', 'CORRIENTES', 'ENTRE_RIOS',
+  'FORMOSA', 'JUJUY', 'LA_PAMPA', 'LA_RIOJA', 'MENDOZA', 'MISIONES', 'NEUQUEN', 'RIO_NEGRO', 'SALTA', 'SAN_JUAN',
+  'SAN_LUIS', 'SANTA_CRUZ', 'SANTA_FE', 'SANTIAGO_DEL_ESTERO', 'TIERRA_DEL_FUEGO', 'TUCUMAN',
+];
+
+/** The 24 provinces in the server's order with the given costs in cents, the others without shipping. */
+export function shipping(
+  costs: Partial<Record<ProvinceCode, number>> = {},
+  freeShippingThresholdCents: number | null = null,
+): ShippingBody {
+  return {
+    zones: PROVINCES.map((province) => ({ province, costCents: costs[province] ?? null })),
+    freeShippingThresholdCents,
+  };
+}

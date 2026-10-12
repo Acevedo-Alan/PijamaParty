@@ -35,6 +35,7 @@ export const routes: RouteObject[] = [
       },
       { path: 'categorias', lazy: async () => ({ Component: (await admin()).CategoriesPage }) },
       { path: 'cupones', lazy: async () => ({ Component: (await admin()).CouponsPage }) },
+      { path: 'envios', lazy: async () => ({ Component: (await admin()).ShippingPage }) },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

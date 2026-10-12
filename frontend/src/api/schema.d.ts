@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/api/admin/shipping/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace every shipping cost
+         * @description The listed provinces get their cost; every other one is left without shipping. Requires the CSRF token.
+         */
+        put: operations["replaceZones"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/shipping/free-shipping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set or remove the free-shipping threshold
+         * @description Shipping is free when the subtotal after the discount reaches it; null removes free shipping. Requires the CSRF token.
+         */
+        put: operations["setFreeShipping"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/coupons/{id}": {
         parameters: {
             query?: never;
@@ -688,6 +728,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/shipping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The shipping cost of every province and the free-shipping threshold */
+        get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/me": {
         parameters: {
             query?: never;
@@ -729,6 +786,43 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ZoneRequest: {
+            /** @enum {string} */
+            province: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            /** Format: int64 */
+            costCents: number;
+        };
+        ZonesRequest: {
+            zones: components["schemas"]["ZoneRequest"][];
+        };
+        ShippingConfigurationResponse: {
+            zones?: components["schemas"]["ZoneResponse"][];
+            /** Format: int64 */
+            freeShippingThresholdCents?: number | null;
+        };
+        ZoneResponse: {
+            /** @enum {string} */
+            province?: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            /** Format: int64 */
+            costCents?: number | null;
+        };
+        ProblemDetail: {
+            /** Format: uri */
+            type?: string;
+            title?: string | null;
+            /** Format: int32 */
+            status?: number;
+            detail?: string | null;
+            /** Format: uri */
+            instance?: string | null;
+            properties?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        FreeShippingRequest: {
+            /** Format: int64 */
+            thresholdCents?: number | null;
+        };
         AdminCouponRequest: {
             code: string;
             /** @enum {string} */
@@ -763,19 +857,6 @@ export interface components {
             active?: boolean;
             /** Format: int64 */
             uses?: number;
-        };
-        ProblemDetail: {
-            /** Format: uri */
-            type?: string;
-            title?: string | null;
-            /** Format: int32 */
-            status?: number;
-            detail?: string | null;
-            /** Format: uri */
-            instance?: string | null;
-            properties?: {
-                [key: string]: unknown;
-            } | null;
         };
         ProductRequest: {
             /** Format: uuid */
@@ -1078,6 +1159,90 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    replaceZones: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZonesRequest"];
+            };
+        };
+        responses: {
+            /** @description Replaced */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShippingConfigurationResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Refused provinces; see provinces */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    setFreeShipping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FreeShippingRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShippingConfigurationResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Threshold out of range */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     update: {
         parameters: {
             query?: never;
@@ -3142,6 +3307,35 @@ export interface operations {
             };
             /** @description No such variant */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The configuration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShippingConfigurationResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
