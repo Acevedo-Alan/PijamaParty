@@ -6,7 +6,7 @@
 
 In this stage the cart **does not reserve stock**; the reservation happens when the payment starts (E3). The cart lives on the server: guests are identified by the `cart_token` cookie, so the server validates prices and stock and the cart survives a closed browser.
 
-**Schema (T-E2-01, V12):**
+**Schema (T-E2-01, V12 and V13):**
 - `cart` (`cart` module): `id`, `token_hash` (SHA-256 of the guest's `cart_token`, lowercase hex, as `AccessToken.hash()`; the token itself is never stored, RNF-29.6), `user_id` (a customer's cart, E4; refers to `accounts`, no foreign key), `coupon_id` (the applied coupon; refers to `promotions`, no foreign key, ARCHITECTURE.md section 3, rule 6), `created_at` and `updated_at` (last activity, read by the daily cleanup of T-E2-04). Exactly one owner: a token hash or a user. Unique token hash and unique user, so a browser or a customer has one cart. Indexed by `updated_at`.
 - `cart_item` (`cart` module): `id`, `cart_id` (foreign key, deleted with its cart), `variant_id` (refers to `catalog`, no foreign key), `quantity` (1 to 1,000,000, the stock maximum of UC-07), `last_seen_price_cents` (the variant price the customer last saw, so UC-09 can warn about a price change) and `created_at` (items show in the order they were added). One line per variant: unique on `(cart_id, variant_id)`.
 - Row Level Security on `cart` and `cart_item`, enabled and forced (RNF-27): a customer reaches only its own cart (by `user_id`), a guest only the cart of its token hash, the system reads and deletes carts for the cleanup, and the administrator and a missing context reach nothing. Items follow their cart. The full policy test matrix is T-E2-13.
