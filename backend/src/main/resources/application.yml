@@ -150,6 +150,13 @@ store:
         keys: [search, ip]
         capacity: 60
         period: 1m
+      # T-E3-28: the authenticated back office per user (from the session). Without a signed-in session the policy
+      # does not apply: the route answers 401, and the sign-in has its own policies above.
+      - name: back-office
+        paths: [/api/admin/**]
+        keys: [user]
+        capacity: 300
+        period: 1m
 
 # OpenAPI and Swagger UI only in dev (the contract is not published in prod)
 springdoc:

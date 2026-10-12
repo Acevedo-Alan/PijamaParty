@@ -27,7 +27,7 @@
 - [ ] **T-E3-25** Botón de arrepentimiento: enlace en inicio y pie, formulario, código de trámite, correo y aviso al administrador (CU-29).
 - [ ] **T-E3-26** Backoffice: lista de solicitudes de arrepentimiento, marca de fuera de término y resolución (CU-29).
 - [ ] **T-E3-27** Tests de los criterios de aceptación de CU-29, Row Level Security de `solicitud_arrepentimiento` y política de rate limiting (RNF-22, RNF-27).
-- [ ] **T-E3-28** Activar la política de rate limiting del backoffice autenticado: 300 solicitudes por minuto por usuario en `/api/admin/**`, para cupones, envíos y lo que se sume (RNF-22).
+- [x] **T-E3-28** Activar la política de rate limiting del backoffice autenticado: 300 solicitudes por minuto por usuario en `/api/admin/**`, para cupones, envíos y lo que se sume (RNF-22).
 - [ ] **T-E3b-01** Averiguar la integración de MODO y escribir su plan antes de implementarla.
 - [ ] **T-E3b-02** Integrar MODO como segundo medio de pago (CU-14).
 

@@ -1,6 +1,7 @@
 package com.pijamaparty.store.platform.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pijamaparty.store.platform.web.ratelimit.RateLimitKeyResolver;
 import java.util.List;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -72,6 +73,12 @@ public class SecurityConfiguration {
     @Order(0)
     ActorResolver sessionActorResolver() {
         return new SessionActorResolver();
+    }
+
+    /** The {@code user} key of the back-office rate-limit policy (T-E3-28, RNF-22). */
+    @Bean
+    RateLimitKeyResolver sessionUserKeyResolver(SecurityContextRepository contexts) {
+        return new SessionUserKeyResolver(contexts);
     }
 
     /** Right after Spring Security, so resolvers can read the authenticated principal. */
