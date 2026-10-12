@@ -29,7 +29,7 @@ class CouponDiscountsServiceTest {
 
     @Test
     void givenAValid10PercentCoupon_whenAskedByItsTypedCode_thenItAppliesWithA2000Discount() {
-        coupons.add(coupon(VERANO, "VERANO10", Optional.empty(), Optional.empty(), Optional.empty()));
+        coupons.save(coupon(VERANO, "VERANO10", Optional.empty(), Optional.empty(), Optional.empty()));
 
         assertThat(service(LAST_MINUTE_OF_OCTOBER).byCode("  verano10 ", SUBTOTAL)).contains(new CouponDiscount(
             VERANO.value(), "VERANO10", CouponStatus.APPLICABLE, Money.of(200_000), Money.zero()));
@@ -39,7 +39,7 @@ class CouponDiscountsServiceTest {
 
     @Test
     void givenAnUnknownOrMalformedCodeOrId_whenAskedForIt_thenThereIsNoCoupon() {
-        coupons.add(coupon(VERANO, "VERANO10", Optional.empty(), Optional.empty(), Optional.empty()));
+        coupons.save(coupon(VERANO, "VERANO10", Optional.empty(), Optional.empty(), Optional.empty()));
 
         assertThat(service(LAST_MINUTE_OF_OCTOBER).byCode("INVIERNO10", SUBTOTAL)).isEmpty();
         assertThat(service(LAST_MINUTE_OF_OCTOBER).byCode("verano 10", SUBTOTAL)).isEmpty();
@@ -49,7 +49,7 @@ class CouponDiscountsServiceTest {
 
     @Test
     void givenACouponValidUntilOctober31_whenAskedAroundMidnightInBuenosAires_thenItExpiresOnTheStoreDate() {
-        coupons.add(coupon(VERANO, "VERANO10", Optional.of(LocalDate.of(2026, 10, 31)), Optional.empty(),
+        coupons.save(coupon(VERANO, "VERANO10", Optional.of(LocalDate.of(2026, 10, 31)), Optional.empty(),
             Optional.empty()));
 
         assertThat(service(LAST_MINUTE_OF_OCTOBER).byId(VERANO.value(), SUBTOTAL))
@@ -61,7 +61,7 @@ class CouponDiscountsServiceTest {
 
     @Test
     void givenACouponWithAllItsUsesTaken_whenAskedForIt_thenItIsUsedUp() {
-        coupons.add(coupon(VERANO, "VERANO10", Optional.empty(), Optional.of(2), Optional.empty()));
+        coupons.save(coupon(VERANO, "VERANO10", Optional.empty(), Optional.of(2), Optional.empty()));
         coupons.redeem(VERANO, 1);
 
         assertThat(service(LAST_MINUTE_OF_OCTOBER).byId(VERANO.value(), SUBTOTAL))
@@ -73,7 +73,7 @@ class CouponDiscountsServiceTest {
 
     @Test
     void givenACartBelowTheMinimum_whenAskedForTheCoupon_thenItTellsHowMuchIsMissing() {
-        coupons.add(coupon(VERANO, "VERANO10", Optional.empty(), Optional.empty(), Optional.of(Money.of(3_000_000))));
+        coupons.save(coupon(VERANO, "VERANO10", Optional.empty(), Optional.empty(), Optional.of(Money.of(3_000_000))));
 
         assertThat(service(LAST_MINUTE_OF_OCTOBER).byCode("VERANO10", SUBTOTAL)).contains(new CouponDiscount(
             VERANO.value(), "VERANO10", CouponStatus.BELOW_MINIMUM, Money.zero(), Money.of(1_000_000)));
@@ -83,9 +83,9 @@ class CouponDiscountsServiceTest {
     void givenAnInactiveOrNotStartedCoupon_whenAskedForIt_thenItSaysWhy() {
         CouponId inactive = CouponId.of(UUID.randomUUID());
         CouponId november = CouponId.of(UUID.randomUUID());
-        coupons.add(Coupon.of(inactive, new CouponCode("OFF"), CouponType.PERCENTAGE, 10, Optional.empty(),
+        coupons.save(Coupon.of(inactive, new CouponCode("OFF"), CouponType.PERCENTAGE, 10, Optional.empty(),
             Optional.empty(), Optional.empty(), Optional.empty(), false));
-        coupons.add(Coupon.of(november, new CouponCode("NOVIEMBRE"), CouponType.PERCENTAGE, 10,
+        coupons.save(Coupon.of(november, new CouponCode("NOVIEMBRE"), CouponType.PERCENTAGE, 10,
             Optional.of(LocalDate.of(2026, 11, 1)), Optional.empty(), Optional.empty(), Optional.empty(), true));
 
         assertThat(service(LAST_MINUTE_OF_OCTOBER).byCode("OFF", SUBTOTAL))

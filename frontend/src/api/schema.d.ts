@@ -4,6 +4,30 @@
  */
 
 export interface paths {
+    "/api/admin/coupons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit a coupon
+         * @description Replaces every field but the state and the uses, also on a used coupon. Requires the CSRF token.
+         */
+        put: operations["update"];
+        post?: never;
+        /**
+         * Delete a coupon without uses
+         * @description A used coupon can only be deactivated. Requires the CSRF token.
+         */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/products/{id}": {
         parameters: {
             query?: never;
@@ -17,7 +41,7 @@ export interface paths {
          * Edit the details of a product
          * @description A new name regenerates the slug. Requires the CSRF token.
          */
-        put: operations["update"];
+        put: operations["update_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -149,6 +173,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/coupons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every coupon, active or not, newest first, with its number of uses */
+        get: operations["list"];
+        put?: never;
+        /**
+         * Create a coupon
+         * @description The code ignores surrounding spaces and case. The coupon is active. Requires the CSRF token.
+         */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/coupons/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate a coupon
+         * @description Allowed with uses. Requires the CSRF token.
+         */
+        post: operations["deactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/coupons/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a coupon
+         * @description Requires the CSRF token.
+         */
+        post: operations["activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/products": {
         parameters: {
             query?: never;
@@ -160,13 +245,13 @@ export interface paths {
          * Every product, published or not, newest first
          * @description 50 per page, from page 0.
          */
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         /**
          * Create a product
          * @description It starts hidden and without variants; the slug comes from the name. Requires the CSRF token.
          */
-        post: operations["create"];
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -261,13 +346,13 @@ export interface paths {
             cookie?: never;
         };
         /** Every category, active or not, by position */
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         /**
          * Create a category
          * @description The slug is generated from the name and the category goes last. Requires the CSRF token.
          */
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -287,7 +372,7 @@ export interface paths {
          * Deactivate a category
          * @description Allowed with products. Requires the CSRF token.
          */
-        post: operations["deactivate"];
+        post: operations["deactivate_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -307,7 +392,7 @@ export interface paths {
          * Reactivate a category
          * @description Requires the CSRF token.
          */
-        post: operations["activate"];
+        post: operations["activate_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -456,7 +541,7 @@ export interface paths {
          * Delete a category without products
          * @description A category with products can only be deactivated. Requires the CSRF token.
          */
-        delete: operations["delete"];
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         /**
@@ -634,7 +719,7 @@ export interface paths {
          * Delete a photo of a product
          * @description The other photos close the gap and its files are removed. Requires the CSRF token.
          */
-        delete: operations["delete_1"];
+        delete: operations["delete_2"];
         options?: never;
         head?: never;
         patch?: never;
@@ -644,6 +729,54 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AdminCouponRequest: {
+            code: string;
+            /** @enum {string} */
+            type: "PERCENTAGE" | "FIXED_AMOUNT";
+            /** Format: int64 */
+            discountValue: number;
+            /** Format: date */
+            validFrom?: string | null;
+            /** Format: date */
+            validUntil?: string | null;
+            /** Format: int32 */
+            maxUses?: number | null;
+            /** Format: int64 */
+            minimumPurchaseCents?: number | null;
+        };
+        AdminCouponResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            /** @enum {string} */
+            type?: "PERCENTAGE" | "FIXED_AMOUNT";
+            /** Format: int64 */
+            discountValue?: number;
+            /** Format: date */
+            validFrom?: string | null;
+            /** Format: date */
+            validUntil?: string | null;
+            /** Format: int32 */
+            maxUses?: number | null;
+            /** Format: int64 */
+            minimumPurchaseCents?: number | null;
+            active?: boolean;
+            /** Format: int64 */
+            uses?: number;
+        };
+        ProblemDetail: {
+            /** Format: uri */
+            type?: string;
+            title?: string | null;
+            /** Format: int32 */
+            status?: number;
+            detail?: string | null;
+            /** Format: uri */
+            instance?: string | null;
+            properties?: {
+                [key: string]: unknown;
+            } | null;
+        };
         ProductRequest: {
             /** Format: uuid */
             categoryId: string;
@@ -695,19 +828,6 @@ export interface components {
             /** Format: int64 */
             priceCents?: number | null;
             active?: boolean;
-        };
-        ProblemDetail: {
-            /** Format: uri */
-            type?: string;
-            title?: string | null;
-            /** Format: int32 */
-            status?: number;
-            detail?: string | null;
-            /** Format: uri */
-            instance?: string | null;
-            properties?: {
-                [key: string]: unknown;
-            } | null;
         };
         ImageOrderRequest: {
             imageIds: string[];
@@ -940,6 +1060,117 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCouponRequest"];
+            };
+        };
+        responses: {
+            /** @description Edited */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCouponResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such coupon */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Another coupon already uses this code; see code */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Invalid fields; see fields */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such coupon */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The coupon has uses: deactivate it instead */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     get: {
         parameters: {
             query?: never;
@@ -980,7 +1211,7 @@ export interface operations {
             };
         };
     };
-    update: {
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1406,6 +1637,166 @@ export interface operations {
     };
     list: {
         parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The coupons */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCouponResponse"][];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCouponRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCouponResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Another coupon already uses this code; see code */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Invalid fields; see fields */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    deactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Inactive */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCouponResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such coupon */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    activate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCouponResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such coupon */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
             query?: {
                 page?: number;
             };
@@ -1435,7 +1826,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1734,7 +2125,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1763,7 +2154,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1814,7 +2205,7 @@ export interface operations {
             };
         };
     };
-    deactivate: {
+    deactivate_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1854,7 +2245,7 @@ export interface operations {
             };
         };
     };
-    activate: {
+    activate_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2298,7 +2689,7 @@ export interface operations {
             };
         };
     };
-    delete: {
+    delete_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2762,7 +3153,7 @@ export interface operations {
             };
         };
     };
-    delete_1: {
+    delete_2: {
         parameters: {
             query?: never;
             header?: never;

@@ -26,6 +26,7 @@ import com.pijamaparty.store.catalog.domain.UploadKey;
 import com.pijamaparty.store.catalog.domain.Variant;
 import com.pijamaparty.store.catalog.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Money;
+import com.pijamaparty.store.platform.persistence.Savepoints;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;

@@ -1,6 +1,5 @@
 package com.pijamaparty.store.promotions.application;
 
-import com.pijamaparty.store.promotions.domain.Coupon;
 import com.pijamaparty.store.promotions.domain.CouponId;
 
 class InMemoryCouponStoreContractTest extends CouponStoreContractTest<InMemoryCouponStore> {
@@ -8,11 +7,6 @@ class InMemoryCouponStoreContractTest extends CouponStoreContractTest<InMemoryCo
     @Override
     protected InMemoryCouponStore createSubject() {
         return new InMemoryCouponStore();
-    }
-
-    @Override
-    protected void givenCoupon(Coupon coupon) {
-        subject.add(coupon);
     }
 
     @Override

@@ -2,15 +2,23 @@ package com.pijamaparty.store.promotions.domain;
 
 import com.pijamaparty.store.platform.domain.Money;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * A code coupon (UC-10, UC-11). It holds the rules of its data: a whole percent from 1 to 100 or an amount above 0,
- * a validity whose start is not after its end, and maximum uses and minimum purchase above 0 when present. It decides
- * whether it applies to a subtotal and how much it discounts. Its uses are counted from the confirmed orders (E3).
+ * A code coupon (UC-10, UC-11). It holds the rules of its data: a whole percent from 1 to 100 or an amount of at most
+ * {@link #MAX_AMOUNT}, a validity whose start is not after its end, at most {@link #MAX_USES} uses and a minimum
+ * purchase of at most {@link #MAX_AMOUNT}, both above 0 when present. It decides whether it applies to a subtotal and
+ * how much it discounts. Its uses are counted from the confirmed orders (E3).
  */
 public final class Coupon {
+
+    /** The largest fixed amount and minimum purchase: ARS 10,000,000, the price maximum of UC-06. */
+    public static final Money MAX_AMOUNT = Money.of(1_000_000_000L);
+    public static final int MAX_PERCENT = 100;
+    public static final int MAX_USES = 1_000_000;
 
     private final CouponId id;
     private final CouponCode code;
@@ -32,14 +40,9 @@ public final class Coupon {
         this.validUntil = Objects.requireNonNull(validUntil, "validUntil");
         this.maxUses = Objects.requireNonNull(maxUses, "maxUses");
         this.minimumPurchase = Objects.requireNonNull(minimumPurchase, "minimumPurchase");
-        if (discountValue <= 0 || type == CouponType.PERCENTAGE && discountValue > 100) {
-            throw new IllegalArgumentException("discount value out of range: " + discountValue);
-        }
-        if (validFrom.isPresent() && validUntil.isPresent() && validFrom.get().isAfter(validUntil.get())) {
-            throw new IllegalArgumentException("the validity starts after it ends");
-        }
-        if (maxUses.filter(uses -> uses <= 0).isPresent() || minimumPurchase.filter(Money::isZero).isPresent()) {
-            throw new IllegalArgumentException("maximum uses and minimum purchase are above 0 when present");
+        Set<Field> invalid = invalidFields(type, discountValue, validFrom, validUntil, maxUses, minimumPurchase);
+        if (!invalid.isEmpty()) {
+            throw new IllegalArgumentException("invalid coupon fields: " + invalid);
         }
         this.discountValue = discountValue;
         this.active = active;
@@ -57,6 +60,42 @@ public final class Coupon {
                             Optional<LocalDate> validFrom, Optional<LocalDate> validUntil, Optional<Integer> maxUses,
                             Optional<Money> minimumPurchase, boolean active) {
         return new Coupon(id, code, type, discountValue, validFrom, validUntil, maxUses, minimumPurchase, active);
+    }
+
+    /** UC-11: every rule these terms break, as in {@link #of}; empty when they make a valid coupon. */
+    public static Set<Field> invalidFields(CouponType type, long discountValue, Optional<LocalDate> validFrom,
+                                           Optional<LocalDate> validUntil, Optional<Integer> maxUses,
+                                           Optional<Money> minimumPurchase) {
+        Objects.requireNonNull(type, "type");
+        Set<Field> invalid = EnumSet.noneOf(Field.class);
+        long maxValue = type == CouponType.PERCENTAGE ? MAX_PERCENT : MAX_AMOUNT.cents();
+        if (discountValue <= 0 || discountValue > maxValue) {
+            invalid.add(Field.DISCOUNT_VALUE);
+        }
+        if (validFrom.isPresent() && validUntil.isPresent() && validFrom.get().isAfter(validUntil.get())) {
+            invalid.add(Field.VALIDITY);
+        }
+        if (maxUses.filter(uses -> uses <= 0 || uses > MAX_USES).isPresent()) {
+            invalid.add(Field.MAX_USES);
+        }
+        if (minimumPurchase.filter(minimum -> minimum.isZero() || minimum.isGreaterThan(MAX_AMOUNT)).isPresent()) {
+            invalid.add(Field.MINIMUM_PURCHASE);
+        }
+        return Set.copyOf(invalid);
+    }
+
+    /** UC-11: the same coupon, active, so carts can apply it again. */
+    public Coupon activated() {
+        return withActive(true);
+    }
+
+    /** UC-11: the same coupon, inactive; a cart that holds it gets no discount (UC-10). */
+    public Coupon deactivated() {
+        return withActive(false);
+    }
+
+    private Coupon withActive(boolean newActive) {
+        return new Coupon(id, code, type, discountValue, validFrom, validUntil, maxUses, minimumPurchase, newActive);
     }
 
     /**
@@ -126,6 +165,18 @@ public final class Coupon {
 
     public boolean active() {
         return active;
+    }
+
+    /** A rule of UC-11 that the terms of a coupon can break. */
+    public enum Field {
+        /** A percent outside 1 to 100, or an amount outside 1 cent to {@link Coupon#MAX_AMOUNT}. */
+        DISCOUNT_VALUE,
+        /** The validity starts after it ends. */
+        VALIDITY,
+        /** Outside 1 to {@link Coupon#MAX_USES}. */
+        MAX_USES,
+        /** Outside 1 cent to {@link Coupon#MAX_AMOUNT}. */
+        MINIMUM_PURCHASE
     }
 
     public sealed interface Evaluation {

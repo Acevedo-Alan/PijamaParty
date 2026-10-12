@@ -124,6 +124,41 @@ class CouponTest {
     }
 
     @Test
+    void givenTermsAgainstTheRulesOfUC11_whenChecked_thenEachBrokenRuleIsNamed() {
+        assertThat(Coupon.invalidFields(CouponType.PERCENTAGE, 101, Optional.of(TODAY),
+            Optional.of(TODAY.minusDays(1)), Optional.of(Coupon.MAX_USES + 1),
+            Optional.of(Coupon.MAX_AMOUNT.plus(Money.of(1)))))
+            .containsExactlyInAnyOrder(Coupon.Field.DISCOUNT_VALUE, Coupon.Field.VALIDITY, Coupon.Field.MAX_USES,
+                Coupon.Field.MINIMUM_PURCHASE);
+        assertThat(Coupon.invalidFields(CouponType.FIXED_AMOUNT, Coupon.MAX_AMOUNT.cents() + 1, Optional.empty(),
+            Optional.empty(), Optional.of(0), Optional.of(Money.zero())))
+            .containsExactlyInAnyOrder(Coupon.Field.DISCOUNT_VALUE, Coupon.Field.MAX_USES,
+                Coupon.Field.MINIMUM_PURCHASE);
+    }
+
+    @Test
+    void givenTheLimitsOfUC11_whenChecked_thenTheyAreAllowed() {
+        assertThat(Coupon.invalidFields(CouponType.PERCENTAGE, 100, Optional.of(TODAY), Optional.of(TODAY),
+            Optional.of(Coupon.MAX_USES), Optional.of(Coupon.MAX_AMOUNT))).isEmpty();
+        assertThat(Coupon.invalidFields(CouponType.FIXED_AMOUNT, Coupon.MAX_AMOUNT.cents(), Optional.empty(),
+            Optional.empty(), Optional.of(1), Optional.of(Money.of(1)))).isEmpty();
+        // 1,000 percent is far above a percentage but a valid fixed amount of ARS 10.
+        assertThat(Coupon.invalidFields(CouponType.FIXED_AMOUNT, 1_000, Optional.empty(), Optional.empty(),
+            Optional.empty(), Optional.empty())).isEmpty();
+    }
+
+    @Test
+    void givenACoupon_whenDeactivatedAndActivatedAgain_thenOnlyItsStateChanges() {
+        Coupon coupon = coupon(CouponType.FIXED_AMOUNT, 500_000, Optional.of(TODAY), Optional.empty(),
+            Optional.of(3), Optional.of(Money.of(2_000_000)), true);
+
+        Coupon deactivated = coupon.deactivated();
+        assertThat(deactivated.active()).isFalse();
+        assertThat(deactivated.evaluate(SUBTOTAL, TODAY, 0)).isEqualTo(new Evaluation.Inactive());
+        assertThat(deactivated.activated()).usingRecursiveComparison().isEqualTo(coupon);
+    }
+
+    @Test
     void givenATypedCode_whenParsed_thenSpacesAndCaseAreIgnoredAndOnlyTheUC11FormatIsACode() {
         assertThat(CouponCode.parse("  verano-10 ")).contains(new CouponCode("VERANO-10"));
         assertThat(CouponCode.parse("AB")).isEmpty();

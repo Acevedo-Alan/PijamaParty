@@ -5,7 +5,7 @@
 - [x] **T-E2-03** Cálculo de totales en el servidor y aviso de cambios de precio o stock (CU-09).
 - [x] **T-E2-04** Cookie `cart_token` para invitados y limpieza diaria de carritos viejos.
 - [x] **T-E2-05** Servicio de cupones: validación y cálculo del descuento (CU-10).
-- [ ] **T-E2-06** Backoffice: ABM de cupones y vista de usos (CU-11).
+- [x] **T-E2-06** Backoffice: ABM de cupones y vista de usos (CU-11).
 - [ ] **T-E2-07** Storefront: panel lateral del carrito con overlay, vibración y contador animado (CU-08).
 - [ ] **T-E2-08** Storefront: edición de cantidades y aviso de ítems no disponibles (CU-09).
 - [ ] **T-E2-09** Storefront: campo de cupón con mensajes de error claros (CU-10).

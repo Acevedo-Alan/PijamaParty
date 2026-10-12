@@ -4,6 +4,6 @@ package com.pijamaparty.store.promotions.domain;
 public enum CouponType {
     /** A whole percent of the subtotal, from 1 to 100. */
     PERCENTAGE,
-    /** An amount in cents above 0, never more than the subtotal. */
+    /** An amount in cents from 1 to {@link Coupon#MAX_AMOUNT}, never more than the subtotal. */
     FIXED_AMOUNT
 }

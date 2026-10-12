@@ -7,6 +7,7 @@ import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.CategoryId;
 import com.pijamaparty.store.catalog.domain.CategoryName;
 import com.pijamaparty.store.catalog.domain.Slug;
+import com.pijamaparty.store.platform.persistence.Savepoints;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;

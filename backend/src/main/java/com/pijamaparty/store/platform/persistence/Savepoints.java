@@ -1,4 +1,4 @@
-package com.pijamaparty.store.catalog.adapter.out.persistence;
+package com.pijamaparty.store.platform.persistence;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -16,13 +16,13 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * Runs writes inside a savepoint of the caller's transaction, so a violated constraint becomes a port outcome and the
  * transaction stays usable (ARCHITECTURE.md section 4, JDBC adapters).
  */
-final class Savepoints {
+public final class Savepoints {
 
     private static final String FOREIGN_KEY_VIOLATION = "23503";
 
     private final DataSource dataSource;
 
-    Savepoints(DataSource dataSource) {
+    public Savepoints(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
@@ -31,9 +31,9 @@ final class Savepoints {
      * {@code onViolation} decides: its value is returned, or, when empty, the violation propagates. Any other failure
      * propagates.
      */
-    <T> T run(Supplier<T> work, Function<DataIntegrityViolationException, Optional<T>> onViolation) {
+    public <T> T run(Supplier<T> work, Function<DataIntegrityViolationException, Optional<T>> onViolation) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
-            throw new IllegalStateException("the catalog is written within the caller's transaction");
+            throw new IllegalStateException("a savepoint is taken within the caller's transaction");
         }
         Connection connection = DataSourceUtils.getConnection(dataSource);
         try {
@@ -53,7 +53,7 @@ final class Savepoints {
         }
     }
 
-    static boolean isForeignKeyViolation(DataIntegrityViolationException violation) {
+    public static boolean isForeignKeyViolation(DataIntegrityViolationException violation) {
         return violation.getMostSpecificCause() instanceof SQLException sql
             && FOREIGN_KEY_VIOLATION.equals(sql.getSQLState());
     }
