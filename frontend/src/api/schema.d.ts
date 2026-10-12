@@ -65,6 +65,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cart/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a variant to the cart
+         * @description Adds to the variant's line if it is already in the cart, and creates the cart with the first product. The line can never exceed the available stock. Requires the CSRF token.
+         */
+        post: operations["add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cart/acknowledge-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge the price changes
+         * @description The customer saw the current prices: every item the shop sells records its current price, so previousUnitPriceCents is no longer set. Requires the CSRF token.
+         */
+        post: operations["acknowledgePrices"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/stock-adjustments": {
         parameters: {
             query?: never;
@@ -334,6 +374,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cart/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an item from the cart
+         * @description Requires the CSRF token.
+         */
+        delete: operations["remove"];
+        options?: never;
+        head?: never;
+        /**
+         * Change the quantity of an item
+         * @description 0 removes it. Any other quantity is checked against the available stock; a variant the shop no longer sells has none. Requires the CSRF token.
+         */
+        patch: operations["changeQuantity"];
+        trace?: never;
+    };
     "/api/admin/catalog/variants/{id}": {
         parameters: {
             query?: never;
@@ -467,6 +531,26 @@ export interface paths {
         };
         /** The active categories, by position */
         get: operations["listCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The current cart
+         * @description Its items in the order they were added, priced with the current prices and stock, and the totals; empty when there is no cart yet. Only AVAILABLE items count in the subtotal and can be bought. Prices are in cents.
+         */
+        get: operations["cart"];
         put?: never;
         post?: never;
         delete?: never;
@@ -616,6 +700,37 @@ export interface components {
             position?: number;
             active?: boolean;
         };
+        AddItemRequest: {
+            /** Format: uuid */
+            variantId: string;
+            /** Format: int32 */
+            quantity: number;
+        };
+        CartResponse: {
+            items?: components["schemas"]["ItemResponse"][];
+            /** Format: int64 */
+            subtotalCents?: number;
+            /** Format: int64 */
+            discountCents?: number;
+            /** Format: int64 */
+            totalCents?: number;
+        };
+        ItemResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            variantId?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int64 */
+            unitPriceCents?: number;
+            /** Format: int64 */
+            previousUnitPriceCents?: number | null;
+            /** @enum {string} */
+            status?: "AVAILABLE" | "INSUFFICIENT_STOCK" | "UNAVAILABLE";
+            /** Format: int32 */
+            available?: number;
+        };
         AdjustmentRequest: {
             /** Format: uuid */
             variantId: string;
@@ -656,6 +771,10 @@ export interface components {
         EnrolledResponse: {
             administrator?: components["schemas"]["AdministratorResponse"];
             recoveryCodes?: string[];
+        };
+        ChangeQuantityRequest: {
+            /** Format: int32 */
+            quantity: number;
         };
         VariantRequest: {
             /** Format: int64 */
@@ -974,6 +1093,95 @@ export interface operations {
             };
             /** @description The order does not name every category exactly once */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddItemRequest"];
+            };
+        };
+        responses: {
+            /** @description The full cart */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartResponse"];
+                };
+            };
+            /** @description Invalid body: quantity from 1 to 1,000,000 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description This actor cannot have a cart */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unknown variant, or one the shop does not sell */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not enough stock (problem INSUFFICIENT_STOCK): the units left are in available */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    acknowledgePrices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The full cart, empty when there is none */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartResponse"];
+                };
+            };
+            /** @description This actor cannot have a cart */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1790,6 +1998,108 @@ export interface operations {
             };
         };
     };
+    remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The full cart */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartResponse"];
+                };
+            };
+            /** @description This actor cannot have a cart */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such item in the cart */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    changeQuantity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeQuantityRequest"];
+            };
+        };
+        responses: {
+            /** @description The full cart */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartResponse"];
+                };
+            };
+            /** @description Invalid body: quantity from 0 to 1,000,000 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description This actor cannot have a cart */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such item in the cart */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not enough stock (problem INSUFFICIENT_STOCK): the units left are in available */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     updateVariant: {
         parameters: {
             query?: never;
@@ -2212,6 +2522,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    cart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The cart */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartResponse"];
                 };
             };
         };

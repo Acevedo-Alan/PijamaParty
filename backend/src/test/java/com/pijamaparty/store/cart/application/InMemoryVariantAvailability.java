@@ -1,9 +1,11 @@
 package com.pijamaparty.store.cart.application;
 
+import com.pijamaparty.store.cart.domain.SellableVariant;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Money;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Fake of {@link VariantAvailability}: a variant is sold once {@link #sell} sets its price and stock. */
@@ -21,7 +23,14 @@ public class InMemoryVariantAvailability implements VariantAvailability {
     }
 
     @Override
-    public Optional<SellableVariant> of(VariantId variantId) {
-        return Optional.ofNullable(sold.get(variantId));
+    public Map<VariantId, SellableVariant> sellable(Collection<VariantId> variantIds) {
+        Map<VariantId, SellableVariant> sellable = new HashMap<>();
+        variantIds.forEach(id -> {
+            SellableVariant variant = sold.get(id);
+            if (variant != null) {
+                sellable.put(id, variant);
+            }
+        });
+        return sellable;
     }
 }

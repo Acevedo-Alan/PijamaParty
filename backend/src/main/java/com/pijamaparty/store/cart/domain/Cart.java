@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -118,6 +119,26 @@ public final class Cart {
             updatedAt = at;
         });
         return line.isPresent();
+    }
+
+    /**
+     * UC-09: the customer saw the current prices, so every line the shop still sells remembers its current price and
+     * no price change is announced anymore. Returns whether any line changed.
+     */
+    public boolean acknowledgePrices(Map<VariantId, SellableVariant> sellable, Instant at) {
+        boolean changed = false;
+        for (int i = 0; i < items.size(); i++) {
+            CartItem line = items.get(i);
+            SellableVariant variant = sellable.get(line.variantId());
+            if (variant != null && !variant.price().equals(line.lastSeenPrice())) {
+                items.set(i, line.withQuantityAndPrice(line.quantity(), variant.price()));
+                changed = true;
+            }
+        }
+        if (changed) {
+            updatedAt = at;
+        }
+        return changed;
     }
 
     public Optional<CartItem> item(CartItemId itemId) {

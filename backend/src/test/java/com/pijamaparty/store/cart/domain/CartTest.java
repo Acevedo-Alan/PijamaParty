@@ -9,6 +9,7 @@ import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -145,6 +146,30 @@ class CartTest {
         assertThat(cart.remove(id, LATER)).isTrue();
         assertThat(cart.items()).extracting(CartItem::variantId).containsExactly(CAMISON);
         assertThat(cart.updatedAt()).isEqualTo(LATER);
+    }
+
+    @Test
+    void givenPriceChanges_whenAcknowledgingThem_thenEverySoldLineRemembersItsCurrentPrice() {
+        CartItemId pijama = CartItemId.of(UUID.randomUUID());
+        CartItemId camison = CartItemId.of(UUID.randomUUID());
+        cart.add(pijama, PIJAMA, 2, 5, PRICE, OPENED);
+        cart.add(camison, CAMISON, 1, 5, PRICE, OPENED);
+
+        boolean changed = cart.acknowledgePrices(Map.of(PIJAMA, new SellableVariant(Money.of(1_600_000), 0)), LATER);
+
+        assertThat(changed).isTrue();
+        assertThat(cart.items()).containsExactly(
+            new CartItem(pijama, PIJAMA, 2, Money.of(1_600_000), OPENED),
+            new CartItem(camison, CAMISON, 1, PRICE, OPENED));
+        assertThat(cart.updatedAt()).isEqualTo(LATER);
+    }
+
+    @Test
+    void givenNoPriceChange_whenAcknowledgingPrices_thenNothingChanges() {
+        cart.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 2, 5, PRICE, OPENED);
+
+        assertThat(cart.acknowledgePrices(Map.of(PIJAMA, new SellableVariant(PRICE, 5)), LATER)).isFalse();
+        assertThat(cart.updatedAt()).isEqualTo(OPENED);
     }
 
     @Test

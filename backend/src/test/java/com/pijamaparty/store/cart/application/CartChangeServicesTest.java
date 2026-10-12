@@ -7,6 +7,7 @@ import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartId;
 import com.pijamaparty.store.cart.domain.CartItemId;
 import com.pijamaparty.store.cart.domain.CartOwner;
+import com.pijamaparty.store.cart.domain.PricedCart.LineStatus;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
 import com.pijamaparty.store.platform.domain.Actor;
@@ -21,7 +22,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** UC-09: {@link GetCart}, {@link ChangeItemQuantity} and {@link RemoveItem}. */
+/** UC-09: {@link GetCart}, {@link ChangeItemQuantity}, {@link RemoveItem} and {@link AcknowledgePriceChanges}. */
 class CartChangeServicesTest {
 
     private static final Instant OPENED = Instant.parse("2026-10-10T12:00:00Z");
@@ -37,14 +38,17 @@ class CartChangeServicesTest {
     private static final CartItemId PIJAMA_ITEM = CartItemId.of(UUID.randomUUID());
     private static final CartItemId CAMISON_ITEM = CartItemId.of(UUID.randomUUID());
     private static final Money PRICE = Money.of(1_500_000);
+    private static final Money NEW_PRICE = Money.of(1_600_000);
 
     private final InMemoryCartStore carts = new InMemoryCartStore();
     private final InMemoryVariantAvailability availability = new InMemoryVariantAvailability();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-    private final GetCartService getCart = new GetCartService(carts);
+    private final GetCartService getCart = new GetCartService(carts, availability);
     private final ChangeItemQuantityService changeQuantity =
         new ChangeItemQuantityService(carts, carts, availability, clock);
-    private final RemoveItemService removeItem = new RemoveItemService(carts, carts, clock);
+    private final RemoveItemService removeItem = new RemoveItemService(carts, carts, availability, clock);
+    private final AcknowledgePriceChangesService acknowledgePrices =
+        new AcknowledgePriceChangesService(carts, carts, availability, clock);
 
     /** The guest's cart holds 2 pijamas and 1 camisón; 5 of each are available. */
     @BeforeEach
@@ -59,8 +63,8 @@ class CartChangeServicesTest {
 
     @Test
     void givenACart_whenGettingIt_thenItHasItsItemsInTheOrderTheyWereAdded() {
-        assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(new CartView(List.of(
-            new ItemView(PIJAMA_ITEM, PIJAMA, 2, PRICE), new ItemView(CAMISON_ITEM, CAMISON, 1, PRICE))));
+        assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(cart(List.of(
+            item(PIJAMA_ITEM, PIJAMA, 2), item(CAMISON_ITEM, CAMISON, 1))));
     }
 
     @Test
@@ -76,8 +80,8 @@ class CartChangeServicesTest {
     void givenAnItem_whenChangingItsQuantityWithinTheStock_thenTheFullCartShowsIt() {
         var result = changeQuantity.execute(new ChangeItemQuantity.Command(GUEST, PIJAMA_ITEM, 5));
 
-        CartView expected = new CartView(List.of(
-            new ItemView(PIJAMA_ITEM, PIJAMA, 5, PRICE), new ItemView(CAMISON_ITEM, CAMISON, 1, PRICE)));
+        CartView expected = cart(List.of(
+            item(PIJAMA_ITEM, PIJAMA, 5), item(CAMISON_ITEM, CAMISON, 1)));
         assertThat(result).isEqualTo(new ChangeItemQuantity.Result.Changed(expected));
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(expected);
         assertThat(carts.findByOwner(GUEST_OWNER).orElseThrow().updatedAt()).isEqualTo(NOW);
@@ -87,7 +91,7 @@ class CartChangeServicesTest {
     void givenAnItemInTheCart_whenItsQuantityIsChangedTo0_thenItIsRemoved() {
         var result = changeQuantity.execute(new ChangeItemQuantity.Command(GUEST, PIJAMA_ITEM, 0));
 
-        CartView expected = new CartView(List.of(new ItemView(CAMISON_ITEM, CAMISON, 1, PRICE)));
+        CartView expected = cart(List.of(item(CAMISON_ITEM, CAMISON, 1)));
         assertThat(result).isEqualTo(new ChangeItemQuantity.Result.Changed(expected));
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(expected);
     }
@@ -134,10 +138,86 @@ class CartChangeServicesTest {
     void givenAnItem_whenRemovingIt_thenTheFullCartNoLongerHasIt() {
         var result = removeItem.execute(new RemoveItem.Command(GUEST, CAMISON_ITEM));
 
-        CartView expected = new CartView(List.of(new ItemView(PIJAMA_ITEM, PIJAMA, 2, PRICE)));
+        CartView expected = cart(List.of(item(PIJAMA_ITEM, PIJAMA, 2)));
         assertThat(result).isEqualTo(new RemoveItem.Result.Removed(expected));
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(expected);
         assertThat(carts.findByOwner(GUEST_OWNER).orElseThrow().updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void givenAVariantThatSoldOutWhileInTheCart_whenTheCartOpens_thenItIsShownAsUnavailableAndLeftOutOfTheTotal() {
+        availability.sell(PIJAMA, PRICE, 0);
+
+        assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(new CartView(List.of(
+                new ItemView(PIJAMA_ITEM, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.UNAVAILABLE, 0),
+                item(CAMISON_ITEM, CAMISON, 1)),
+            PRICE, Money.zero(), PRICE));
+    }
+
+    @Test
+    void givenAVariantTheCatalogNoLongerSells_whenTheCartOpens_thenItIsShownAsUnavailable() {
+        availability.stopSelling(CAMISON);
+
+        assertThat(getCart.execute(new GetCart.Query(GUEST)).items().get(1))
+            .isEqualTo(new ItemView(CAMISON_ITEM, CAMISON, 1, PRICE, Optional.empty(), LineStatus.UNAVAILABLE, 0));
+    }
+
+    @Test
+    void givenFewerUnitsLeftThanInTheCart_whenTheCartOpens_thenTheItemKeepsItsQuantityWithTheUnitsLeft() {
+        availability.sell(PIJAMA, PRICE, 1);
+
+        CartView cart = getCart.execute(new GetCart.Query(GUEST));
+
+        assertThat(cart.items().get(0))
+            .isEqualTo(new ItemView(PIJAMA_ITEM, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.INSUFFICIENT_STOCK, 1));
+        assertThat(cart.total()).isEqualTo(PRICE);
+    }
+
+    @Test
+    void givenAPriceChangeInTheCatalog_whenTheCartOpens_thenTheTotalUsesTheNewPriceAndTheChangeIsAnnounced() {
+        availability.sell(PIJAMA, NEW_PRICE, 5);
+
+        CartView cart = getCart.execute(new GetCart.Query(GUEST));
+
+        assertThat(cart.items().get(0)).isEqualTo(
+            new ItemView(PIJAMA_ITEM, PIJAMA, 2, NEW_PRICE, Optional.of(PRICE), LineStatus.AVAILABLE, 5));
+        assertThat(cart.total()).isEqualTo(Money.of(4_700_000));
+        assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(cart);
+    }
+
+    @Test
+    void givenAPriceChange_whenTheCustomerAcknowledgesIt_thenItIsNoLongerAnnounced() {
+        availability.sell(PIJAMA, NEW_PRICE, 5);
+
+        var result = acknowledgePrices.execute(new AcknowledgePriceChanges.Command(GUEST));
+
+        CartView expected = new CartView(List.of(
+                new ItemView(PIJAMA_ITEM, PIJAMA, 2, NEW_PRICE, Optional.empty(), LineStatus.AVAILABLE, 5),
+                item(CAMISON_ITEM, CAMISON, 1)),
+            Money.of(4_700_000), Money.zero(), Money.of(4_700_000));
+        assertThat(result).isEqualTo(new AcknowledgePriceChanges.Result.Acknowledged(expected));
+        assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(expected);
+        assertThat(carts.findByOwner(GUEST_OWNER).orElseThrow().updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void givenAVariantTheCatalogNoLongerSells_whenAcknowledgingPrices_thenItKeepsItsLastSeenPrice() {
+        availability.stopSelling(PIJAMA);
+
+        var result = acknowledgePrices.execute(new AcknowledgePriceChanges.Command(GUEST));
+
+        assertThat(result).isInstanceOfSatisfying(AcknowledgePriceChanges.Result.Acknowledged.class,
+            acknowledged -> assertThat(acknowledged.cart().items().get(0).unitPrice()).isEqualTo(PRICE));
+        assertThat(carts.findByOwner(GUEST_OWNER).orElseThrow().updatedAt()).isEqualTo(OPENED);
+    }
+
+    @Test
+    void givenNoCartOrAnActorThatCannotOwnOne_whenAcknowledgingPrices_thenTheCartIsEmptyOrItIsForbidden() {
+        assertThat(acknowledgePrices.execute(new AcknowledgePriceChanges.Command(OTHER_GUEST)))
+            .isEqualTo(new AcknowledgePriceChanges.Result.Acknowledged(CartView.empty()));
+        assertThat(acknowledgePrices.execute(new AcknowledgePriceChanges.Command(ADMIN)))
+            .isEqualTo(new AcknowledgePriceChanges.Result.Forbidden());
+        assertThat(carts.size()).isEqualTo(1);
     }
 
     @Test
@@ -147,5 +227,16 @@ class CartChangeServicesTest {
         assertThat(removeItem.execute(new RemoveItem.Command(GUEST, CartItemId.of(UUID.randomUUID()))))
             .isEqualTo(new RemoveItem.Result.ItemNotFound());
         assertThat(getCart.execute(new GetCart.Query(GUEST)).items()).hasSize(2);
+    }
+
+    /** An item in stock (5 available) at {@link #PRICE}, with no price change. */
+    private static ItemView item(CartItemId id, VariantId variant, int quantity) {
+        return new ItemView(id, variant, quantity, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5);
+    }
+
+    /** A cart of {@code items} in stock at {@link #PRICE}. */
+    private static CartView cart(List<ItemView> items) {
+        Money total = PRICE.times(items.stream().mapToInt(ItemView::quantity).sum());
+        return new CartView(items, total, Money.zero(), total);
     }
 }

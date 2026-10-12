@@ -1,5 +1,6 @@
 package com.pijamaparty.store.cart.adapter.in.web;
 
+import com.pijamaparty.store.cart.application.AcknowledgePriceChanges;
 import com.pijamaparty.store.cart.application.AddItemToCart;
 import com.pijamaparty.store.cart.application.CartView;
 import com.pijamaparty.store.cart.application.ChangeItemQuantity;
@@ -7,8 +8,10 @@ import com.pijamaparty.store.cart.application.GetCart;
 import com.pijamaparty.store.cart.application.RemoveItem;
 import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartItemId;
+import com.pijamaparty.store.cart.domain.PricedCart.LineStatus;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Actor;
+import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -43,17 +46,22 @@ class CartController {
     private final AddItemToCart addItem;
     private final ChangeItemQuantity changeQuantity;
     private final RemoveItem removeItem;
+    private final AcknowledgePriceChanges acknowledgePrices;
 
-    CartController(GetCart getCart, AddItemToCart addItem, ChangeItemQuantity changeQuantity, RemoveItem removeItem) {
+    CartController(GetCart getCart, AddItemToCart addItem, ChangeItemQuantity changeQuantity, RemoveItem removeItem,
+                   AcknowledgePriceChanges acknowledgePrices) {
         this.getCart = getCart;
         this.addItem = addItem;
         this.changeQuantity = changeQuantity;
         this.removeItem = removeItem;
+        this.acknowledgePrices = acknowledgePrices;
     }
 
     @GetMapping
     @Operation(summary = "The current cart",
-        description = "Its items in the order they were added; empty when there is no cart yet. Prices are in cents.")
+        description = "Its items in the order they were added, priced with the current prices and stock, and the "
+            + "totals; empty when there is no cart yet. Only AVAILABLE items count in the subtotal and can be bought. "
+            + "Prices are in cents.")
     @ApiResponse(responseCode = "200", description = "The cart", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = CartResponse.class)))
     CartResponse cart() {
@@ -129,6 +137,22 @@ class CartController {
         };
     }
 
+    @PostMapping("/acknowledge-prices")
+    @Operation(summary = "Acknowledge the price changes",
+        description = "The customer saw the current prices: every item the shop sells records its current price, so "
+            + "previousUnitPriceCents is no longer set. Requires the CSRF token.")
+    @ApiResponse(responseCode = "200", description = "The full cart, empty when there is none", content = @Content(
+        mediaType = "application/json", schema = @Schema(implementation = CartResponse.class)))
+    @ApiResponse(responseCode = "403", description = "This actor cannot have a cart",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<?> acknowledgePrices() {
+        return switch (acknowledgePrices.execute(new AcknowledgePriceChanges.Command(actor()))) {
+            case AcknowledgePriceChanges.Result.Acknowledged acknowledged ->
+                ResponseEntity.ok(CartResponse.of(acknowledged.cart()));
+            case AcknowledgePriceChanges.Result.Forbidden forbidden -> forbidden();
+        };
+    }
+
     private static Actor actor() {
         return CurrentActor.get().orElseThrow();
     }
@@ -163,19 +187,26 @@ class CartController {
     /** {@code quantity} 0 removes the item. */
     record ChangeQuantityRequest(@NotNull @Min(0) @Max(Cart.MAX_QUANTITY) Integer quantity) {}
 
-    record CartResponse(List<ItemResponse> items) {
+    /** {@code subtotalCents} counts only the {@code AVAILABLE} items; {@code totalCents} is subtotal − discount. */
+    record CartResponse(List<ItemResponse> items, long subtotalCents, long discountCents, long totalCents) {
 
         static CartResponse of(CartView cart) {
-            return new CartResponse(cart.items().stream().map(ItemResponse::of).toList());
+            return new CartResponse(cart.items().stream().map(ItemResponse::of).toList(), cart.subtotal().cents(),
+                cart.discount().cents(), cart.total().cents());
         }
     }
 
-    /** {@code unitPriceCents} is the price the customer last saw. */
-    record ItemResponse(UUID id, UUID variantId, int quantity, long unitPriceCents) {
+    /**
+     * {@code unitPriceCents} is the current price, or the last seen one when the shop no longer sells the variant;
+     * {@code previousUnitPriceCents} is the last seen price when the current one differs, a change to announce.
+     */
+    record ItemResponse(UUID id, UUID variantId, int quantity, long unitPriceCents,
+                        @Schema(nullable = true) Long previousUnitPriceCents, LineStatus status, int available) {
 
         static ItemResponse of(CartView.ItemView item) {
             return new ItemResponse(item.id().value(), item.variantId().value(), item.quantity(),
-                item.unitPrice().cents());
+                item.unitPrice().cents(), item.previousUnitPrice().map(Money::cents).orElse(null), item.status(),
+                item.available());
         }
     }
 }

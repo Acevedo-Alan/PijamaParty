@@ -3,6 +3,7 @@ package com.pijamaparty.store.cart.application;
 import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartItem;
 import com.pijamaparty.store.cart.domain.CartOwner;
+import com.pijamaparty.store.cart.domain.SellableVariant;
 import java.time.Clock;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ class ChangeItemQuantityService implements ChangeItemQuantity {
         Cart cart = found.get();
         // Removing needs no stock; a variant the catalog no longer sells has none.
         int available = command.quantity() == 0 ? 0 : availability.of(item.get().variantId())
-            .map(VariantAvailability.SellableVariant::available)
+            .map(SellableVariant::available)
             .orElse(0);
         return switch (cart.changeQuantity(command.itemId(), command.quantity(), available, clock.instant())) {
             case Cart.ChangeOutcome.Changed changed -> saved(cart);
@@ -51,6 +52,6 @@ class ChangeItemQuantityService implements ChangeItemQuantity {
 
     private Result saved(Cart cart) {
         saveCart.save(cart);
-        return new Result.Changed(CartView.of(cart));
+        return new Result.Changed(CartPricing.view(cart, availability));
     }
 }

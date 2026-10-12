@@ -48,7 +48,7 @@ class AddItemToCartService implements AddItemToCart {
         return switch (outcome) {
             case Cart.AddOutcome.Added added -> {
                 saveCart.save(cart);
-                yield new Result.Added(CartView.of(cart));
+                yield new Result.Added(CartPricing.view(cart, availability));
             }
             case Cart.AddOutcome.ExceedsStock exceeds ->
                 new Result.InsufficientStock(command.variantId(), exceeds.available());

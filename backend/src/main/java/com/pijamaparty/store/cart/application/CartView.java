@@ -1,19 +1,21 @@
 package com.pijamaparty.store.cart.application;
 
-import com.pijamaparty.store.cart.domain.Cart;
-import com.pijamaparty.store.cart.domain.CartItem;
 import com.pijamaparty.store.cart.domain.CartItemId;
+import com.pijamaparty.store.cart.domain.PricedCart;
+import com.pijamaparty.store.cart.domain.PricedCart.LineStatus;
+import com.pijamaparty.store.cart.domain.PricedCart.PricedLine;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Money;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * The full state of a cart that every cart response returns (UC-08, UC-09): its items in the order they were added.
- * Totals and the price and stock warnings come with T-E2-03.
+ * The full state of a cart that every cart response returns (UC-08, UC-09): its items in the order they were added,
+ * priced with the current catalog prices and stock, and the totals calculated by the server.
  */
-public record CartView(List<ItemView> items) {
+public record CartView(List<ItemView> items, Money subtotal, Money discount, Money total) {
 
-    private static final CartView EMPTY = new CartView(List.of());
+    private static final CartView EMPTY = of(PricedCart.empty());
 
     public CartView {
         items = List.copyOf(items);
@@ -23,15 +25,18 @@ public record CartView(List<ItemView> items) {
         return EMPTY;
     }
 
-    public static CartView of(Cart cart) {
-        return new CartView(cart.items().stream().map(ItemView::of).toList());
+    public static CartView of(PricedCart cart) {
+        return new CartView(cart.lines().stream().map(ItemView::of).toList(), cart.subtotal(), cart.discount(),
+            cart.total());
     }
 
-    /** {@code unitPrice} is the price the customer last saw. */
-    public record ItemView(CartItemId id, VariantId variantId, int quantity, Money unitPrice) {
+    /** As {@link PricedLine}. */
+    public record ItemView(CartItemId id, VariantId variantId, int quantity, Money unitPrice,
+                           Optional<Money> previousUnitPrice, LineStatus status, int available) {
 
-        static ItemView of(CartItem item) {
-            return new ItemView(item.id(), item.variantId(), item.quantity(), item.lastSeenPrice());
+        static ItemView of(PricedLine line) {
+            return new ItemView(line.item().id(), line.item().variantId(), line.item().quantity(), line.unitPrice(),
+                line.previousUnitPrice(), line.status(), line.available());
         }
     }
 }

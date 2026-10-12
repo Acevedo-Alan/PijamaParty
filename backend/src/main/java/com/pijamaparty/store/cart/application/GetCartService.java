@@ -8,9 +8,11 @@ import org.springframework.transaction.annotation.Transactional;
 class GetCartService implements GetCart {
 
     private final LoadCart loadCart;
+    private final VariantAvailability availability;
 
-    GetCartService(LoadCart loadCart) {
+    GetCartService(LoadCart loadCart, VariantAvailability availability) {
         this.loadCart = loadCart;
+        this.availability = availability;
     }
 
     @Override
@@ -18,7 +20,7 @@ class GetCartService implements GetCart {
     public CartView execute(Query query) {
         return CartOwner.of(query.actor())
             .flatMap(loadCart::findByOwner)
-            .map(CartView::of)
+            .map(cart -> CartPricing.view(cart, availability))
             .orElse(CartView.empty());
     }
 }

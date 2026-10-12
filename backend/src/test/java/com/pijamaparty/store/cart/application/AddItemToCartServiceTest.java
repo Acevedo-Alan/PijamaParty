@@ -8,8 +8,10 @@ import com.pijamaparty.store.cart.application.AddItemToCart.Result;
 import com.pijamaparty.store.cart.application.CartView.ItemView;
 import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartId;
+import com.pijamaparty.store.cart.domain.CartItem;
 import com.pijamaparty.store.cart.domain.CartItemId;
 import com.pijamaparty.store.cart.domain.CartOwner;
+import com.pijamaparty.store.cart.domain.PricedCart.LineStatus;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.application.InMemoryIdGenerator;
 import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
@@ -44,12 +46,14 @@ class AddItemToCartServiceTest {
 
         Result result = service.execute(new Command(GUEST, PIJAMA, 2));
 
-        ItemView item = new ItemView(CartItemId.of(InMemoryIdGenerator.nth(2)), PIJAMA, 2, PRICE);
-        assertThat(result).isEqualTo(new Result.Added(new CartView(List.of(item))));
+        CartItemId itemId = CartItemId.of(InMemoryIdGenerator.nth(2));
+        ItemView item = new ItemView(itemId, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5);
+        assertThat(result).isEqualTo(new Result.Added(
+            new CartView(List.of(item), Money.of(3_000_000), Money.zero(), Money.of(3_000_000))));
         assertThat(carts.findByOwner(GUEST_OWNER)).hasValueSatisfying(cart -> {
             assertThat(cart.id()).isEqualTo(CartId.of(InMemoryIdGenerator.nth(1)));
             assertThat(cart.createdAt()).isEqualTo(NOW);
-            assertThat(CartView.of(cart).items()).containsExactly(item);
+            assertThat(cart.items()).containsExactly(new CartItem(itemId, PIJAMA, 2, PRICE, NOW));
         });
     }
 
@@ -74,7 +78,8 @@ class AddItemToCartServiceTest {
         Result result = service.execute(new Command(GUEST, PIJAMA, 3));
 
         assertThat(result).isEqualTo(new Result.Added(new CartView(List.of(
-            new ItemView(CartItemId.of(InMemoryIdGenerator.nth(2)), PIJAMA, 5, Money.of(1_400_000))))));
+            new ItemView(CartItemId.of(InMemoryIdGenerator.nth(2)), PIJAMA, 5, Money.of(1_400_000), Optional.empty(),
+                LineStatus.AVAILABLE, 5)), Money.of(7_000_000), Money.zero(), Money.of(7_000_000))));
         assertThat(carts.size()).isEqualTo(1);
     }
 

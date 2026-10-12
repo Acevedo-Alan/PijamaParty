@@ -2,7 +2,7 @@
 
 - [x] **T-E2-01** Migraciones: `carrito`, `carrito_item`, `cupon`. En el código: `cart`, `cart_item`, `coupon` y `coupon_redemption` (usos del cupón, se llena en E3); `cart` y `cart_item` nacen con Row Level Security activo y forzado, con sus políticas (RNF-27).
 - [x] **T-E2-02** Servicio de carrito: crear, agregar, modificar y quitar con validación de stock (CU-08, CU-09).
-- [ ] **T-E2-03** Cálculo de totales en el servidor y aviso de cambios de precio o stock (CU-09).
+- [x] **T-E2-03** Cálculo de totales en el servidor y aviso de cambios de precio o stock (CU-09).
 - [ ] **T-E2-04** Cookie `cart_token` para invitados y limpieza diaria de carritos viejos.
 - [ ] **T-E2-05** Servicio de cupones: validación y cálculo del descuento (CU-10).
 - [ ] **T-E2-06** Backoffice: ABM de cupones y vista de usos (CU-11).

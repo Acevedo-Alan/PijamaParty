@@ -78,7 +78,13 @@ class CartApiTest {
             .andExpect(jsonPath("$.items.length()").value(1))
             .andExpect(jsonPath("$.items[0].variantId").value(variant.toString()))
             .andExpect(jsonPath("$.items[0].quantity").value(2))
-            .andExpect(jsonPath("$.items[0].unitPriceCents").value(1_500_000));
+            .andExpect(jsonPath("$.items[0].unitPriceCents").value(1_500_000))
+            .andExpect(jsonPath("$.items[0].previousUnitPriceCents").isEmpty())
+            .andExpect(jsonPath("$.items[0].status").value("AVAILABLE"))
+            .andExpect(jsonPath("$.items[0].available").value(3))
+            .andExpect(jsonPath("$.subtotalCents").value(3_000_000))
+            .andExpect(jsonPath("$.discountCents").value(0))
+            .andExpect(jsonPath("$.totalCents").value(3_000_000));
 
         mvc.perform(guest(get("/api/cart")))
             .andExpect(status().isOk())
@@ -200,6 +206,65 @@ class CartApiTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items.length()").value(1))
             .andExpect(jsonPath("$.items[0].variantId").value(other.toString()));
+    }
+
+    @Test
+    void givenAVariantThatSoldOutWhileInTheCart_whenTheCartOpens_thenItIsShownAsUnavailable() throws Exception {
+        UUID other = sellable(990_000, 5);
+        add(variant, 2).andExpect(status().isOk());
+        add(other, 1).andExpect(status().isOk());
+        owner.update("update stock_level set on_hand = 0 where variant_id = ?", variant);
+
+        mvc.perform(guest(get("/api/cart")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].status").value("UNAVAILABLE"))
+            .andExpect(jsonPath("$.items[0].available").value(0))
+            .andExpect(jsonPath("$.items[0].quantity").value(2))
+            .andExpect(jsonPath("$.items[1].status").value("AVAILABLE"))
+            .andExpect(jsonPath("$.totalCents").value(990_000));
+    }
+
+    @Test
+    void givenFewerUnitsLeftThanInTheCart_whenTheCartOpens_thenTheItemShowsTheUnitsLeft() throws Exception {
+        add(variant, 3).andExpect(status().isOk());
+        owner.update("update stock_level set on_hand = 1");
+
+        mvc.perform(guest(get("/api/cart")))
+            .andExpect(jsonPath("$.items[0].status").value("INSUFFICIENT_STOCK"))
+            .andExpect(jsonPath("$.items[0].available").value(1))
+            .andExpect(jsonPath("$.items[0].quantity").value(3))
+            .andExpect(jsonPath("$.totalCents").value(0));
+    }
+
+    @Test
+    void givenAPriceChangeInTheCatalog_whenTheCartOpens_thenTheTotalUsesTheNewPriceUntilTheChangeIsAcknowledged()
+        throws Exception {
+        add(variant, 2).andExpect(status().isOk());
+        owner.update("update variant set price_cents = 1600000");
+
+        mvc.perform(guest(get("/api/cart")))
+            .andExpect(jsonPath("$.items[0].unitPriceCents").value(1_600_000))
+            .andExpect(jsonPath("$.items[0].previousUnitPriceCents").value(1_500_000))
+            .andExpect(jsonPath("$.totalCents").value(3_200_000));
+        mvc.perform(guest(get("/api/cart")))
+            .andExpect(jsonPath("$.items[0].previousUnitPriceCents").value(1_500_000));
+
+        mvc.perform(guest(post("/api/cart/acknowledge-prices")).with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].unitPriceCents").value(1_600_000))
+            .andExpect(jsonPath("$.items[0].previousUnitPriceCents").isEmpty())
+            .andExpect(jsonPath("$.totalCents").value(3_200_000));
+        mvc.perform(guest(get("/api/cart")))
+            .andExpect(jsonPath("$.items[0].previousUnitPriceCents").isEmpty());
+    }
+
+    @Test
+    void givenTheAdministratorOrNoCsrfToken_whenAcknowledgingPrices_thenItIsForbidden() throws Exception {
+        mvc.perform(post("/api/cart/acknowledge-prices").with(csrf())
+                .with(user(UUID.randomUUID().toString()).roles("ADMIN")))
+            .andExpect(status().isForbidden())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+        mvc.perform(guest(post("/api/cart/acknowledge-prices"))).andExpect(status().isForbidden());
     }
 
     @Test

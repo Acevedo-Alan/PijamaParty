@@ -1,27 +1,24 @@
 package com.pijamaparty.store.cart.application;
 
+import com.pijamaparty.store.cart.domain.SellableVariant;
 import com.pijamaparty.store.cart.domain.VariantId;
-import com.pijamaparty.store.platform.domain.Money;
-import java.util.Objects;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
- * Outbound read port: whether the shop sells a variant now, at which price and with how many units available
- * (on hand − reserved), within the caller's transaction (UC-08).
+ * Outbound read port: which variants the shop sells now, at which price and with how many units available
+ * (on hand − reserved), within the caller's transaction (UC-08, UC-09).
  */
 @FunctionalInterface
 public interface VariantAvailability {
 
+    /** Each variant asked for that the shop sells; unknown variants and those the catalog does not sell are left out. */
+    Map<VariantId, SellableVariant> sellable(Collection<VariantId> variantIds);
+
     /** Empty for a variant that is unknown or that the catalog does not sell. */
-    Optional<SellableVariant> of(VariantId variantId);
-
-    record SellableVariant(Money price, int available) {
-
-        public SellableVariant {
-            Objects.requireNonNull(price, "price");
-            if (available < 0) {
-                throw new IllegalArgumentException("available stock cannot be negative");
-            }
-        }
+    default Optional<SellableVariant> of(VariantId variantId) {
+        return Optional.ofNullable(sellable(List.of(variantId)).get(variantId));
     }
 }
