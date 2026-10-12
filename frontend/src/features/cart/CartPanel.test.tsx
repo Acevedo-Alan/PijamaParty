@@ -24,6 +24,14 @@ async function addPinkM() {
 
 const panel = () => screen.getByRole('dialog', { name: es.cart.title });
 
+function nth(elements: HTMLElement[], index: number): HTMLElement {
+  const element = elements[index];
+  if (element === undefined) {
+    throw new Error(`No element at ${String(index)}`);
+  }
+  return element;
+}
+
 describe('cart side panel (UC-08)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -44,13 +52,15 @@ describe('cart side panel (UC-08)', () => {
     const opened = within(await screen.findByRole('dialog', { name: es.cart.title }));
     expect(opened.getByRole('link', { name: 'Pijama Luna' })).toHaveAttribute('href', '/producto/luna');
     expect(opened.getByText(es.cart.variant('Rosa', 'M'))).toBeInTheDocument();
-    expect(opened.getByText(es.cart.quantity(1))).toBeInTheDocument();
+    expect(opened.getByRole('group', { name: es.cart.quantityOf('Pijama Luna') })).toHaveTextContent('1');
     expect(opened.getByRole('img', { name: es.cart.photoAlt('Pijama Luna', 'Rosa') }))
       .toHaveAttribute('src', '/uploads/luna-rosa-400.webp');
     expect(opened.getByText(es.cart.total).nextElementSibling).toHaveTextContent(/^\$\s25\.000$/);
     expect(screen.getByRole('button', { name: es.cart.open(1), hidden: true })).toBeInTheDocument();
     expect(vibrate).toHaveBeenCalledWith(18);
-    expect(screen.getByRole('alert', { hidden: true })).toBeEmptyDOMElement();
+    for (const alert of screen.getAllByRole('alert', { hidden: true })) {
+      expect(alert).toBeEmptyDOMElement();
+    }
   });
 
   it('given a device without vibration support, when adding, then the rest of the feedback works the same', async () => {
@@ -134,6 +144,152 @@ describe('cart side panel (UC-08)', () => {
     await userEvent.click(await screen.findByRole('button', { name: es.cart.open(1) }));
 
     expect(within(panel()).getByText(es.cart.unknownProduct)).toBeInTheDocument();
-    expect(within(panel()).getByText(es.cart.quantity(1))).toBeInTheDocument();
+    expect(within(panel()).getByText(es.cart.soldOut)).toBeInTheDocument();
+    expect(within(panel()).getByRole('group', { name: es.cart.quantityOf(es.cart.unknownProduct) }))
+      .toHaveTextContent('1');
+  });
+});
+
+describe('cart side panel changes (UC-09)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** Opens the panel from the header; GET /api/cart answers these carts in order, and the last one repeats. */
+  async function openWith(...carts: unknown[]) {
+    const queue = [...carts];
+    const get = vi.spyOn(api, 'GET').mockImplementation(((path: string) => {
+      if (path !== '/api/cart') {
+        return Promise.resolve(answer(200, productDetail()));
+      }
+      return Promise.resolve(queue.length > 1 ? queue.shift() : queue[0]);
+    }) as never);
+    renderRoute('/producto/luna');
+    await userEvent.click(await screen.findByRole('button', { name: /^Carrito/ }));
+    return get;
+  }
+
+  const cartReads = (get: { mock: { calls: unknown[][] } }) =>
+    get.mock.calls.filter((call) => call[0] === '/api/cart');
+
+  it('given an item in the cart, when its quantity is changed to 0, then it is removed', async () => {
+    await openWith(cart([cartItem()]));
+    const patch = vi.spyOn(api, 'PATCH').mockResolvedValue(cart([]));
+
+    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.decrease('Pijama Luna') }));
+
+    expect(patch).toHaveBeenCalledWith('/api/cart/items/{id}', {
+      params: { path: { id: 'item-1' } },
+      body: { quantity: 0 },
+    });
+    expect(await within(panel()).findByText(es.cart.empty)).toBeInTheDocument();
+    expect(within(panel()).getByRole('button', { name: es.cart.close })).toHaveFocus();
+    expect(screen.getByRole('button', { name: es.cart.open(0), hidden: true })).toBeInTheDocument();
+  });
+
+  it('given an item, when "+" is tapped, then the panel and the counter show the cart of the answer', async () => {
+    await openWith(cart([cartItem()]));
+    const patch = vi.spyOn(api, 'PATCH').mockResolvedValue(cart([cartItem({ quantity: 2 })]));
+
+    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.increase('Pijama Luna') }));
+
+    expect(patch).toHaveBeenCalledWith('/api/cart/items/{id}', {
+      params: { path: { id: 'item-1' } },
+      body: { quantity: 2 },
+    });
+    expect(await screen.findByRole('button', { name: es.cart.open(2), hidden: true })).toBeInTheDocument();
+    expect(within(panel()).getByText(es.cart.total).nextElementSibling).toHaveTextContent(/^\$\s50\.000$/);
+  });
+
+  it('given an item at its available stock, when the panel opens, then "+" is disabled', async () => {
+    await openWith(cart([cartItem({ quantity: 3, available: 3 })]));
+
+    expect(within(panel()).getByRole('button', { name: es.cart.increase('Pijama Luna') })).toBeDisabled();
+    expect(within(panel()).getByRole('button', { name: es.cart.decrease('Pijama Luna') })).toBeEnabled();
+  });
+
+  it('given stock sold elsewhere, when "+" gets a 409, then the item says how many are left and the cart reloads', async () => {
+    const get = await openWith(cart([cartItem({ quantity: 2 })]), cart([cartItem({ quantity: 2, available: 2 })]));
+    vi.spyOn(api, 'PATCH').mockResolvedValue(
+      answer(409, { problem: 'INSUFFICIENT_STOCK', variantId: 'M-Rosa', available: 2 }),
+    );
+
+    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.increase('Pijama Luna') }));
+
+    expect(await within(panel()).findByText(es.product.onlyLeft(2))).toHaveAttribute('role', 'alert');
+    await vi.waitFor(() => {
+      expect(cartReads(get)).toHaveLength(2);
+    });
+    await vi.waitFor(() => {
+      expect(within(panel()).getByRole('button', { name: es.cart.increase('Pijama Luna') })).toBeDisabled();
+    });
+  });
+
+  it('given an item removed in another tab, when it is changed, then the cart is read again', async () => {
+    const get = await openWith(cart([cartItem()]), cart([]));
+    vi.spyOn(api, 'PATCH').mockResolvedValue(answer(404, { title: 'Not found' }));
+
+    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.increase('Pijama Luna') }));
+
+    expect(await within(panel()).findByText(es.cart.empty)).toBeInTheDocument();
+    expect(cartReads(get)).toHaveLength(2);
+  });
+
+  it('given an item, when "Quitar" is tapped, then it is deleted', async () => {
+    await openWith(cart([cartItem(), cartItem({ id: 'item-2', variantId: 'L-Rosa' })]));
+    const remove = vi.spyOn(api, 'DELETE').mockResolvedValue(cart([cartItem()]));
+
+    const buttons = within(panel()).getAllByRole('button', { name: es.cart.removeLabel('Pijama Luna') });
+    await userEvent.click(nth(buttons, 1));
+
+    expect(remove).toHaveBeenCalledWith('/api/cart/items/{id}', { params: { path: { id: 'item-2' } } });
+    await vi.waitFor(() => {
+      expect(within(panel()).getAllByRole('listitem')).toHaveLength(1);
+    });
+  });
+
+  it('given a failed request, when an item is changed, then the panel asks to try again', async () => {
+    await openWith(cart([cartItem()]));
+    vi.spyOn(api, 'PATCH').mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.increase('Pijama Luna') }));
+
+    expect(await within(panel()).findByText(es.cart.changeError)).toHaveAttribute('role', 'alert');
+  });
+
+  it('given a variant that sold out while in the cart, when the cart opens, then it is shown as unavailable', async () => {
+    await openWith(cart([cartItem({ quantity: 2, status: 'UNAVAILABLE', available: 0 }), cartItem({ id: 'item-2' })]));
+
+    const soldOut = nth(within(panel()).getAllByRole('listitem'), 0);
+    expect(soldOut).toHaveClass('unavailable');
+    expect(within(soldOut).getByText(es.cart.soldOut)).toBeInTheDocument();
+    expect(within(soldOut).queryByText(/\$/)).not.toBeInTheDocument();
+    expect(within(soldOut).getByRole('button', { name: es.cart.increase('Pijama Luna') })).toBeDisabled();
+    expect(within(soldOut).getByRole('button', { name: es.cart.decrease('Pijama Luna') })).toBeEnabled();
+    expect(within(panel()).getByText(es.cart.total).nextElementSibling).toHaveTextContent(/^\$\s25\.000$/);
+  });
+
+  it('given fewer units left than in the cart, when the cart opens, then the item asks to lower the quantity', async () => {
+    await openWith(cart([cartItem({ quantity: 3, status: 'INSUFFICIENT_STOCK', available: 1 })]));
+
+    expect(within(panel()).getByText(`${es.product.onlyLeft(1)}. ${es.cart.lowerToBuy}`)).toBeInTheDocument();
+    expect(within(panel()).getByRole('button', { name: es.cart.increase('Pijama Luna') })).toBeDisabled();
+  });
+
+  it('given a price change in the catalog, when the cart opens, then the total uses the new price and it is announced', async () => {
+    await openWith(cart([cartItem({ unitPriceCents: 3_000_000, previousUnitPriceCents: 2_500_000 })]));
+    const post = vi.spyOn(api, 'POST').mockResolvedValue(cart([cartItem({ unitPriceCents: 3_000_000 })]));
+
+    expect(within(panel()).getByRole('deletion')).toHaveTextContent(/^\$\s25\.000$/);
+    expect(within(panel()).getByText(es.cart.total).nextElementSibling).toHaveTextContent(/^\$\s30\.000$/);
+    expect(within(panel()).getByText(es.cart.pricesChanged)).toBeInTheDocument();
+
+    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.acknowledge }));
+
+    expect(post).toHaveBeenCalledWith('/api/cart/acknowledge-prices');
+    await vi.waitFor(() => {
+      expect(within(panel()).queryByText(es.cart.pricesChanged)).not.toBeInTheDocument();
+    });
+    expect(within(panel()).queryByRole('deletion')).not.toBeInTheDocument();
   });
 });

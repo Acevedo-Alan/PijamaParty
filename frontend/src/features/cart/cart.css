@@ -155,6 +155,81 @@ html:has(.cart-panel[open]) {
   white-space: nowrap;
 }
 
+/* Quantity control and warnings of an item (UC-09), from the prototype's .di-qty */
+.cart-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 8px;
+}
+
+.cart-qty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qty-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  font-size: 16px;
+}
+
+.qty-btn:disabled {
+  color: var(--ink-soft);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+.cart-qty-value {
+  min-width: 2ch;
+  text-align: center;
+  font-weight: 600;
+}
+
+.cart-remove {
+  font-size: 12px;
+}
+
+.cart-item-note,
+.cart-item-problem {
+  margin-top: 4px;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cart-item-problem:empty {
+  display: none;
+}
+
+/* Only the photo is dimmed: the text keeps its contrast (RNF-31.4) */
+.cart-item.unavailable .ph {
+  opacity: 0.45;
+}
+
+.cart-price-change del {
+  margin-right: 4px;
+}
+
+.cart-notice {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-s);
+  background: var(--peach-soft);
+  font-size: 13px;
+}
+
+.cart-notice .link-btn {
+  min-height: 44px;
+}
+
 .cart-foot {
   padding: 18px 20px 22px;
   border-top: 1px solid var(--line);

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { addToCart, fetchCart } from './cartApi.ts';
+import { acknowledgePrices, addToCart, changeQuantity, fetchCart, removeItem } from './cartApi.ts';
 import { useCartPanel } from './CartPanelContext.tsx';
 
 export const CART_KEY = ['cart'] as const;
@@ -20,6 +20,39 @@ export function useAddToCart() {
         queryClient.setQueryData(CART_KEY, answer.cart);
         panel.showAdded();
       }
+    },
+  });
+}
+
+/** A new quantity for an item (0 removes it), or null to remove it with DELETE. */
+export type ItemChange = { quantity: number } | null;
+
+/**
+ * UC-09: changes or removes one item. The answer is the new cart; when the stock or the cart changed elsewhere the
+ * cart is read again, so the panel shows the current state.
+ */
+export function useChangeItem(itemId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (change: ItemChange) =>
+      change === null ? removeItem(itemId) : changeQuantity(itemId, change.quantity),
+    onSuccess: (answer) => {
+      if (answer.status === 'changed') {
+        queryClient.setQueryData(CART_KEY, answer.cart);
+      } else {
+        void queryClient.invalidateQueries({ queryKey: CART_KEY });
+      }
+    },
+  });
+}
+
+/** UC-09: the customer saw the changed prices; the answer is the cart without the announcements. */
+export function useAcknowledgePrices() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: acknowledgePrices,
+    onSuccess: (cart) => {
+      queryClient.setQueryData(CART_KEY, cart);
     },
   });
 }

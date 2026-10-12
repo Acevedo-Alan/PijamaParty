@@ -24,6 +24,8 @@ export interface CartItem {
   variantId: string;
   quantity: number;
   unitPriceCents: number;
+  /** The last price the customer saw when the current one differs (UC-09), otherwise null. */
+  previousUnitPriceCents: number | null;
   status: ItemStatus;
   available: number;
   /** Null only for a variant the catalog does not have. */
@@ -68,7 +70,16 @@ function toItem(item: ItemResponse): CartItem {
   ) {
     throw new Error('Incomplete cart item');
   }
-  return { id, variantId, quantity, unitPriceCents, status, available, product: toProduct(item.product) };
+  return {
+    id,
+    variantId,
+    quantity,
+    unitPriceCents,
+    previousUnitPriceCents: item.previousUnitPriceCents ?? null,
+    status,
+    available,
+    product: toProduct(item.product),
+  };
 }
 
 function toCart(data: CartResponse): Cart {
@@ -111,4 +122,47 @@ export async function addToCart(variantId: string, quantity: number): Promise<Ad
     return { status: 'unavailable' };
   }
   throw new Error(`Adding to the cart failed with status ${String(response.status)}`);
+}
+
+/** PATCH and DELETE of an item (UC-09). Not enough stock and an item no longer in the cart are expected answers. */
+export type ChangeAnswer =
+  | { status: 'changed'; cart: Cart }
+  | { status: 'insufficientStock'; available: number }
+  | { status: 'notInCart' };
+
+function toChangeAnswer(data: CartResponse | undefined, error: unknown, response: Response): ChangeAnswer {
+  if (data !== undefined) {
+    return { status: 'changed', cart: toCart(data) };
+  }
+  if (response.status === 409) {
+    return { status: 'insufficientStock', available: availableIn(error) };
+  }
+  if (response.status === 404) {
+    return { status: 'notInCart' };
+  }
+  throw new Error(`Changing the cart failed with status ${String(response.status)}`);
+}
+
+/** PATCH /api/cart/items/{id}: quantity 0 removes the item without checking stock. */
+export async function changeQuantity(itemId: string, quantity: number): Promise<ChangeAnswer> {
+  const { data, error, response } = await api.PATCH('/api/cart/items/{id}', {
+    params: { path: { id: itemId } },
+    body: { quantity },
+  });
+  return toChangeAnswer(data, error, response);
+}
+
+/** DELETE /api/cart/items/{id}. */
+export async function removeItem(itemId: string): Promise<ChangeAnswer> {
+  const { data, error, response } = await api.DELETE('/api/cart/items/{id}', { params: { path: { id: itemId } } });
+  return toChangeAnswer(data, error, response);
+}
+
+/** POST /api/cart/acknowledge-prices: the customer saw the current prices, so no item announces a change any more. */
+export async function acknowledgePrices(): Promise<Cart> {
+  const { data, response } = await api.POST('/api/cart/acknowledge-prices');
+  if (data === undefined) {
+    throw new Error(`Acknowledging the prices failed with status ${String(response.status)}`);
+  }
+  return toCart(data);
 }

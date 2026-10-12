@@ -5,13 +5,93 @@ import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import type { Cart, CartItem } from './cartApi.ts';
 import { useCartPanel } from './CartPanelContext.tsx';
-import { useCart } from './useCart.ts';
+import { useAcknowledgePrices, useCart, useChangeItem } from './useCart.ts';
 import './cart.css';
+
+/** Why an item cannot be bought as it is (UC-09); an AVAILABLE item has nothing to say. */
+function statusNote(item: CartItem): string | null {
+  switch (item.status) {
+    case 'UNAVAILABLE':
+      return es.cart.soldOut;
+    case 'INSUFFICIENT_STOCK':
+      return `${es.product.onlyLeft(item.available)}. ${es.cart.lowerToBuy}`;
+    case 'AVAILABLE':
+      return null;
+  }
+}
+
+/** The answer to the last change of an item: how many are left after a 409, or a request that failed. */
+function ChangeProblem({ item, change }: { item: CartItem; change: ReturnType<typeof useChangeItem> }) {
+  if (change.isError) {
+    return es.cart.changeError;
+  }
+  // When the item cannot be bought any more its status says why.
+  if (change.data?.status === 'insufficientStock' && item.status === 'AVAILABLE') {
+    return es.product.onlyLeft(change.data.available);
+  }
+  return null;
+}
+
+/** The quantity of an item with "−" (at 1 it removes the item), "+" up to the available stock, and "Quitar". */
+function QuantityControl({ item, name }: { item: CartItem; name: string }) {
+  const change = useChangeItem(item.id);
+  function setQuantity(quantity: number) {
+    change.mutate({ quantity });
+  }
+  return (
+    <>
+      <div className="cart-item-actions">
+        <div className="cart-qty" role="group" aria-label={es.cart.quantityOf(name)}>
+          <button
+            type="button"
+            className="qty-btn"
+            aria-label={es.cart.decrease(name)}
+            disabled={change.isPending}
+            onClick={() => {
+              setQuantity(item.quantity - 1);
+            }}
+          >
+            −
+          </button>
+          <span className="cart-qty-value" aria-live="polite">
+            {item.quantity}
+          </span>
+          <button
+            type="button"
+            className="qty-btn"
+            aria-label={es.cart.increase(name)}
+            disabled={change.isPending || item.quantity >= item.available}
+            onClick={() => {
+              setQuantity(item.quantity + 1);
+            }}
+          >
+            +
+          </button>
+        </div>
+        <button
+          type="button"
+          className="link-btn cart-remove"
+          aria-label={es.cart.removeLabel(name)}
+          disabled={change.isPending}
+          onClick={() => {
+            change.mutate(null);
+          }}
+        >
+          {es.cart.remove}
+        </button>
+      </div>
+      <p className="cart-item-problem" role="alert">
+        <ChangeProblem item={item} change={change} />
+      </p>
+    </>
+  );
+}
 
 function Item({ item, onFollowLink }: { item: CartItem; onFollowLink: () => void }) {
   const { product } = item;
+  const note = statusNote(item);
   return (
-    <li className="cart-item">
+    <li className={item.status === 'UNAVAILABLE' ? 'cart-item unavailable' : 'cart-item'}>
       {product?.image != null ? (
         <BlurredImage
           src={product.image.src}
@@ -34,10 +114,45 @@ function Item({ item, onFollowLink }: { item: CartItem; onFollowLink: () => void
             <p className="cart-item-meta">{es.cart.variant(product.color, product.size)}</p>
           </>
         )}
-        <p className="cart-item-meta">{es.cart.quantity(item.quantity)}</p>
+        {item.previousUnitPriceCents !== null && (
+          <p className="cart-item-meta cart-price-change">
+            <span className="visually-hidden">{es.cart.previousPrice}: </span>
+            <del>{formatMoney(item.previousUnitPriceCents)}</del>{' '}
+            <span className="visually-hidden">{es.cart.currentPrice}: </span>
+            {formatMoney(item.unitPriceCents)}
+          </p>
+        )}
+        {note !== null && <p className="cart-item-note">{note}</p>}
+        <QuantityControl item={item} name={product?.name ?? es.cart.unknownProduct} />
       </div>
-      <p className="cart-item-price">{formatMoney(item.unitPriceCents * item.quantity)}</p>
+      {/* Only AVAILABLE items count in the subtotal, so only they show a line amount. */}
+      {item.status === 'AVAILABLE' && (
+        <p className="cart-item-price">{formatMoney(item.unitPriceCents * item.quantity)}</p>
+      )}
     </li>
+  );
+}
+
+/** UC-09: some prices changed since the customer last saw them; "Entendido" acknowledges them. */
+function PriceChangeNotice() {
+  const acknowledge = useAcknowledgePrices();
+  return (
+    <div className="cart-notice">
+      <p>{es.cart.pricesChanged}</p>
+      <button
+        type="button"
+        className="link-btn"
+        disabled={acknowledge.isPending}
+        onClick={() => {
+          acknowledge.mutate();
+        }}
+      >
+        {es.cart.acknowledge}
+      </button>
+      <p className="cart-item-problem" role="alert">
+        {acknowledge.isError ? es.cart.acknowledgeError : null}
+      </p>
+    </div>
   );
 }
 
@@ -70,6 +185,7 @@ export function CartPanel() {
   const panel = useCartPanel();
   const cart = useCart();
   const dialog = useRef<HTMLDialogElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -83,6 +199,15 @@ export function CartPanel() {
       element.close();
     }
   }, [panel.isOpen]);
+
+  // A removed item takes its focused button with it: the focus goes to the close button, not out of the dialog.
+  const itemCount = cart.data?.items.length;
+  useEffect(() => {
+    const element = dialog.current;
+    if (element?.open === true && !element.contains(document.activeElement)) {
+      closeButton.current?.focus();
+    }
+  }, [itemCount]);
 
   function closeOnBackdrop(event: MouseEvent<HTMLDialogElement>) {
     if (event.target === event.currentTarget) {
@@ -101,7 +226,13 @@ export function CartPanel() {
       <div className="cart-panel-inner">
         <header className="cart-head">
           <h2 id={titleId}>{es.cart.title}</h2>
-          <button type="button" className="icon-btn" aria-label={es.cart.close} onClick={panel.close}>
+          <button
+            ref={closeButton}
+            type="button"
+            className="icon-btn"
+            aria-label={es.cart.close}
+            onClick={panel.close}
+          >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -133,6 +264,7 @@ export function CartPanel() {
               ))}
             </ul>
             <footer className="cart-foot">
+              {cart.data.items.some((item) => item.previousUnitPriceCents !== null) && <PriceChangeNotice />}
               <Totals cart={cart.data} />
             </footer>
           </>

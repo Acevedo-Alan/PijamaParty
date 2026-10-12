@@ -96,7 +96,23 @@ export const es = {
     photoAlt: (name: string, color: string) => `${name}, ${color}`,
     /** An item's color and size, e.g. "Rosa · Talle M". */
     variant: (color: string, size: string) => `${color} · Talle ${size}`,
-    quantity: (count: number) => `Cantidad: ${String(count)}`,
+    /** The quantity control of an item (UC-09), named after its product, e.g. "Cantidad de Pijama Luna". */
+    quantityOf: (name: string) => `Cantidad de ${name}`,
+    decrease: (name: string) => `Restar una unidad de ${name}`,
+    increase: (name: string) => `Sumar una unidad de ${name}`,
+    remove: 'Quitar',
+    removeLabel: (name: string) => `Quitar ${name} del carrito`,
+    changeError: 'No pudimos cambiar el carrito. Probá de nuevo.',
+    /** An UNAVAILABLE item: sold out or no longer sold; it is not bought. */
+    soldOut: 'Sin stock',
+    /** An INSUFFICIENT_STOCK item, after "Solo quedan N". */
+    lowerToBuy: 'Bajá la cantidad para comprarlo.',
+    /** A changed unit price, read before the struck-through previous one and the current one. */
+    previousPrice: 'Precio anterior',
+    currentPrice: 'Precio actual',
+    pricesChanged: 'Cambiaron los precios de algunos productos.',
+    acknowledge: 'Entendido',
+    acknowledgeError: 'No pudimos confirmar los precios. Probá de nuevo.',
     unknownProduct: 'Producto no disponible',
     subtotal: 'Subtotal',
     discount: 'Descuento',
