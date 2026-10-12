@@ -12,6 +12,12 @@
 1. El administrador carga un costo de envío por provincia o zona.
 2. Opcionalmente define un monto de compra a partir del cual el envío es gratis.
 
+**Reglas**
+- Un costo por provincia, entre las 24 jurisdicciones del país; una provincia sin costo cargado no tiene envío.
+- Un costo va de $0 a $10.000.000; $0 es envío gratis a esa provincia.
+- El umbral de envío gratis es opcional y va de $0,01 a $10.000.000; se compara con el subtotal con descuento.
+- En el backoffice (`/admin/envios`) se ven las 24 provincias con su costo en pesos: un campo vacío es "sin envío". Un botón guarda todos los costos juntos y marca las provincias con un costo inválido. Debajo, el campo "Envío gratis desde ($)", vacío si no hay, con su propio botón.
+
 **Criterios de aceptación**
 - Dada una provincia sin costo cargado, cuando un cliente la elige en el checkout, entonces se informa que no hay envío disponible a esa zona.
 - Dado un envío gratis desde $50.000, cuando el subtotal con descuento es de $50.000 o más, entonces el costo de envío es $0.

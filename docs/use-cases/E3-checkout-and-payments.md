@@ -55,7 +55,14 @@ Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its 
 
 **Design notes**
 - Aggregates `ShippingZoneRate` and `ShippingSettings` (`shipping.domain`). `Province` is an enum of the 24 jurisdictions: `BUENOS_AIRES`, `CIUDAD_DE_BUENOS_AIRES`, `CATAMARCA`, `CHACO`, `CHUBUT`, `CORDOBA`, `CORRIENTES`, `ENTRE_RIOS`, `FORMOSA`, `JUJUY`, `LA_PAMPA`, `LA_RIOJA`, `MENDOZA`, `MISIONES`, `NEUQUEN`, `RIO_NEGRO`, `SALTA`, `SAN_JUAN`, `SAN_LUIS`, `SANTA_CRUZ`, `SANTA_FE`, `SANTIAGO_DEL_ESTERO`, `TIERRA_DEL_FUEGO`, `TUCUMAN`. The UI shows their Spanish names.
-- Endpoints (T-E3-02): `GET` and `PUT /api/admin/shipping/zones`, `PUT /api/admin/shipping/free-shipping`. The detailed contract is written with T-E3-02.
+- `ShippingZoneRates` (`shipping.domain`) is the set of costs: one per province at most, each from 0 to 1,000,000,000 cents. `ShippingSettings` holds the optional free-shipping threshold, from 1 to 1,000,000,000 cents.
+- One use case per class (T-E3-02): `GetShippingConfiguration`, `ReplaceShippingZoneRates`, `SetFreeShippingThreshold`. Each one carries the `Actor`; any actor other than `ADMIN` gets `Forbidden`. Outbound ports: `LoadShippingZoneRates`, `SaveShippingZoneRates`, `LoadShippingSettings` and `SaveShippingSettings`, read and write sides separated, reused by the cost calculation (T-E3-03).
+- Replacing the costs is a whole replacement: the listed provinces get their cost and every other province is left without shipping. An unchanged cost keeps its `updated_at`.
+- Endpoints under `/api/admin/shipping` (errors as `problem+json`; every write requires the CSRF token):
+  - `GET` → `200` with the configuration: `zones`, the 24 provinces in the order of the `Province` enum, each with `province` and `costCents` (null: no shipping), and `freeShippingThresholdCents` (null: no free shipping).
+  - `PUT /zones {zones: [{province, costCents}]}` → `200` with the configuration; `422` with the refused provinces in `provinces` (a cost outside 0 to 1,000,000,000 cents, or a province listed twice); `400` for a body that is not JSON of that shape, an unknown province, an entry without cost, or more than 24 entries. An empty list leaves every province without shipping.
+  - `PUT /free-shipping {thresholdCents}` → `200` with the configuration; `422` for a threshold outside 1 to 1,000,000,000 cents; `400` for a body that is not JSON of that shape. A null threshold removes free shipping.
+- Back office (T-E3-02): `/admin/envios`, "Envíos" in the back-office menu. A list of the 24 provinces by their Spanish name, each with a cost field in pesos (as prices, UC-06); an empty field means no shipping to that province, and "$ 0" a free shipping to it. One "Guardar costos" button saves them all, and the provinces of a `422` are marked. Below, the "Envío gratis desde ($)" field, empty for none, with its own save button.
 - Cost calculation (T-E3-03): `ShippingCostCalculator` strategy (ARCHITECTURE.md section 5), zone table now, carrier API later; published to `ordering` through `shipping.api`.
 - Rate-limit policy: authenticated back office (300 per minute per user).
 

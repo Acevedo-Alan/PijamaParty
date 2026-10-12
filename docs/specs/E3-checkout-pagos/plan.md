@@ -20,8 +20,9 @@
 | GET | `/api/admin/pedidos` | Lista con filtro por estado (CU-18) |
 | GET | `/api/admin/pedidos/{id}` | Detalle |
 | POST | `/api/admin/pedidos/{id}/estado` | Cambio de estado |
-| GET/PUT | `/api/admin/envio/zonas` | Costos por zona (CU-12) |
-| PUT | `/api/admin/config/envio-gratis` | Umbral de envío gratis |
+| GET | `/api/admin/shipping` | Costos por provincia y umbral de envío gratis (CU-12) |
+| PUT | `/api/admin/shipping/zones` | Reemplaza todos los costos por provincia (CU-12) |
+| PUT | `/api/admin/shipping/free-shipping` | Umbral de envío gratis (CU-12) |
 
 ## Decisiones técnicas
 
