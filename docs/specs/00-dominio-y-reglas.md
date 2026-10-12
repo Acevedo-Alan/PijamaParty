@@ -101,7 +101,7 @@ PAGADO | PREPARANDO → CANCELADO
 | Factura electrónica (ARCA) | Pendiente | Consultar al contador del negocio; propuesta para v1: la emite el negocio por fuera del sistema |
 | Usos de un cupón | Decidido | Una fila por pedido confirmado (`coupon_redemption`), única por cupón y pedido: un reintento no cuenta dos veces y un cupón con usos no se puede borrar (CU-11, E3) |
 | Vigencia de un cupón | Decidido | Fechas opcionales, ambas inclusive, en hora de Argentina (R-07) (CU-10, CU-11) |
-| Código y valor de un cupón | Decidido | Código de 3 a 20 letras, números o guiones, guardado en mayúsculas; porcentaje entero de 1 a 100 o monto fijo en centavos mayor a 0, nunca mayor que el subtotal; el descuento por porcentaje se redondea hacia abajo al centavo; usos máximos y monto mínimo opcionales (CU-10, CU-11) |
+| Código y valor de un cupón | Decidido | Código de 3 a 20 letras, números o guiones, guardado en mayúsculas; porcentaje entero de 1 a 100 o monto fijo de 1 a 1.000.000.000 centavos (el máximo de un precio), nunca mayor que el subtotal; el descuento por porcentaje se redondea hacia abajo al centavo; usos máximos (1 a 1.000.000) y monto mínimo (1 a 1.000.000.000 centavos) opcionales (CU-10, CU-11) |
 | Búsqueda por texto en la primera versión | Decidido | PostgreSQL full-text en español, sin motor externo (CU-26) |
 | Analítica: Google Analytics 4 y Meta Pixel | Decidido | Detalle en RNF-25 |
 | Banner de consentimiento antes de cargar la analítica | Propuesto | Validar el texto con un profesional |

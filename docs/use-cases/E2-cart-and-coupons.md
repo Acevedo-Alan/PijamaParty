@@ -146,10 +146,12 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
 
 **Business rules**
 - The code is unique and case-insensitive: 3 to 20 characters among letters, digits and hyphen, stored in upper case.
-- `PERCENTAGE`: a whole percent from 1 to 100. `FIXED_AMOUNT`: an amount in cents above 0.
+- `PERCENTAGE`: a whole percent from 1 to 100. `FIXED_AMOUNT`: an amount in cents from 1 to 1,000,000,000 (ARS 10,000,000, the price maximum of UC-06).
 - Validity: `valid_from` and `valid_until` are optional dates, inclusive; the start cannot be after the end.
-- Maximum uses and minimum purchase are optional: empty means unlimited uses and no minimum. When present, they are above 0.
-- A used coupon is not deleted: it is deactivated.
+- Maximum uses and minimum purchase are optional: empty means unlimited uses and no minimum. When present, maximum uses go from 1 to 1,000,000 and the minimum purchase from 1 to 1,000,000,000 cents.
+- A new coupon is active.
+- Every field can be edited, also on a coupon with uses: its uses stay, and a confirmed order keeps the discount it got (E3).
+- A coupon without uses can be deleted. A used coupon is not deleted: it is deactivated.
 - Automatic rules are added in E5 (UC-23).
 
 **Acceptance criteria**
@@ -158,5 +160,15 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
 
 **Design notes**
 - `Coupon` aggregate in `promotions.domain` holds the rules above.
-- Endpoints: `/api/admin/coupons` (create, edit, activate and deactivate, list with the number of uses), T-E2-06.
+- One use case per class (T-E2-06): `ListCoupons`, `CreateCoupon`, `UpdateCoupon`, `ActivateCoupon`, `DeactivateCoupon`, `DeleteCoupon`. Each command carries the `Actor`; any actor other than `ADMIN` gets `Forbidden`.
+- Outbound ports: `LoadCoupon` and `CouponUses` (T-E2-05), `CouponSummaries` (read side of the list, with the number of uses), `SaveCoupon` (write; returns `CODE_ALREADY_USED` on the unique code, keeping the caller's transaction usable) and `RemoveStoredCoupon` (returns `HAS_USES` on the `coupon_redemption` foreign key). The number of uses is the count of `coupon_redemption` rows (T-E2-01).
+- The code is taken as typed, ignoring surrounding spaces and case, as in UC-10.
+- Endpoints under `/api/admin/coupons` (errors as `problem+json`; every write requires the CSRF token):
+  - `GET` → `200` every coupon, active or not, newest first. Each one has `id`, `code`, `type`, `discountValue` (the percent, or the cents of a fixed amount), `validFrom` and `validUntil` (ISO dates or null), `maxUses` (or null), `minimumPurchaseCents` (or null), `active` and `uses`.
+  - `POST {code, type, discountValue, validFrom?, validUntil?, maxUses?, minimumPurchaseCents?}` → `201` with the coupon; `409` code already used (the code in the `code` property); `422` with the invalid fields in `fields` (`CODE`, `DISCOUNT_VALUE`, `VALIDITY` when the start is after the end, `MAX_USES`, `MINIMUM_PURCHASE`); `400` for a body that is not JSON of that shape, without code, type or value, or with a code longer than 100 characters.
+  - `PUT /{id}` (same body) → `200`; `404`; `409`; `422`; `400`. It replaces every field but the state and the uses.
+  - `POST /{id}/activate`, `POST /{id}/deactivate` → `200`; `404`. Activating an active coupon, or deactivating an inactive one, changes nothing.
+  - `DELETE /{id}` → `204`; `404`; `409` the coupon has uses (deactivate it instead).
+- A coupon deleted while another change to it is in flight stays deleted (the change answers `404`), as in UC-05.
+- Back office (T-E2-06): `/admin/cupones`. A "New coupon" form above the list creates one. The list shows each coupon newest first with its code, its state, its discount ("10 %" or "$ 2.000"), its validity, its minimum purchase and its uses ("3 de 10", or "3" without a maximum). Each one edits in place with the same form, activates or deactivates, and deletes after a confirmation; a `409` on delete says the coupon was used and offers to deactivate it instead. A `409` on the code says it is taken, and the fields of a `422` are marked. The value is typed in pesos for a fixed amount (as prices, UC-06) and as a whole percent otherwise; the dates use the date picker.
 - Rate-limit policy: authenticated back office (300 per minute per user).

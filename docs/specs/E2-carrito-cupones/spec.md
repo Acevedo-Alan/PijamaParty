@@ -74,7 +74,10 @@
 
 **Reglas**
 - El código es único y no distingue mayúsculas de minúsculas.
-- Un cupón usado no se elimina: se desactiva.
+- Un cupón nuevo nace activo.
+- Todos los datos se pueden editar, también en un cupón con usos: los usos se conservan y cada pedido confirmado mantiene el descuento que tuvo.
+- La vista de usos es el número de usos de cada cupón en el listado ("3 de 10", o "3" sin máximo).
+- Un cupón sin usos se puede eliminar. Un cupón usado no se elimina: se desactiva.
 - Las reglas automáticas se agregan en E5 (CU-23).
 
 **Criterios de aceptación**

@@ -72,7 +72,7 @@ com.pijamaparty.store.<module>/
 
 Persistence uses separate JPA entities mapped to domain aggregates, so the domain stays pure. For simple CRUD modules the mapper is trivial; the rule is kept anyway so the codebase stays uniform.
 
-**Exception: JDBC adapters.** When a constraint violation must become a port outcome (for example `SLUG_ALREADY_USED`) without aborting the caller's transaction, the adapter uses `NamedParameterJdbcTemplate` with constant SQL text blocks and runs each such write inside a savepoint of the caller's transaction (`JdbcCategoryStore`, T-E1-03). PostgreSQL aborts the whole transaction on an error, and Hibernate cannot recover from a failed flush, so a JPA entity cannot do this. Rows are still mapped by hand to the aggregate, never exposed.
+**Exception: JDBC adapters.** When a constraint violation must become a port outcome (for example `SLUG_ALREADY_USED`) without aborting the caller's transaction, the adapter uses `NamedParameterJdbcTemplate` with constant SQL text blocks and runs each such write inside a savepoint of the caller's transaction (`JdbcCategoryStore`, T-E1-03), through the shared `platform.persistence.Savepoints` helper (T-E2-06). PostgreSQL aborts the whole transaction on an error, and Hibernate cannot recover from a failed flush, so a JPA entity cannot do this. Rows are still mapped by hand to the aggregate, never exposed.
 
 ## 5. SOLID, concretely
 
