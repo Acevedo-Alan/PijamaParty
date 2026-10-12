@@ -4,10 +4,14 @@ import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartId;
 import com.pijamaparty.store.cart.domain.CartOwner;
 import com.pijamaparty.store.platform.testing.InMemoryStore;
+import java.time.Instant;
 import java.util.Optional;
 
-/** Fake of {@link LoadCart} and {@link SaveCart}: one cart per owner, as the unique keys of V12. Locks are not modeled. */
-public class InMemoryCartStore implements LoadCart, SaveCart {
+/**
+ * Fake of {@link LoadCart}, {@link SaveCart} and {@link DeleteIdleCarts}: one cart per owner, as the unique keys of
+ * V12. Locks are not modeled.
+ */
+public class InMemoryCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
 
     private final InMemoryStore<CartId, Cart> carts = InMemoryStore.copying(Cart::id, Cart::copy);
 
@@ -27,6 +31,13 @@ public class InMemoryCartStore implements LoadCart, SaveCart {
             throw new IllegalStateException("the owner already has another cart");
         }
         carts.save(cart);
+    }
+
+    @Override
+    public synchronized int deleteUpdatedBefore(Instant cutoff) {
+        var idle = carts.findAll(cart -> cart.updatedAt().isBefore(cutoff));
+        idle.forEach(cart -> carts.delete(cart.id()));
+        return idle.size();
     }
 
     public int size() {

@@ -88,6 +88,11 @@ store:
     conversions:
       max-concurrent: 2
       queue-timeout: 10s
+  cart:
+    cleanup:
+      # T-E2-04: every day at 04:00 store time (America/Argentina/Buenos_Aires), the quietest hour, the carts idle
+      # for more than 30 days are deleted
+      cron: "0 0 4 * * *"
   saturation:
     # RNF-21: Retry-After of the 503 sent when a pool is exhausted
     retry-after: 5s
@@ -121,6 +126,14 @@ store:
         methods: [GET]
         keys: [ip]
         capacity: 120
+        period: 1m
+      # UC-08, UC-09: cart changes per IP. Brought forward from T-E2-11 by T-E2-04: a client without a cookie gets
+      # a new cart with each add, so this also bounds how many carts one IP can create.
+      - name: cart
+        paths: [/api/cart/items, /api/cart/items/*, /api/cart/acknowledge-prices]
+        methods: [POST, PATCH, DELETE]
+        keys: [ip]
+        capacity: 60
         period: 1m
       # UC-26: a catalog request with the text parameter q (search or suggestions); it also counts for catalog
       - name: search

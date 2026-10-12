@@ -5,15 +5,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.cart.application.CartStoreContractTest;
+import com.pijamaparty.store.cart.application.DeleteIdleCarts;
 import com.pijamaparty.store.cart.application.LoadCart;
 import com.pijamaparty.store.cart.application.SaveCart;
 import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartId;
+import com.pijamaparty.store.cart.domain.CartItemId;
 import com.pijamaparty.store.cart.domain.CartOwner;
+import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
 import com.pijamaparty.store.platform.domain.Actor;
+import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.pijamaparty.store.platform.testing.ApiTest;
+import com.pijamaparty.store.platform.testing.RlsPolicyTester;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -29,8 +34,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * Each call committed in its own transaction as the owner of the cart, so Row Level Security applies as in
- * production (RNF-27), then read back from PostgreSQL.
+ * Each call committed in its own transaction as the owner of the cart, and deletions as the system, so Row Level
+ * Security applies as in production (RNF-27), then read back from PostgreSQL.
  */
 @ApiTest
 class JdbcCartStoreContractTest extends CartStoreContractTest<JdbcCartStoreContractTest.AsOwner> {
@@ -71,12 +76,36 @@ class JdbcCartStoreContractTest extends CartStoreContractTest<JdbcCartStoreContr
         assertThat(owner.queryForObject("select count(*) from cart", Long.class)).isZero();
     }
 
+    @Test
+    void givenAnIdleCartWithItems_whenTheSystemDeletesIt_thenItsItemsGoWithIt() {
+        Instant opened = Instant.parse("2026-10-10T12:00:00Z");
+        Cart cart = Cart.open(CartId.of(UUID.randomUUID()), GUEST, opened);
+        cart.add(CartItemId.of(UUID.randomUUID()), VariantId.of(UUID.randomUUID()), 1, 5, Money.of(1_500_000), opened);
+        asOwner.save(cart);
+
+        assertThat(asOwner.deleteUpdatedBefore(opened.plusSeconds(1))).isEqualTo(1);
+
+        assertThat(owner.queryForObject("select count(*) from cart_item", Long.class)).isZero();
+    }
+
+    @Test
+    void givenAnIdleCart_whenAnotherGuestOrTheAdministratorDeletesIdleCarts_thenRowLevelSecurityKeepsIt() {
+        Instant opened = Instant.parse("2026-10-10T12:00:00Z");
+        Instant cutoff = opened.plusSeconds(1);
+        asOwner.save(Cart.open(CartId.of(UUID.randomUUID()), GUEST, opened));
+
+        assertThat(asOwner.as(ACTORS.get(OTHER_GUEST), () -> asOwner.adapter().deleteUpdatedBefore(cutoff))).isZero();
+        assertThat(asOwner.as(RlsPolicyTester.ADMIN, () -> asOwner.adapter().deleteUpdatedBefore(cutoff))).isZero();
+        assertThat(owner.queryForObject("select count(*) from cart", Long.class)).isEqualTo(1);
+    }
+
     private static Actor guest(CartToken token) {
         return Actor.anonymous(Optional.of(token), Optional.empty());
     }
 
     /** Runs every call in its own committed transaction as the actor that owns the cart. */
-    record AsOwner(JdbcCartStore adapter, TransactionTemplate transactions) implements LoadCart, SaveCart {
+    record AsOwner(JdbcCartStore adapter, TransactionTemplate transactions)
+        implements LoadCart, SaveCart, DeleteIdleCarts {
 
         @Override
         public Optional<Cart> findByOwner(CartOwner owner) {
@@ -94,6 +123,11 @@ class JdbcCartStoreContractTest extends CartStoreContractTest<JdbcCartStoreContr
                 adapter.save(cart);
                 return null;
             });
+        }
+
+        @Override
+        public int deleteUpdatedBefore(Instant cutoff) {
+            return as(Actor.system(), () -> adapter.deleteUpdatedBefore(cutoff));
         }
 
         <R> R as(Actor actor, Supplier<R> work) {

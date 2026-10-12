@@ -18,10 +18,11 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Contract of {@link LoadCart} and {@link SaveCart} over the same storage. Owners are the customer and the guests
- * below, so a real adapter can act as each of them (Row Level Security, RNF-27).
+ * Contract of {@link LoadCart}, {@link SaveCart} and {@link DeleteIdleCarts} over the same storage. Owners are the
+ * customer and the guests below, so a real adapter can act as each of them (Row Level Security, RNF-27); it deletes
+ * as the system, like the daily cleanup.
  */
-public abstract class CartStoreContractTest<T extends LoadCart & SaveCart> extends ContractTest<T> {
+public abstract class CartStoreContractTest<T extends LoadCart & SaveCart & DeleteIdleCarts> extends ContractTest<T> {
 
     public static final CartToken GUEST_TOKEN = RlsPolicyTester.GUEST_CART;
     public static final CartToken OTHER_GUEST_TOKEN = new CartToken("another-guest-cart-token");
@@ -121,6 +122,42 @@ public abstract class CartStoreContractTest<T extends LoadCart & SaveCart> exten
         persistAndForget();
 
         assertThat(subject.findByOwner(GUEST).orElseThrow().items()).isEmpty();
+    }
+
+    @Test
+    void givenCartsChangedBeforeAndAtTheCutoff_whenDeletingIdleCarts_thenOnlyTheEarlierOnesGoWithTheirItems() {
+        Instant cutoff = OPENED.plusSeconds(3600);
+        Cart idleGuestCart = Cart.open(CartId.of(UUID.randomUUID()), GUEST, OPENED);
+        idleGuestCart.add(CartItemId.of(UUID.randomUUID()), VariantId.of(UUID.randomUUID()), 1, 5, PRICE, OPENED);
+        Cart idleCustomerCart = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, cutoff.minusSeconds(1));
+        Cart activeCart = Cart.open(CartId.of(UUID.randomUUID()), OTHER_GUEST, OPENED);
+        activeCart.add(CartItemId.of(UUID.randomUUID()), VariantId.of(UUID.randomUUID()), 1, 5, PRICE, cutoff);
+        subject.save(idleGuestCart);
+        subject.save(idleCustomerCart);
+        subject.save(activeCart);
+        persistAndForget();
+
+        assertThat(subject.deleteUpdatedBefore(cutoff)).isEqualTo(2);
+        persistAndForget();
+
+        assertThat(subject.findByOwner(GUEST)).isEmpty();
+        assertThat(subject.findByOwner(CUSTOMER)).isEmpty();
+        assertSameState(subject.findByOwner(OTHER_GUEST), activeCart);
+        assertThat(subject.deleteUpdatedBefore(cutoff)).isZero();
+    }
+
+    @Test
+    void givenADeletedIdleCart_whenItsOwnerAddsAgain_thenANewCartIsSaved() {
+        subject.save(Cart.open(CartId.of(UUID.randomUUID()), GUEST, OPENED));
+        persistAndForget();
+        subject.deleteUpdatedBefore(OPENED.plusSeconds(1));
+        persistAndForget();
+
+        Cart fresh = Cart.open(CartId.of(UUID.randomUUID()), GUEST, OPENED.plusSeconds(60));
+        subject.save(fresh);
+        persistAndForget();
+
+        assertSameState(subject.findByOwner(GUEST), fresh);
     }
 
     private static void assertSameState(Optional<Cart> loaded, Cart expected) {

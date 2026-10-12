@@ -76,7 +76,7 @@ export interface paths {
         put?: never;
         /**
          * Add a variant to the cart
-         * @description Adds to the variant's line if it is already in the cart, and creates the cart with the first product. The line can never exceed the available stock. Requires the CSRF token.
+         * @description Adds to the variant's line if it is already in the cart, and creates the cart with the first product: a guest without a __Host-cart_token cookie gets one. The line can never exceed the available stock. Requires the CSRF token.
          */
         post: operations["add"];
         delete?: never;
@@ -1118,6 +1118,8 @@ export interface operations {
             /** @description The full cart */
             200: {
                 headers: {
+                    /** @description A guest's __Host-cart_token cookie (HttpOnly, Secure, SameSite=Lax, path /), set again so it lives 30 days from the last cart change, like the cart */
+                    "Set-Cookie"?: unknown;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1174,6 +1176,8 @@ export interface operations {
             /** @description The full cart, empty when there is none */
             200: {
                 headers: {
+                    /** @description A guest's __Host-cart_token cookie (HttpOnly, Secure, SameSite=Lax, path /), set again so it lives 30 days from the last cart change, like the cart */
+                    "Set-Cookie"?: unknown;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2012,6 +2016,8 @@ export interface operations {
             /** @description The full cart */
             200: {
                 headers: {
+                    /** @description A guest's __Host-cart_token cookie (HttpOnly, Secure, SameSite=Lax, path /), set again so it lives 30 days from the last cart change, like the cart */
+                    "Set-Cookie"?: unknown;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2056,6 +2062,8 @@ export interface operations {
             /** @description The full cart */
             200: {
                 headers: {
+                    /** @description A guest's __Host-cart_token cookie (HttpOnly, Secure, SameSite=Lax, path /), set again so it lives 30 days from the last cart change, like the cart */
+                    "Set-Cookie"?: unknown;
                     [name: string]: unknown;
                 };
                 content: {

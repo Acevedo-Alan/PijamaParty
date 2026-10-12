@@ -19,9 +19,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestConstructor;
 
 /**
- * The RNF-22 policies of E1 as configured in application.yml (T-E1-15): login per IP (UC-04) and per account
- * (RNF-29.5), catalog and search (UC-26). The test client (127.0.0.1) plays Caddy, so {@code X-Forwarded-For} is the
- * client IP and each test uses its own addresses.
+ * The RNF-22 policies as configured in application.yml: login per IP (UC-04) and per account (RNF-29.5), catalog and
+ * search (UC-26) of T-E1-15, and cart changes (UC-08, UC-09) of T-E2-04. The test client (127.0.0.1) plays Caddy, so
+ * {@code X-Forwarded-For} is the client IP and each test uses its own addresses.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = "store.rate-limit.enabled=true")
@@ -93,6 +93,18 @@ class RateLimitPoliciesTest {
             .as("browsing without text only counts for the catalog policy").isEqualTo(HttpStatus.OK);
     }
 
+    @Test
+    void givenSixtyCartChangesInAMinuteFromOneIp_whenMoreArrive_thenTheyGet429ButReadingTheCartGoesOn() {
+        for (int i = 0; i < 60; i++) {
+            assertThat(addToCart("203.0.113.10").getStatusCode())
+                .as("an unknown variant reaches the cart, which answers 404").isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        assertLimited(firstOfNextRequests(() -> addToCart("203.0.113.10")));
+        assertThat(get("/api/cart", "203.0.113.10").getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(addToCart("203.0.113.11").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
     /**
      * The buckets refill continuously (Bucket4j greedy refill: 120 per minute is one token every 0.5 s), so the
      * requests above give back a few tokens while they run. The limit must show within a handful more.
@@ -119,6 +131,16 @@ class RateLimitPoliciesTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         String body = "{\"email\":\"" + email + "\",\"password\":\"not the password\"}";
         return http.exchange(LOGIN, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+    }
+
+    private ResponseEntity<String> addToCart(String clientIp) {
+        var headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", clientIp);
+        headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + csrfToken);
+        headers.add("X-XSRF-TOKEN", csrfToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String body = "{\"variantId\":\"00000000-0000-0000-0000-000000000001\",\"quantity\":1}";
+        return http.exchange("/api/cart/items", HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
     }
 
     private ResponseEntity<String> get(String path, String clientIp) {

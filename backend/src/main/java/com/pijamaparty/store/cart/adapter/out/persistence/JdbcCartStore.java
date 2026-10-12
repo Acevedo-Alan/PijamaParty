@@ -1,5 +1,6 @@
 package com.pijamaparty.store.cart.adapter.out.persistence;
 
+import com.pijamaparty.store.cart.application.DeleteIdleCarts;
 import com.pijamaparty.store.cart.application.LoadCart;
 import com.pijamaparty.store.cart.application.SaveCart;
 import com.pijamaparty.store.cart.domain.Cart;
@@ -30,7 +31,7 @@ import org.springframework.stereotype.Repository;
  * {@code WHERE} says which cart that is.
  */
 @Repository
-class JdbcCartStore implements LoadCart, SaveCart {
+class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
 
     // One of :tokenHash and :userId is null, and a comparison with null matches nothing.
     private static final String SELECT_CART = """
@@ -70,6 +71,13 @@ class JdbcCartStore implements LoadCart, SaveCart {
         SET quantity = excluded.quantity, last_seen_price_cents = excluded.last_seen_price_cents
         """;
 
+    // T-E2-04: only SYSTEM reaches every cart (RNF-27). cart_updated_at_idx finds them, and the foreign key of
+    // cart_item deletes their items.
+    private static final String DELETE_IDLE_CARTS = """
+        DELETE FROM cart
+        WHERE updated_at < :cutoff
+        """;
+
     private final NamedParameterJdbcTemplate jdbc;
 
     JdbcCartStore(NamedParameterJdbcTemplate jdbc) {
@@ -104,6 +112,11 @@ class JdbcCartStore implements LoadCart, SaveCart {
                 .addValue("createdAt", item.createdAt().atOffset(ZoneOffset.UTC)))
             .toArray(SqlParameterSource[]::new);
         jdbc.batchUpdate(UPSERT_ITEM, rows);
+    }
+
+    @Override
+    public int deleteUpdatedBefore(Instant cutoff) {
+        return jdbc.update(DELETE_IDLE_CARTS, new MapSqlParameterSource("cutoff", cutoff.atOffset(ZoneOffset.UTC)));
     }
 
     private Optional<Cart> load(String sql, CartOwner owner) {

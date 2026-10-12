@@ -9,7 +9,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 public class TimeConfiguration {
 
-    public static final ZoneId STORE_ZONE = ZoneId.of("America/Argentina/Buenos_Aires");
+    /** For annotations that need a constant, such as the zone of a {@code @Scheduled} cron. */
+    public static final String STORE_ZONE_ID = "America/Argentina/Buenos_Aires";
+
+    public static final ZoneId STORE_ZONE = ZoneId.of(STORE_ZONE_ID);
 
     @Bean
     Clock clock() {

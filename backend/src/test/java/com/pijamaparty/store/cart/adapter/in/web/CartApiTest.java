@@ -1,5 +1,6 @@
 package com.pijamaparty.store.cart.adapter.in.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -7,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -14,42 +16,40 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
-import com.pijamaparty.store.platform.domain.Actor;
-import com.pijamaparty.store.platform.security.ActorResolver;
 import com.pijamaparty.store.platform.testing.ApiTest;
+import jakarta.servlet.http.Cookie;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.mock.web.MockCookie;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * UC-08 and UC-09 through the cart API, with the real security filter chain, Row Level Security and PostgreSQL. The
- * {@code cart_token} cookie arrives in T-E2-04, so a test-only resolver makes the request a guest with the token of
- * the {@value #TEST_CART_TOKEN} header.
+ * UC-08, UC-09 and the {@code __Host-cart_token} cookie of T-E2-04 through the cart API, with the real security filter
+ * chain, Row Level Security and PostgreSQL. The guest of most tests already holds a cookie.
  */
 @ApiTest
-@Import(CartApiTest.GuestByHeader.class)
 class CartApiTest {
 
-    static final String TEST_CART_TOKEN = "X-Test-Cart-Token";
     private static final String ITEMS = "/api/cart/items";
+    private static final String CART_COOKIE = "__Host-cart_token";
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final MockMvc mvc;
     private final ObjectMapper json;
     private final JdbcTemplate owner;
-    private final String token = "guest-" + UUID.randomUUID();
+    private final String token = newToken();
     private UUID variant;
 
     CartApiTest(MockMvc mvc, ObjectMapper json, PostgreSQLContainer<?> postgres) {
@@ -90,7 +90,7 @@ class CartApiTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items.length()").value(1))
             .andExpect(jsonPath("$.items[0].quantity").value(2));
-        mvc.perform(get("/api/cart").header(TEST_CART_TOKEN, "another-guest"))
+        mvc.perform(get("/api/cart").cookie(cartToken(newToken())))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items.length()").value(0));
     }
@@ -139,16 +139,104 @@ class CartApiTest {
     }
 
     @Test
-    void givenAVisitorWithoutATokenOrTheAdministrator_whenAdding_thenItIsForbiddenAndTheirCartIsEmpty()
-        throws Exception {
-        String body = json.writeValueAsString(Map.of("variantId", variant, "quantity", 1));
-
-        mvc.perform(post(ITEMS).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+    void givenTheAdministrator_whenAdding_thenItIsForbiddenEvenWithACartCookie() throws Exception {
+        mvc.perform(guest(post(ITEMS)).with(csrf()).with(user(UUID.randomUUID().toString()).roles("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("variantId", variant, "quantity", 1))))
             .andExpect(status().isForbidden())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
-        mvc.perform(post(ITEMS).with(csrf()).with(user(UUID.randomUUID().toString()).roles("ADMIN"))
-                .contentType(MediaType.APPLICATION_JSON).content(body))
-            .andExpect(status().isForbidden());
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(cookie().doesNotExist(CART_COOKIE));
+        assertThat(owner.queryForObject("select count(*) from cart", Long.class)).isZero();
+    }
+
+    @Test
+    void givenAVisitorWithoutACookie_whenAddingTheFirstProduct_thenACartTokenCookieTiesTheCartToTheBrowser()
+        throws Exception {
+        MockHttpServletResponse response = mvc.perform(post(ITEMS).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("variantId", variant, "quantity", 2))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].quantity").value(2))
+            .andReturn().getResponse();
+
+        Cookie issued = response.getCookie(CART_COOKIE);
+        assertThat(issued).isNotNull();
+        assertThat(issued.getValue()).matches("[A-Za-z0-9_-]{43}");
+        assertThat(issued.isHttpOnly()).isTrue();
+        assertThat(issued.getSecure()).isTrue();
+        assertThat(((MockCookie) issued).getSameSite()).isEqualTo("Lax");
+        assertThat(issued.getPath()).isEqualTo("/");
+        assertThat(issued.getMaxAge()).isEqualTo(30 * 24 * 60 * 60);
+        // RNF-29.6: the database only knows the hash of the token.
+        assertThat(owner.queryForList("select token_hash from cart", String.class))
+            .containsExactly(new CartToken(issued.getValue()).hash());
+
+        mvc.perform(get("/api/cart").cookie(cartToken(issued.getValue())))
+            .andExpect(jsonPath("$.items[0].quantity").value(2));
+        mvc.perform(get("/api/cart")).andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void givenAVisitorWithoutACookie_whenTheFirstAddIsRejected_thenNoCookieAndNoCartAreCreated() throws Exception {
+        mvc.perform(post(ITEMS).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("variantId", variant, "quantity", 4))))
+            .andExpect(status().isConflict())
+            .andExpect(cookie().doesNotExist(CART_COOKIE));
+        mvc.perform(post(ITEMS).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("variantId", UUID.randomUUID(), "quantity", 1))))
+            .andExpect(status().isNotFound())
+            .andExpect(cookie().doesNotExist(CART_COOKIE));
+        mvc.perform(post(ITEMS).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(cookie().doesNotExist(CART_COOKIE));
+
+        assertThat(owner.queryForObject("select count(*) from cart", Long.class)).isZero();
+    }
+
+    @Test
+    void givenAMalformedCookie_whenAdding_thenItIsIgnoredAndANewTokenIsIssued() throws Exception {
+        String issued = mvc.perform(post(ITEMS).cookie(cartToken("not-a-token")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("variantId", variant, "quantity", 1))))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getCookie(CART_COOKIE).getValue();
+
+        assertThat(issued).isNotEqualTo("not-a-token").matches("[A-Za-z0-9_-]{43}");
+        mvc.perform(get("/api/cart").cookie(cartToken("not-a-token"))).andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void givenATokenInACookieWithoutTheHostPrefix_whenReadingTheCart_thenItIsIgnored() throws Exception {
+        add(variant, 1).andExpect(status().isOk());
+
+        mvc.perform(get("/api/cart").cookie(new Cookie("cart_token", token)))
+            .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void givenAGuestWithACookie_whenChangingTheCart_thenTheSameCookieIsSetAgainButNotWhenReadingIt() throws Exception {
+        add(variant, 1).andExpect(cookie().value(CART_COOKIE, token));
+        String item = itemIdOf(add(variant, 1));
+        changeQuantity(item, 1).andExpect(cookie().value(CART_COOKIE, token));
+        mvc.perform(guest(post("/api/cart/acknowledge-prices")).with(csrf()))
+            .andExpect(cookie().value(CART_COOKIE, token));
+
+        mvc.perform(guest(get("/api/cart"))).andExpect(cookie().doesNotExist(CART_COOKIE));
+        mvc.perform(guest(delete(ITEMS + "/" + item)).with(csrf())).andExpect(cookie().value(CART_COOKIE, token));
+        assertThat(owner.queryForObject("select count(*) from cart", Long.class)).isEqualTo(1);
+    }
+
+    @Test
+    void givenAVisitorWithoutACookie_whenChangingTheCart_thenItIsForbiddenAndTheCartIsEmpty() throws Exception {
+        mvc.perform(patch(ITEMS + "/" + UUID.randomUUID()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"quantity\":1}"))
+            .andExpect(status().isForbidden())
+            .andExpect(cookie().doesNotExist(CART_COOKIE));
+        mvc.perform(delete(ITEMS + "/" + UUID.randomUUID()).with(csrf()))
+            .andExpect(status().isForbidden())
+            .andExpect(cookie().doesNotExist(CART_COOKIE));
+        mvc.perform(post("/api/cart/acknowledge-prices").with(csrf()))
+            .andExpect(status().isForbidden())
+            .andExpect(cookie().doesNotExist(CART_COOKIE));
         mvc.perform(get("/api/cart"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items.length()").value(0));
@@ -271,11 +359,11 @@ class CartApiTest {
     void givenAnItemOfAnotherGuest_whenChangingOrRemovingIt_thenItIsNotFound() throws Exception {
         String item = itemIdOf(add(variant, 1));
 
-        mvc.perform(patch(ITEMS + "/" + item).header(TEST_CART_TOKEN, "another-guest").with(csrf())
+        mvc.perform(patch(ITEMS + "/" + item).cookie(cartToken(newToken())).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2}"))
             .andExpect(status().isNotFound())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
-        mvc.perform(delete(ITEMS + "/" + item).header(TEST_CART_TOKEN, "another-guest").with(csrf()))
+        mvc.perform(delete(ITEMS + "/" + item).cookie(cartToken(newToken())).with(csrf()))
             .andExpect(status().isNotFound());
         mvc.perform(guest(get("/api/cart"))).andExpect(jsonPath("$.items[0].quantity").value(1));
     }
@@ -319,17 +407,17 @@ class CartApiTest {
     }
 
     private MockHttpServletRequestBuilder guest(MockHttpServletRequestBuilder request) {
-        return request.header(TEST_CART_TOKEN, token);
+        return request.cookie(cartToken(token));
     }
 
-    /** Stands in for the {@code cart_token} cookie of T-E2-04. */
-    @TestConfiguration(proxyBeanMethods = false)
-    static class GuestByHeader {
+    private static Cookie cartToken(String value) {
+        return new Cookie(CART_COOKIE, value);
+    }
 
-        @Bean
-        ActorResolver guestByTestHeader() {
-            return request -> Optional.ofNullable(request.getHeader(TEST_CART_TOKEN))
-                .map(token -> Actor.anonymous(Optional.of(new CartToken(token)), Optional.empty()));
-        }
+    /** A token as the server issues them: 32 random bytes in unpadded base64url. */
+    private static String newToken() {
+        byte[] bytes = new byte[32];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }
