@@ -16,6 +16,7 @@ import com.pijamaparty.store.catalog.domain.ImagePlaceholder;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.StorageKey;
 import com.pijamaparty.store.catalog.domain.UploadKey;
+import com.pijamaparty.store.catalog.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Money;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -41,8 +42,10 @@ class GetProductDetailServiceTest {
         ProductDetail found = found("pijama");
 
         assertThat(found.variants()).containsExactly(
-            new ProductDetail.VariantDetail(variant(pajama, "M", "Rosa"), "M", "Rosa", Money.of(4500), 3),
-            new ProductDetail.VariantDetail(variant(pajama, "M", "Celeste"), "M", "Celeste", Money.of(4500), 0));
+            new ProductDetail.VariantDetail(variant(pajama, "M", "Rosa"), sku(pajama, "M", "Rosa"), "M", "Rosa",
+                Money.of(4500), 3),
+            new ProductDetail.VariantDetail(variant(pajama, "M", "Celeste"), sku(pajama, "M", "Celeste"), "M",
+                "Celeste", Money.of(4500), 0));
     }
 
     @Test
@@ -102,6 +105,11 @@ class GetProductDetailServiceTest {
 
     private ProductDetail found(String slug) {
         return ((GetProductDetail.Result.Found) detail.execute(new GetProductDetail.Query(slug))).product();
+    }
+
+    private static String sku(Product product, String size, String color) {
+        VariantId id = variant(product, size, color);
+        return product.variants().stream().filter(v -> v.id().equals(id)).findFirst().orElseThrow().sku().value();
     }
 
     private static void addImage(Product product, String color) {

@@ -260,11 +260,14 @@ class CatalogController {
         }
     }
 
-    /** {@code id} is what the cart takes (UC-08); {@code available} is the stock that can be bought now. */
-    record VariantDetailResponse(UUID id, String size, String color, long priceCents, int available) {
+    /**
+     * {@code id} is what the cart takes (UC-08); {@code sku} identifies the item in the analytics events (T-E2-12);
+     * {@code available} is the stock that can be bought now.
+     */
+    record VariantDetailResponse(UUID id, String sku, String size, String color, long priceCents, int available) {
 
         static VariantDetailResponse of(ProductDetail.VariantDetail variant) {
-            return new VariantDetailResponse(variant.id().value(), variant.size(), variant.color(),
+            return new VariantDetailResponse(variant.id().value(), variant.sku(), variant.size(), variant.color(),
                 variant.price().cents(), variant.available());
         }
     }

@@ -115,6 +115,13 @@ export function trackPageView(path: string, title: string): void {
   window.fbq?.('track', 'PageView');
 }
 
+const CENTS_PER_PESO = 100;
+
+/** Event amounts go in pesos, with currency ARS (RNF-25). */
+export function pesos(cents: number): number {
+  return cents / CENTS_PER_PESO;
+}
+
 /** A GA4 event and, when it has one, its Meta Pixel counterpart (RNF-25). */
 export function trackEvent(ga4: { name: string; params: Record<string, unknown> }, pixel?: {
   name: string;

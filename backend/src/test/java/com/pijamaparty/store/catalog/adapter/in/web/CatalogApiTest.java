@@ -203,6 +203,7 @@ class CatalogApiTest {
             .andExpect(jsonPath("$.colors", containsInAnyOrder("Rosa", "Celeste")))
             .andExpect(jsonPath("$.variants", hasSize(2)))
             .andExpect(jsonPath("$.variants[?(@.color == 'Rosa')].id", contains(pinkM.toString())))
+            .andExpect(jsonPath("$.variants[?(@.color == 'Rosa')].sku", contains(sku(pinkM))))
             .andExpect(jsonPath("$.variants[?(@.color == 'Rosa')].available", contains(3)))
             .andExpect(jsonPath("$.variants[?(@.color == 'Celeste')].available", contains(0)))
             .andExpect(jsonPath("$.variants[?(@.color == 'Celeste')].priceCents", contains(5200)))
@@ -268,9 +269,14 @@ class CatalogApiTest {
             insert into variant (id, product_id, sku, size, size_position, color, color_position, price_cents, active,
                                  created_at, updated_at)
             values (?, ?, ?, ?, 0, ?, 0, ?, true, now(), now())
-            """, id, product, "PP-" + id.toString().substring(0, 8), size, color, cents);
+            """, id, product, sku(id), size, color, cents);
         app.update("insert into stock_level (variant_id, on_hand, updated_at) values (?, ?, now())", id, onHand);
         return id;
+    }
+
+    /** The SKU {@link #variant} gives the variant with this id. */
+    private static String sku(UUID variant) {
+        return "PP-" + variant.toString().substring(0, 8);
     }
 
     private String image(UUID product) {

@@ -1001,6 +1001,7 @@ export interface components {
         VariantDetailResponse: {
             /** Format: uuid */
             id?: string;
+            sku?: string;
             size?: string;
             color?: string;
             /** Format: int64 */

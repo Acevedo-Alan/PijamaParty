@@ -9,6 +9,8 @@ type VariantResponse = components['schemas']['VariantDetailResponse'];
 /** An active priced variant with its own price and exact available stock (UC-03). */
 export interface DetailVariant {
   id: string;
+  /** The item id of the analytics events (T-E2-12). */
+  sku: string;
   size: string;
   color: string;
   priceCents: number;
@@ -38,11 +40,11 @@ export interface ProductDetail {
 /** GET /api/catalog/products/{slug}. A product that is not listed is an expected answer, not an error. */
 export type ProductDetailAnswer = { status: 'found'; product: ProductDetail } | { status: 'notFound' };
 
-function toVariant({ id, size, color, priceCents, available }: VariantResponse): DetailVariant {
-  if (id === undefined || size === undefined || color === undefined || priceCents === undefined) {
+function toVariant({ id, sku, size, color, priceCents, available }: VariantResponse): DetailVariant {
+  if (id === undefined || sku === undefined || size === undefined || color === undefined || priceCents === undefined) {
     throw new Error('Incomplete variant in the product detail');
   }
-  return { id, size, color, priceCents, available: available ?? 0 };
+  return { id, sku, size, color, priceCents, available: available ?? 0 };
 }
 
 function toDetail(data: DetailResponse): ProductDetail {

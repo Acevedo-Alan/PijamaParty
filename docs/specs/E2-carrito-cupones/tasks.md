@@ -11,7 +11,7 @@
 - [x] **T-E2-09** Storefront: campo de cupón con mensajes de error claros (CU-10).
 - [x] **T-E2-10** Tests de los criterios de aceptación de CU-08 a CU-11.
 - [x] **T-E2-11** Activar las políticas de rate limiting de carrito y cupón (RNF-22). La de cambios del carrito ya se activó en T-E2-04; falta la de cupón.
-- [ ] **T-E2-12** Evento de analítica `add_to_cart` en GA4 y Meta Pixel (RNF-25).
+- [x] **T-E2-12** Evento de analítica `add_to_cart` en GA4 y Meta Pixel (RNF-25).
 - [ ] **T-E2-13** Tests de las políticas de Row Level Security de `carrito` y `carrito_item` con cliente A, cliente B, invitado, administrador y sistema (RNF-27). Las políticas se crean en T-E2-01.
 
 **Terminado cuando:** se puede armar un carrito, aplicar un cupón y recibir un error claro si una variante se agota.

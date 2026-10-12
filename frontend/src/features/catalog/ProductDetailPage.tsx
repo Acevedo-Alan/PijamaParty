@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { trackAddToCart } from '../analytics/cartEvents.ts';
 import { trackItemView } from '../analytics/catalogEvents.ts';
 import type { AddAnswer } from '../cart/cartApi.ts';
 import { useAddToCart } from '../cart/useCart.ts';
@@ -52,11 +53,23 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
     if (variant === undefined) {
       return;
     }
-    add.mutate({ variantId: variant.id, quantity: 1 }, {
+    const quantity = 1;
+    add.mutate({ variantId: variant.id, quantity }, {
       onSuccess: (answer) => {
         if (answer.status !== 'added') {
           void queryClient.invalidateQueries({ queryKey: productDetailKey(product.slug) });
+          return;
         }
+        // RNF-25: one add_to_cart per successful add, at the server's price.
+        const added = answer.cart.items.find((item) => item.variantId === variant.id);
+        trackAddToCart({
+          sku: variant.sku,
+          name: product.name,
+          size: variant.size,
+          color: variant.color,
+          unitPriceCents: added?.unitPriceCents ?? variant.priceCents,
+          quantity,
+        });
       },
     });
   }

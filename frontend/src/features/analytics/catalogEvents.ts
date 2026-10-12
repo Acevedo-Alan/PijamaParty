@@ -1,20 +1,14 @@
-import { trackEvent } from './analytics.ts';
+import { pesos, trackEvent } from './analytics.ts';
 
 /**
  * The catalog events of RNF-25 (T-E1-24). Products are identified by their slug: no variant, and so no SKU, is chosen
  * yet. Amounts go in pesos with currency ARS.
  */
 
-const CENTS_PER_PESO = 100;
-
 export interface ListedForAnalytics {
   slug: string;
   name: string;
   fromPriceCents: number;
-}
-
-function pesos(cents: number): number {
-  return cents / CENTS_PER_PESO;
 }
 
 /** Which list the products were shown in. */

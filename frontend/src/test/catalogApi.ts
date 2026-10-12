@@ -118,7 +118,7 @@ type DetailVariantBody = components['schemas']['VariantDetailResponse'];
 type DetailImageBody = components['schemas']['DetailImageResponse'];
 
 export function detailVariant(size: string, color: string, available: number, priceCents = 2_500_000): DetailVariantBody {
-  return { id: `${size}-${color}`, size, color, priceCents, available };
+  return { id: `${size}-${color}`, sku: `PP-${size}${color.toUpperCase()}`, size, color, priceCents, available };
 }
 
 export function detailImage(name: string, color: string | null): DetailImageBody {

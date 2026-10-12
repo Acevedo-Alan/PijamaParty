@@ -53,11 +53,11 @@ public record ProductDetail(String slug, String name, String description, String
     }
 
     /** A sellable variant by size and then color position. */
-    public record VariantDetail(VariantId id, String size, String color, Money price, int available) {
+    public record VariantDetail(VariantId id, String sku, String size, String color, Money price, int available) {
 
         static VariantDetail of(Variant variant, int available) {
-            return new VariantDetail(variant.id(), variant.size().value(), variant.color().value(),
-                variant.price().orElseThrow(), available);
+            return new VariantDetail(variant.id(), variant.sku().value(), variant.size().value(),
+                variant.color().value(), variant.price().orElseThrow(), available);
         }
     }
 }

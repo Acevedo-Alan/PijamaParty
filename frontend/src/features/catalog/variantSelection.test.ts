@@ -10,7 +10,7 @@ import {
 } from './variantSelection.ts';
 
 function variant(size: string, color: string, available: number, priceCents = 1_000_000): DetailVariant {
-  return { id: `${size}-${color}`, size, color, priceCents, available };
+  return { id: `${size}-${color}`, sku: `PP-${size}${color}`, size, color, priceCents, available };
 }
 
 function image(src: string, color: string | null): DetailImage {
