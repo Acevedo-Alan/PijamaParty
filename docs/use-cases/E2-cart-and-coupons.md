@@ -13,6 +13,13 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
 - `coupon` (`promotions` module, no Row Level Security: no personal data and outside the RNF-27 list): `id`, `code`, `type` (`PERCENTAGE` or `FIXED_AMOUNT`), `discount_value`, `valid_from`, `valid_until`, `max_uses`, `minimum_purchase_cents`, `active`, `created_at`, `updated_at`. E5 adds `automatic` and `rule` (UC-23).
 - `coupon_redemption` (`promotions` module): `coupon_id` (foreign key), `order_id` (refers to `ordering`, no foreign key), `redeemed_at`. Primary key `(coupon_id, order_id)`, so a repeated confirmation counts once (RNF-20). Filled when an order is confirmed (E3); the number of uses and the "has uses" rule of UC-11 derive from it, and its foreign key refuses deleting a used coupon.
 
+**Guest cart token and cleanup (T-E2-04):**
+- The `cart_token` cookie identifies a guest's cart: 32 random bytes from `SecureRandom` (256 bits, RNF-29.6) in unpadded base64url (43 characters), through the `platform.application.TokenGenerator` port. It is named `__Host-cart_token`, with `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` and `Max-Age` of 30 days, the cleanup period. The `__Host-` prefix (required `Secure`, `Path=/`, no `Domain`) makes browsers accept it only from this host over HTTPS, so a sibling subdomain or a plain-HTTP response cannot plant a token in a shopper's browser (cookie fixation); a cookie without the prefix is ignored.
+- Every request with a well-formed cookie acts as a guest with that token, unless a session identifies the actor first (the administrator; the customer in E4). A malformed cookie is ignored: the request is a guest without a token. A well-formed token nobody issued simply finds no cart.
+- A guest without a token gets one when it adds its first product (UC-08): the request runs with the new token, so the cart is created for it, and the response sets the cookie. A rejected add (`409`, `404`, `400`) sets no cookie. The other cart changes of a guest without a token keep answering `403`, and `GET /api/cart` an empty cart.
+- Every successful cart change of a guest (`POST`, `PATCH`, `DELETE` and the price acknowledgment) sets the cookie again, so it lives 30 days from the last change, like the cart. `GET /api/cart` never sets it.
+- **Daily cleanup:** a scheduled job, every day at 04:00 in `America/Argentina/Buenos_Aires` (property `store.cart.cleanup.cron`), deletes as `SYSTEM` (RNF-27) the carts whose `updated_at` is more than 30 days old, guests' and customers' alike; their items go with them. Inbound port `RemoveIdleCarts`, outbound port `DeleteIdleCarts`. It logs only the number of deleted carts.
+
 ---
 
 ## UC-08 Add a product to the cart
@@ -45,10 +52,10 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
 - Outbound ports: `LoadCart`, `SaveCart`, and `VariantAvailability` (backed by `catalog.api` and `inventory.api`). The `Cart` aggregate holds the stock rule (`add(variantId, quantity, available)`).
 - Endpoint: `POST /api/cart/items {variantId, quantity}` → `200` with the full cart; `409` `problem+json` for insufficient stock (with `variantId` and `available`); `404` for an unknown or unavailable variant; `400` invalid body (quantity from 1 to 1,000,000); `403` for an actor that cannot own a cart.
 - A variant can be added when the catalog sells it (published product of an active category, variant active and priced: `catalog.api.SellableVariants`); its available stock comes from `inventory.api.StockAvailability`. Adding a variant already in the cart adds to its line and records the current price as its `last_seen_price_cents`.
-- The cart's owner comes from the actor: a customer by its user id, a guest by the hash of its `cart_token`. An actor that cannot own a cart (the administrator, a guest without a token) gets `403` on every cart change and an empty cart on `GET /api/cart`: Row Level Security gives them no cart (T-E2-01). From T-E2-04 every guest has a token.
-- A guest without a cart gets one with a new `cart_token` cookie (T-E2-04).
+- The cart's owner comes from the actor: a customer by its user id, a guest by the hash of its `cart_token`. An actor that cannot own a cart (the administrator, a guest without a token) gets `403` on every cart change and an empty cart on `GET /api/cart`: Row Level Security gives them no cart (T-E2-01).
+- A guest without a token gets one, and its `cart_token` cookie, with its first product (T-E2-04).
 - Cart responses: the items in the order they were added, each with `id`, `variantId` and `quantity`, priced with the current catalog prices and stock, with the cart totals (UC-09, T-E2-03).
-- Rate-limit policy: cart changes (60 per minute per IP), activated in T-E2-11.
+- Rate-limit policy: cart changes (60 per minute per IP), activated in T-E2-04 (brought forward from T-E2-11: a client without a cookie creates a cart with each add, so the policy also bounds cart creation per IP).
 - Analytics: `add_to_cart` (T-E2-12, RNF-25).
 
 ---
@@ -83,7 +90,7 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
   - `UNAVAILABLE`: sold out, or the catalog no longer sells it.
 - The cart has `subtotalCents` (the `AVAILABLE` items at their current price), `discountCents` (0 until the coupons of T-E2-05) and `totalCents` (subtotal − discount). Only `AVAILABLE` items can be bought; the checkout (E3) refuses a cart with other items or with unacknowledged price changes.
 - A price change is announced until the customer acknowledges it: `POST /api/cart/acknowledge-prices` (inbound port `AcknowledgePriceChanges`) records the current price of every item the catalog sells as its last seen price and answers `200` with the full cart, or `403` as in UC-08. Without a cart it answers an empty cart. `GET /api/cart` never writes.
-- Rate-limit policy: cart changes (60 per minute per IP), activated in T-E2-11.
+- Rate-limit policy: cart changes (60 per minute per IP), activated in T-E2-04 (brought forward from T-E2-11: a client without a cookie creates a cart with each add, so the policy also bounds cart creation per IP).
 
 ---
 

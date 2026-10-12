@@ -18,7 +18,7 @@
 
 ## Decisiones técnicas
 
-- **Carrito en el servidor.** Para invitados se identifica con una cookie `cart_token` (`HttpOnly`, `Secure`, `SameSite=Lax`). Así el servidor valida precios y stock, y el carrito sobrevive si se cierra el navegador.
+- **Carrito en el servidor.** Para invitados se identifica con una cookie `cart_token` (`HttpOnly`, `Secure`, `SameSite=Lax`), con el prefijo `__Host-` para que nadie pueda plantarla desde otro subdominio ni por HTTP. Así el servidor valida precios y stock, y el carrito sobrevive si se cierra el navegador.
 - **Totales:** siempre los calcula el servidor (reglas R-01 y R-02); la respuesta incluye subtotal, descuento y total.
 - **Limpieza:** un proceso diario elimina carritos sin actividad hace más de 30 días.
 - **Cupón:** el uso se cuenta recién al confirmar el pedido (E3), no al aplicarlo.
