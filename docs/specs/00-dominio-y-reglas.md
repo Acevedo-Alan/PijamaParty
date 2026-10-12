@@ -22,7 +22,7 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | Categoria | id, nombre, slug, orden, activa |
 | Producto | id, nombre, slug, descripcion, material, temporada, publico, categoriaId, activo |
 | Variante | id, productoId, sku, talle, ordenTalle, color, ordenColor, precioCentavos?, activa (el orden de talles y colores es el de carga en el producto) |
-| NivelStock | varianteId, enMano (módulo de inventario; la reserva se suma en E3) |
+| NivelStock | varianteId, enMano, reservado (módulo de inventario; 0 ≤ reservado ≤ enMano; disponible = enMano − reservado) |
 | Imagen | id, productoId, color? (uno de los colores del producto), claveArchivo (nombre generado por el servidor; la URL se deriva de ella, RNF-29.4), placeholder, orden, claveSubida y hash del archivo (reintentos sin duplicar) |
 | MovimientoStock | id, varianteId, tipo (CARGA_INICIAL, AJUSTE, RESERVA, DESCUENTO, LIBERACION), cantidad (con signo), nota? (texto libre del administrador), pedidoId?, usuarioId?, claveAjuste? (reintentos sin duplicar), fecha |
 | Carrito / CarritoItem | id, hashToken? (SHA-256 del `cart_token`) o usuarioId? (uno de los dos), cuponId?, actualizadoEn, items(varianteId, cantidad, ultimoPrecioVisto) |
@@ -31,12 +31,12 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | Usuario | id, email, emailVerificado, passwordHash?, nombre, rol (CLIENTE / ADMIN), intentosFallidos, bloqueadoHasta? |
 | IdentidadExterna | id, usuarioId, proveedor (GOOGLE / FACEBOOK), sujeto, email, creadoEn |
 | Direccion | id, usuarioId, calle, numero, piso, depto, ciudad, provincia, codigoPostal, principal |
-| Pedido | id, numero, usuarioId?, email, nombre, telefono, dni, direccionEnvio (copia), subtotal, descuento, envio, total, estado, cuponCodigo, tokenSeguimiento, creadoEn, entregadoEn |
+| Pedido | id, numero (secuencia desde 1001, se muestra como #1001), usuarioId?, hashTokenSeguimiento, estado, nombre, email, telefono, dni, direccionEnvio (copia: calle, numero, piso?, depto?, ciudad, provincia, codigoPostal), subtotal, descuento, envio, total, cuponId?, cuponCodigo?, medioDePago, versionTerminos, reservaVenceEn, numeroSeguimientoEnvio?, creadoEn, actualizadoEn, entregadoEn? |
 | SolicitudArrepentimiento | id, pedidoId, codigo, estado (RECIBIDA / RESUELTA), fueraDeTermino, creadoEn, resueltoEn |
-| PedidoItem | pedidoId, varianteId, nombre, talle, color, precioCentavos, cantidad |
-| Pago | id, pedidoId, proveedor, externalId, estado, montoCentavos, creadoEn |
-| CostoEnvioZona | provincia/zona, costoCentavos |
-| ConfigTienda | envioGratisDesdeCentavos |
+| PedidoItem | pedidoId, posicion, varianteId, sku, nombre, talle, color, precioCentavos, cantidad (inmutable) |
+| Pago | id, pedidoId, proveedor (uno por pedido y proveedor), montoCentavos, estado (PENDIENTE / APROBADO / RECHAZADO), idCheckout?, urlCheckout? (la preferencia de MercadoPago), idPagoExterno? (último pago verificado), creadoEn, actualizadoEn |
+| CostoEnvioZona | provincia (una de las 24 jurisdicciones), costoCentavos (0 a 1.000.000.000) |
+| ConfigTienda | envioGratisDesdeCentavos? (una sola fila) |
 | IdempotencyKey | id, clave, alcance, hashRequest, estado, codigoRespuesta, cuerpoRespuesta, creadoEn, venceEn |
 | PagoEvento | id, proveedor, idExterno, estado, payload, procesadoEn |
 | EmailOutbox | id, tipo, referencia, destinatario, asunto, cuerpo, estado, intentos, proximoIntento |
@@ -77,9 +77,15 @@ PAGADO | PREPARANDO → CANCELADO
 |---|---|---|
 | Variantes, stock por SKU, guest checkout, wizard de 3 pasos | Decidido | Documento de alcance v1.2 |
 | Costo de envío por zona, etiqueta manual | Decidido | Documento de alcance v1.2, punto 5.1 |
-| Vencimiento de reserva de stock: 30 minutos | Propuesto | Confirmar antes de E3 |
-| Solo medios de pago inmediatos en v1 | Propuesto | El efectivo diferido retendría stock por días |
-| Descuento definitivo de stock al confirmar el pago | Propuesto | Reserva al iniciar el pago |
+| Vencimiento de reserva de stock: 30 minutos | Decidido | Confirmado antes de E3 (CU-16) |
+| Solo medios de pago inmediatos en v1 | Decidido | El efectivo diferido retendría stock por días: el checkout de MercadoPago excluye cupones de pago en efectivo y cajeros (CU-14) |
+| Descuento definitivo de stock al confirmar el pago | Decidido | Reserva al iniciar el pago (CU-16) |
+| Reserva de stock | Decidido | Columna `reservado` del nivel de stock, con actualización condicional; los movimientos RESERVA, DESCUENTO y LIBERACION del pedido son el registro, y el vencimiento es `reservaVenceEn` del pedido. Sin tabla de reservas (CU-16) |
+| DNI en el pedido | Decidido | Columna sin cifrado por columna, protegida por RLS, el rol de privilegios mínimos, backups cifrados y sin logs (RNF-29.7) |
+| Costo de envío | Decidido | Uno por provincia, entre las 24 jurisdicciones; sin costo cargado no hay envío (CU-12) |
+| Datos del comprador en el pedido | Decidido | Nombre 1 a 100; email hasta 254, en minúsculas; teléfono solo dígitos, 8 a 15; DNI solo dígitos, 7 u 8; calle 1 a 100, número 1 a 10, piso y depto opcionales hasta 10, ciudad 1 a 80; código postal de 4 dígitos o CPA (`S3000ABC`) en mayúsculas (CU-13) |
+| Contexto de RLS del checkout | Decidido | La transacción del checkout corre como el comprador (invitado o cliente), atada al hash del token de seguimiento del pedido nuevo; el pago, el proveedor, el webhook y el vencimiento corren como SISTEMA (RNF-27) |
+| Versión de los términos en el pedido | Decidido | Se guarda al comprar (RNF-30.6); la marca de facturado espera la decisión de facturación (RNF-30.7) |
 | Integración con MODO | Pendiente | Averiguar documentación y acuerdo comercial |
 | Reglas de reseñas | Pendiente | Documento de alcance, punto 12 |
 | Reglas de cupones automáticos | Pendiente | Documento de alcance, punto 12 |

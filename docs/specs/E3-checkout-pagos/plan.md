@@ -2,7 +2,7 @@
 
 ## Modelo de datos nuevo
 
-`pedido`, `pedido_item`, `pago`, `costo_envio_zona`, `config_tienda`, `solicitud_arrepentimiento` (`pedido_id` con restricción única para solicitudes activas, `codigo`, `estado` RECIBIDA o RESUELTA, `fuera_de_termino`, `creado_en`, `resuelto_en`). Se agrega a `variante` el campo `stock_reservado` (ya previsto en el dominio) y a `pedido` los campos `reserva_vence_en` y `entregado_en` (para calcular el plazo de CU-29).
+`pedido`, `pedido_item`, `pago`, `costo_envio_zona`, `config_tienda`, `solicitud_arrepentimiento` (`pedido_id` con restricción única para solicitudes activas, `codigo`, `estado` RECIBIDA o RESUELTA, `fuera_de_termino`, `creado_en`, `resuelto_en`). Se agrega al nivel de stock del módulo de inventario el campo `reservado` (`stock_level.reserved`; el stock salió de `variante` en E1) y a `pedido` los campos `reserva_vence_en` y `entregado_en` (para calcular el plazo de CU-29).
 
 ## API
 
@@ -25,7 +25,7 @@
 
 ## Decisiones técnicas
 
-- **Reserva atómica:** `UPDATE variante SET stock_reservado = stock_reservado + :n WHERE id = :id AND stock - stock_reservado >= :n`; si no afecta ninguna fila, no hay stock suficiente. Todo el checkout corre en una sola transacción.
+- **Reserva atómica:** `UPDATE stock_level SET reserved = reserved + :n WHERE variant_id = :id AND on_hand - reserved >= :n`; si no afecta ninguna fila, no hay stock suficiente. Todo el checkout corre en una sola transacción.
 - **Vencimiento:** tarea programada cada minuto que expira reservas vencidas y libera stock.
 - **Webhook:** se responde rápido con 200; se verifica la firma si el proveedor la ofrece y siempre se consulta el pago a su API; clave de idempotencia `proveedor + externalId + estado`.
 - **Pagos:** MercadoPago con redirección a su página de pago (los datos de tarjeta nunca tocan el servidor). MODO en E3b, según la documentación que se consiga.

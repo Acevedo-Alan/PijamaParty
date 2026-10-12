@@ -123,7 +123,7 @@ Es una defensa en profundidad: no reemplaza la autorización de la aplicación, 
 
 | Tabla | Cliente | Anónimo (invitado) | Administrador | Sistema |
 |---|---|---|---|---|
-| `pedido`, `pedido_item` | Lee los propios y corrige su email | Lee el pedido de su token y corrige su email | Lee y actualiza el estado | Crea y actualiza |
+| `pedido`, `pedido_item` | Lee los propios y el de su token; crea el propio en el checkout; corrige su email | Lee el pedido de su token; crea el suyo en el checkout, atado a su token; corrige su email | Lee y actualiza el estado | Lee y actualiza el estado |
 | `pago`, `pago_evento` | – | – | Lee | Crea y actualiza |
 | `direccion` | Todo sobre las propias | – | Lee | – |
 | `usuario` | Lee y actualiza el propio | – | Lee el propio | Crea el administrador inicial, lee para autenticar y actualiza intentos fallidos y bloqueo |
@@ -131,7 +131,7 @@ Es una defensa en profundidad: no reemplaza la autorización de la aplicación, 
 | `solicitud_arrepentimiento` | – | – | Lee y resuelve | Crea (validando pedido y email) |
 | `carrito`, `carrito_item` | Los propios | Los de su token de carrito | – | Limpieza |
 | `resena` | Crea y edita las propias; lee las aprobadas | Lee las aprobadas | Modera | – |
-| `idempotency_key` | – | – | – | Todo |
+| `idempotency_key` | Las propias (por usuario) | Las de su token de carrito | – | Limpieza |
 | `email_outbox`, `email_evento` | – | – | Lee | Todo |
 
 - **Verificación:** cada política se prueba con cliente A, cliente B, invitado, administrador y sistema. Un test comprueba que el rol de la aplicación no es dueño ni tiene `BYPASSRLS`, y que las tablas protegidas tienen RLS activo y forzado.
@@ -158,7 +158,7 @@ Pendientes detectados en la revisión de seguridad. Complementan RNF-22, RNF-24,
 | RNF-29.4 | **Subida de imágenes:** el tipo se valida por el contenido real (magic bytes), nunca por el `Content-Type` ni la extensión. Se rechazan archivos que no sean JPG, PNG o WebP. El procesamiento a WebP y miniaturas es superficie de ataque: librería actualizada, límites de dimensiones y píxeles antes de decodificar (contra bombas de descompresión), metadatos (EXIF) eliminados, nombres de archivo generados por el servidor y como máximo 2 conversiones simultáneas (RNF-21). |
 | RNF-29.5 | **Rate limit de login:** además del límite por IP (RNF-22), hay un límite por cuenta (email normalizado), para frenar ataques distribuidos desde muchas IP. La respuesta no revela si la cuenta existe. |
 | RNF-29.6 | **Tokens del enlace de seguimiento** (y demás tokens de acceso sin cuenta, como recuperación de contraseña): generados con `SecureRandom`, con al menos 128 bits de entropía, y guardados en la base como hash (por ejemplo SHA-256). El token en claro solo viaja en el enlace. |
-| RNF-29.7 | **DNI y backups:** *Pendiente de decisión* si el DNI va cifrado en la base (cifrado a nivel de columna). Los backups van cifrados siempre, y la clave se guarda fuera del servidor. |
+| RNF-29.7 | **DNI y backups:** *Decidido:* el DNI se guarda sin cifrado por columna, protegido por RLS, el rol de privilegios mínimos y la regla de no registrarlo en logs (R-05). Los backups van cifrados siempre, y la clave se guarda fuera del servidor. |
 | RNF-29.8 | **2FA del administrador:** el segundo factor TOTP (RNF-24) pasa de *Propuesto* a *Recomendado como obligatorio*: con un único administrador dueño de la tienda, su cuenta da acceso a todos los datos de clientes. |
 | RNF-29.9 | **Cabeceras en Caddy:** HSTS (`Strict-Transport-Security`) y política de seguridad de contenido (CSP) que permita solo los dominios necesarios (incluidos los de RNF-25 y MercadoPago). |
 | RNF-29.10 | **Secretos:** el `.env` y cualquier credencial quedan fuera de git (`.gitignore`); el repositorio solo incluye un `.env.example` sin valores reales. |

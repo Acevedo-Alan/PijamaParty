@@ -300,6 +300,6 @@ Breakpoints of the prototype: 640, 860 and 960 px, mobile-first. Motion respects
 ## 12. Decisions that differ from the earlier Spanish specs
 
 1. **English naming** for code, database and routes (see the glossary). The Spanish specs keep their business wording; the glossary maps both.
-2. **Stock moves out of `variant`** into the `inventory` module (`stock_level` and `stock_reservation` tables). The earlier `stock` and `stock_reservado` columns disappear from the variant table.
+2. **Stock moves out of `variant`** into the `inventory` module: `stock_level` (`on_hand` and `reserved`) and the append-only `stock_movement`. The earlier `stock` and `stock_reservado` columns disappear from the variant table. There is no reservation table: an order's `RESERVATION`, `DEDUCTION` and `RELEASE` movements are the ledger and the order holds the expiry (T-E3-01).
 3. **New `backoffice` and `platform` modules** to avoid cycles and to hold the shared kernel.
 4. Base package is `com.pijamaparty.store`.

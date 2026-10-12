@@ -38,5 +38,6 @@ Every use case has the same sections:
 | `E0-foundation.md` | E0 | none (technical foundation and architecture skeleton) |
 | `E1-catalog-and-product-management.md` | E1 | UC-01 to UC-07 and UC-26 |
 | `E2-cart-and-coupons.md` | E2 | UC-08 to UC-11 |
+| `E3-checkout-and-payments.md` | E3 | UC-12 to UC-18 and UC-29 |
 
-Stages E3 to E6 follow the same format and are written next.
+Stages E4 to E6 follow the same format and are written next.

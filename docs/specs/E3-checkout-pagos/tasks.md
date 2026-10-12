@@ -1,6 +1,6 @@
 # E3 – Tareas
 
-- [ ] **T-E3-01** Migraciones: `pedido`, `pedido_item`, `pago`, `costo_envio_zona`, `config_tienda`, `variante.stock_reservado`.
+- [ ] **T-E3-01** Migraciones: `pedido`, `pedido_item`, `pago`, `costo_envio_zona`, `config_tienda`, `variante.stock_reservado`. En el código: `orders`, `order_item`, `payment`, `shipping_zone_rate`, `shop_setting` y `stock_level.reserved`; `orders`, `order_item` y `payment` nacen con Row Level Security activo y forzado, con sus políticas (RNF-27).
 - [ ] **T-E3-02** Backoffice y API: costos de envío por zona y envío gratis (CU-12).
 - [ ] **T-E3-03** Cálculo de envío en el servidor según provincia y subtotal (CU-12, CU-13).
 - [ ] **T-E3-04** Reserva atómica de stock y proceso de vencimiento (CU-16).
@@ -20,7 +20,7 @@
 - [ ] **T-E3-18** Registros SPF, DKIM y DMARC del subdominio de envío y alerta de volumen diario de correos (RNF-23). *Requiere el dominio registrado.*
 - [ ] **T-E3-19** Activar la política de rate limiting del checkout (RNF-22).
 - [ ] **T-E3-20** Eventos de analítica `begin_checkout`, `add_payment_info` y `purchase`, este último una sola vez por pedido y solo con el pedido PAGADO (RNF-25).
-- [ ] **T-E3-21** Políticas de Row Level Security de las tablas de pedidos, pagos, idempotencia y correos, con tests de acceso cruzado entre clientes e invitados (RNF-27).
+- [ ] **T-E3-21** Tests de las políticas de Row Level Security de las tablas de pedidos, pagos, idempotencia y correos con cliente A, cliente B, invitado, administrador y sistema (RNF-27). Las políticas nacen con cada tabla: T-E3-01, T-E3-09, T-E3-14, T-E3-15 y T-E3-22.
 - [ ] **T-E3-22** Webhook de rebotes y quejas del proveedor de correo, tabla `email_evento` y alerta en el pedido del backoffice (CU-17, CU-18).
 - [ ] **T-E3-23** Corrección del email desde la página de resultado y el enlace de seguimiento, con reenvío y rate limiting (CU-17).
 - [ ] **T-E3-24** Sugerencia de dominios de email mal escritos en el paso de envío (CU-13, *Propuesto*).
