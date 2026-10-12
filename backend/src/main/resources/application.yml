@@ -127,13 +127,21 @@ store:
         keys: [ip]
         capacity: 120
         period: 1m
-      # UC-08, UC-09: cart changes per IP. Brought forward from T-E2-11 by T-E2-04: a client without a cookie gets
-      # a new cart with each add, so this also bounds how many carts one IP can create.
+      # UC-08, UC-09, UC-10: cart changes per IP. Brought forward from T-E2-11 by T-E2-04: a client without a cookie
+      # gets a new cart with each add, so this also bounds how many carts one IP can create. Applying and removing a
+      # coupon are cart changes too, and this is the baseline of a coupon request without a cart cookie.
       - name: cart
-        paths: [/api/cart/items, /api/cart/items/*, /api/cart/acknowledge-prices]
+        paths: [/api/cart/items, /api/cart/items/*, /api/cart/acknowledge-prices, /api/cart/coupon]
         methods: [POST, PATCH, DELETE]
         keys: [ip]
         capacity: 60
+        period: 1m
+      # UC-10 (T-E2-11): coupon attempts per cart and IP together; each one also counts for cart
+      - name: coupon
+        paths: [/api/cart/coupon]
+        methods: [POST]
+        keys: [cart, ip]
+        capacity: 10
         period: 1m
       # UC-26: a catalog request with the text parameter q (search or suggestions); it also counts for catalog
       - name: search

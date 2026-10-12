@@ -1507,6 +1507,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
+            /** @description Over 10 attempts per minute on this cart from this IP, or over the cart-changes limit of this IP (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     removeCoupon: {
@@ -1531,6 +1540,15 @@ export interface operations {
             };
             /** @description This actor cannot have a cart */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over the cart-changes limit of this IP (RNF-22); Retry-After says when to retry */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

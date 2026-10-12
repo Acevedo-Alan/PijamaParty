@@ -20,8 +20,9 @@ import org.springframework.test.context.TestConstructor;
 
 /**
  * The RNF-22 policies as configured in application.yml: login per IP (UC-04) and per account (RNF-29.5), catalog and
- * search (UC-26) of T-E1-15, and cart changes (UC-08, UC-09) of T-E2-04. The test client (127.0.0.1) plays Caddy, so
- * {@code X-Forwarded-For} is the client IP and each test uses its own addresses.
+ * search (UC-26) of T-E1-15, cart changes (UC-08, UC-09) of T-E2-04, and coupon attempts (UC-10) of T-E2-11. The
+ * test client (127.0.0.1) plays Caddy, so {@code X-Forwarded-For} is the client IP and each test uses its own
+ * addresses.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = "store.rate-limit.enabled=true")
@@ -105,6 +106,31 @@ class RateLimitPoliciesTest {
         assertThat(addToCart("203.0.113.11").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void givenTenCouponAttemptsInAMinuteOnTheSameCart_whenAnotherArrives_thenItGets429WithRetryAfter() {
+        String cart = "c".repeat(43);
+        for (int i = 0; i < 10; i++) {
+            assertThat(applyCoupon("203.0.113.20", cart).getStatusCode())
+                .as("a token nobody issued finds no cart, which answers 409").isEqualTo(HttpStatus.CONFLICT);
+        }
+
+        assertLimited(applyCoupon("203.0.113.20", cart));
+        assertThat(applyCoupon("203.0.113.20", "d".repeat(43)).getStatusCode())
+            .as("another cart from that IP has its own bucket").isEqualTo(HttpStatus.CONFLICT);
+        assertThat(applyCoupon("203.0.113.21", cart).getStatusCode())
+            .as("the bucket is per cart and IP together").isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void givenSixtyCouponRequestsInAMinuteWithoutACartFromOneIp_whenMoreArrive_thenTheCartPolicyLimitsThem() {
+        for (int i = 0; i < 60; i++) {
+            assertThat(applyCoupon("203.0.113.30", null).getStatusCode())
+                .as("without a cookie only the cart-changes policy counts").isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        assertLimited(firstOfNextRequests(() -> applyCoupon("203.0.113.30", null)));
+    }
+
     /**
      * The buckets refill continuously (Bucket4j greedy refill: 120 per minute is one token every 0.5 s), so the
      * requests above give back a few tokens while they run. The limit must show within a handful more.
@@ -141,6 +167,18 @@ class RateLimitPoliciesTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         String body = "{\"variantId\":\"00000000-0000-0000-0000-000000000001\",\"quantity\":1}";
         return http.exchange("/api/cart/items", HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+    }
+
+    /** A guest's cart cookie when {@code cartToken} is not null; the CSRF cookie always. */
+    private ResponseEntity<String> applyCoupon(String clientIp, String cartToken) {
+        var headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", clientIp);
+        headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + csrfToken
+            + (cartToken == null ? "" : "; __Host-cart_token=" + cartToken));
+        headers.add("X-XSRF-TOKEN", csrfToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return http.exchange("/api/cart/coupon", HttpMethod.POST, new HttpEntity<>("{\"code\":\"PIJAMA10\"}", headers),
+            String.class);
     }
 
     private ResponseEntity<String> get(String path, String clientIp) {

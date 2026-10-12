@@ -201,6 +201,9 @@ class CartController {
         + "COUPON_INACTIVE, COUPON_NOT_STARTED, COUPON_EXPIRED, COUPON_USED_UP or COUPON_BELOW_MINIMUM, the last one "
         + "with missingCents: what the subtotal lacks to reach the minimum purchase)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "429", description = "Over 10 attempts per minute on this cart from this IP, or over "
+        + "the cart-changes limit of this IP (RNF-22); Retry-After says when to retry",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> applyCoupon(@Valid @RequestBody ApplyCouponRequest body) {
         Actor actor = actor();
         return switch (applyCoupon.execute(new ApplyCoupon.Command(actor, body.code()))) {
@@ -228,6 +231,9 @@ class CartController {
         headers = @Header(name = HttpHeaders.SET_COOKIE, description = CART_TOKEN_COOKIE), content = @Content(
         mediaType = "application/json", schema = @Schema(implementation = CartResponse.class)))
     @ApiResponse(responseCode = "403", description = "This actor cannot have a cart",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "429", description = "Over the cart-changes limit of this IP (RNF-22); Retry-After "
+        + "says when to retry",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> removeCoupon() {
         Actor actor = actor();
