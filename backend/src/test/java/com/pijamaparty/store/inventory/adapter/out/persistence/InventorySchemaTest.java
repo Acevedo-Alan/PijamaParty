@@ -19,7 +19,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-/** T-E1-01, T-E1-06: the inventory schema (V4, V8) enforces UC-07 and RNF-20.4, connected as the application role. */
+/**
+ * T-E1-01, T-E1-06, T-E3-01: the inventory schema (V4, V8, V17) enforces UC-07, UC-16 and RNF-20.4, connected as the
+ * application role.
+ */
 @ApiTest
 class InventorySchemaTest {
 
@@ -162,6 +165,48 @@ class InventorySchemaTest {
 
         assertThatThrownBy(() -> app.update("update stock_level set on_hand = on_hand + 1 where variant_id = ?", variant))
             .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_level_on_hand_max_ck");
+    }
+
+    @Test
+    void givenAStockOf3_whenReservingMoreThanTheStockOnHandOrBelow0_thenItIsRejected() {
+        var variant = stockLevel(3);
+
+        assertThat(app.update("update stock_level set reserved = 3 where variant_id = ?", variant)).isOne();
+        assertThatThrownBy(() -> app.update("update stock_level set reserved = 4 where variant_id = ?", variant))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_level_reserved_ck");
+        assertThatThrownBy(() -> app.update("update stock_level set reserved = -1 where variant_id = ?", variant))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_level_reserved_ck");
+    }
+
+    @Test
+    void givenReservedUnits_whenTheStockOnHandWouldDropBelowThem_thenItIsRejected() {
+        var variant = stockLevel(3);
+        app.update("update stock_level set reserved = 2 where variant_id = ?", variant);
+
+        assertThatThrownBy(() -> app.update("update stock_level set on_hand = 1 where variant_id = ?", variant))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_level_reserved_ck");
+    }
+
+    @Test
+    void givenAnOrderMovement_whenRecordedWithTheWrongSign_thenItIsRejected() {
+        var variant = stockLevel(3);
+
+        for (String type : new String[] {"RESERVATION", "DEDUCTION"}) {
+            assertThatThrownBy(() -> recordOrderMovement(variant, type, 1)).as(type)
+                .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_movement_order_sign_ck");
+        }
+        assertThatThrownBy(() -> recordOrderMovement(variant, "RELEASE", -1))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("stock_movement_order_sign_ck");
+        recordOrderMovement(variant, "DEDUCTION", -1);
+        recordOrderMovement(variant, "RELEASE", 1);
+        assertThat(movementsOf(variant)).isEqualTo(2);
+    }
+
+    private void recordOrderMovement(UUID variant, String type, int quantity) {
+        app.update("""
+            insert into stock_movement (id, variant_id, type, quantity, order_id, created_at)
+            values (?, ?, ?, ?, ?, now())
+            """, UUID.randomUUID(), variant, type, quantity, UUID.randomUUID());
     }
 
     private void recordAdjustment(UUID variant, UUID key) {

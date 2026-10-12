@@ -13,7 +13,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-/** T-E1-07: the view {@code v_variant_availability} (V9) that the catalog reads, connected as the application role. */
+/**
+ * T-E1-07, T-E3-01: the view {@code v_variant_availability} (V9, V17) that the catalog reads, connected as the
+ * application role.
+ */
 @ApiTest
 class VariantAvailabilityViewTest {
 
@@ -41,12 +44,24 @@ class VariantAvailabilityViewTest {
     }
 
     @Test
+    void givenReservedUnits_whenReadThroughTheView_thenTheAvailableStockIsTheStockOnHandMinusTheReserved() {
+        UUID variant = UUID.randomUUID();
+        app.update("insert into stock_level (variant_id, on_hand, reserved, updated_at) values (?, 7, 3, now())",
+            variant);
+
+        assertThat(app.queryForObject("select available from v_variant_availability where variant_id = ?",
+            Integer.class, variant)).isEqualTo(4);
+    }
+
+    @Test
     void givenTheApplicationRole_whenWritingThroughTheView_thenItIsRefused() {
         UUID variant = UUID.randomUUID();
         app.update("insert into stock_level (variant_id, on_hand, updated_at) values (?, 7, now())", variant);
 
-        assertThatThrownBy(() -> app.update("update v_variant_availability set available = 0 where variant_id = ?",
-            variant)).isInstanceOf(DataAccessException.class).rootCause().hasMessageContaining("permission denied");
+        // available is computed since V17, so only variant_id could still be written through the view.
+        assertThatThrownBy(() -> app.update(
+                "update v_variant_availability set variant_id = gen_random_uuid() where variant_id = ?", variant))
+            .isInstanceOf(DataAccessException.class).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> app.update("delete from v_variant_availability where variant_id = ?", variant))
             .isInstanceOf(DataAccessException.class).rootCause().hasMessageContaining("permission denied");
     }
