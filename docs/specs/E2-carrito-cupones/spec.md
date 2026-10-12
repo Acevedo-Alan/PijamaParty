@@ -53,7 +53,8 @@
 **Reglas**
 - Un solo cupón por carrito.
 - Se valida: activo, dentro de la vigencia, usos disponibles y monto mínimo de compra.
-- El descuento se calcula siempre en el servidor.
+- El descuento se calcula siempre en el servidor. Un descuento por porcentaje se redondea hacia abajo al centavo: la tienda nunca descuenta más que el porcentaje indicado.
+- Si un cupón aplicado deja de cumplir las condiciones (el carrito baja del mínimo, o el cupón vence, se desactiva o se agota), queda en el carrito sin descuento y con el motivo. Vuelve a aplicarse solo si el carrito vuelve a cumplirlas.
 
 **Criterios de aceptación**
 - Dado un cupón del 10% válido, cuando se aplica a un carrito de $20.000, entonces el descuento es $2.000.
