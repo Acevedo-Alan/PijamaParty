@@ -70,6 +70,7 @@
 - MODO se implementa en una sub-etapa **E3b**, una vez resuelta la integración (*Pendiente*).
 - En MercadoPago el pago es una sola línea, "Pedido #1001 - Pijama Party", por el total que calculó el servidor; se le envían el nombre y el email del cliente para precompletar el pago, nunca el DNI, el teléfono ni la dirección. El pago vence junto con la reserva.
 - Si MercadoPago no responde, el pedido igual queda creado con su stock reservado: el cliente va a la página de seguimiento y reintenta el pago desde ahí.
+- La página de seguimiento (`/pedido/{token}`) muestra el número y el estado del pedido, los productos, los importes, la ciudad y la provincia, el nombre de pila del cliente y el número de seguimiento del envío cuando lo hay. Nunca muestra el DNI, el email, el teléfono ni la calle, porque el enlace se puede reenviar o quedar en el historial (decidido). Mientras el pedido está pendiente de pago y la reserva vigente, muestra hasta cuándo están reservados los productos y el botón "Pagar"; si la reserva venció, lo dice.
 
 **Criterios de aceptación**
 - Dado un pedido confirmado, cuando se crea el pago, entonces el cliente es redirigido al proveedor con el monto exacto calculado por el servidor.

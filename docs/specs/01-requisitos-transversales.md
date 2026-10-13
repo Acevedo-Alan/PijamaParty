@@ -45,6 +45,8 @@ Implementado en la aplicación con Bucket4j en memoria. Los contadores se reinic
 | Botón de arrepentimiento | Pedido + IP | 3 por hora |
 | Aplicar cupón | Carrito + IP | 10 por minuto |
 | Checkout | Carrito + IP | 5 por minuto |
+| Enlace de seguimiento (ver el pedido y reintentar el pago) | IP | 30 por minuto |
+| Reintentar el pago desde el enlace de seguimiento | Pedido + IP | 5 por minuto |
 | Corregir el email de un pedido | Pedido + IP | 3 por hora |
 | Modificar carrito | IP | 60 por minuto |
 | Catálogo | IP | 120 por minuto |
