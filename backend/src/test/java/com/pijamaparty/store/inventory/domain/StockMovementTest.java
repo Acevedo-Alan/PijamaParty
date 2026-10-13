@@ -59,9 +59,53 @@ class StockMovementTest {
             .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void givenAReservation_whenDeductedOrReleased_thenTheOrderTakesOrGivesBackItsUnits() {
+        OrderRef order = OrderRef.of(UUID.randomUUID());
+        VariantId variant = VariantId.of(UUID.randomUUID());
+        StockMovement reservation = StockMovement.reservation(MovementId.of(UUID.randomUUID()), variant, order, 2, NOW);
+        MovementId id = MovementId.of(UUID.randomUUID());
+        Instant later = NOW.plusSeconds(60);
+
+        assertThat(reservation.type()).isEqualTo(MovementType.RESERVATION);
+        assertThat(reservation.quantity()).isEqualTo(-2);
+        assertThat(reservation.units()).isEqualTo(2);
+        assertThat(reservation.order()).contains(order);
+        assertThat(reservation.deduction(id, later)).isEqualTo(new StockMovement(id, variant, MovementType.DEDUCTION,
+            -2, Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(order), later));
+        assertThat(reservation.release(id, later)).isEqualTo(new StockMovement(id, variant, MovementType.RELEASE, 2,
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(order), later));
+        StockMovement release = reservation.release(id, later);
+        assertThatThrownBy(() -> release.deduction(MovementId.of(UUID.randomUUID()), later))
+            .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void givenOrderMovementsWithoutTheirOrderOrSign_whenBuilt_thenTheyAreRefused() {
+        Optional<OrderRef> order = Optional.of(OrderRef.of(UUID.randomUUID()));
+
+        assertThatThrownBy(() -> orderMovement(MovementType.RESERVATION, -1, Optional.empty()))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> orderMovement(MovementType.RESERVATION, 1, order))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> orderMovement(MovementType.DEDUCTION, 1, order))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> orderMovement(MovementType.RELEASE, -1, order))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new StockMovement(MovementId.of(UUID.randomUUID()), VariantId.of(UUID.randomUUID()),
+            MovementType.ADJUSTMENT, 1, Optional.empty(), ADMIN, KEY, order, NOW))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThat(orderMovement(MovementType.RELEASE, 1, order).units()).isEqualTo(1);
+    }
+
+    private static StockMovement orderMovement(MovementType type, int quantity, Optional<OrderRef> order) {
+        return new StockMovement(MovementId.of(UUID.randomUUID()), VariantId.of(UUID.randomUUID()), type, quantity,
+            Optional.empty(), Optional.empty(), Optional.empty(), order, NOW);
+    }
+
     private static StockMovement movement(MovementType type, int quantity, Optional<MovementNote> note,
                                           Optional<UserId> user, Optional<AdjustmentKey> key) {
         return new StockMovement(MovementId.of(UUID.randomUUID()), VariantId.of(UUID.randomUUID()), type, quantity,
-            note, user, key, NOW);
+            note, user, key, Optional.empty(), NOW);
     }
 }

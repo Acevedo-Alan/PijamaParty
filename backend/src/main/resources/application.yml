@@ -93,6 +93,11 @@ store:
       # T-E2-04: every day at 04:00 store time (America/Argentina/Buenos_Aires), the quietest hour, the carts idle
       # for more than 30 days are deleted
       cron: "0 0 4 * * *"
+  ordering:
+    reservation-expiry:
+      # T-E3-04, UC-16: every minute, at second 0, the orders awaiting payment whose 30-minute reservation is over
+      # become EXPIRED and release their stock
+      cron: "0 * * * * *"
   saturation:
     # RNF-21: Retry-After of the 503 sent when a pool is exhausted
     retry-after: 5s

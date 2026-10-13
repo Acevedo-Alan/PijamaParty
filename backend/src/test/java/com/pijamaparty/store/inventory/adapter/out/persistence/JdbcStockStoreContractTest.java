@@ -3,10 +3,14 @@ package com.pijamaparty.store.inventory.adapter.out.persistence;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.inventory.application.AvailableStock;
 import com.pijamaparty.store.inventory.application.LoadStockLevels;
+import com.pijamaparty.store.inventory.application.OrderReservations;
+import com.pijamaparty.store.inventory.application.ReserveStock;
 import com.pijamaparty.store.inventory.application.SaveStockLevels;
+import com.pijamaparty.store.inventory.application.SettleReservations;
 import com.pijamaparty.store.inventory.application.StockHistory;
 import com.pijamaparty.store.inventory.application.StockStoreContractTest;
 import com.pijamaparty.store.inventory.domain.AdjustmentKey;
+import com.pijamaparty.store.inventory.domain.OrderRef;
 import com.pijamaparty.store.inventory.domain.StockLevel;
 import com.pijamaparty.store.inventory.domain.StockMovement;
 import com.pijamaparty.store.inventory.domain.VariantId;
@@ -55,7 +59,8 @@ class JdbcStockStoreContractTest extends StockStoreContractTest<JdbcStockStoreCo
     }
 
     record InTransaction(JdbcStockLevelStore adapter, TransactionTemplate transactions)
-        implements LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock {
+        implements LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock, ReserveStock, OrderReservations,
+        SettleReservations {
 
         @Override
         public Optional<StockLevel> lockByVariantId(VariantId variantId) {
@@ -85,6 +90,26 @@ class JdbcStockStoreContractTest extends StockStoreContractTest<JdbcStockStoreCo
         @Override
         public Map<VariantId, Integer> availableOf(Collection<VariantId> variantIds) {
             return transactions.execute(status -> adapter.availableOf(variantIds));
+        }
+
+        @Override
+        public Outcome reserveAll(List<StockMovement> reservations) {
+            return transactions.execute(status -> adapter.reserveAll(reservations));
+        }
+
+        @Override
+        public boolean hasAny(OrderRef order) {
+            return Boolean.TRUE.equals(transactions.execute(status -> adapter.hasAny(order)));
+        }
+
+        @Override
+        public List<StockMovement> outstanding(OrderRef order) {
+            return transactions.execute(status -> adapter.outstanding(order));
+        }
+
+        @Override
+        public void settle(List<StockMovement> settlements) {
+            transactions.executeWithoutResult(status -> adapter.settle(settlements));
         }
     }
 }

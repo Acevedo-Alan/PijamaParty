@@ -122,6 +122,24 @@ class StockAdminApiTest {
     }
 
     @Test
+    void givenAStockOf3With2ReservedByOrders_whenSubtracting2_thenItIsRejectedWithTheReservedUnits()
+        throws Exception {
+        adjust(UUID.randomUUID().toString(), variant, 3, null).andExpect(status().isCreated());
+        app.update("update stock_level set reserved = 2 where variant_id = ?", variant);
+
+        adjust(UUID.randomUUID().toString(), variant, -2, null)
+            .andExpect(status().isConflict())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.problem").value("WOULD_GO_BELOW_RESERVED"))
+            .andExpect(jsonPath("$.onHand").value(3))
+            .andExpect(jsonPath("$.reserved").value(2));
+
+        adjust(UUID.randomUUID().toString(), variant, -1, null)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.onHand").value(2));
+    }
+
+    @Test
     void givenAnAdjustmentWhoseResponseWasLost_whenRetriedWithTheSameKey_thenTheStockChangesOnlyOnce()
         throws Exception {
         String key = UUID.randomUUID().toString();

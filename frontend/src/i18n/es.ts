@@ -484,6 +484,10 @@ export const es = {
       wouldGoNegative: (count: number) => `No alcanza el stock: hay ${String(count)}.`,
       wouldExceedMaximum: (count: number) =>
         `El stock no puede superar 1.000.000 de unidades: hay ${String(count)}.`,
+      /** UC-16: the units held by orders awaiting payment cannot be subtracted. */
+      wouldGoBelowReserved: (reserved: number, count: number) =>
+        `No se puede: ${reserved === 1 ? 'hay 1 unidad reservada' : `hay ${String(reserved)} unidades reservadas`} ` +
+        `por pedidos pendientes de pago. Hay ${String(count)}.`,
       problems: {
         INVALID_QUANTITY: 'La cantidad tiene que ser de −10.000 a 10.000, distinta de 0.',
         INVALID_NOTE: 'El motivo tiene que ser una sola línea de hasta 200 caracteres.',

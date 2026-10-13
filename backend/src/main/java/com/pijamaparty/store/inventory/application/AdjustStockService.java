@@ -63,6 +63,8 @@ class AdjustStockService implements AdjustStock {
             }
             case StockLevel.AdjustOutcome.WouldGoNegative negative ->
                 new Result.WouldGoNegative(negative.currentOnHand());
+            case StockLevel.AdjustOutcome.WouldGoBelowReserved belowReserved ->
+                new Result.WouldGoBelowReserved(belowReserved.currentOnHand(), belowReserved.reserved());
             case StockLevel.AdjustOutcome.WouldExceedMaximum maximum ->
                 new Result.WouldExceedMaximum(maximum.currentOnHand());
         };

@@ -1,6 +1,8 @@
 package com.pijamaparty.store.inventory.application;
 
 import com.pijamaparty.store.inventory.domain.AdjustmentKey;
+import com.pijamaparty.store.inventory.domain.MovementType;
+import com.pijamaparty.store.inventory.domain.OrderRef;
 import com.pijamaparty.store.inventory.domain.StockLevel;
 import com.pijamaparty.store.inventory.domain.StockMovement;
 import com.pijamaparty.store.inventory.domain.VariantId;
@@ -15,11 +17,13 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 /**
- * Fake of {@link LoadStockLevels}, {@link SaveStockLevels}, {@link StockHistory} and {@link AvailableStock} over the
- * same levels and movements. It stores rows, not aggregates, like the database: a loaded level that is not saved
- * changes nothing. Locks are not modeled.
+ * Fake of {@link LoadStockLevels}, {@link SaveStockLevels}, {@link StockHistory}, {@link AvailableStock},
+ * {@link ReserveStock}, {@link OrderReservations} and {@link SettleReservations} over the same levels and movements.
+ * It stores rows, not aggregates, like the database: a loaded level that is not saved changes nothing. Locks are not
+ * modeled.
  */
-public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock {
+public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock,
+    ReserveStock, OrderReservations, SettleReservations {
 
     /** Newest first; the id breaks ties as PostgreSQL orders uuids (by their bytes, as the canonical text does). */
     private static final Comparator<StockMovement> NEWEST_FIRST = Comparator.comparing(StockMovement::createdAt)
@@ -31,13 +35,20 @@ public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, Sto
 
     /** Test arrangement: the stock level that opening a new variant creates (UC-06). */
     public synchronized void open(VariantId variantId, Instant at) {
-        levels.putIfAbsent(variantId, new Row(0, at));
+        levels.putIfAbsent(variantId, new Row(0, 0, at));
+    }
+
+    /** Test inspection: the units orders awaiting payment hold; empty without a stock level. */
+    public synchronized OptionalInt reserved(VariantId variantId) {
+        Row row = levels.get(variantId);
+        return row == null ? OptionalInt.empty() : OptionalInt.of(row.reserved());
     }
 
     @Override
     public synchronized Optional<StockLevel> lockByVariantId(VariantId variantId) {
         return Optional.ofNullable(levels.get(variantId))
-            .map(row -> StockLevel.of(variantId, row.onHand(), hasMovements(variantId), row.updatedAt()));
+            .map(row -> StockLevel.of(variantId, row.onHand(), row.reserved(), hasMovements(variantId),
+                row.updatedAt()));
     }
 
     @Override
@@ -56,14 +67,14 @@ public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, Sto
                 throw new IllegalStateException("no stock level for variant " + level.variantId());
             }
             int onHand = row.onHand() + movement.quantity();
-            if (onHand < 0 || onHand > StockLevel.MAX_ON_HAND) {
+            if (onHand < row.reserved() || onHand > StockLevel.MAX_ON_HAND) {
                 throw new IllegalStateException("stock out of range");
             }
             if (movement.adjustmentKey().isPresent()
                 && findAdjustment(movement.variantId(), movement.adjustmentKey().get()).isPresent()) {
                 throw new IllegalStateException("adjustment key already used");
             }
-            levels.put(level.variantId(), new Row(onHand, movement.createdAt()));
+            levels.put(level.variantId(), new Row(onHand, row.reserved(), movement.createdAt()));
             movements.add(movement);
         }
     }
@@ -84,18 +95,86 @@ public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, Sto
             .toList();
     }
 
-    /** Nothing is reserved before E3, so the available stock is the stock on hand. */
     @Override
     public synchronized Map<VariantId, Integer> availableOf(Collection<VariantId> variantIds) {
         Map<VariantId, Integer> available = new HashMap<>();
         variantIds.stream().filter(levels::containsKey)
-            .forEach(variantId -> available.put(variantId, levels.get(variantId).onHand()));
+            .forEach(variantId -> available.put(variantId, levels.get(variantId).available()));
         return available;
+    }
+
+    /** All or nothing, as the savepoint of the real adapter: the rows change only when every reservation fits. */
+    @Override
+    public synchronized Outcome reserveAll(List<StockMovement> reservations) {
+        for (StockMovement reservation : reservations) {
+            if (reservation.type() != MovementType.RESERVATION) {
+                throw new IllegalArgumentException("not a reservation: " + reservation.type());
+            }
+            Row row = levels.get(reservation.variantId());
+            if (row == null || row.available() < reservation.units()) {
+                return new Outcome.Short(reservation.variantId(), row == null ? 0 : row.available());
+            }
+        }
+        for (StockMovement reservation : reservations) {
+            Row row = levels.get(reservation.variantId());
+            levels.put(reservation.variantId(),
+                new Row(row.onHand(), row.reserved() + reservation.units(), reservation.createdAt()));
+            movements.add(reservation);
+        }
+        return new Outcome.Reserved();
+    }
+
+    @Override
+    public synchronized boolean hasAny(OrderRef order) {
+        return movements.stream().anyMatch(movement -> movement.order().equals(Optional.of(order))
+            && movement.type() == MovementType.RESERVATION);
+    }
+
+    @Override
+    public synchronized List<StockMovement> outstanding(OrderRef order) {
+        return movements.stream()
+            .filter(movement -> movement.order().equals(Optional.of(order)))
+            .filter(movement -> movement.type() == MovementType.RESERVATION)
+            .filter(reservation -> !isSettled(order, reservation.variantId()))
+            .sorted(Comparator.comparing(movement -> movement.variantId().value().toString()))
+            .toList();
+    }
+
+    @Override
+    public synchronized void settle(List<StockMovement> settlements) {
+        for (StockMovement settlement : settlements) {
+            if (settlement.type() != MovementType.DEDUCTION && settlement.type() != MovementType.RELEASE) {
+                throw new IllegalArgumentException("not a deduction or a release: " + settlement.type());
+            }
+            OrderRef order = settlement.order().orElseThrow();
+            if (isSettled(order, settlement.variantId())) {
+                continue;
+            }
+            Row row = levels.get(settlement.variantId());
+            int taken = settlement.type() == MovementType.DEDUCTION ? settlement.units() : 0;
+            int reserved = row.reserved() - settlement.units();
+            if (reserved < 0) {
+                throw new IllegalStateException("reserved stock out of range");
+            }
+            levels.put(settlement.variantId(), new Row(row.onHand() - taken, reserved, settlement.createdAt()));
+            movements.add(settlement);
+        }
+    }
+
+    private boolean isSettled(OrderRef order, VariantId variantId) {
+        return movements.stream().anyMatch(movement -> movement.order().equals(Optional.of(order))
+            && movement.variantId().equals(variantId)
+            && (movement.type() == MovementType.DEDUCTION || movement.type() == MovementType.RELEASE));
     }
 
     private boolean hasMovements(VariantId variantId) {
         return movements.stream().anyMatch(movement -> movement.variantId().equals(variantId));
     }
 
-    private record Row(int onHand, Instant updatedAt) {}
+    private record Row(int onHand, int reserved, Instant updatedAt) {
+
+        int available() {
+            return onHand - reserved;
+        }
+    }
 }

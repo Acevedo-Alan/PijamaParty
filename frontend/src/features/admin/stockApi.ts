@@ -23,6 +23,8 @@ export type MovementPage =
 export type AdjustAnswer =
   | { status: 'adjusted'; onHand: number }
   | { status: 'outOfRange'; problem: 'WOULD_GO_NEGATIVE' | 'WOULD_EXCEED_MAXIMUM'; onHand: number }
+  /** UC-16: orders awaiting payment hold `reserved` units, which an adjustment cannot take away. */
+  | { status: 'belowReserved'; onHand: number; reserved: number }
   | { status: 'invalid'; problem: 'INVALID_QUANTITY' | 'INVALID_NOTE' | 'KEY_REUSED' }
   | { status: 'unknownVariant' };
 
@@ -84,6 +86,15 @@ export async function adjustStock(
     typeof onHand === 'number'
   ) {
     return { status: 'outOfRange', problem, onHand };
+  }
+  const reserved = problemProperty(error, 'reserved');
+  if (
+    response.status === 409 &&
+    problem === 'WOULD_GO_BELOW_RESERVED' &&
+    typeof onHand === 'number' &&
+    typeof reserved === 'number'
+  ) {
+    return { status: 'belowReserved', onHand, reserved };
   }
   if (
     response.status === 422 &&

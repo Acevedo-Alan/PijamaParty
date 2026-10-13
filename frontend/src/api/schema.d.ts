@@ -1848,7 +1848,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description See problem: WOULD_GO_NEGATIVE or WOULD_EXCEED_MAXIMUM; the current stock is in onHand */
+            /** @description See problem: WOULD_GO_NEGATIVE or WOULD_EXCEED_MAXIMUM; the current stock is in onHand. WOULD_GO_BELOW_RESERVED also has in reserved the units held by orders awaiting payment */
             409: {
                 headers: {
                     [name: string]: unknown;

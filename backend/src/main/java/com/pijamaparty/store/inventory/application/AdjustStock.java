@@ -34,6 +34,9 @@ public interface AdjustStock {
 
         record WouldGoNegative(int currentOnHand) implements Result {}
 
+        /** UC-16: the stock would be below the units reserved by orders awaiting payment. */
+        record WouldGoBelowReserved(int currentOnHand, int reserved) implements Result {}
+
         /** The stock would be above {@code StockLevel.MAX_ON_HAND}. */
         record WouldExceedMaximum(int currentOnHand) implements Result {}
 

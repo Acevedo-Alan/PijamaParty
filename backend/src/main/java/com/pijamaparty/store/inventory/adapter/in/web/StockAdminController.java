@@ -79,7 +79,8 @@ class StockAdminController {
     @ApiResponse(responseCode = "404", description = "No such variant",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "409", description = "See problem: WOULD_GO_NEGATIVE or WOULD_EXCEED_MAXIMUM; the "
-        + "current stock is in onHand",
+        + "current stock is in onHand. WOULD_GO_BELOW_RESERVED also has in reserved the units held by orders awaiting "
+        + "payment",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "422", description = "See problem: INVALID_QUANTITY, INVALID_NOTE or KEY_REUSED",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
@@ -99,6 +100,13 @@ class StockAdminController {
                 ResponseEntity.ok(new AdjustmentResponse(body.variantId(), already.onHand()));
             case AdjustStock.Result.WouldGoNegative negative -> outOfRange("WOULD_GO_NEGATIVE",
                 "Stock cannot go below 0.", negative.currentOnHand());
+            case AdjustStock.Result.WouldGoBelowReserved belowReserved -> {
+                var problem = outOfRangeProblem("WOULD_GO_BELOW_RESERVED",
+                    "Stock cannot go below the units reserved by orders awaiting payment.",
+                    belowReserved.currentOnHand());
+                problem.setProperty("reserved", belowReserved.reserved());
+                yield ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+            }
             case AdjustStock.Result.WouldExceedMaximum maximum -> outOfRange("WOULD_EXCEED_MAXIMUM",
                 "Stock is at most " + StockLevel.MAX_ON_HAND + " units.", maximum.currentOnHand());
             case AdjustStock.Result.InvalidQuantity invalid -> invalidAdjustment("INVALID_QUANTITY",
@@ -135,11 +143,15 @@ class StockAdminController {
     }
 
     private static ResponseEntity<ProblemDetail> outOfRange(String reason, String detail, int onHand) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(outOfRangeProblem(reason, detail, onHand));
+    }
+
+    private static ProblemDetail outOfRangeProblem(String reason, String detail, int onHand) {
         var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, detail);
         problem.setTitle("Stock out of range");
         problem.setProperty("problem", reason);
         problem.setProperty("onHand", onHand);
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+        return problem;
     }
 
     private static ResponseEntity<ProblemDetail> invalidAdjustment(String reason, String detail) {

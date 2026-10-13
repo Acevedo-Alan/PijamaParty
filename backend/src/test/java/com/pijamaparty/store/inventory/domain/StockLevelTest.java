@@ -18,7 +18,7 @@ class StockLevelTest {
 
     @Test
     void givenAVariantWithoutMovements_whenStockIsAdded_thenTheMovementIsTheInitialLoad() {
-        StockLevel level = StockLevel.of(VARIANT, 0, false, OPENED);
+        StockLevel level = StockLevel.of(VARIANT, 0, 0, false, OPENED);
         MovementId id = MovementId.of(UUID.randomUUID());
         AdjustmentKey key = AdjustmentKey.of(UUID.randomUUID());
         Optional<MovementNote> note = MovementNote.parse("Primera carga");
@@ -26,7 +26,7 @@ class StockLevelTest {
         var outcome = level.adjust(id, 5, note, ADMIN, key, NOW);
 
         var movement = new StockMovement(id, VARIANT, MovementType.INITIAL_LOAD, 5, note, Optional.of(ADMIN),
-            Optional.of(key), NOW);
+            Optional.of(key), Optional.empty(), NOW);
         assertThat(outcome).isEqualTo(new StockLevel.AdjustOutcome.Adjusted(movement, 5));
         assertThat(level.onHand()).isEqualTo(5);
         assertThat(level.hasMovements()).isTrue();
@@ -36,7 +36,7 @@ class StockLevelTest {
 
     @Test
     void givenAVariantWithMovements_whenAdjusted_thenTheMovementIsAnAdjustment() {
-        StockLevel level = StockLevel.of(VARIANT, 5, true, OPENED);
+        StockLevel level = StockLevel.of(VARIANT, 5, 0, true, OPENED);
 
         var outcome = level.adjust(MovementId.of(UUID.randomUUID()), -2, Optional.empty(), ADMIN,
             AdjustmentKey.of(UUID.randomUUID()), NOW);
@@ -49,7 +49,7 @@ class StockLevelTest {
 
     @Test
     void givenAStockOf3_whenSubtracting5_thenItIsRejectedWithTheCurrentStock() {
-        StockLevel level = StockLevel.of(VARIANT, 3, true, OPENED);
+        StockLevel level = StockLevel.of(VARIANT, 3, 0, true, OPENED);
 
         var outcome = level.adjust(MovementId.of(UUID.randomUUID()), -5, Optional.empty(), ADMIN,
             AdjustmentKey.of(UUID.randomUUID()), NOW);
@@ -62,7 +62,7 @@ class StockLevelTest {
 
     @Test
     void givenAStockNearTheMaximum_whenMoreIsAdded_thenItIsRejectedWithTheCurrentStock() {
-        StockLevel level = StockLevel.of(VARIANT, StockLevel.MAX_ON_HAND - 1, true, OPENED);
+        StockLevel level = StockLevel.of(VARIANT, StockLevel.MAX_ON_HAND - 1, 0, true, OPENED);
 
         var outcome = level.adjust(MovementId.of(UUID.randomUUID()), 2, Optional.empty(), ADMIN,
             AdjustmentKey.of(UUID.randomUUID()), NOW);
@@ -81,15 +81,54 @@ class StockLevelTest {
         assertThat(StockLevel.isValidAdjustment(10_001)).isFalse();
         assertThat(StockLevel.isValidAdjustment(-10_001)).isFalse();
         assertThat(StockLevel.isValidAdjustment(Integer.MIN_VALUE)).isFalse();
-        assertThatThrownBy(() -> StockLevel.of(VARIANT, 0, false, OPENED).adjust(MovementId.of(UUID.randomUUID()), 0,
-            Optional.empty(), ADMIN, AdjustmentKey.of(UUID.randomUUID()), NOW))
+        assertThatThrownBy(() -> StockLevel.of(VARIANT, 0, 0, false, OPENED).adjust(MovementId.of(UUID.randomUUID()),
+            0, Optional.empty(), ADMIN, AdjustmentKey.of(UUID.randomUUID()), NOW))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
+    void givenAStockOf5With3Reserved_whenSubtracting3_thenItIsRejectedWithTheStockAndTheReservedUnits() {
+        StockLevel level = StockLevel.of(VARIANT, 5, 3, true, OPENED);
+
+        var outcome = level.adjust(MovementId.of(UUID.randomUUID()), -3, Optional.empty(), ADMIN,
+            AdjustmentKey.of(UUID.randomUUID()), NOW);
+
+        assertThat(outcome).isEqualTo(new StockLevel.AdjustOutcome.WouldGoBelowReserved(5, 3));
+        assertThat(level.onHand()).isEqualTo(5);
+        assertThat(level.newMovements()).isEmpty();
+    }
+
+    @Test
+    void givenAStockOf5With3Reserved_whenSubtracting2_thenTheReservedUnitsStayCovered() {
+        StockLevel level = StockLevel.of(VARIANT, 5, 3, true, OPENED);
+
+        var outcome = level.adjust(MovementId.of(UUID.randomUUID()), -2, Optional.empty(), ADMIN,
+            AdjustmentKey.of(UUID.randomUUID()), NOW);
+
+        assertThat(outcome).isInstanceOfSatisfying(StockLevel.AdjustOutcome.Adjusted.class,
+            adjusted -> assertThat(adjusted.onHand()).isEqualTo(3));
+        assertThat(level.reserved()).isEqualTo(3);
+    }
+
+    @Test
+    void givenAStockOf3With2Reserved_whenSubtracting5_thenItWouldGoNegative() {
+        StockLevel level = StockLevel.of(VARIANT, 3, 2, true, OPENED);
+
+        var outcome = level.adjust(MovementId.of(UUID.randomUUID()), -5, Optional.empty(), ADMIN,
+            AdjustmentKey.of(UUID.randomUUID()), NOW);
+
+        assertThat(outcome).isEqualTo(new StockLevel.AdjustOutcome.WouldGoNegative(3));
+    }
+
+    @Test
     void givenAStockOutOfRange_whenLoaded_thenItIsRefused() {
-        assertThatThrownBy(() -> StockLevel.of(VARIANT, -1, true, OPENED)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> StockLevel.of(VARIANT, StockLevel.MAX_ON_HAND + 1, true, OPENED))
+        assertThatThrownBy(() -> StockLevel.of(VARIANT, -1, 0, true, OPENED))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> StockLevel.of(VARIANT, StockLevel.MAX_ON_HAND + 1, 0, true, OPENED))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> StockLevel.of(VARIANT, 2, 3, true, OPENED))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> StockLevel.of(VARIANT, 2, -1, true, OPENED))
             .isInstanceOf(IllegalArgumentException.class);
     }
 }

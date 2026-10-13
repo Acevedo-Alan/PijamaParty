@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,6 +47,32 @@ public final class Savepoints {
                 connection.rollback(savepoint);
                 return onViolation.apply(violation).orElseThrow(() -> violation);
             }
+        } catch (SQLException e) {
+            throw new TransactionSystemException("Could not use a savepoint", e);
+        } finally {
+            DataSourceUtils.releaseConnection(connection, dataSource);
+        }
+    }
+
+    /**
+     * Returns what {@code work} returns, and rolls back only {@code work}'s writes when {@code keep} refuses that
+     * result: an all-or-nothing step whose failure is a port outcome, not a broken constraint (UC-16). Any failure
+     * propagates.
+     */
+    public <T> T runKeepingIf(Supplier<T> work, Predicate<T> keep) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            throw new IllegalStateException("a savepoint is taken within the caller's transaction");
+        }
+        Connection connection = DataSourceUtils.getConnection(dataSource);
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            T result = work.get();
+            if (keep.test(result)) {
+                connection.releaseSavepoint(savepoint);
+            } else {
+                connection.rollback(savepoint);
+            }
+            return result;
         } catch (SQLException e) {
             throw new TransactionSystemException("Could not use a savepoint", e);
         } finally {

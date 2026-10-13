@@ -7,6 +7,10 @@ store:
     cleanup:
       # T-E2-04: tests run the cleanup themselves, never on a schedule ("-" disables the cron)
       cron: "-"
+  ordering:
+    reservation-expiry:
+      # T-E3-04: tests run the expiry themselves, never on a schedule
+      cron: "-"
   rate-limit:
     # Every test calls from 127.0.0.1 and Spring reuses the context across test classes, so the real RNF-22 policies
     # would turn unrelated tests into 429s. The rate-limit tests turn it back on with store.rate-limit.enabled=true.

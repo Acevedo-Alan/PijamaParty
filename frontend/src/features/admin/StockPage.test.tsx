@@ -80,6 +80,28 @@ describe('stock management (UC-07)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(messages.wouldGoNegative(3));
   });
 
+  it('given units reserved by orders, when subtracting them, then the reserved units are shown', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/products/{id}': product,
+      'GET /api/admin/variants/{id}/stock-movements': history(3, [movement('m-1', 3)]),
+      'POST /api/admin/stock-adjustments': problem(409, {
+        problem: 'WOULD_GO_BELOW_RESERVED',
+        onHand: 3,
+        reserved: 2,
+      }),
+    });
+    renderRoute(PATH);
+
+    await adjust('-2');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(messages.wouldGoBelowReserved(2, 3));
+    expect(messages.wouldGoBelowReserved(2, 3)).toBe(
+      'No se puede: hay 2 unidades reservadas por pedidos pendientes de pago. Hay 3.',
+    );
+    expect(messages.wouldGoBelowReserved(1, 3)).toContain('hay 1 unidad reservada por');
+  });
+
   it('given a valid adjustment, when saved, then the stock and the history reload', async () => {
     const api = stubApi({
       'GET /api/admin/auth/me': signedIn,

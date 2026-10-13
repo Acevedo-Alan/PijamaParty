@@ -27,6 +27,8 @@ function adjustNotice(answer: AdjustAnswer): Notice {
             ? messages.wouldGoNegative(answer.onHand)
             : messages.wouldExceedMaximum(answer.onHand),
       };
+    case 'belowReserved':
+      return { kind: 'error', text: messages.wouldGoBelowReserved(answer.reserved, answer.onHand) };
     case 'invalid':
       return { kind: 'error', text: messages.problems[answer.problem] };
     case 'unknownVariant':

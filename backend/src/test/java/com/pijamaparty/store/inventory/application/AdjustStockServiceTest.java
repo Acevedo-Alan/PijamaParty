@@ -8,6 +8,7 @@ import com.pijamaparty.store.inventory.domain.AdjustmentKey;
 import com.pijamaparty.store.inventory.domain.MovementId;
 import com.pijamaparty.store.inventory.domain.MovementNote;
 import com.pijamaparty.store.inventory.domain.MovementType;
+import com.pijamaparty.store.inventory.domain.OrderRef;
 import com.pijamaparty.store.inventory.domain.StockLevel;
 import com.pijamaparty.store.inventory.domain.StockMovement;
 import com.pijamaparty.store.inventory.domain.VariantId;
@@ -49,7 +50,7 @@ class AdjustStockServiceTest {
         assertThat(result).isEqualTo(new Result.Adjusted(5));
         assertThat(stock.movements(VARIANT, 0, 10)).containsExactly(new StockMovement(
             MovementId.of(InMemoryIdGenerator.nth(1)), VARIANT, MovementType.INITIAL_LOAD, 5,
-            MovementNote.parse("Primera carga"), Optional.of(ADMIN_ID), Optional.of(key), NOW));
+            MovementNote.parse("Primera carga"), Optional.of(ADMIN_ID), Optional.of(key), Optional.empty(), NOW));
     }
 
     @Test
@@ -78,6 +79,20 @@ class AdjustStockServiceTest {
         assertThat(result).isEqualTo(new Result.WouldGoNegative(3));
         assertThat(stock.onHand(VARIANT)).hasValue(3);
         assertThat(stock.movements(VARIANT, 0, 10)).hasSize(1);
+    }
+
+    @Test
+    void givenAStockOf3With2ReservedByAnOrder_whenSubtracting2_thenItIsRejectedWithTheReservedUnits() {
+        adjust(3);
+        stock.reserveAll(List.of(StockMovement.reservation(MovementId.of(UUID.randomUUID()), VARIANT,
+            OrderRef.of(UUID.randomUUID()), 2, NOW)));
+
+        Result result = service.execute(new Command(ADMIN, VARIANT, AdjustmentKey.of(UUID.randomUUID()), -2,
+            Optional.empty()));
+
+        assertThat(result).isEqualTo(new Result.WouldGoBelowReserved(3, 2));
+        assertThat(stock.onHand(VARIANT)).hasValue(3);
+        assertThat(stock.reserved(VARIANT)).hasValue(2);
     }
 
     @Test
