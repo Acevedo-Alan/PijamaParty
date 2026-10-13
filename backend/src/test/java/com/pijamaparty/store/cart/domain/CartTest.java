@@ -208,6 +208,19 @@ class CartTest {
     }
 
     @Test
+    void givenACartWithItemsAndACoupon_whenClearedByItsOrder_thenItHasNeitherAndClearingAgainChangesNothing() {
+        cart.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 1, 5, PRICE, OPENED);
+        cart.applyCoupon(CouponId.of(UUID.randomUUID()), OPENED);
+
+        assertThat(cart.clear(LATER)).isTrue();
+        assertThat(cart.items()).isEmpty();
+        assertThat(cart.coupon()).isEmpty();
+        assertThat(cart.updatedAt()).isEqualTo(LATER);
+        assertThat(cart.clear(LATER.plusSeconds(60))).isFalse();
+        assertThat(cart.updatedAt()).isEqualTo(LATER);
+    }
+
+    @Test
     void givenACartWithACoupon_whenCopied_thenTheCopyHasItToo() {
         CouponId coupon = CouponId.of(UUID.randomUUID());
         cart.applyCoupon(coupon, LATER);

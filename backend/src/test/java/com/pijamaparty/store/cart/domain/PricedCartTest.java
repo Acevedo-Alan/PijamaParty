@@ -146,4 +146,23 @@ class PricedCartTest {
             .isTrue();
         assertThat(PricedCart.empty().hasAvailableLines()).isFalse();
     }
+
+    @Test
+    void givenEveryLineAvailableAtThePriceSeen_whenCheckingOut_thenTheCartIsReady() {
+        var both = Map.of(PIJAMA, new SellableVariant(PIJAMA_PRICE, 5), CAMISON, new SellableVariant(CAMISON_PRICE, 3));
+
+        assertThat(PricedCart.of(cart, both).isReadyForCheckout()).isTrue();
+    }
+
+    @Test
+    void givenALineNotAvailableOrWithAPriceChange_whenCheckingOut_thenTheCartIsNotReady() {
+        var camison = new SellableVariant(CAMISON_PRICE, 3);
+
+        assertThat(PricedCart.of(cart, Map.of(PIJAMA, new SellableVariant(PIJAMA_PRICE, 1), CAMISON, camison))
+            .isReadyForCheckout()).isFalse();
+        assertThat(PricedCart.of(cart, Map.of(CAMISON, camison)).isReadyForCheckout()).isFalse();
+        assertThat(PricedCart.of(cart, Map.of(PIJAMA, new SellableVariant(Money.of(1_400_000), 5), CAMISON, camison))
+            .isReadyForCheckout()).isFalse();
+        assertThat(PricedCart.empty().isReadyForCheckout()).isFalse();
+    }
 }

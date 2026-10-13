@@ -40,6 +40,6 @@ public class InMemoryVariantDescriptionLookup implements VariantDescriptionLooku
                 .map(width -> new VariantDescription.PhotoFile(width, image.storageKey().fileName(width)))
                 .toList()));
         return new VariantDescription(product.details().name().value(), product.slug().value(),
-            variant.size().value(), variant.color().value(), photo);
+            variant.size().value(), variant.color().value(), variant.sku().value(), photo);
     }
 }

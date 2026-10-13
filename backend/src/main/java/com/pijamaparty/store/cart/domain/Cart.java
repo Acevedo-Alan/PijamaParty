@@ -162,6 +162,20 @@ public final class Cart {
         return true;
     }
 
+    /**
+     * UC-13: the order placed from this cart now holds its items, so the cart loses them and its coupon. Returns
+     * whether it had any.
+     */
+    public boolean clear(Instant at) {
+        if (items.isEmpty() && coupon.isEmpty()) {
+            return false;
+        }
+        items.clear();
+        coupon = Optional.empty();
+        updatedAt = at;
+        return true;
+    }
+
     public Optional<CartItem> item(CartItemId itemId) {
         return items.stream().filter(item -> item.id().equals(itemId)).findFirst();
     }

@@ -17,7 +17,7 @@ public abstract class ItemDescriptionsContractTest<T extends ItemDescriptions> e
 
     /** A variant of a product with this name and slug, which the catalog sells or not, without photos. */
     protected abstract void givenVariant(VariantId variantId, String productName, String slug, String size,
-                                         String color, boolean sold);
+                                         String color, String sku, boolean sold);
 
     /** Adds a photo of the variant's color to its product, stored under {@code storageKey}. */
     protected abstract void givenPhotoOfItsColor(VariantId variantId, String storageKey);
@@ -25,16 +25,16 @@ public abstract class ItemDescriptionsContractTest<T extends ItemDescriptions> e
     @Test
     void givenAVariant_whenDescribingIt_thenItHasItsProductSizeAndColor() {
         VariantId variant = VariantId.of(UUID.randomUUID());
-        givenVariant(variant, "Pijama Luna", "pijama-luna", "M", "Rosa", true);
+        givenVariant(variant, "Pijama Luna", "pijama-luna", "M", "Rosa", "PL-M-ROSA", true);
 
         assertThat(subject.describe(List.of(variant))).isEqualTo(Map.of(variant,
-            new ItemDescription("Pijama Luna", "pijama-luna", "M", "Rosa", Optional.empty())));
+            new ItemDescription("Pijama Luna", "pijama-luna", "M", "Rosa", "PL-M-ROSA", Optional.empty())));
     }
 
     @Test
     void givenAVariantWithAPhoto_whenDescribingIt_thenItHasThePhotoFilesByWidth() {
         VariantId variant = VariantId.of(UUID.randomUUID());
-        givenVariant(variant, "Pijama Luna", "pijama-luna", "M", "Rosa", true);
+        givenVariant(variant, "Pijama Luna", "pijama-luna", "M", "Rosa", "PL-M-ROSA", true);
         givenPhotoOfItsColor(variant, "luna-rosa");
 
         assertThat(subject.describe(List.of(variant)).get(variant).photo()).contains(new ItemDescription.Photo(
@@ -46,10 +46,10 @@ public abstract class ItemDescriptionsContractTest<T extends ItemDescriptions> e
     @Test
     void givenAVariantTheCatalogNoLongerSells_whenDescribingIt_thenItIsStillDescribed() {
         VariantId variant = VariantId.of(UUID.randomUUID());
-        givenVariant(variant, "Pijama Sol", "pijama-sol", "S", "Gris", false);
+        givenVariant(variant, "Pijama Sol", "pijama-sol", "S", "Gris", "PS-S-GRIS", false);
 
         assertThat(subject.describe(List.of(variant))).isEqualTo(Map.of(variant,
-            new ItemDescription("Pijama Sol", "pijama-sol", "S", "Gris", Optional.empty())));
+            new ItemDescription("Pijama Sol", "pijama-sol", "S", "Gris", "PS-S-GRIS", Optional.empty())));
     }
 
     @Test

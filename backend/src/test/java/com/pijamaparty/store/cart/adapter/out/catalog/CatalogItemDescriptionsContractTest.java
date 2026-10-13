@@ -30,7 +30,7 @@ class CatalogItemDescriptionsContractTest extends ItemDescriptionsContractTest<C
 
     @Override
     protected void givenVariant(VariantId variantId, String productName, String slug, String size, String color,
-                                boolean sold) {
+                                String sku, boolean sold) {
         UUID category = UUID.randomUUID();
         UUID product = UUID.randomUUID();
         owner.update("""
@@ -46,7 +46,7 @@ class CatalogItemDescriptionsContractTest extends ItemDescriptionsContractTest<C
             insert into variant (id, product_id, sku, size, size_position, color, color_position, price_cents, active,
                                  created_at, updated_at)
             values (?, ?, ?, ?, 0, ?, 0, 1500000, true, now(), now())
-            """, variantId.value(), product, "PP-" + variantId.value().toString().substring(0, 8), size, color);
+            """, variantId.value(), product, sku, size, color);
     }
 
     @Override

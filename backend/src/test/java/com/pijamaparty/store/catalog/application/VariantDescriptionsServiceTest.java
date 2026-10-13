@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.application;
 
 import static com.pijamaparty.store.catalog.application.ListingFixture.product;
+import static com.pijamaparty.store.catalog.application.ListingFixture.sku;
 import static com.pijamaparty.store.catalog.application.ListingFixture.variant;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,10 +27,12 @@ class VariantDescriptionsServiceTest {
         categories.save(summer);
         Product product = product(summer.id(), "Pijama", 0, List.of("M"), List.of("Rosa"), 5000);
         products.save(product);
-        UUID known = variant(product, "M", "Rosa").value();
+        var variant = variant(product, "M", "Rosa");
+        UUID known = variant.value();
 
         assertThat(service.describe(List.of(known, UUID.randomUUID()))).isEqualTo(Map.of(known,
-            new VariantDescription("Pijama", product.slug().value(), "M", "Rosa", Optional.empty())));
+            new VariantDescription("Pijama", product.slug().value(), "M", "Rosa", sku(product, variant),
+                Optional.empty())));
     }
 
     @Test

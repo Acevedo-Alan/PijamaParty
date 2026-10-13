@@ -50,6 +50,15 @@ public record PricedCart(List<PricedLine> lines, Money subtotal, Money discount,
         return lines.stream().anyMatch(line -> line.status() == LineStatus.AVAILABLE);
     }
 
+    /**
+     * UC-13: whether the checkout can sell it as it is: it has lines, every one {@link LineStatus#AVAILABLE} and
+     * without a price change the customer has not acknowledged (UC-09).
+     */
+    public boolean isReadyForCheckout() {
+        return !lines.isEmpty() && lines.stream()
+            .allMatch(line -> line.status() == LineStatus.AVAILABLE && line.previousUnitPrice().isEmpty());
+    }
+
     /** UC-10: the coupon's {@code discount}, at most the subtotal, comes off the total. */
     public PricedCart withDiscount(Money discount) {
         return new PricedCart(lines, subtotal, discount, subtotal.minus(discount));

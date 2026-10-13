@@ -5,10 +5,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * A variant as a cart line shows it (UC-08). {@code photo} is the first photo of its color, or else the first photo of
- * the whole product, if any.
+ * A variant as a cart line shows it (UC-08), with the SKU an order keeps of it (UC-13). {@code photo} is the first
+ * photo of its color, or else the first photo of the whole product, if any.
  */
-public record VariantDescription(String productName, String productSlug, String size, String color,
+public record VariantDescription(String productName, String productSlug, String size, String color, String sku,
                                  Optional<Photo> photo) {
 
     public VariantDescription {
@@ -16,6 +16,7 @@ public record VariantDescription(String productName, String productSlug, String 
         Objects.requireNonNull(productSlug, "productSlug");
         Objects.requireNonNull(size, "size");
         Objects.requireNonNull(color, "color");
+        Objects.requireNonNull(sku, "sku");
         Objects.requireNonNull(photo, "photo");
     }
 

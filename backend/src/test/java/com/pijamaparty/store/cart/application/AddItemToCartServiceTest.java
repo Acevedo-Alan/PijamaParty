@@ -35,7 +35,7 @@ class AddItemToCartServiceTest {
     private static final VariantId PIJAMA = VariantId.of(UUID.randomUUID());
     private static final Money PRICE = Money.of(1_500_000);
     private static final ItemDescription PIJAMA_DESCRIPTION =
-        new ItemDescription("Pijama Luna", "pijama-luna", "M", "Rosa", Optional.empty());
+        new ItemDescription("Pijama Luna", "pijama-luna", "M", "Rosa", "PL-M-ROSA", Optional.empty());
 
     private final InMemoryCartStore carts = new InMemoryCartStore();
     private final InMemoryVariantAvailability availability = new InMemoryVariantAvailability();

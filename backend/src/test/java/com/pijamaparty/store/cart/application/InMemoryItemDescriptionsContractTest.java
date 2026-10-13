@@ -17,8 +17,8 @@ class InMemoryItemDescriptionsContractTest extends ItemDescriptionsContractTest<
 
     @Override
     protected void givenVariant(VariantId variantId, String productName, String slug, String size, String color,
-                                boolean sold) {
-        ItemDescription description = new ItemDescription(productName, slug, size, color, Optional.empty());
+                                String sku, boolean sold) {
+        ItemDescription description = new ItemDescription(productName, slug, size, color, sku, Optional.empty());
         given.put(variantId, description);
         subject.add(variantId, description);
     }
@@ -27,7 +27,7 @@ class InMemoryItemDescriptionsContractTest extends ItemDescriptionsContractTest<
     protected void givenPhotoOfItsColor(VariantId variantId, String storageKey) {
         ItemDescription description = given.get(variantId);
         subject.add(variantId, new ItemDescription(description.productName(), description.productSlug(),
-            description.size(), description.color(), Optional.of(new ItemDescription.Photo(PLACEHOLDER,
+            description.size(), description.color(), description.sku(), Optional.of(new ItemDescription.Photo(PLACEHOLDER,
                 List.of(400, 800, 1200).stream()
                     .map(width -> new ItemDescription.PhotoFile(width, storageKey + "-" + width + ".webp"))
                     .toList()))));

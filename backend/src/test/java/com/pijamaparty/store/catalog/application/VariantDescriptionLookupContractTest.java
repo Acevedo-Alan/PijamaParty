@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.application;
 
 import static com.pijamaparty.store.catalog.application.ListingFixture.product;
+import static com.pijamaparty.store.catalog.application.ListingFixture.sku;
 import static com.pijamaparty.store.catalog.application.ListingFixture.variant;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,9 +42,11 @@ public abstract class VariantDescriptionLookupContractTest<T extends VariantDesc
 
         assertThat(described).containsOnlyKeys(small, medium);
         assertThat(described.get(small)).isEqualTo(
-            new VariantDescription("Pijama Luna", product.slug().value(), "S", "Gris", Optional.empty()));
+            new VariantDescription("Pijama Luna", product.slug().value(), "S", "Gris", sku(product, small),
+                Optional.empty()));
         assertThat(described.get(medium)).isEqualTo(
-            new VariantDescription("Pijama Luna", product.slug().value(), "M", "Rosa", Optional.empty()));
+            new VariantDescription("Pijama Luna", product.slug().value(), "M", "Rosa", sku(product, medium),
+                Optional.empty()));
     }
 
     @Test

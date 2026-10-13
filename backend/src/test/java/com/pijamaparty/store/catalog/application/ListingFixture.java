@@ -76,6 +76,14 @@ public final class ListingFixture {
             .orElseThrow();
     }
 
+    public static String sku(Product product, VariantId variantId) {
+        return product.variants().stream()
+            .filter(variant -> variant.id().equals(variantId))
+            .map(variant -> variant.sku().value())
+            .findFirst()
+            .orElseThrow();
+    }
+
     public static final class Builder {
 
         private final CategoryId category;

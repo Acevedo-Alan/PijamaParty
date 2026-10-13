@@ -26,7 +26,7 @@ class JdbcVariantDescriptionLookup implements VariantDescriptionLookup {
 
     // Every variant, sold or not. Its photo is the first of its color, or else the first of the whole product.
     private static final String SELECT_DESCRIPTIONS = """
-        SELECT v.id, p.name, p.slug, v.size, v.color, i.storage_key, i.placeholder
+        SELECT v.id, p.name, p.slug, v.size, v.color, v.sku, i.storage_key, i.placeholder
         FROM variant v
         JOIN product p ON p.id = v.product_id
         LEFT JOIN LATERAL (
@@ -60,7 +60,7 @@ class JdbcVariantDescriptionLookup implements VariantDescriptionLookup {
             ? Optional.empty()
             : Optional.of(photo(new StorageKey(storageKey), row.getString("placeholder")));
         return new VariantDescription(row.getString("name"), row.getString("slug"), row.getString("size"),
-            row.getString("color"), photo);
+            row.getString("color"), row.getString("sku"), photo);
     }
 
     private static VariantDescription.Photo photo(StorageKey storageKey, String placeholder) {

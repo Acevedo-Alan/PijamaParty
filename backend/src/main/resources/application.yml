@@ -94,6 +94,9 @@ store:
       # for more than 30 days are deleted
       cron: "0 0 4 * * *"
   ordering:
+    # T-E3-05, RNF-30.6: the version of the terms and the exchange and returns policy linked in the checkout. Every
+    # order keeps the one in force when it was placed; change it whenever the legal texts change.
+    terms-version: "2026-10"
     reservation-expiry:
       # T-E3-04, UC-16: every minute, at second 0, the orders awaiting payment whose 30-minute reservation is over
       # become EXPIRED and release their stock

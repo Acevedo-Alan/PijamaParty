@@ -72,10 +72,10 @@ class CartChangeServicesTest {
 
     @Test
     void givenDescribedVariants_whenGettingTheCart_thenEachItemShowsItsVariantAlsoWhenItIsNoLongerSold() {
-        var pijama = new ItemDescription("Pijama Luna", "pijama-luna", "M", "Rosa", Optional.of(
+        var pijama = new ItemDescription("Pijama Luna", "pijama-luna", "M", "Rosa", "PL-M-ROSA", Optional.of(
             new ItemDescription.Photo("data:image/webp;base64,UklGRg==",
                 List.of(new ItemDescription.PhotoFile(400, "luna-400.webp")))));
-        var camison = new ItemDescription("Camisón Sol", "camison-sol", "S", "Gris", Optional.empty());
+        var camison = new ItemDescription("Camisón Sol", "camison-sol", "S", "Gris", "CS-S-GRIS", Optional.empty());
         descriptions.add(PIJAMA, pijama);
         descriptions.add(CAMISON, camison);
         availability.stopSelling(CAMISON);

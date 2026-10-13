@@ -14,6 +14,8 @@ class OrderingWebConfiguration {
      */
     @Bean
     HttpAuthorizationRules checkoutAuthorizationRules() {
-        return registry -> registry.requestMatchers(HttpMethod.GET, "/api/checkout/shipping-cost").permitAll();
+        return registry -> registry
+            .requestMatchers(HttpMethod.GET, "/api/checkout/shipping-cost").permitAll()
+            .requestMatchers(HttpMethod.POST, "/api/checkout").permitAll();
     }
 }

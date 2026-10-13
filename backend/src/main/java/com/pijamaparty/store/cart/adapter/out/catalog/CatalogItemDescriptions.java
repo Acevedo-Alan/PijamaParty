@@ -33,7 +33,7 @@ class CatalogItemDescriptions implements ItemDescriptions {
 
     private static ItemDescription toItem(VariantDescription description) {
         return new ItemDescription(description.productName(), description.productSlug(), description.size(),
-            description.color(), description.photo().map(photo -> new ItemDescription.Photo(photo.placeholder(),
+            description.color(), description.sku(), description.photo().map(photo -> new ItemDescription.Photo(photo.placeholder(),
                 photo.files().stream()
                     .map(file -> new ItemDescription.PhotoFile(file.width(), file.fileName()))
                     .toList())));

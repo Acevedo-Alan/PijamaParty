@@ -1,31 +1,60 @@
 package com.pijamaparty.store.ordering.adapter.in.web;
 
 import com.pijamaparty.store.ordering.application.GetShippingCost;
+import com.pijamaparty.store.ordering.application.PlaceOrder;
+import com.pijamaparty.store.ordering.domain.CheckoutForm;
+import com.pijamaparty.store.ordering.domain.OrderStatus;
+import com.pijamaparty.store.ordering.domain.PaymentProvider;
+import com.pijamaparty.store.platform.application.TokenGenerator;
+import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
+import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.pijamaparty.store.shipping.api.Province;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** UC-12, UC-13: the checkout of a visitor or customer. Only translates between HTTP and the use cases. */
+/** UC-12, UC-13, UC-14: the checkout of a visitor or customer. Only translates between HTTP and the use cases. */
 @RestController
 @RequestMapping("/api/checkout")
 @Tag(name = "Checkout")
 class CheckoutController {
 
-    private final GetShippingCost getShippingCost;
+    /** The canonical text of a UUID, as the frontend's crypto.randomUUID() writes it. */
+    private static final Pattern UUID_TEXT =
+        Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
-    CheckoutController(GetShippingCost getShippingCost) {
+    /** Bounds the body; the domain applies the rules of UC-13 and answers 422 (RNF-28). */
+    private static final int MAX_TEXT = 300;
+
+    private final GetShippingCost getShippingCost;
+    private final PlaceOrder placeOrder;
+    private final TokenGenerator tokens;
+
+    CheckoutController(GetShippingCost getShippingCost, PlaceOrder placeOrder, TokenGenerator tokens) {
         this.getShippingCost = getShippingCost;
+        this.placeOrder = placeOrder;
+        this.tokens = tokens;
     }
 
     @GetMapping("/shipping-cost")
@@ -46,22 +75,125 @@ class CheckoutController {
         var query = new GetShippingCost.Query(CurrentActor.get().orElseThrow(), province);
         return switch (getShippingCost.execute(query)) {
             case GetShippingCost.Result.Quoted quoted -> ResponseEntity.ok(ShippingCostResponse.of(quoted));
-            case GetShippingCost.Result.NoShipping none -> {
-                var problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "The shop does not ship to this province.");
-                problem.setTitle("No shipping");
-                problem.setProperty("problem", "NO_SHIPPING");
-                problem.setProperty("province", none.province().name());
+            case GetShippingCost.Result.NoShipping none -> noShipping(none.province());
+            case GetShippingCost.Result.EmptyCart empty -> emptyCart();
+        };
+    }
+
+    @PostMapping
+    @Operation(summary = "Confirm the checkout: place the order and reserve its stock",
+        description = "Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for "
+            + "30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's "
+            + "tracking page; it is shown only here. Requires the CSRF token.")
+    @ApiResponse(responseCode = "201", description = "The order, awaiting payment",
+        content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlacedResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Missing or invalid Idempotency-Key, or a body that is not of "
+        + "this shape: a missing field, a text longer than 300 characters, an unknown province or provider",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "409", description = "See problem: EMPTY_CART, CART_NOT_READY (read the cart again), "
+        + "COUPON_NOT_APPLICABLE (with couponStatus) or INSUFFICIENT_STOCK (with variantId and available)",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "422", description = "See problem: INVALID_BUYER_DATA (with fields), "
+        + "TERMS_NOT_ACCEPTED or NO_SHIPPING (with province)",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<?> placeOrder(
+        @Parameter(description = "A UUID per checkout attempt, repeated on retries") @RequestHeader("Idempotency-Key")
+        String idempotencyKey,
+        @Valid @RequestBody PlaceOrderRequest body) {
+        // T-E3-14 stores the key and answers a repetition with the stored response.
+        if (!UUID_TEXT.matcher(idempotencyKey).matches()) {
+            return problem(HttpStatus.BAD_REQUEST, "Invalid Idempotency-Key", "The Idempotency-Key must be a UUID.",
+                null);
+        }
+        TrackingToken trackingToken = new TrackingToken(tokens.newToken());
+        Actor actor = withTrackingToken(CurrentActor.get().orElseThrow(), trackingToken);
+        var command = new PlaceOrder.Command(actor, body.toForm(), body.address().province(), body.paymentProvider(),
+            body.acceptedTerms());
+        // The RLS context is set when the use case's transaction begins, so it must already carry the new token.
+        return switch (CurrentActor.callAs(actor, () -> placeOrder.execute(command))) {
+            case PlaceOrder.Result.Placed placed -> ResponseEntity.status(HttpStatus.CREATED)
+                .body(new PlacedResponse(placed.number(), trackingToken.value(), OrderStatus.AWAITING_PAYMENT,
+                    placed.total().cents(), placed.reservationExpiresAt()));
+            case PlaceOrder.Result.InvalidBuyerData invalid -> {
+                var problem = problemDetail(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid buyer data",
+                    "Some buyer or address data break the rules of the checkout.", "INVALID_BUYER_DATA");
+                problem.setProperty("fields", invalid.fields().stream()
+                    .sorted(Comparator.naturalOrder())
+                    .map(CheckoutController::fieldName)
+                    .toList());
                 yield ResponseEntity.unprocessableEntity().body(problem);
             }
-            case GetShippingCost.Result.EmptyCart empty -> {
-                var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
-                    "The checkout needs a cart with available items.");
-                problem.setTitle("Empty cart");
-                problem.setProperty("problem", "EMPTY_CART");
+            case PlaceOrder.Result.TermsNotAccepted notAccepted -> problem(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Terms not accepted", "The terms must be accepted to place the order.", "TERMS_NOT_ACCEPTED");
+            case PlaceOrder.Result.EmptyCart empty -> emptyCart();
+            case PlaceOrder.Result.CartNotReady notReady -> problem(HttpStatus.CONFLICT, "Cart not ready",
+                "Some item is not available or has a new price to acknowledge.", "CART_NOT_READY");
+            case PlaceOrder.Result.CouponNotApplicable coupon -> {
+                var problem = problemDetail(HttpStatus.CONFLICT, "Coupon not applicable",
+                    "The coupon of the cart no longer applies.", "COUPON_NOT_APPLICABLE");
+                problem.setProperty("couponStatus", coupon.status().name());
+                yield ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+            }
+            case PlaceOrder.Result.NoShipping none -> noShipping(none.province());
+            case PlaceOrder.Result.InsufficientStock insufficient -> {
+                var problem = problemDetail(HttpStatus.CONFLICT, "Insufficient stock",
+                    "A variant does not have enough stock.", "INSUFFICIENT_STOCK");
+                problem.setProperty("variantId", insufficient.variantId());
+                problem.setProperty("available", insufficient.available());
                 yield ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
             }
         };
+    }
+
+    /** UC-14: the new order belongs to a tracking token the buyer gets back; staff cannot carry one and buy nothing. */
+    private static Actor withTrackingToken(Actor actor, TrackingToken trackingToken) {
+        return switch (actor.role()) {
+            case ANONYMOUS -> Actor.anonymous(actor.cartToken(), Optional.of(trackingToken));
+            case CUSTOMER -> Actor.customer(actor.userId().orElseThrow(), actor.cartToken(),
+                Optional.of(trackingToken));
+            case ADMIN, SYSTEM -> actor;
+        };
+    }
+
+    private static String fieldName(CheckoutForm.Field field) {
+        return switch (field) {
+            case NAME -> "name";
+            case EMAIL -> "email";
+            case PHONE -> "phone";
+            case NATIONAL_ID -> "nationalId";
+            case STREET -> "street";
+            case NUMBER -> "number";
+            case FLOOR -> "floor";
+            case APARTMENT -> "apartment";
+            case CITY -> "city";
+            case POSTAL_CODE -> "postalCode";
+        };
+    }
+
+    private static ResponseEntity<ProblemDetail> noShipping(Province province) {
+        var problem = problemDetail(HttpStatus.UNPROCESSABLE_ENTITY, "No shipping",
+            "The shop does not ship to this province.", "NO_SHIPPING");
+        problem.setProperty("province", province.name());
+        return ResponseEntity.unprocessableEntity().body(problem);
+    }
+
+    private static ResponseEntity<ProblemDetail> emptyCart() {
+        return problem(HttpStatus.CONFLICT, "Empty cart", "The checkout needs a cart with available items.",
+            "EMPTY_CART");
+    }
+
+    private static ResponseEntity<ProblemDetail> problem(HttpStatus status, String title, String detail,
+                                                         String code) {
+        return ResponseEntity.status(status).body(problemDetail(status, title, detail, code));
+    }
+
+    private static ProblemDetail problemDetail(HttpStatus status, String title, String detail, String code) {
+        var problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setTitle(title);
+        if (code != null) {
+            problem.setProperty("problem", code);
+        }
+        return problem;
     }
 
     /** {@code totalCents} = {@code subtotalCents} − {@code discountCents} + {@code shippingCents}. */
@@ -73,4 +205,32 @@ class CheckoutController {
                 quoted.shipping().cents(), quoted.total().cents());
         }
     }
+
+    /** {@code paymentProvider}: only MERCADOPAGO until E3b. */
+    record PlaceOrderRequest(@NotNull @Valid BuyerRequest buyer, @NotNull @Valid AddressRequest address,
+                             @NotNull PaymentProvider paymentProvider, @NotNull Boolean acceptedTerms) {
+
+        CheckoutForm toForm() {
+            return new CheckoutForm(buyer.name(), buyer.email(), buyer.phone(), buyer.nationalId(), address.street(),
+                address.number(), address.floor(), address.apartment(), address.city(), address.postalCode());
+        }
+    }
+
+    /**
+     * As typed: the server trims and normalizes. {@code phone} may carry spaces, '+', '-' and parentheses, and
+     * {@code nationalId} dots and spaces.
+     */
+    record BuyerRequest(@NotNull @Size(max = MAX_TEXT) String name, @NotNull @Size(max = MAX_TEXT) String email,
+                        @NotNull @Size(max = MAX_TEXT) String phone,
+                        @NotNull @Size(max = MAX_TEXT) String nationalId) {}
+
+    /** {@code floor} and {@code apartment} are optional; {@code postalCode} is 4 digits or a CPA such as S3000ABC. */
+    record AddressRequest(@NotNull @Size(max = MAX_TEXT) String street, @NotNull @Size(max = MAX_TEXT) String number,
+                          @Size(max = MAX_TEXT) String floor, @Size(max = MAX_TEXT) String apartment,
+                          @NotNull @Size(max = MAX_TEXT) String city, @NotNull Province province,
+                          @NotNull @Size(max = MAX_TEXT) String postalCode) {}
+
+    /** {@code trackingToken} is a secret of the buyer: the server keeps only its hash. Amounts in cents. */
+    record PlacedResponse(long number, String trackingToken, OrderStatus status, long totalCents,
+                          Instant reservationExpiresAt) {}
 }

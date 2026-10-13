@@ -129,6 +129,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the checkout: place the order and reserve its stock
+         * @description Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for 30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's tracking page; it is shown only here. Requires the CSRF token.
+         */
+        post: operations["placeOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cart/items": {
         parameters: {
             query?: never;
@@ -945,6 +965,40 @@ export interface components {
             position?: number;
             active?: boolean;
         };
+        AddressRequest: {
+            street: string;
+            number: string;
+            floor?: string;
+            apartment?: string;
+            city: string;
+            /** @enum {string} */
+            province: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            postalCode: string;
+        };
+        BuyerRequest: {
+            name: string;
+            email: string;
+            phone: string;
+            nationalId: string;
+        };
+        PlaceOrderRequest: {
+            buyer: components["schemas"]["BuyerRequest"];
+            address: components["schemas"]["AddressRequest"];
+            /** @enum {string} */
+            paymentProvider: "MERCADOPAGO";
+            acceptedTerms: boolean;
+        };
+        PlacedResponse: {
+            /** Format: int64 */
+            number?: number;
+            trackingToken?: string;
+            /** @enum {string} */
+            status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            /** Format: int64 */
+            totalCents?: number;
+            /** Format: date-time */
+            reservationExpiresAt?: string;
+        };
         AddItemRequest: {
             /** Format: uuid */
             variantId: string;
@@ -1573,6 +1627,60 @@ export interface operations {
                 };
             };
             /** @description The order does not name every category exactly once */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    placeOrder: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A UUID per checkout attempt, repeated on retries */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaceOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description The order, awaiting payment */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacedResponse"];
+                };
+            };
+            /** @description Missing or invalid Idempotency-Key, or a body that is not of this shape: a missing field, a text longer than 300 characters, an unknown province or provider */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description See problem: EMPTY_CART, CART_NOT_READY (read the cart again), COUPON_NOT_APPLICABLE (with couponStatus) or INSUFFICIENT_STOCK (with variantId and available) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description See problem: INVALID_BUYER_DATA (with fields), TERMS_NOT_ACCEPTED or NO_SHIPPING (with province) */
             422: {
                 headers: {
                     [name: string]: unknown;
