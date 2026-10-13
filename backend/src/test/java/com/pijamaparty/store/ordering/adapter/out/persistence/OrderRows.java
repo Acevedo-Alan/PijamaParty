@@ -5,6 +5,7 @@ import com.pijamaparty.store.ordering.domain.OrderStatus;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -35,6 +36,24 @@ public final class OrderRows {
         var createdAt = reservationExpiresAt.minusSeconds(30 * 60).atOffset(ZoneOffset.UTC);
         owner.update(INSERT_ORDER, order.value(), status.name(), reservationExpiresAt.atOffset(ZoneOffset.UTC),
             createdAt, createdAt);
+    }
+
+
+    /** UC-15: an order that applied the coupon (code {@code VERANO10}); answers its number. */
+    public static long insertWithCoupon(JdbcTemplate owner, OrderId order, OrderStatus status,
+                                        Instant reservationExpiresAt, UUID couponId) {
+        insert(owner, order, status, reservationExpiresAt);
+        owner.update("update orders set coupon_id = ?, coupon_code = 'VERANO10' where id = ?", couponId,
+            order.value());
+        return numberOf(owner, order);
+    }
+
+    public static long numberOf(JdbcTemplate owner, OrderId order) {
+        Long number = owner.queryForObject("select number from orders where id = ?", Long.class, order.value());
+        if (number == null) {
+            throw new IllegalStateException("no order " + order);
+        }
+        return number;
     }
 
     public static Optional<OrderStatus> statusOf(JdbcTemplate owner, OrderId order) {

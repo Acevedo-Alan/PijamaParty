@@ -129,6 +129,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/payments/mercadopago/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * MercadoPago notifies that a payment changed
+         * @description Called by MercadoPago only, signed with the application's secret (x-signature, x-request-id). The payment is asked to MercadoPago; an approved one for the order's exact total pays the order. Repeating a notification has no further effects.
+         */
+        post: operations["notify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/checkout": {
         parameters: {
             query?: never;
@@ -1630,6 +1650,52 @@ export interface operations {
             };
             /** @description The order does not name every category exactly once */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    notify: {
+        parameters: {
+            query?: {
+                /** @description The kind of resource, payment */
+                type?: string;
+                /** @description MercadoPago's id of the payment */
+                "data.id"?: string;
+            };
+            header?: {
+                "x-signature"?: string;
+                "x-request-id"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Processed, or ignored (not a payment, or a payment this store does not know) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description Missing, invalid or out-of-date signature */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description MercadoPago could not be asked for the payment; it delivers the notification again (Retry-After) */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

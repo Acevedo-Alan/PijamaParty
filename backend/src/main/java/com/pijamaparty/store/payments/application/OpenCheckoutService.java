@@ -50,8 +50,8 @@ class OpenCheckoutService implements PaymentCheckouts {
         if (existing.isPresent()) {
             return new CheckoutOpening.Opened(existing.get().url());
         }
-        savePayments.insertPending(new SavePayments.NewPayment(ids.newId(), request.orderId(), request.provider(),
-            request.amount(), clock.instant()));
+        savePayments.insertPending(new SavePayments.NewPayment(ids.newId(), request.orderId(), request.orderNumber(),
+            request.provider(), request.amount(), clock.instant()));
         return switch (gateway.createCheckout(request)) {
             case PaymentGateway.Outcome.Unavailable unavailable -> new CheckoutOpening.ProviderUnavailable();
             case PaymentGateway.Outcome.Created created -> {

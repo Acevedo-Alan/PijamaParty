@@ -20,8 +20,9 @@ import org.springframework.test.context.TestPropertySource;
 @SpringBootTest
 @Import({TestcontainersConfiguration.class, ProdMigrationsTest.MigrateContainerStep.class})
 @ActiveProfiles("prod")
-// T-E3-06: the production profile does not start without them
-@TestPropertySource(properties = {"PUBLIC_URL=https://pijamaparty.test", "MERCADOPAGO_ACCESS_TOKEN=TEST-token"})
+// T-E3-06, T-E3-07: the production profile does not start without them
+@TestPropertySource(properties = {"PUBLIC_URL=https://pijamaparty.test", "MERCADOPAGO_ACCESS_TOKEN=TEST-token",
+    "MERCADOPAGO_WEBHOOK_SECRET=test-secret"})
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class ProdMigrationsTest {
 

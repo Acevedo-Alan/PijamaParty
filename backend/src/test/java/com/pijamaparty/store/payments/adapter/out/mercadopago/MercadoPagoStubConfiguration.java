@@ -12,6 +12,8 @@ import org.springframework.test.context.DynamicPropertyRegistrar;
 public class MercadoPagoStubConfiguration {
 
     public static final String ACCESS_TOKEN = "TEST-access-token-for-the-stub";
+    /** The secret that signs the notifications whole-application tests send to the webhook (T-E3-07). */
+    public static final String WEBHOOK_SECRET = "test-webhook-secret-for-the-stub";
 
     @Bean(destroyMethod = "stop")
     MercadoPagoStub mercadoPagoStub() {
@@ -23,6 +25,7 @@ public class MercadoPagoStubConfiguration {
         return registry -> {
             registry.add("store.payments.mercadopago.base-url", () -> stub.baseUrl().toString());
             registry.add("store.payments.mercadopago.access-token", () -> ACCESS_TOKEN);
+            registry.add("store.payments.mercadopago.webhook-secret", () -> WEBHOOK_SECRET);
         };
     }
 }

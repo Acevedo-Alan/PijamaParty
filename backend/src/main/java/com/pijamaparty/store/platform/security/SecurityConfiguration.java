@@ -26,6 +26,9 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfiguration {
 
+    /** The payment providers' webhooks (UC-15) and the email provider's (UC-17), as in the rate-limit exclusions. */
+    private static final String[] WEBHOOKS = {"/api/payments/*/webhook", "/api/mail/webhook"};
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, List<HttpAuthorizationRules> rules,
                                             ObjectMapper objectMapper, CsrfTokenRepository csrfTokens,
@@ -40,7 +43,9 @@ public class SecurityConfiguration {
             .requestCache(AbstractHttpConfigurer::disable)
             .csrf(csrf -> csrf
                 .csrfTokenRepository(csrfTokens)
-                .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
+                .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+                // RNF-29.1: providers call the webhooks without a browser session; their signature protects them.
+                .ignoringRequestMatchers(WEBHOOKS))
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint(problemJson)
                 .accessDeniedHandler(problemJson))

@@ -8,6 +8,7 @@ import com.pijamaparty.store.promotions.application.CouponView;
 import com.pijamaparty.store.promotions.application.LoadCoupon;
 import com.pijamaparty.store.promotions.application.RemoveStoredCoupon;
 import com.pijamaparty.store.promotions.application.SaveCoupon;
+import com.pijamaparty.store.promotions.application.SaveCouponRedemption;
 import com.pijamaparty.store.promotions.domain.Coupon;
 import com.pijamaparty.store.promotions.domain.CouponCode;
 import com.pijamaparty.store.promotions.domain.CouponId;
@@ -37,7 +38,8 @@ import org.springframework.stereotype.Repository;
  * violation becomes an outcome and the caller's transaction stays usable.
  */
 @Repository
-class JdbcCouponStore implements LoadCoupon, CouponUses, CouponSummaries, SaveCoupon, RemoveStoredCoupon {
+class JdbcCouponStore
+    implements LoadCoupon, CouponUses, CouponSummaries, SaveCoupon, RemoveStoredCoupon, SaveCouponRedemption {
 
     private static final String SELECT_COUPON = """
         SELECT id, code, type, discount_value, valid_from, valid_until, max_uses, minimum_purchase_cents, active
@@ -93,6 +95,13 @@ class JdbcCouponStore implements LoadCoupon, CouponUses, CouponSummaries, SaveCo
         WHERE id = :id
         """;
 
+    // UC-15: once per coupon and order (coupon_redemption_pk); a coupon deleted meanwhile gets no use.
+    private static final String REDEEM = """
+        INSERT INTO coupon_redemption (coupon_id, order_id, redeemed_at)
+        SELECT id, :orderId, :at FROM coupon WHERE id = :couponId
+        ON CONFLICT (coupon_id, order_id) DO NOTHING
+        """;
+
     private final NamedParameterJdbcTemplate jdbc;
     private final Savepoints savepoints;
 
@@ -117,6 +126,13 @@ class JdbcCouponStore implements LoadCoupon, CouponUses, CouponSummaries, SaveCo
     public long count(CouponId id) {
         Long uses = jdbc.queryForObject(COUNT_USES, new MapSqlParameterSource("id", id.value()), Long.class);
         return uses == null ? 0 : uses;
+    }
+
+    @Override
+    public boolean redeem(CouponId coupon, UUID orderId, Instant at) {
+        return jdbc.update(REDEEM, new MapSqlParameterSource("couponId", coupon.value())
+            .addValue("orderId", orderId)
+            .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
     }
 
     @Override

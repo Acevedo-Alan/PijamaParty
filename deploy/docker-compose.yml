@@ -73,6 +73,7 @@ services:
       - ADMIN_INITIAL_PASSWORD
       - SECOND_FACTOR_KEY
       - MERCADOPAGO_ACCESS_TOKEN
+      - MERCADOPAGO_WEBHOOK_SECRET
     volumes:
       - uploads:/srv/uploads
     networks: [edge, data]
@@ -173,3 +174,5 @@ secrets:
     file: ./secrets/SECOND_FACTOR_KEY
   MERCADOPAGO_ACCESS_TOKEN:
     file: ./secrets/MERCADOPAGO_ACCESS_TOKEN
+  MERCADOPAGO_WEBHOOK_SECRET:
+    file: ./secrets/MERCADOPAGO_WEBHOOK_SECRET

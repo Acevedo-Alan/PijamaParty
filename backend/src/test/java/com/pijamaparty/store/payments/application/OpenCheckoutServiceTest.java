@@ -7,6 +7,7 @@ import com.pijamaparty.store.payments.api.CheckoutOpening;
 import com.pijamaparty.store.payments.api.CheckoutRequest;
 import com.pijamaparty.store.payments.api.PaymentProvider;
 import com.pijamaparty.store.payments.domain.Checkout;
+import com.pijamaparty.store.payments.domain.PaymentStatus;
 import com.pijamaparty.store.platform.domain.Money;
 import java.net.URI;
 import java.time.Clock;
@@ -36,8 +37,9 @@ class OpenCheckoutServiceTest {
 
         assertThat(opening).isEqualTo(new CheckoutOpening.Opened(URI.create("https://pay.example.com/checkout-1")));
         assertThat(payments.paymentOf(request.orderId(), MERCADOPAGO)).contains(new InMemoryPaymentStore.StoredPayment(
-            paymentId, Money.of(2_100_050), Optional.of(
-                new Checkout("checkout-1", URI.create("https://pay.example.com/checkout-1")))));
+            paymentId, 1001, Money.of(2_100_050), Optional.of(
+                new Checkout("checkout-1", URI.create("https://pay.example.com/checkout-1"))),
+            PaymentStatus.PENDING, Optional.empty()));
         assertThat(gateway.requests()).containsExactly(request);
     }
 

@@ -23,16 +23,16 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * T-E3-01: the payments schema (V15) enforces the UC-14 and UC-15 rules, and its Row Level Security policies
- * (RNF-27). The full policy matrix is T-E3-21.
+ * T-E3-01, T-E3-07: the payments schema (V15, V18) enforces the UC-14 and UC-15 rules, and its Row Level Security
+ * policies (RNF-27). The full policy matrix is T-E3-21.
  */
 @ApiTest
 class PaymentsSchemaTest {
 
     private static final String INSERT_PAYMENT = """
-        insert into payment (id, order_id, provider, amount_cents, status, checkout_id, checkout_url,
+        insert into payment (id, order_id, order_number, provider, amount_cents, status, checkout_id, checkout_url,
                              external_payment_id, created_at, updated_at)
-        values (?, ?, 'MERCADOPAGO', 2100000, ?, ?, ?, ?, now(), now())
+        values (?, ?, nextval('order_number_seq'), 'MERCADOPAGO', 2100000, ?, ?, ?, ?, now(), now())
         """;
 
     private final RlsPolicyTester rls;
@@ -80,6 +80,20 @@ class PaymentsSchemaTest {
 
         assertThatThrownBy(() -> owner.update(INSERT_PAYMENT, UUID.randomUUID(), order, "PENDING", null, null, null))
             .isInstanceOf(DuplicateKeyException.class).hasMessageContaining("payment_order_provider_uk");
+    }
+
+    @Test
+    void givenAPaymentOfAnOrderNumber_whenAnotherPaymentOfTheProviderHasTheSameNumber_thenItIsRejected() {
+        String insert = """
+            insert into payment (id, order_id, order_number, provider, amount_cents, status, created_at, updated_at)
+            values (?, ?, ?, 'MERCADOPAGO', 2100000, 'PENDING', now(), now())
+            """;
+        owner.update(insert, UUID.randomUUID(), UUID.randomUUID(), 1001L);
+
+        assertThatThrownBy(() -> owner.update(insert, UUID.randomUUID(), UUID.randomUUID(), 1001L))
+            .isInstanceOf(DuplicateKeyException.class).hasMessageContaining("payment_provider_order_number_uk");
+        assertThatThrownBy(() -> owner.update(insert, UUID.randomUUID(), UUID.randomUUID(), 0L))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("payment_order_number_ck");
     }
 
     @Test

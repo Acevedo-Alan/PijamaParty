@@ -20,7 +20,8 @@ public interface SavePayments {
      */
     boolean recordCheckout(UUID orderId, PaymentProvider provider, Checkout checkout, Instant at);
 
-    record NewPayment(UUID id, UUID orderId, PaymentProvider provider, Money amount, Instant createdAt) {
+    record NewPayment(UUID id, UUID orderId, long orderNumber, PaymentProvider provider, Money amount,
+                      Instant createdAt) {
 
         public NewPayment {
             Objects.requireNonNull(id, "id");
@@ -28,6 +29,9 @@ public interface SavePayments {
             Objects.requireNonNull(provider, "provider");
             Objects.requireNonNull(amount, "amount");
             Objects.requireNonNull(createdAt, "createdAt");
+            if (orderNumber <= 0) {
+                throw new IllegalArgumentException("orderNumber must be positive");
+            }
         }
     }
 }

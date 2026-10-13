@@ -106,7 +106,7 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
         }
         assertThat(body.get("auto_return").asText()).isEqualTo("approved");
         assertThat(body.get("notification_url").asText())
-            .isEqualTo("https://pijamaparty.example/api/payments/mercadopago/webhook");
+            .isEqualTo("https://pijamaparty.example/api/payments/mercadopago/webhook?source_news=webhooks");
     }
 
     @Test

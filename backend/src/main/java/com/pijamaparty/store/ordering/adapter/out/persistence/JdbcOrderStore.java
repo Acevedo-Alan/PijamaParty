@@ -1,5 +1,6 @@
 package com.pijamaparty.store.ordering.adapter.out.persistence;
 
+import com.pijamaparty.store.ordering.application.ConfirmableOrders;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderTransitions;
 import com.pijamaparty.store.ordering.application.OrdersToPay;
@@ -32,7 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
  * own when there is none). Row Level Security decides which orders the actor reaches (RNF-27).
  */
 @Repository
-class JdbcOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay {
+class JdbcOrderStore
+    implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -77,6 +79,13 @@ class JdbcOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, Ord
         SELECT id, number, status, total_cents, payment_provider, customer_name, customer_email,
                reservation_expires_at
         FROM orders WHERE id = :id
+        """;
+
+    // UC-15: the system locks the order an approved payment is for (orders_staff_select, orders_staff_update).
+    private static final String LOCK_CONFIRMABLE = """
+        SELECT id, number, status, coupon_id FROM orders
+        WHERE id = :id
+        FOR UPDATE
         """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -160,6 +169,15 @@ class JdbcOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, Ord
                 PaymentProvider.valueOf(row.getString("payment_provider")), row.getString("customer_name"),
                 row.getString("customer_email"),
                 row.getObject("reservation_expires_at", OffsetDateTime.class).toInstant()))
+            .stream().findFirst();
+    }
+
+    @Override
+    public Optional<ConfirmableOrder> lock(OrderId order) {
+        return jdbc.query(LOCK_CONFIRMABLE, new MapSqlParameterSource("id", order.value()), (row, n) ->
+                new ConfirmableOrder(OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
+                    OrderStatus.valueOf(row.getString("status")),
+                    Optional.ofNullable(row.getObject("coupon_id", UUID.class))))
             .stream().findFirst();
     }
 

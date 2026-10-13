@@ -9,6 +9,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -16,13 +18,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * are {@link #redeem}ed, as confirmed orders will (E3).
  */
 public class InMemoryCouponStore
-    implements LoadCoupon, CouponUses, CouponSummaries, SaveCoupon, RemoveStoredCoupon {
+    implements LoadCoupon, CouponUses, CouponSummaries, SaveCoupon, RemoveStoredCoupon, SaveCouponRedemption {
 
     /** Arbitrary creation instant of {@link #save}d coupons. */
     private static final Instant ARRANGED = Instant.parse("2026-10-01T12:00:00Z");
 
     private final InMemoryStore<CouponId, Row> coupons = InMemoryStore.ofImmutable(row -> row.coupon().id());
     private final Map<CouponId, Long> uses = new ConcurrentHashMap<>();
+    private final Set<Redemption> redemptions = ConcurrentHashMap.newKeySet();
 
     /** Test arrangement: stores the coupon, like {@link #add} without the result. */
     public void save(Coupon coupon) {
@@ -44,6 +47,15 @@ public class InMemoryCouponStore
     @Override
     public Optional<Coupon> findById(CouponId id) {
         return coupons.findById(id).map(Row::coupon);
+    }
+
+    @Override
+    public synchronized boolean redeem(CouponId coupon, UUID orderId, Instant at) {
+        if (coupons.findById(coupon).isEmpty() || !redemptions.add(new Redemption(coupon, orderId))) {
+            return false;
+        }
+        uses.merge(coupon, 1L, Long::sum);
+        return true;
     }
 
     @Override
@@ -92,4 +104,6 @@ public class InMemoryCouponStore
     }
 
     private record Row(Coupon coupon, Instant createdAt) {}
+
+    private record Redemption(CouponId coupon, UUID orderId) {}
 }

@@ -113,6 +113,11 @@ store:
       access-token: ${MERCADOPAGO_ACCESS_TOKEN:}
       connect-timeout: 3s
       read-timeout: 10s
+      # T-E3-07, RNF-29.3: the secret key that signs the Webhooks notifications (the Docker secret
+      # MERCADOPAGO_WEBHOOK_SECRET in production); empty, every notification is refused with 401. A signed
+      # notification older than webhook-max-age is refused too: MercadoPago retries for hours.
+      webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET:}
+      webhook-max-age: 24h
   saturation:
     # RNF-21: Retry-After of the 503 sent when a pool is exhausted
     retry-after: 5s
@@ -239,8 +244,9 @@ server:
       internal-proxies: ${TRUSTED_PROXY_REGEX}
 
 store:
-  # T-E3-06: the API does not start without them in production
+  # T-E3-06, T-E3-07: the API does not start without them in production
   public-url: ${PUBLIC_URL}
   payments:
     mercadopago:
       access-token: ${MERCADOPAGO_ACCESS_TOKEN}
+      webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET}

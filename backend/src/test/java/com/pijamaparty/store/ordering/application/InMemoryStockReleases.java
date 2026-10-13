@@ -6,13 +6,18 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
-/** Fake of {@link StockReleases}: the stock of each variant and what each order reserved of it. */
-public class InMemoryStockReleases implements StockReleases {
+/**
+ * Fake of {@link StockReleases} and {@link StockDeductions}: the stock of each variant and what each order reserved of
+ * it. An order's reservation is either released or deducted, once.
+ */
+public class InMemoryStockReleases implements StockReleases, StockDeductions {
 
     private final Map<UUID, Integer> onHand = new HashMap<>();
     private final Map<OrderId, Map<UUID, Integer>> reservations = new HashMap<>();
     private final Set<OrderId> released = new HashSet<>();
+    private final Set<OrderId> deducted = new HashSet<>();
 
     /** Test arrangement: a new variant with {@code onHand} units, of which the order reserved {@code reserved}. */
     public synchronized void reserved(OrderId order, UUID variantId, int onHand, int reserved) {
@@ -22,11 +27,13 @@ public class InMemoryStockReleases implements StockReleases {
 
     /** Test inspection: on hand − reserved. */
     public synchronized int availableOf(UUID variantId) {
-        int reserved = reservations.entrySet().stream()
-            .filter(entry -> !released.contains(entry.getKey()))
-            .mapToInt(entry -> entry.getValue().getOrDefault(variantId, 0))
-            .sum();
-        return onHand.getOrDefault(variantId, 0) - reserved;
+        return onHandOf(variantId)
+            - unitsOf(variantId, order -> !released.contains(order) && !deducted.contains(order));
+    }
+
+    /** Test inspection: the units on hand, after the deductions. */
+    public synchronized int onHandOf(UUID variantId) {
+        return onHand.getOrDefault(variantId, 0) - unitsOf(variantId, deducted::contains);
     }
 
     /** Test inspection: whether the order's stock was released. */
@@ -34,10 +41,30 @@ public class InMemoryStockReleases implements StockReleases {
         return released.contains(order);
     }
 
+    /** Test inspection: whether the order's stock was deducted. */
+    public synchronized boolean wasDeducted(OrderId order) {
+        return deducted.contains(order);
+    }
+
     @Override
     public synchronized void release(OrderId order) {
-        if (reservations.containsKey(order)) {
+        if (reservations.containsKey(order) && !deducted.contains(order)) {
             released.add(order);
         }
+    }
+
+    @Override
+    public synchronized void deduct(OrderId order) {
+        if (reservations.containsKey(order) && !released.contains(order)) {
+            deducted.add(order);
+        }
+    }
+
+    /** The units of the variant the orders matching {@code which} reserved. */
+    private int unitsOf(UUID variantId, Predicate<OrderId> which) {
+        return reservations.entrySet().stream()
+            .filter(entry -> which.test(entry.getKey()))
+            .mapToInt(entry -> entry.getValue().getOrDefault(variantId, 0))
+            .sum();
     }
 }

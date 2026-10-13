@@ -16,10 +16,10 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Contract of {@link LoadCoupon}, {@link CouponUses}, {@link CouponSummaries}, {@link SaveCoupon} and
- * {@link RemoveStoredCoupon} over the same storage (UC-10, UC-11).
+ * {@link RemoveStoredCoupon} over the same storage (UC-10, UC-11), and {@link SaveCouponRedemption} (UC-15).
  */
 public abstract class CouponStoreContractTest<
-    T extends LoadCoupon & CouponUses & CouponSummaries & SaveCoupon & RemoveStoredCoupon>
+    T extends LoadCoupon & CouponUses & CouponSummaries & SaveCoupon & RemoveStoredCoupon & SaveCouponRedemption>
     extends ContractTest<T> {
 
     /** Whole seconds: PostgreSQL keeps microseconds, so the instants survive the round trip. */
@@ -157,5 +157,43 @@ public abstract class CouponStoreContractTest<
     private static void assertSameState(Optional<Coupon> loaded, Coupon expected) {
         assertThat(loaded).hasValueSatisfying(
             coupon -> assertThat(coupon).usingRecursiveComparison().isEqualTo(expected));
+    }
+
+    @Test
+    void givenAPaidOrder_whenItsCouponUseIsRecordedTwice_thenItCountsOnce() {
+        Coupon coupon = percentage("PIJAMA15");
+        subject.add(coupon, CREATED);
+        UUID order = UUID.randomUUID();
+
+        boolean first = subject.redeem(coupon.id(), order, LATER);
+        boolean second = subject.redeem(coupon.id(), order, LATER);
+        boolean other = subject.redeem(coupon.id(), UUID.randomUUID(), LATER);
+        persistAndForget();
+
+        assertThat(first).isTrue();
+        assertThat(second).isFalse();
+        assertThat(other).isTrue();
+        assertThat(subject.count(coupon.id())).isEqualTo(2);
+    }
+
+    @Test
+    void givenACouponThatNoLongerExists_whenAUseIsRecorded_thenNothingIsRecorded() {
+        CouponId deleted = CouponId.of(UUID.randomUUID());
+
+        assertThat(subject.redeem(deleted, UUID.randomUUID(), LATER)).isFalse();
+        persistAndForget();
+
+        assertThat(subject.count(deleted)).isZero();
+    }
+
+    @Test
+    void givenACouponUsedByAPaidOrder_whenRemovingIt_thenItIsKept() {
+        Coupon coupon = percentage("PIJAMA15");
+        subject.add(coupon, CREATED);
+        subject.redeem(coupon.id(), UUID.randomUUID(), LATER);
+        persistAndForget();
+
+        assertThat(subject.remove(coupon.id())).isEqualTo(RemoveStoredCoupon.Outcome.HAS_USES);
+        assertThat(subject.findById(coupon.id())).isPresent();
     }
 }

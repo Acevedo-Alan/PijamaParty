@@ -9,12 +9,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
- * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders}, {@link OrderNumbers} and
- * {@link OrdersToPay} over the same orders. Locks are not modeled.
+ * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders}, {@link OrderNumbers},
+ * {@link OrdersToPay} and {@link ConfirmableOrders} over the same orders. Locks are not modeled.
  */
-public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay {
+public class InMemoryOrderStore
+    implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders {
 
     /** Oldest expiry first; the id breaks ties as PostgreSQL orders uuids (as the canonical text does). */
     private static final Comparator<Map.Entry<OrderId, Row>> OLDEST_EXPIRY_FIRST =
@@ -27,9 +29,18 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     private final Set<String> trackingTokenHashes = new HashSet<>();
     private long lastNumber = 1000;
 
-    /** Test arrangement: an order in any status, without its details. */
-    public synchronized void add(OrderId order, OrderStatus status, Instant reservationExpiresAt) {
-        orders.put(order, new Row(status, reservationExpiresAt));
+    /** Test arrangement: an order in any status, without its details nor a coupon; answers its number. */
+    public synchronized long add(OrderId order, OrderStatus status, Instant reservationExpiresAt) {
+        return add(order, status, reservationExpiresAt, Optional.empty());
+    }
+
+    /** Test arrangement: an order in any status that applied the coupon, if any, without its details. */
+    public synchronized long add(OrderId order, OrderStatus status, Instant reservationExpiresAt,
+                                 Optional<UUID> couponId) {
+        long number = next();
+        numbers.add(number);
+        orders.put(order, new Row(number, status, reservationExpiresAt, couponId));
+        return number;
     }
 
     /** Test inspection: empty when there is no such order. */
@@ -65,7 +76,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
         if (row == null || row.status() != from) {
             return false;
         }
-        orders.put(order, new Row(to, row.reservationExpiresAt()));
+        orders.put(order, row.withStatus(to));
         return true;
     }
 
@@ -81,7 +92,8 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
             || trackingTokenHashes.contains(order.trackingTokenHash())) {
             throw new IllegalStateException("duplicate order id, number or tracking token");
         }
-        orders.put(order.id(), new Row(OrderStatus.AWAITING_PAYMENT, order.reservationExpiresAt()));
+        orders.put(order.id(), new Row(order.number(), OrderStatus.AWAITING_PAYMENT, order.reservationExpiresAt(),
+            order.coupon().map(AppliedCoupon::couponId)));
         placed.put(order.id(), order);
         numbers.add(order.number());
         trackingTokenHashes.add(order.trackingTokenHash());
@@ -95,5 +107,16 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
             placedOrder.buyer().name(), placedOrder.buyer().email(), placedOrder.reservationExpiresAt()));
     }
 
-    private record Row(OrderStatus status, Instant reservationExpiresAt) {}
+    @Override
+    public synchronized Optional<ConfirmableOrder> lock(OrderId order) {
+        return Optional.ofNullable(orders.get(order))
+            .map(row -> new ConfirmableOrder(order, row.number(), row.status(), row.couponId()));
+    }
+
+    private record Row(long number, OrderStatus status, Instant reservationExpiresAt, Optional<UUID> couponId) {
+
+        Row withStatus(OrderStatus newStatus) {
+            return new Row(number, newStatus, reservationExpiresAt, couponId);
+        }
+    }
 }

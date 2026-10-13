@@ -11,6 +11,7 @@ import com.pijamaparty.store.promotions.application.CouponView;
 import com.pijamaparty.store.promotions.application.LoadCoupon;
 import com.pijamaparty.store.promotions.application.RemoveStoredCoupon;
 import com.pijamaparty.store.promotions.application.SaveCoupon;
+import com.pijamaparty.store.promotions.application.SaveCouponRedemption;
 import com.pijamaparty.store.promotions.domain.Coupon;
 import com.pijamaparty.store.promotions.domain.CouponCode;
 import com.pijamaparty.store.promotions.domain.CouponId;
@@ -92,7 +93,7 @@ class JdbcCouponStoreContractTest extends CouponStoreContractTest<JdbcCouponStor
 
     /** Each call in its own committed transaction, as a use case would run it. */
     record InTransaction(JdbcCouponStore adapter, TransactionTemplate transactions)
-        implements LoadCoupon, CouponUses, CouponSummaries, SaveCoupon, RemoveStoredCoupon {
+        implements LoadCoupon, CouponUses, CouponSummaries, SaveCoupon, RemoveStoredCoupon, SaveCouponRedemption {
 
         @Override
         public Optional<Coupon> findByCode(CouponCode code) {
@@ -128,6 +129,11 @@ class JdbcCouponStoreContractTest extends CouponStoreContractTest<JdbcCouponStor
         @Override
         public RemoveStoredCoupon.Outcome remove(CouponId id) {
             return transactions.execute(status -> adapter.remove(id));
+        }
+
+        @Override
+        public boolean redeem(CouponId coupon, UUID orderId, Instant at) {
+            return Boolean.TRUE.equals(transactions.execute(status -> adapter.redeem(coupon, orderId, at)));
         }
     }
 }

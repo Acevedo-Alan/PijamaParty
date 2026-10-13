@@ -10,7 +10,6 @@ import com.pijamaparty.store.platform.domain.Money;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.http.HttpClient;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -18,9 +17,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
@@ -35,7 +32,8 @@ class MercadoPagoGateway implements PaymentGateway {
 
     static final String PREFERENCES_PATH = "/checkout/preferences";
     static final String RESULT_PATH = "/checkout/result";
-    static final String WEBHOOK_PATH = "/api/payments/mercadopago/webhook";
+    /** UC-15: {@code source_news=webhooks} asks for the signed Webhooks notifications only, not the unsigned IPN ones. */
+    static final String WEBHOOK_PATH = "/api/payments/mercadopago/webhook?source_news=webhooks";
 
     /** UC-14: only immediate payment methods; cash slips and ATM payments would hold the stock for days. */
     static final List<String> EXCLUDED_PAYMENT_TYPES = List.of("ticket", "atm");
@@ -52,17 +50,7 @@ class MercadoPagoGateway implements PaymentGateway {
     private final MessageSource messages;
 
     MercadoPagoGateway(MercadoPagoProperties properties, String accessToken, URI publicUrl, MessageSource messages) {
-        HttpClient http = HttpClient.newBuilder()
-            .connectTimeout(properties.connectTimeout())
-            .followRedirects(HttpClient.Redirect.NEVER)
-            .build();
-        var requestFactory = new JdkClientHttpRequestFactory(http);
-        requestFactory.setReadTimeout(properties.readTimeout());
-        this.client = RestClient.builder()
-            .requestFactory(requestFactory)
-            .baseUrl(properties.baseUrl().toString())
-            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-            .build();
+        this.client = MercadoPagoRestClients.create(properties, accessToken);
         this.configured = !accessToken.isBlank();
         this.publicUrl = publicUrl.toString().replaceAll("/+$", "");
         this.messages = messages;
