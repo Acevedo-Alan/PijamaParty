@@ -105,6 +105,10 @@
 3. Con pago aprobado, la reserva pasa a descuento definitivo.
 4. Con pago rechazado o reserva vencida, el stock se libera y el pedido queda EXPIRADO.
 
+**Reglas de negocio**
+- Un ajuste de stock del administrador (CU-07) no puede dejar el stock por debajo de las unidades reservadas por pedidos pendientes de pago: se rechaza indicando cuántas hay reservadas.
+- Si alguna variante del pedido no alcanza, no se reserva nada del pedido.
+
 **Criterios de aceptación**
 - Dado un SKU con stock 1 y dos clientes que inician el pago a la vez, cuando ambos confirman, entonces solo uno obtiene la reserva y el otro ve "sin stock suficiente" indicando la variante.
 - Dada una reserva vencida sin pago, cuando corre el proceso de limpieza, entonces el stock vuelve a estar disponible y el pedido queda EXPIRADO.
