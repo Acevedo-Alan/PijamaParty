@@ -345,7 +345,9 @@ Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its 
   - `AWAITING_PAYMENT` → `PAID` → `PREPARING` → `SHIPPED` → `DELIVERED`
   - `AWAITING_PAYMENT` → `EXPIRED` or `CANCELLED`
   - `PAID` or `PREPARING` → `CANCELLED`
-- When cancelling a `PAID` or `PREPARING` order, the administrator decides whether to put the stock back.
+- When cancelling a `PAID` or `PREPARING` order, the administrator decides whether to put the stock back: every line or none.
+- Cancelling an `AWAITING_PAYMENT` order releases its reservation, as expiring does.
+- The shipment tracking number is entered with `SHIPPED` and can be corrected while the order is `SHIPPED`; `DELIVERED` freezes it.
 - Refunds are done from the payment provider's panel (out of scope for this version).
 
 **Acceptance criteria**
@@ -353,13 +355,30 @@ Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its 
 - Given an order that becomes `SHIPPED`, when the shipment tracking number is saved, then the buyer sees it on its tracking link.
 - Given the list of orders, when filtered by `PAID`, then only paid orders appear.
 - Given an order with a bounced email, when the administrator opens the detail, then an alert shows the buyer's phone to contact it.
+- Given an order whose buyer's email `FAILED` (decided in T-E3-10), when the administrator opens the detail, then the same alert shows.
+- Given an order that expired or was cancelled before its payment was approved, when the administrator opens the detail, then an alert says the payment must be refunded from the provider's panel (decided in T-E3-10).
+- Given a `PAID` order cancelled with the stock put back, when it finishes, then every line's units are available again; cancelled without it, the stock does not change.
+- Given an order that changed status after the administrator opened it, when the administrator changes it from the status seen, then it is rejected and the order is not touched.
 
 **Design notes**
 - `OrderStatus` transition table inside the `Order` aggregate (ARCHITECTURE.md section 6); each transition is a conditional update (RNF-20.5).
 - Putting the stock back on a cancelled paid order is a new order movement type of the inventory, added with T-E3-10.
 - The order detail with the bounce alert is composed in `backoffice`, which depends on `ordering` and `notifications` (ARCHITECTURE.md section 3, rule 3).
-- Endpoints (plan): `GET /api/admin/orders?status=`, `GET /api/admin/orders/{id}`, `POST /api/admin/orders/{id}/status`. The detailed contract is written with T-E3-10.
 - Rate-limit policy: authenticated back office (300 per minute per user).
+- **Endpoints (T-E3-10),** as `ADMIN`, `application/problem+json` on errors:
+  - `GET /api/admin/orders?status=&page=` (`ordering.adapter.in.web`): 50 per page from page 0, newest first (`created_at`, then `number`); `status` optional, one of the seven. Each row: `id`, `number`, `createdAt`, `status`, `buyerName`, `city`, `province`, `totalCents`. `400` for an unknown status or a page out of 0 to 10,000.
+  - `GET /api/admin/orders/{id}` (`backoffice.adapter.in.web`): `number`, `status`, `createdAt`, `updatedAt`, `deliveredAt`; buyer `name`, `email`, `phone`, `nationalId`; the shipping address; the lines (product, size, color, quantity, unit price, line total); `subtotalCents`, `discountCents`, `couponCode`, `shippingCents`, `totalCents`; `paymentProvider`; `shipmentTrackingNumber`; `nextStatuses` (what `OrderStatus` allows from here, so the page only offers those); `alerts`: `BUYER_EMAIL_FAILED` (with the phone; `BUYER_EMAIL_BOUNCED` joins with T-E3-22) and `PAID_AFTER_CLOSING`. `404` for no such order.
+  - `POST /api/admin/orders/{id}/status` (`ordering.adapter.in.web`) with `{from, to, shipmentTrackingNumber?, restock?}` → `200` with the order's new `status`. `from` is the status the administrator saw: the transition applies only if the order is still in it. `shipmentTrackingNumber` (1 to 60 characters, trimmed) is required for `SHIPPED` and refused otherwise; `restock` is required when cancelling a `PAID` or `PREPARING` order and refused otherwise. `404` no such order; `409` `order-status-changed` (the order is no longer in `from`) or `invalid-transition` (`from` → `to` is not in the diagram); `422` for a missing or refused field.
+  - `PUT /api/admin/orders/{id}/shipment-tracking-number` (`ordering.adapter.in.web`) with `{shipmentTrackingNumber}` → `200`; `409` `invalid-transition` unless the order is `SHIPPED`; `422` for an invalid number.
+- **Use cases (T-E3-10),** `ordering.application`, each in one transaction: `ListOrders` (read port `AdminOrders`), `GetAdminOrder` (exposed to `backoffice` as `ordering.api.AdminOrderDetails`), `ChangeOrderStatus` and `CorrectShipmentTrackingNumber` (write port `OrderTransitions`, a conditional update `WHERE id = ? AND status = ?`). Results: `Changed(status)`, `NotFound`, `StatusChanged(current)`, `InvalidTransition`, `MissingTrackingNumber`, `RestockDecisionRequired`. Side effects in the same transaction:
+  - `AWAITING_PAYMENT` → `CANCELLED`: `inventory.api.StockReservations.release(orderId)`.
+  - `PAID` or `PREPARING` → `CANCELLED` with `restock: true`: `StockReservations.restock(orderId)`, new movement type `RESTOCK` (positive; unique per order, variant and type like the others, RNF-20.4), one per deducted line; with `restock: false`, nothing. The coupon use stays.
+  - → `DELIVERED`: `delivered_at` (UC-29).
+  - No email for any of them (UC-17).
+- **Paid after closing (T-E3-10):** when `ConfirmOrderPayment` answers `PaidAfterClosing`, it also sets `orders.paid_after_closing_at` (V20) if it is still null, in the payment's transaction; the WARN log stays.
+- **Composition (T-E3-10):** `backoffice.application.GetOrderDetail` reads `ordering.api.AdminOrderDetails` and `notifications.api.BuyerEmailStatus` (`FAILED`, from `email_outbox`, which the administrator may read), and adds the alerts.
+- **Schema (V20):** `orders.paid_after_closing_at`; `RESTOCK` in the stock movement type and sign checks; index `orders (status, created_at DESC)` for the filtered list.
+- **Pages (T-E3-10):** `/admin/pedidos`, the list with a status filter and pages; `/admin/pedidos/:id`, the detail with its alerts first and a button per status in `nextStatuses`: Enviado asks for the tracking number, Cancelado for a paid or preparing order asks "¿Reponer el stock?". On `409` the page reloads the order and says it changed.
 
 ---
 

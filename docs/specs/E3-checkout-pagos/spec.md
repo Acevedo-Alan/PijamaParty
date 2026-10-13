@@ -161,7 +161,9 @@
 
 **Reglas**
 - Solo se permiten las transiciones del diagrama de estados.
-- Al cancelar un pedido PAGADO o PREPARANDO, el administrador decide si repone el stock.
+- Al cancelar un pedido PAGADO o PREPARANDO, el administrador decide si repone el stock: todas las líneas o ninguna.
+- Cancelar un pedido PENDIENTE_PAGO libera su reserva, como al vencer.
+- El número de seguimiento se carga al pasar a ENVIADO y se puede corregir mientras el pedido está ENVIADO; al pasar a ENTREGADO queda fijo.
 - Los reembolsos se hacen desde el panel del proveedor de pagos (fuera de alcance de esta versión).
 
 **Criterios de aceptación**
@@ -169,6 +171,10 @@
 - Dado un pedido que pasa a ENVIADO, cuando se guarda el número de seguimiento, entonces el cliente lo ve en su enlace de seguimiento.
 - Dada la lista de pedidos, cuando se filtra por PAGADO, entonces solo aparecen pedidos pagados.
 - Dado un pedido con el correo rebotado, cuando el administrador abre el detalle, entonces ve una alerta con el teléfono del cliente para contactarlo.
+- Dado un pedido cuyo correo al comprador no se pudo enviar tras los reintentos, cuando el administrador abre el detalle, entonces ve la misma alerta.
+- Dado un pedido vencido o cancelado cuyo pago se aprobó después, cuando el administrador abre el detalle, entonces ve una alerta de que hay que reembolsarlo desde el panel del proveedor.
+- Dado un pedido PAGADO cancelado reponiendo el stock, cuando termina, entonces las unidades de cada línea vuelven a estar disponibles; cancelado sin reponer, el stock no cambia.
+- Dado un pedido que cambió de estado después de que el administrador lo abrió, cuando el administrador lo cambia desde el estado que vio, entonces se rechaza y el pedido no cambia.
 
 ## CU-29 Botón de arrepentimiento
 
