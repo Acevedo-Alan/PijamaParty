@@ -42,6 +42,8 @@
 - Al confirmar, el checkout se rechaza si algún ítem no está disponible, si hay un cambio de precio sin aceptar o si el cupón del carrito ya no aplica: el cliente nunca paga un total que no vio. Para seguir, quita el cupón o corrige el carrito.
 - Para confirmar hay que aceptar los términos; el pedido guarda la versión vigente.
 - Al crearse el pedido, el carrito se vacía: el pedido es la copia de lo comprado y el pago se reintenta desde el enlace de seguimiento.
+- Si al abrir el checkout hay ítems sin stock o cambios de precio sin aceptar, se avisa y el botón "Revisar carrito" abre el carrito para corregirlo (decidido en T-E3-11). El cupón se carga en el carrito; en el checkout solo se ve y se puede quitar.
+- Al volver de MercadoPago, la tienda abre la página de seguimiento del pedido. Si el pago fue aprobado y la confirmación todavía no llegó, muestra "Estamos confirmando tu pago" y vuelve a consultar durante unos minutos (decidido en T-E3-11). Si se vuelve en otra pestaña o dispositivo, se avisa que la confirmación llega por email.
 
 **Criterios de aceptación**
 - Dado un dato obligatorio vacío, cuando se intenta avanzar, entonces no se avanza y se indica cuál falta.
