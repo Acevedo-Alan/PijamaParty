@@ -133,7 +133,8 @@
 4. El cliente puede corregir su email desde la página de resultado o el enlace de seguimiento, y la confirmación se reenvía.
 
 **Reglas**
-- Un fallo de envío de correo no interrumpe el pedido: se reintenta en segundo plano.
+- Un fallo de envío de correo no interrumpe el pedido: se reintenta en segundo plano, a los 1, 5, 15 y 60 minutos. Tras 5 intentos, o si el proveedor lo rechaza (por ejemplo, una dirección inválida), queda FALLIDO y se registra para que el administrador contacte al cliente.
+- El correo de confirmación lleva su propio enlace de seguimiento, con un token nuevo que se genera al enviarlo y del que solo se guarda el hash; el enlace que el cliente recibió en el checkout sigue funcionando (decidido en T-E3-09).
 - Cada tipo de correo se envía una sola vez por pedido, aunque el proceso se repita (RNF-20.7).
 - En la primera versión el cliente solo recibe el correo de pago confirmado: no hay correo de pedido recibido, de pedido enviado ni recordatorios (decidido).
 - El número de seguimiento del envío se informa en el enlace de seguimiento, y el correo de confirmación lo aclara.
