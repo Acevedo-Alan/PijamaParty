@@ -23,7 +23,6 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Comparator;
-import java.util.Optional;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -113,7 +112,8 @@ class CheckoutController {
                 null);
         }
         TrackingToken trackingToken = new TrackingToken(tokens.newToken());
-        Actor actor = withTrackingToken(CurrentActor.get().orElseThrow(), trackingToken);
+        // UC-14: the new order belongs to a tracking token the buyer gets back; staff buy nothing.
+        Actor actor = TrackingActors.withTrackingToken(CurrentActor.get().orElseThrow(), trackingToken);
         var command = new PlaceOrder.Command(actor, body.toForm(), body.address().province(), body.paymentProvider(),
             body.acceptedTerms());
         // The RLS context is set when the use case's transaction begins, so it must already carry the new token.
@@ -163,16 +163,6 @@ class CheckoutController {
             case OpenOrderPayment.Result.Opened opened -> opened.paymentUrl();
             case OpenOrderPayment.Result.ProviderUnavailable unavailable -> null;
             case OpenOrderPayment.Result.NotPayable notPayable -> null;
-        };
-    }
-
-    /** UC-14: the new order belongs to a tracking token the buyer gets back; staff cannot carry one and buy nothing. */
-    private static Actor withTrackingToken(Actor actor, TrackingToken trackingToken) {
-        return switch (actor.role()) {
-            case ANONYMOUS -> Actor.anonymous(actor.cartToken(), Optional.of(trackingToken));
-            case CUSTOMER -> Actor.customer(actor.userId().orElseThrow(), actor.cartToken(),
-                Optional.of(trackingToken));
-            case ADMIN, SYSTEM -> actor;
         };
     }
 

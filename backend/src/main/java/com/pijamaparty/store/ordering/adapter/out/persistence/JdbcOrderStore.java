@@ -6,13 +6,17 @@ import com.pijamaparty.store.ordering.application.OrderTransitions;
 import com.pijamaparty.store.ordering.application.OrdersToPay;
 import com.pijamaparty.store.ordering.application.OverdueOrders;
 import com.pijamaparty.store.ordering.application.SaveOrders;
+import com.pijamaparty.store.ordering.application.TrackedOrders;
+import com.pijamaparty.store.ordering.domain.OrderAmounts;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderLine;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.PaymentProvider;
 import com.pijamaparty.store.platform.application.IdGenerator;
+import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
 import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
+import com.pijamaparty.store.shipping.api.Province;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -34,7 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Repository
 class JdbcOrderStore
-    implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders {
+    implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders,
+    TrackedOrders {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -79,6 +84,20 @@ class JdbcOrderStore
         SELECT id, number, status, total_cents, payment_provider, customer_name, customer_email,
                reservation_expires_at
         FROM orders WHERE id = :id
+        """;
+
+    // UC-14 (T-E3-08): the order of a tracking link (orders_tracking_select). Filtering by the hash too keeps a
+    // customer, who also reads its other orders, to this one.
+    private static final String SELECT_TRACKED = """
+        SELECT id, number, status, created_at, customer_name, city, province, subtotal_cents, discount_cents,
+               shipping_cents, total_cents, coupon_code, reservation_expires_at, shipment_tracking_number
+        FROM orders WHERE tracking_token_hash = :hash
+        """;
+
+    private static final String SELECT_LINES = """
+        SELECT variant_id, sku, product_name, size, color, unit_price_cents, quantity
+        FROM order_item WHERE order_id = :orderId
+        ORDER BY position
         """;
 
     // UC-15: the system locks the order an approved payment is for (orders_staff_select, orders_staff_update).
@@ -170,6 +189,31 @@ class JdbcOrderStore
                 row.getString("customer_email"),
                 row.getObject("reservation_expires_at", OffsetDateTime.class).toInstant()))
             .stream().findFirst();
+    }
+
+    /** Its own short transaction when the caller has none, so the order and its lines are read together. */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<TrackedOrder> find(TrackingToken token) {
+        return jdbc.query(SELECT_TRACKED, new MapSqlParameterSource("hash", token.hash()), (row, n) -> {
+                OrderId id = OrderId.of(row.getObject("id", UUID.class));
+                return new TrackedOrder(id, row.getLong("number"), OrderStatus.valueOf(row.getString("status")),
+                    row.getObject("created_at", OffsetDateTime.class).toInstant(), row.getString("customer_name"),
+                    row.getString("city"), Province.valueOf(row.getString("province")), linesOf(id),
+                    new OrderAmounts(Money.of(row.getLong("subtotal_cents")), Money.of(row.getLong("discount_cents")),
+                        Money.of(row.getLong("shipping_cents")), Money.of(row.getLong("total_cents"))),
+                    Optional.ofNullable(row.getString("coupon_code")),
+                    row.getObject("reservation_expires_at", OffsetDateTime.class).toInstant(),
+                    Optional.ofNullable(row.getString("shipment_tracking_number")));
+            })
+            .stream().findFirst();
+    }
+
+    private List<OrderLine> linesOf(OrderId order) {
+        return jdbc.query(SELECT_LINES, new MapSqlParameterSource("orderId", order.value()), (row, n) ->
+            new OrderLine(row.getObject("variant_id", UUID.class), row.getString("sku"), row.getString("product_name"),
+                row.getString("size"), row.getString("color"), Money.of(row.getLong("unit_price_cents")),
+                row.getInt("quantity")));
     }
 
     @Override

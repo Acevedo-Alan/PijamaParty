@@ -149,6 +149,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/{token}/retry-payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pay again an order awaiting payment
+         * @description Answers the payment provider's checkout to redirect the buyer to: the same one while it lasts, where another card can be tried. Requires the CSRF token.
+         */
+        post: operations["retryPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/checkout": {
         parameters: {
             query?: never;
@@ -631,6 +651,26 @@ export interface paths {
         patch: operations["rename"];
         trace?: never;
     };
+    "/api/orders/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The order of a tracking link
+         * @description What following the order needs, never the national ID, the email, the phone or the street: the link can be forwarded. canRetryPayment is true while the order awaits payment and its stock is reserved (until reservationExpiresAt). Amounts in cents. Not cached.
+         */
+        get: operations["order"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/checkout/shipping-cost": {
         parameters: {
             query?: never;
@@ -985,6 +1025,10 @@ export interface components {
             position?: number;
             active?: boolean;
         };
+        RetryResponse: {
+            /** Format: uri */
+            paymentUrl?: string;
+        };
         AddressRequest: {
             street: string;
             number: string;
@@ -1129,6 +1173,43 @@ export interface components {
             /** Format: int64 */
             priceCents?: number;
             active?: boolean;
+        };
+        TrackedItemResponse: {
+            productName?: string;
+            size?: string;
+            color?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int64 */
+            unitPriceCents?: number;
+            /** Format: int64 */
+            lineTotalCents?: number;
+        };
+        TrackedOrderResponse: {
+            /** Format: int64 */
+            number?: number;
+            /** @enum {string} */
+            status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            /** Format: date-time */
+            createdAt?: string;
+            buyerFirstName?: string;
+            items?: components["schemas"]["TrackedItemResponse"][];
+            /** Format: int64 */
+            subtotalCents?: number;
+            /** Format: int64 */
+            discountCents?: number;
+            couponCode: string | null;
+            /** Format: int64 */
+            shippingCents?: number;
+            /** Format: int64 */
+            totalCents?: number;
+            city?: string;
+            /** @enum {string} */
+            province?: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            /** Format: date-time */
+            reservationExpiresAt?: string;
+            shipmentTrackingNumber: string | null;
+            canRetryPayment?: boolean;
         };
         ShippingCostResponse: {
             /** @enum {string} */
@@ -1695,6 +1776,55 @@ export interface operations {
                 };
             };
             /** @description MercadoPago could not be asked for the payment; it delivers the notification again (Retry-After) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    retryPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The checkout to redirect to */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetryResponse"];
+                };
+            };
+            /** @description No order has this token (problem ORDER_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No longer awaiting payment, or its reservation is over (problem NOT_PAYABLE): read the order again */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The payment provider could not be reached (problem PAYMENT_PROVIDER_UNAVAILABLE): try again after Retry-After */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -3200,6 +3330,37 @@ export interface operations {
             };
             /** @description The name has no letters or digits to build a slug from */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackedOrderResponse"];
+                };
+            };
+            /** @description No order has this token (problem ORDER_NOT_FOUND) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,7 +1,7 @@
 package com.pijamaparty.store.ordering.application;
 
 import com.pijamaparty.store.ordering.application.OrdersToPay.OrderToPay;
-import com.pijamaparty.store.ordering.domain.OrderStatus;
+import com.pijamaparty.store.ordering.domain.OrderPayability;
 import java.time.Clock;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -26,8 +26,8 @@ class OpenOrderPaymentService implements OpenOrderPayment {
     @Override
     public Result execute(Command command) {
         Optional<OrderToPay> order = orders.find(command.orderId());
-        if (order.isEmpty() || order.get().status() != OrderStatus.AWAITING_PAYMENT
-            || !order.get().reservationExpiresAt().isAfter(clock.instant())) {
+        if (order.isEmpty()
+            || !OrderPayability.isPayable(order.get().status(), order.get().reservationExpiresAt(), clock.instant())) {
             return new Result.NotPayable();
         }
         return payments.open(order.get())

@@ -19,6 +19,14 @@ public record BuyerDetails(String name, String email, String phone, String natio
         Objects.requireNonNull(nationalId, "nationalId");
     }
 
+    /**
+     * UC-14 (T-E3-08): the tracking link shows only the first word of the buyer's name, since the link can be
+     * forwarded. A name is never blank (UC-13).
+     */
+    public static String firstNameOf(String name) {
+        return name.strip().split("\\s+", 2)[0];
+    }
+
     @Override
     public String toString() {
         return "BuyerDetails[***]";

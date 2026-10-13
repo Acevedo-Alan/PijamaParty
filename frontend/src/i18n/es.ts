@@ -508,6 +508,48 @@ export const es = {
       signedQuantity: (quantity: number) => (quantity > 0 ? `+${String(quantity)}` : `−${String(-quantity)}`),
     },
   },
+  tracking: {
+    /** The page title with the order number, e.g. "Pedido #1001". */
+    title: (number: number) => `Pedido #${String(number)}`,
+    greeting: (firstName: string) => `Hola, ${firstName}`,
+    loading: 'Cargando tu pedido…',
+    loadError: 'No pudimos cargar tu pedido.',
+    retry: 'Reintentar',
+    notFoundTitle: 'No encontramos tu pedido',
+    notFoundBody: 'Revisá que el enlace esté completo, tal como te llegó.',
+    backToStore: 'Volver a la tienda',
+    /** The order states (GLOSSARY.md). */
+    statuses: {
+      AWAITING_PAYMENT: 'Pago pendiente',
+      PAID: 'Pagado',
+      PREPARING: 'En preparación',
+      SHIPPED: 'Enviado',
+      DELIVERED: 'Entregado',
+      CANCELLED: 'Cancelado',
+      EXPIRED: 'Expirado',
+    },
+    /** The time the reservation ends, already formatted, e.g. "14:30". */
+    reservedUntil: (time: string) => `Reservamos tus productos hasta las ${time}. Completá el pago para confirmar la compra.`,
+    pay: 'Pagar',
+    paying: 'Abriendo el pago…',
+    reservationOver: 'La reserva de tus productos venció y el pedido no se pagó. Podés volver a comprarlos desde la tienda.',
+    providerUnavailable: 'MercadoPago no respondió. Esperá un momento y probá de nuevo.',
+    tooManyAttempts: 'Hiciste muchos intentos. Esperá un minuto y probá de nuevo.',
+    payError: 'No pudimos abrir el pago. Probá de nuevo.',
+    shipment: 'Número de seguimiento del envío',
+    items: 'Productos',
+    /** An item's color, size and quantity, e.g. "Rosa · Talle M · 2 unidades". */
+    itemDetail: (color: string, size: string, quantity: number) =>
+      `${color} · Talle ${size} · ${quantity === 1 ? '1 unidad' : `${String(quantity)} unidades`}`,
+    subtotal: 'Subtotal',
+    discountWith: (code: string) => `Descuento ${code}`,
+    discount: 'Descuento',
+    shipping: 'Envío',
+    free: 'Gratis',
+    total: 'Total',
+    /** Where the order goes: the city and province only, e.g. "Envío a Santa Fe, Santa Fe". */
+    shipTo: (city: string, province: string) => `Envío a ${city}, ${province}`,
+  },
   notFound: {
     title: 'No encontramos esta página',
     body: 'Puede que el enlace esté mal escrito o que la página ya no exista.',

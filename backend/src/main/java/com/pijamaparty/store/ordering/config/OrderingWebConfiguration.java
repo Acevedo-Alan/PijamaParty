@@ -18,4 +18,15 @@ class OrderingWebConfiguration {
             .requestMatchers(HttpMethod.GET, "/api/checkout/shipping-cost").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/checkout").permitAll();
     }
+
+    /**
+     * UC-14 (T-E3-08): the tracking link needs no account; its token is the credential, and Row Level Security only
+     * shows the order of that token (RNF-27).
+     */
+    @Bean
+    HttpAuthorizationRules orderTrackingAuthorizationRules() {
+        return registry -> registry
+            .requestMatchers(HttpMethod.GET, "/api/orders/*").permitAll()
+            .requestMatchers(HttpMethod.POST, "/api/orders/*/retry-payment").permitAll();
+    }
 }

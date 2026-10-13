@@ -7,7 +7,7 @@
 - [x] **T-E3-05** `POST /api/checkout`: validaciones, creación del pedido y reserva (CU-13, CU-14).
 - [x] **T-E3-06** Integración con MercadoPago: creación del pago y redirección (CU-14).
 - [x] **T-E3-07** Webhook idempotente con verificación del pago y transiciones de estado (CU-15).
-- [ ] **T-E3-08** Página de seguimiento por token y reintento de pago (CU-14).
+- [x] **T-E3-08** Página de seguimiento por token y reintento de pago (CU-14).
 - [ ] **T-E3-09** Correo de pago confirmado al cliente y aviso al administrador, con tabla de salida en PostgreSQL, reintentos y servicio transaccional detrás de `EmailSender` (CU-17, RNF-23).
 - [ ] **T-E3-10** Backoffice: lista y detalle de pedidos, cambios de estado y número de seguimiento (CU-18).
 - [ ] **T-E3-11** Storefront: checkout de 3 pasos con layout de dos columnas en escritorio (CU-13).

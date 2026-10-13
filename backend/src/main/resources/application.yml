@@ -175,6 +175,20 @@ store:
         keys: [search, ip]
         capacity: 60
         period: 1m
+      # UC-14 (T-E3-08): the tracking link per IP, reading the order and retrying its payment. 128 random bits make
+      # guessing a token hopeless anyway; this bounds the scraping of known ones.
+      - name: order-tracking
+        paths: [/api/orders/*, /api/orders/*/retry-payment]
+        keys: [ip]
+        capacity: 30
+        period: 1m
+      # T-E3-08: each retry may call the payment provider, so per order (its tracking token) and IP together
+      - name: payment-retry
+        paths: [/api/orders/*/retry-payment]
+        methods: [POST]
+        keys: [tracking, ip]
+        capacity: 5
+        period: 1m
       # T-E3-28: the authenticated back office per user (from the session). Without a signed-in session the policy
       # does not apply: the route answers 401, and the sign-in has its own policies above.
       - name: back-office

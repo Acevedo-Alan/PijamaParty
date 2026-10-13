@@ -2,6 +2,7 @@ package com.pijamaparty.store.ordering.application;
 
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
+import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -13,10 +14,10 @@ import java.util.UUID;
 
 /**
  * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders}, {@link OrderNumbers},
- * {@link OrdersToPay} and {@link ConfirmableOrders} over the same orders. Locks are not modeled.
+ * {@link OrdersToPay}, {@link ConfirmableOrders} and {@link TrackedOrders} over the same orders. Locks are not modeled.
  */
-public class InMemoryOrderStore
-    implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders {
+public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay,
+    ConfirmableOrders, TrackedOrders {
 
     /** Oldest expiry first; the id breaks ties as PostgreSQL orders uuids (as the canonical text does). */
     private static final Comparator<Map.Entry<OrderId, Row>> OLDEST_EXPIRY_FIRST =
@@ -27,6 +28,7 @@ public class InMemoryOrderStore
     private final Map<OrderId, NewOrder> placed = new HashMap<>();
     private final Set<Long> numbers = new HashSet<>();
     private final Set<String> trackingTokenHashes = new HashSet<>();
+    private final Map<OrderId, String> shipmentTrackingNumbers = new HashMap<>();
     private long lastNumber = 1000;
 
     /** Test arrangement: an order in any status, without its details nor a coupon; answers its number. */
@@ -41,6 +43,12 @@ public class InMemoryOrderStore
         numbers.add(number);
         orders.put(order, new Row(number, status, reservationExpiresAt, couponId));
         return number;
+    }
+
+    /** Test arrangement: a placed order shipped with its shipment tracking number (UC-18), whatever its status. */
+    public synchronized void ship(OrderId order, String shipmentTrackingNumber) {
+        orders.put(order, orders.get(order).withStatus(OrderStatus.SHIPPED));
+        shipmentTrackingNumbers.put(order, shipmentTrackingNumber);
     }
 
     /** Test inspection: empty when there is no such order. */
@@ -105,6 +113,18 @@ public class InMemoryOrderStore
         return Optional.ofNullable(placed.get(order)).map(placedOrder -> new OrderToPay(order, placedOrder.number(),
             orders.get(order).status(), placedOrder.amounts().total(), placedOrder.paymentProvider(),
             placedOrder.buyer().name(), placedOrder.buyer().email(), placedOrder.reservationExpiresAt()));
+    }
+
+    /** Only the orders the checkout placed carry a tracking token. */
+    @Override
+    public synchronized Optional<TrackedOrder> find(TrackingToken token) {
+        return placed.values().stream()
+            .filter(order -> order.trackingTokenHash().equals(token.hash()))
+            .findFirst()
+            .map(order -> new TrackedOrder(order.id(), order.number(), orders.get(order.id()).status(),
+                order.createdAt(), order.buyer().name(), order.address().city(), order.province(), order.lines(),
+                order.amounts(), order.coupon().map(AppliedCoupon::code), order.reservationExpiresAt(),
+                Optional.ofNullable(shipmentTrackingNumbers.get(order.id()))));
     }
 
     @Override

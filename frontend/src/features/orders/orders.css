@@ -1,0 +1,97 @@
+/* UC-14 (T-E3-08): the tracking link. One column, mobile first. */
+.tracking {
+  max-width: 640px;
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+
+.tracking h1 {
+  margin: 4px 0 8px;
+}
+
+.tracking-greeting,
+.tracking-note,
+.tracking-ship-to {
+  color: var(--ink-soft);
+}
+
+.tracking-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-s);
+  background: var(--peach-soft);
+  font-weight: 600;
+}
+
+.tracking-status.status-paid,
+.tracking-status.status-preparing,
+.tracking-status.status-shipped,
+.tracking-status.status-delivered {
+  background: var(--rose-soft);
+}
+
+.tracking-pay {
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.tracking-pay .btn {
+  width: 100%;
+}
+
+.tracking-error {
+  color: var(--danger);
+  min-height: 1.5em;
+  margin: 8px 0 0;
+}
+
+.tracking-shipment dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.tracking-summary h2 {
+  font-size: 18px;
+}
+
+.tracking-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tracking-items li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.tracking-item-detail {
+  grid-column: 1;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.tracking-item-amount {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.tracking-amounts div {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.tracking-amounts dd {
+  margin: 0;
+}
+
+.tracking-total {
+  font-weight: 700;
+}

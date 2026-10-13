@@ -1,6 +1,7 @@
 {
 	# Caddy logs upstream failures with the whole request. Keep only what helps to debug: no full client IP, no
-	# headers (cookies, tokens) and no query string, which may carry tokens or personal data (R-05, RNF-22).
+	# headers (cookies, tokens), no query string, which may carry tokens or personal data (R-05, RNF-22), and no
+	# tracking token of the order paths /api/orders/{token} and /pedido/{token} (T-E3-08, RNF-29.6).
 	log default {
 		format filter {
 			wrap json
@@ -8,7 +9,7 @@
 				request>remote_ip ip_mask 24 48
 				request>client_ip ip_mask 24 48
 				request>headers delete
-				request>uri regexp \?.*$ ?REDACTED
+				request>uri regexp (\?).*$|(/api/orders/|/pedido/)[^/?]+ ${1}${2}REDACTED
 			}
 		}
 	}

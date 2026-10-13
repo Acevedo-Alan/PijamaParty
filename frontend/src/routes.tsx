@@ -2,6 +2,7 @@ import { Navigate, type RouteObject } from 'react-router';
 import { CatalogPage } from './features/catalog/CatalogPage.tsx';
 import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
+import { OrderTrackingPage } from './features/orders/OrderTrackingPage.tsx';
 import { SearchPage } from './features/search/SearchPage.tsx';
 import { StoreLayout } from './features/search/StoreLayout.tsx';
 
@@ -17,6 +18,7 @@ export const routes: RouteObject[] = [
       { path: '/categoria/:categorySlug', element: <CatalogPage /> },
       { path: '/producto/:productSlug', element: <ProductDetailPage /> },
       { path: '/buscar', element: <SearchPage /> },
+      { path: '/pedido/:token', element: <OrderTrackingPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

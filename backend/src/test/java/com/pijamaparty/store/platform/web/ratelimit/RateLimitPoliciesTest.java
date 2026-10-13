@@ -20,7 +20,8 @@ import org.springframework.test.context.TestConstructor;
 
 /**
  * The RNF-22 policies as configured in application.yml: login per IP (UC-04) and per account (RNF-29.5), catalog and
- * search (UC-26) of T-E1-15, cart changes (UC-08, UC-09) of T-E2-04, and coupon attempts (UC-10) of T-E2-11. The
+ * search (UC-26) of T-E1-15, cart changes (UC-08, UC-09) of T-E2-04, coupon attempts (UC-10) of T-E2-11, and the
+ * tracking link and its payment retry (UC-14) of T-E3-08. The
  * test client (127.0.0.1) plays Caddy, so {@code X-Forwarded-For} is the client IP and each test uses its own
  * addresses.
  */
@@ -131,6 +132,33 @@ class RateLimitPoliciesTest {
         assertLimited(firstOfNextRequests(() -> applyCoupon("203.0.113.30", null)));
     }
 
+    @Test
+    void givenThirtyTrackingLinkRequestsInAMinuteFromOneIp_whenMoreArrive_thenTheyGet429() {
+        for (int i = 0; i < 30; i++) {
+            assertThat(get("/api/orders/" + "t".repeat(43), "203.0.113.40").getStatusCode())
+                .as("a token nobody issued finds no order").isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        assertLimited(firstOfNextRequests(() -> get("/api/orders/" + "u".repeat(43), "203.0.113.40")));
+        assertThat(get("/api/orders/" + "t".repeat(43), "203.0.113.41").getStatusCode())
+            .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void givenFivePaymentRetriesInAMinuteOfTheSameOrder_whenAnotherArrives_thenItGets429WithRetryAfter() {
+        String order = "r".repeat(43);
+        for (int i = 0; i < 5; i++) {
+            assertThat(retryPayment("203.0.113.50", order).getStatusCode())
+                .as("a token nobody issued finds no order").isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        assertLimited(retryPayment("203.0.113.50", order));
+        assertThat(retryPayment("203.0.113.50", "s".repeat(43)).getStatusCode())
+            .as("another order from that IP has its own bucket").isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(retryPayment("203.0.113.51", order).getStatusCode())
+            .as("the bucket is per order and IP together").isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
     /**
      * The buckets refill continuously (Bucket4j greedy refill: 120 per minute is one token every 0.5 s), so the
      * requests above give back a few tokens while they run. The limit must show within a handful more.
@@ -179,6 +207,15 @@ class RateLimitPoliciesTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         return http.exchange("/api/cart/coupon", HttpMethod.POST, new HttpEntity<>("{\"code\":\"PIJAMA10\"}", headers),
             String.class);
+    }
+
+    private ResponseEntity<String> retryPayment(String clientIp, String trackingToken) {
+        var headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", clientIp);
+        headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + csrfToken);
+        headers.add("X-XSRF-TOKEN", csrfToken);
+        return http.exchange("/api/orders/" + trackingToken + "/retry-payment", HttpMethod.POST,
+            new HttpEntity<>(headers), String.class);
     }
 
     private ResponseEntity<String> get(String path, String clientIp) {
