@@ -64,12 +64,15 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:?set ADMIN_NAME in .env}
       # T-E1-16: true for one start only, after losing the phone and the recovery codes (runbook)
       ADMIN_RESET_SECOND_FACTOR: ${ADMIN_RESET_SECOND_FACTOR:-false}
+      # T-E3-06: where MercadoPago sends the buyer back and notifies the payments
+      PUBLIC_URL: https://${DOMAIN:?set DOMAIN in .env}
       # Docker secrets, mounted as files, become properties (e.g. ${DB_APP_PASSWORD}).
       SPRING_CONFIG_IMPORT: configtree:/run/secrets/
     secrets:
       - DB_APP_PASSWORD
       - ADMIN_INITIAL_PASSWORD
       - SECOND_FACTOR_KEY
+      - MERCADOPAGO_ACCESS_TOKEN
     volumes:
       - uploads:/srv/uploads
     networks: [edge, data]
@@ -168,3 +171,5 @@ secrets:
     file: ./secrets/ADMIN_INITIAL_PASSWORD
   SECOND_FACTOR_KEY:
     file: ./secrets/SECOND_FACTOR_KEY
+  MERCADOPAGO_ACCESS_TOKEN:
+    file: ./secrets/MERCADOPAGO_ACCESS_TOKEN

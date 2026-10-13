@@ -1,6 +1,7 @@
 package com.pijamaparty.store.ordering.adapter.in.web;
 
 import com.pijamaparty.store.ordering.application.GetShippingCost;
+import com.pijamaparty.store.ordering.application.OpenOrderPayment;
 import com.pijamaparty.store.ordering.application.PlaceOrder;
 import com.pijamaparty.store.ordering.domain.CheckoutForm;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
@@ -19,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.net.URI;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Optional;
@@ -49,11 +51,14 @@ class CheckoutController {
 
     private final GetShippingCost getShippingCost;
     private final PlaceOrder placeOrder;
+    private final OpenOrderPayment openOrderPayment;
     private final TokenGenerator tokens;
 
-    CheckoutController(GetShippingCost getShippingCost, PlaceOrder placeOrder, TokenGenerator tokens) {
+    CheckoutController(GetShippingCost getShippingCost, PlaceOrder placeOrder, OpenOrderPayment openOrderPayment,
+                       TokenGenerator tokens) {
         this.getShippingCost = getShippingCost;
         this.placeOrder = placeOrder;
+        this.openOrderPayment = openOrderPayment;
         this.tokens = tokens;
     }
 
@@ -81,10 +86,12 @@ class CheckoutController {
     }
 
     @PostMapping
-    @Operation(summary = "Confirm the checkout: place the order and reserve its stock",
+    @Operation(summary = "Confirm the checkout: place the order, reserve its stock and open its payment",
         description = "Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for "
             + "30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's "
-            + "tracking page; it is shown only here. Requires the CSRF token.")
+            + "tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the "
+            + "buyer to; null when the provider could not be reached, and then the client opens the tracking page. "
+            + "Requires the CSRF token.")
     @ApiResponse(responseCode = "201", description = "The order, awaiting payment",
         content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlacedResponse.class)))
     @ApiResponse(responseCode = "400", description = "Missing or invalid Idempotency-Key, or a body that is not of "
@@ -113,7 +120,7 @@ class CheckoutController {
         return switch (CurrentActor.callAs(actor, () -> placeOrder.execute(command))) {
             case PlaceOrder.Result.Placed placed -> ResponseEntity.status(HttpStatus.CREATED)
                 .body(new PlacedResponse(placed.number(), trackingToken.value(), OrderStatus.AWAITING_PAYMENT,
-                    placed.total().cents(), placed.reservationExpiresAt()));
+                    placed.total().cents(), placed.reservationExpiresAt(), paymentUrlOf(actor, placed)));
             case PlaceOrder.Result.InvalidBuyerData invalid -> {
                 var problem = problemDetail(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid buyer data",
                     "Some buyer or address data break the rules of the checkout.", "INVALID_BUYER_DATA");
@@ -142,6 +149,20 @@ class CheckoutController {
                 problem.setProperty("available", insufficient.available());
                 yield ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
             }
+        };
+    }
+
+    /**
+     * UC-14 (T-E3-06): once the order committed, its payment is opened outside any transaction, as the buyer that
+     * holds the order's tracking token (Row Level Security lets it read only its own order). The order stands either
+     * way: without a payment URL the buyer retries from the tracking page (T-E3-08).
+     */
+    private URI paymentUrlOf(Actor buyer, PlaceOrder.Result.Placed placed) {
+        var command = new OpenOrderPayment.Command(placed.orderId());
+        return switch (CurrentActor.callAs(buyer, () -> openOrderPayment.execute(command))) {
+            case OpenOrderPayment.Result.Opened opened -> opened.paymentUrl();
+            case OpenOrderPayment.Result.ProviderUnavailable unavailable -> null;
+            case OpenOrderPayment.Result.NotPayable notPayable -> null;
         };
     }
 
@@ -230,7 +251,12 @@ class CheckoutController {
                           @NotNull @Size(max = MAX_TEXT) String city, @NotNull Province province,
                           @NotNull @Size(max = MAX_TEXT) String postalCode) {}
 
-    /** {@code trackingToken} is a secret of the buyer: the server keeps only its hash. Amounts in cents. */
+    /**
+     * {@code trackingToken} is a secret of the buyer: the server keeps only its hash. Amounts in cents.
+     * {@code paymentUrl} is the provider's checkout to redirect to, or null when the provider could not be reached:
+     * then the client opens the tracking page, where the payment is retried.
+     */
     record PlacedResponse(long number, String trackingToken, OrderStatus status, long totalCents,
-                          Instant reservationExpiresAt) {}
+                          Instant reservationExpiresAt,
+                          @Schema(nullable = true, requiredMode = Schema.RequiredMode.REQUIRED) URI paymentUrl) {}
 }

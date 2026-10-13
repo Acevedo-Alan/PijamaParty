@@ -3,6 +3,8 @@ package com.pijamaparty.store.ordering.adapter.in.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pijamaparty.store.TestcontainersConfiguration;
+import com.pijamaparty.store.payments.adapter.out.mercadopago.MercadoPagoStub;
 import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import jakarta.servlet.http.Cookie;
@@ -48,13 +51,15 @@ class PlaceOrderApiTest {
 
     private final MockMvc mvc;
     private final ObjectMapper json;
+    private final MercadoPagoStub mercadoPago;
     private final JdbcTemplate owner;
     private final String cartToken = newToken();
     private UUID pijama;
 
-    PlaceOrderApiTest(MockMvc mvc, ObjectMapper json, PostgreSQLContainer<?> postgres) {
+    PlaceOrderApiTest(MockMvc mvc, ObjectMapper json, MercadoPagoStub mercadoPago, PostgreSQLContainer<?> postgres) {
         this.mvc = mvc;
         this.json = json;
+        this.mercadoPago = mercadoPago;
         this.owner = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), "tienda_owner",
             TestcontainersConfiguration.OWNER_PASSWORD));
     }
@@ -72,8 +77,58 @@ class PlaceOrderApiTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate order_item, orders, cart_item, cart, coupon_redemption, coupon, stock_movement, "
-            + "stock_level, product_image, variant, product, category, shipping_zone_rate");
+        mercadoPago.reset();
+        owner.execute("truncate payment, order_item, orders, cart_item, cart, coupon_redemption, coupon, "
+            + "stock_movement, stock_level, product_image, variant, product, category, shipping_zone_rate");
+    }
+
+    @Test
+    void givenAPlacedOrder_whenItsPaymentIsCreated_thenTheBuyerIsSentToMercadoPagoWithTheExactServerAmount()
+        throws Exception {
+        String body = checkout(order()).andExpect(status().isCreated())
+            .andExpect(jsonPath("$.paymentUrl").value(startsWith(MercadoPagoStub.INIT_POINT)))
+            .andReturn().getResponse().getContentAsString();
+
+        JsonNode placed = json.readTree(body);
+        JsonNode preference = mercadoPago.lastRequest().json();
+        assertThat(preference.get("items")).hasSize(1);
+        assertThat(preference.get("items").get(0).get("unit_price").decimalValue().movePointRight(2).longValueExact())
+            .isEqualTo(placed.get("totalCents").asLong());
+        assertThat(preference.get("external_reference").asText()).isEqualTo(placed.get("number").asText());
+        assertThat(mercadoPago.lastRequest().body()).doesNotContain("12345678", "3425551234", "San Mart",
+            placed.get("trackingToken").asText());
+        var payment = owner.queryForMap("select p.* from payment p join orders o on o.id = p.order_id "
+            + "where o.number = ?", placed.get("number").asLong());
+        assertThat(payment).containsEntry("status", "PENDING").containsEntry("amount_cents", 4_450_000L)
+            .containsEntry("checkout_url", placed.get("paymentUrl").asText());
+    }
+
+    @Test
+    void givenMercadoPagoDown_whenTheBuyerConfirms_thenTheOrderIsPlacedWithoutAPaymentUrlAndItsStockStaysReserved()
+        throws Exception {
+        mercadoPago.answer(500, "{\"message\":\"internal_error\"}");
+
+        String body = checkout(order()).andExpect(status().isCreated())
+            .andExpect(jsonPath("$.status").value("AWAITING_PAYMENT"))
+            .andExpect(jsonPath("$.paymentUrl").value(nullValue()))
+            .andReturn().getResponse().getContentAsString();
+
+        long number = json.readTree(body).get("number").asLong();
+        assertThat(owner.queryForObject("select status from orders where number = ?", String.class, number))
+            .isEqualTo("AWAITING_PAYMENT");
+        assertThat(owner.queryForObject("select reserved from stock_level where variant_id = ?", Integer.class,
+            pijama)).isEqualTo(2);
+        var payment = owner.queryForMap("select p.* from payment p join orders o on o.id = p.order_id "
+            + "where o.number = ?", number);
+        assertThat(payment).containsEntry("status", "PENDING").containsEntry("checkout_url", null);
+    }
+
+    @Test
+    void givenACheckoutRefused_whenItIsAnswered_thenMercadoPagoIsNotCalled() throws Exception {
+        checkout(order().put("acceptedTerms", false)).andExpect(status().isUnprocessableEntity());
+
+        assertThat(mercadoPago.requests()).isEmpty();
+        assertThat(owner.queryForObject("select count(*) from payment", Long.class)).isZero();
     }
 
     @Test

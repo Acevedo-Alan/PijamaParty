@@ -26,8 +26,9 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-/** Contract of {@link SaveOrders} and {@link OrderNumbers} (UC-14, RNF-20.6). */
-public abstract class NewOrdersContractTest<T extends SaveOrders & OrderNumbers> extends ContractTest<T> {
+/** Contract of {@link SaveOrders}, {@link OrderNumbers} and {@link OrdersToPay} (UC-14, RNF-20.6). */
+public abstract class NewOrdersContractTest<T extends SaveOrders & OrderNumbers & OrdersToPay>
+    extends ContractTest<T> {
 
     protected static final Instant NOW = Instant.parse("2026-10-12T15:00:00.123456Z");
 
@@ -94,6 +95,23 @@ public abstract class NewOrdersContractTest<T extends SaveOrders & OrderNumbers>
 
         assertThat(first).isGreaterThanOrEqualTo(1001);
         assertThat(second).isGreaterThan(first);
+    }
+
+    @Test
+    void givenAPlacedOrder_whenFoundToPay_thenItHasItsNumberStatusTotalProviderBuyerAndExpiry() {
+        NewOrder order = newOrder(Optional.empty(), Optional.of(new AppliedCoupon(UUID.randomUUID(), "VERANO10")),
+            Optional.empty(), Optional.empty());
+        subject.insert(order);
+        persistAndForget();
+
+        assertThat(subject.find(order.id())).contains(new OrdersToPay.OrderToPay(order.id(), order.number(),
+            OrderStatus.AWAITING_PAYMENT, Money.of(4_800_000), PaymentProvider.MERCADOPAGO, "Ana Pérez",
+            "ana@example.com", order.reservationExpiresAt()));
+    }
+
+    @Test
+    void givenNoSuchOrder_whenFoundToPay_thenThereIsNone() {
+        assertThat(subject.find(OrderId.of(UUID.randomUUID()))).isEmpty();
     }
 
     protected NewOrder newOrder(Optional<UserId> userId, Optional<AppliedCoupon> coupon, Optional<String> floor,

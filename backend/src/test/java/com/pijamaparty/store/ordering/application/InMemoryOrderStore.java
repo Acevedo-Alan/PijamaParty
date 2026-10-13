@@ -11,10 +11,10 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders} and {@link OrderNumbers} over the same
- * orders. Locks are not modeled.
+ * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders}, {@link OrderNumbers} and
+ * {@link OrdersToPay} over the same orders. Locks are not modeled.
  */
-public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers {
+public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay {
 
     /** Oldest expiry first; the id breaks ties as PostgreSQL orders uuids (as the canonical text does). */
     private static final Comparator<Map.Entry<OrderId, Row>> OLDEST_EXPIRY_FIRST =
@@ -85,6 +85,14 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
         placed.put(order.id(), order);
         numbers.add(order.number());
         trackingTokenHashes.add(order.trackingTokenHash());
+    }
+
+    /** Only the orders the checkout placed carry what paying needs. */
+    @Override
+    public synchronized Optional<OrderToPay> find(OrderId order) {
+        return Optional.ofNullable(placed.get(order)).map(placedOrder -> new OrderToPay(order, placedOrder.number(),
+            orders.get(order).status(), placedOrder.amounts().total(), placedOrder.paymentProvider(),
+            placedOrder.buyer().name(), placedOrder.buyer().email(), placedOrder.reservationExpiresAt()));
     }
 
     private record Row(OrderStatus status, Instant reservationExpiresAt) {}

@@ -65,6 +65,9 @@ server:
         same-site: lax
 
 store:
+  # T-E3-06: the storefront's origin (scheme and host, no path), where MercadoPago sends the buyer back and notifies
+  # the payments. Production sets https://${DOMAIN} (deploy/docker-compose.yml).
+  public-url: ${PUBLIC_URL:http://localhost:5173}
   # UC-04: the first administrator, created at startup only when none exists (ADMIN_INITIAL_PASSWORD is a Docker
   # secret in production, read through the configtree import). Ignored once an administrator exists.
   admin:
@@ -101,6 +104,15 @@ store:
       # T-E3-04, UC-16: every minute, at second 0, the orders awaiting payment whose 30-minute reservation is over
       # become EXPIRED and release their stock
       cron: "0 * * * * *"
+  payments:
+    mercadopago:
+      # T-E3-06: Checkout Pro. The access token is the Docker secret MERCADOPAGO_ACCESS_TOKEN in production (test
+      # credentials give the sandbox); empty, every checkout is unavailable and the buyer retries from the tracking
+      # page. RNF-21: 3 s to connect, 10 s to read, no retries.
+      base-url: https://api.mercadopago.com
+      access-token: ${MERCADOPAGO_ACCESS_TOKEN:}
+      connect-timeout: 3s
+      read-timeout: 10s
   saturation:
     # RNF-21: Retry-After of the 503 sent when a pool is exhausted
     retry-after: 5s
@@ -225,3 +237,10 @@ server:
       # RNF-22: only Caddy may set X-Forwarded-For (a regex of its fixed address in the compose network, T-E0-06);
       # the default trusts every private network.
       internal-proxies: ${TRUSTED_PROXY_REGEX}
+
+store:
+  # T-E3-06: the API does not start without them in production
+  public-url: ${PUBLIC_URL}
+  payments:
+    mercadopago:
+      access-token: ${MERCADOPAGO_ACCESS_TOKEN}

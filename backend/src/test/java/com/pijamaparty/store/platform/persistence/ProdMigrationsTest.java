@@ -15,10 +15,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestConstructor;
+import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
 @Import({TestcontainersConfiguration.class, ProdMigrationsTest.MigrateContainerStep.class})
 @ActiveProfiles("prod")
+// T-E3-06: the production profile does not start without them
+@TestPropertySource(properties = {"PUBLIC_URL=https://pijamaparty.test", "MERCADOPAGO_ACCESS_TOKEN=TEST-token"})
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class ProdMigrationsTest {
 

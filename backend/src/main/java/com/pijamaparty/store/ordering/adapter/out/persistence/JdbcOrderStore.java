@@ -2,15 +2,19 @@ package com.pijamaparty.store.ordering.adapter.out.persistence;
 
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderTransitions;
+import com.pijamaparty.store.ordering.application.OrdersToPay;
 import com.pijamaparty.store.ordering.application.OverdueOrders;
 import com.pijamaparty.store.ordering.application.SaveOrders;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderLine;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
+import com.pijamaparty.store.ordering.domain.PaymentProvider;
 import com.pijamaparty.store.platform.application.IdGenerator;
+import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
 import java.sql.Types;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -21,13 +25,14 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Orders in tables {@code orders} and {@code order_item} (V14), in the caller's transaction. Row Level Security
- * decides which orders the actor reaches (RNF-27).
+ * Orders in tables {@code orders} and {@code order_item} (V14), in the caller's transaction ({@link #find} opens its
+ * own when there is none). Row Level Security decides which orders the actor reaches (RNF-27).
  */
 @Repository
-class JdbcOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers {
+class JdbcOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -65,6 +70,13 @@ class JdbcOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, Ord
         INSERT INTO order_item (id, order_id, position, variant_id, sku, product_name, size, color, unit_price_cents,
                                 quantity)
         VALUES (:id, :orderId, :position, :variantId, :sku, :productName, :size, :color, :unitPriceCents, :quantity)
+        """;
+
+    // UC-14: the buyer reads its own order (orders_tracking_select, orders_customer_select).
+    private static final String SELECT_TO_PAY = """
+        SELECT id, number, status, total_cents, payment_provider, customer_name, customer_email,
+               reservation_expires_at
+        FROM orders WHERE id = :id
         """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -136,6 +148,19 @@ class JdbcOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, Ord
             .mapToObj(position -> item(order.id(), position, lines.get(position)))
             .toArray(SqlParameterSource[]::new);
         jdbc.batchUpdate(INSERT_ITEM, items);
+    }
+
+    /** Its own short transaction when the caller has none: paying an order runs outside one (RNF-21). */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<OrderToPay> find(OrderId order) {
+        return jdbc.query(SELECT_TO_PAY, new MapSqlParameterSource("id", order.value()), (row, n) -> new OrderToPay(
+                OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
+                OrderStatus.valueOf(row.getString("status")), Money.of(row.getLong("total_cents")),
+                PaymentProvider.valueOf(row.getString("payment_provider")), row.getString("customer_name"),
+                row.getString("customer_email"),
+                row.getObject("reservation_expires_at", OffsetDateTime.class).toInstant()))
+            .stream().findFirst();
     }
 
     private SqlParameterSource item(OrderId order, int position, OrderLine line) {

@@ -12,7 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @ApiTest
 @ActiveProfiles("prod")
 // In production the migrate container runs Flyway; this test database has no such step, so the test migrates itself.
-@TestPropertySource(properties = "spring.flyway.enabled=true")
+@TestPropertySource(properties = {"spring.flyway.enabled=true", "PUBLIC_URL=https://pijamaparty.test"})
 class OpenApiProdExposureTest {
 
     private final MockMvc mvc;

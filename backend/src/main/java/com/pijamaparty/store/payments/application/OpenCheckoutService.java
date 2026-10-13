@@ -1,0 +1,69 @@
+package com.pijamaparty.store.payments.application;
+
+import com.pijamaparty.store.payments.api.CheckoutOpening;
+import com.pijamaparty.store.payments.api.CheckoutRequest;
+import com.pijamaparty.store.payments.api.PaymentCheckouts;
+import com.pijamaparty.store.payments.api.PaymentProvider;
+import com.pijamaparty.store.payments.domain.Checkout;
+import com.pijamaparty.store.platform.application.IdGenerator;
+import java.time.Clock;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.springframework.stereotype.Service;
+
+/**
+ * UC-14: opens the payment of an order. Deliberately not transactional: the payment row is committed before the
+ * provider is called and the checkout is recorded after it answers, each in its own short transaction (RNF-21).
+ */
+@Service
+class OpenCheckoutService implements PaymentCheckouts {
+
+    private final LoadPayments loadPayments;
+    private final SavePayments savePayments;
+    private final Map<PaymentProvider, PaymentGateway> gateways;
+    private final IdGenerator ids;
+    private final Clock clock;
+
+    OpenCheckoutService(LoadPayments loadPayments, SavePayments savePayments, List<PaymentGateway> gateways,
+                        IdGenerator ids, Clock clock) {
+        this.loadPayments = loadPayments;
+        this.savePayments = savePayments;
+        this.gateways = new EnumMap<>(PaymentProvider.class);
+        for (PaymentGateway gateway : gateways) {
+            if (this.gateways.put(gateway.provider(), gateway) != null) {
+                throw new IllegalStateException("two payment gateways for " + gateway.provider());
+            }
+        }
+        this.ids = ids;
+        this.clock = clock;
+    }
+
+    @Override
+    public CheckoutOpening open(CheckoutRequest request) {
+        PaymentGateway gateway = gateways.get(request.provider());
+        if (gateway == null) {
+            throw new IllegalStateException("no payment gateway for " + request.provider());
+        }
+        Optional<Checkout> existing = loadPayments.checkoutOf(request.orderId(), request.provider());
+        if (existing.isPresent()) {
+            return new CheckoutOpening.Opened(existing.get().url());
+        }
+        savePayments.insertPending(new SavePayments.NewPayment(ids.newId(), request.orderId(), request.provider(),
+            request.amount(), clock.instant()));
+        return switch (gateway.createCheckout(request)) {
+            case PaymentGateway.Outcome.Unavailable unavailable -> new CheckoutOpening.ProviderUnavailable();
+            case PaymentGateway.Outcome.Created created -> {
+                if (savePayments.recordCheckout(request.orderId(), request.provider(), created.checkout(),
+                    clock.instant())) {
+                    yield new CheckoutOpening.Opened(created.checkout().url());
+                }
+                // A concurrent call recorded its checkout first: that one is the payment's.
+                yield loadPayments.checkoutOf(request.orderId(), request.provider())
+                    .<CheckoutOpening>map(checkout -> new CheckoutOpening.Opened(checkout.url()))
+                    .orElseGet(CheckoutOpening.ProviderUnavailable::new);
+            }
+        };
+    }
+}

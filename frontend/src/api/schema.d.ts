@@ -139,8 +139,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Confirm the checkout: place the order and reserve its stock
-         * @description Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for 30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's tracking page; it is shown only here. Requires the CSRF token.
+         * Confirm the checkout: place the order, reserve its stock and open its payment
+         * @description Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for 30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the buyer to; null when the provider could not be reached, and then the client opens the tracking page. Requires the CSRF token.
          */
         post: operations["placeOrder"];
         delete?: never;
@@ -998,6 +998,8 @@ export interface components {
             totalCents?: number;
             /** Format: date-time */
             reservationExpiresAt?: string;
+            /** Format: uri */
+            paymentUrl: string | null;
         };
         AddItemRequest: {
             /** Format: uuid */

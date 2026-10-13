@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.ordering.application.NewOrdersContractTest;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
+import com.pijamaparty.store.ordering.application.OrdersToPay;
 import com.pijamaparty.store.ordering.application.SaveOrders;
 import com.pijamaparty.store.ordering.domain.BuyerDetails;
 import com.pijamaparty.store.ordering.domain.OrderAmounts;
@@ -49,7 +50,8 @@ class JdbcNewOrdersContractTest extends NewOrdersContractTest<JdbcNewOrdersContr
 
     JdbcNewOrdersContractTest(JdbcOrderStore adapter, PlatformTransactionManager transactionManager,
                               PostgreSQLContainer<?> postgres) {
-        this.asBuyer = new AsBuyer(adapter, new TransactionTemplate(transactionManager), new ConcurrentHashMap<>());
+        this.asBuyer = new AsBuyer(adapter, new TransactionTemplate(transactionManager), new ConcurrentHashMap<>(),
+            new ConcurrentHashMap<>());
         this.owner = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), "tienda_owner",
             TestcontainersConfiguration.OWNER_PASSWORD));
     }
@@ -86,6 +88,15 @@ class JdbcNewOrdersContractTest extends NewOrdersContractTest<JdbcNewOrdersContr
 
         assertThatThrownBy(() -> asBuyer.insertAs(guest, order)).isInstanceOf(RuntimeException.class);
         assertThat(storedOrder(order.id())).isEmpty();
+    }
+
+    @Test
+    void givenAPlacedOrder_whenAStrangerLooksForItToPay_thenRowLevelSecurityHidesIt() {
+        SaveOrders.NewOrder order = newOrder(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+        subject.insert(order);
+        var stranger = Actor.anonymous(Optional.empty(), Optional.of(new TrackingToken("another-tracking-token")));
+
+        assertThat(CurrentActor.callAs(stranger, () -> asBuyer.adapter().find(order.id()))).isEmpty();
     }
 
     @Override
@@ -126,8 +137,18 @@ class JdbcNewOrdersContractTest extends NewOrdersContractTest<JdbcNewOrdersContr
     }
 
     /** Each call in its own committed transaction, as the buyer of the order's tracking token. */
-    record AsBuyer(JdbcOrderStore adapter, TransactionTemplate transactions, Map<String, TrackingToken> tokens)
-        implements SaveOrders, OrderNumbers {
+    record AsBuyer(JdbcOrderStore adapter, TransactionTemplate transactions, Map<String, TrackingToken> tokens,
+                   Map<OrderId, Actor> buyers) implements SaveOrders, OrderNumbers, OrdersToPay {
+
+        /**
+         * As the buyer who placed it, as the payment is opened after the checkout (T-E3-06), in the adapter's own
+         * transaction; an unknown order as a guest without a token.
+         */
+        @Override
+        public Optional<OrderToPay> find(OrderId order) {
+            Actor buyer = buyers.getOrDefault(order, Actor.anonymous(Optional.empty(), Optional.empty()));
+            return CurrentActor.callAs(buyer, () -> adapter.find(order));
+        }
 
         @Override
         public void insert(NewOrder order) {
@@ -136,6 +157,7 @@ class JdbcNewOrdersContractTest extends NewOrdersContractTest<JdbcNewOrdersContr
                 .map(user -> Actor.customer(user, Optional.empty(), Optional.of(token)))
                 .orElseGet(() -> Actor.anonymous(Optional.empty(), Optional.of(token)));
             insertAs(buyer, order);
+            buyers.put(order.id(), buyer);
         }
 
         void insertAs(Actor buyer, NewOrder order) {
