@@ -87,7 +87,7 @@
 **Flujo principal**
 1. El proveedor notifica un cambio de estado.
 2. El sistema consulta el pago al proveedor para verificar el estado real.
-3. Según el estado: aprobado → pedido PAGADO y stock descontado definitivamente; rechazado → se libera el stock; pendiente → no cambia.
+3. Según el estado: aprobado → pedido PAGADO y stock descontado definitivamente; rechazado → se registra el rechazo y el pedido conserva su reserva, para que el cliente reintente hasta que venza (CU-16); pendiente → no cambia.
 
 **Reglas**
 - Idempotente: la misma notificación repetida no produce efectos dobles.
@@ -96,7 +96,8 @@
 **Criterios de aceptación**
 - Dado un pago aprobado, cuando llega la notificación, entonces el pedido pasa a PAGADO y el cupón usado suma un uso.
 - Dada la misma notificación recibida dos veces, cuando se procesa la segunda, entonces no se descuenta stock ni se envían correos duplicados.
-- Dado un pago rechazado, cuando llega la notificación, entonces el stock reservado se libera.
+- Dado un pago rechazado, cuando llega la notificación, entonces el rechazo queda registrado y el pedido sigue PENDIENTE_PAGO con su stock reservado hasta que venza la reserva (decidido: MercadoPago deja probar otra tarjeta en el mismo pago).
+- Dado un pago aprobado de un pedido ya EXPIRADO, cuando llega la notificación, entonces el pedido sigue EXPIRADO, no se toca el stock y queda un aviso con el número de pedido para devolver el dinero desde el panel de MercadoPago (decidido).
 - Dada una notificación de un pago inexistente, cuando llega, entonces se ignora y se registra un aviso sin datos personales.
 - Dadas dos notificaciones idénticas que llegan a la vez, cuando se procesan, entonces solo una produce efectos.
 
@@ -108,7 +109,7 @@
 1. Al iniciar el pago, el sistema reserva de forma atómica la cantidad de cada variante del pedido.
 2. La reserva vence a los 30 minutos si no hay pago aprobado (*Propuesto*).
 3. Con pago aprobado, la reserva pasa a descuento definitivo.
-4. Con pago rechazado o reserva vencida, el stock se libera y el pedido queda EXPIRADO.
+4. Con la reserva vencida, el stock se libera y el pedido queda EXPIRADO. Un pago rechazado no libera la reserva: el cliente puede reintentar hasta que venza.
 
 **Reglas de negocio**
 - Un ajuste de stock del administrador (CU-07) no puede dejar el stock por debajo de las unidades reservadas por pedidos pendientes de pago: se rechaza indicando cuántas hay reservadas.
