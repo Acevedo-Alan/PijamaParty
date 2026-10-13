@@ -66,6 +66,10 @@ services:
       ADMIN_RESET_SECOND_FACTOR: ${ADMIN_RESET_SECOND_FACTOR:-false}
       # T-E3-06: where MercadoPago sends the buyer back and notifies the payments
       PUBLIC_URL: https://${DOMAIN:?set DOMAIN in .env}
+      # T-E3-09: the payment-confirmed emails (Resend's API key: Docker secret below)
+      MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM in .env}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
+      NOTIFICATIONS_ADMIN_EMAIL: ${NOTIFICATIONS_ADMIN_EMAIL:?set NOTIFICATIONS_ADMIN_EMAIL in .env}
       # Docker secrets, mounted as files, become properties (e.g. ${DB_APP_PASSWORD}).
       SPRING_CONFIG_IMPORT: configtree:/run/secrets/
     secrets:
@@ -74,6 +78,7 @@ services:
       - SECOND_FACTOR_KEY
       - MERCADOPAGO_ACCESS_TOKEN
       - MERCADOPAGO_WEBHOOK_SECRET
+      - RESEND_API_KEY
     volumes:
       - uploads:/srv/uploads
     networks: [edge, data]
@@ -176,3 +181,5 @@ secrets:
     file: ./secrets/MERCADOPAGO_ACCESS_TOKEN
   MERCADOPAGO_WEBHOOK_SECRET:
     file: ./secrets/MERCADOPAGO_WEBHOOK_SECRET
+  RESEND_API_KEY:
+    file: ./secrets/RESEND_API_KEY

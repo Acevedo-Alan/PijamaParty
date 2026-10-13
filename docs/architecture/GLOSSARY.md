@@ -22,6 +22,7 @@ The code, database and API use the English names. Spanish appears only in user-f
 | Visitante | `Visitor` | Not signed in |
 | Invitado | `Guest` | Buys without an account |
 | Cliente | `Customer` | Registered user |
+| Comprador | `Buyer` | Whoever placed an order, guest or customer. The email type `ORDER_PAID_CUSTOMER` goes to the buyer |
 | Reserva de stock | `StockReservation` | Expires after 30 minutes |
 | Movimiento de stock | `StockMovement` | Append-only |
 | Enlace de seguimiento | `TrackingLink` | Token-based order page |

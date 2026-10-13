@@ -11,6 +11,13 @@ store:
     reservation-expiry:
       # T-E3-04: tests run the expiry themselves, never on a schedule
       cron: "-"
+  notifications:
+    # T-E3-09: tests send the outbox themselves, never on a schedule; Resend is a local stub (ResendStub)
+    from: "Pijama Party <pedidos@pijamaparty.test>"
+    reply-to: hola@pijamaparty.test
+    admin-recipient: admin@pijamaparty.test
+    outbox:
+      cron: "-"
   rate-limit:
     # Every test calls from 127.0.0.1 and Spring reuses the context across test classes, so the real RNF-22 policies
     # would turn unrelated tests into 429s. The rate-limit tests turn it back on with store.rate-limit.enabled=true.

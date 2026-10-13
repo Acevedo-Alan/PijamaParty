@@ -89,8 +89,9 @@ class MercadoPagoWebhookApiTest {
     @AfterEach
     void cleanUp() {
         mercadoPago.reset();
-        owner.execute("truncate payment, order_item, orders, cart_item, cart, coupon_redemption, coupon, "
-            + "stock_movement, stock_level, product_image, variant, product, category, shipping_zone_rate");
+        owner.execute("truncate payment, email_outbox, order_tracking_token, order_item, orders, cart_item, cart, "
+            + "coupon_redemption, coupon, stock_movement, stock_level, product_image, variant, product, category, "
+            + "shipping_zone_rate");
     }
 
     @Test
@@ -110,6 +111,8 @@ class MercadoPagoWebhookApiTest {
             coupon)).isOne();
         assertThat(mercadoPago.lastRequest().path()).isEqualTo("/v1/payments/" + PAYMENT_ID);
         assertThat(logLines(logs)).doesNotContain("ana@example.com", "12345678", "Ana P");
+        // UC-17: the buyer's and the administrator's emails, enqueued with the payment (RNF-23)
+        assertThat(emails(placed)).containsExactlyInAnyOrder("ORDER_PAID_CUSTOMER", "ORDER_PAID_ADMIN");
     }
 
     @Test
@@ -128,6 +131,30 @@ class MercadoPagoWebhookApiTest {
             .isOne();
         assertThat(owner.queryForObject("select count(*) from coupon_redemption where coupon_id = ?", Long.class,
             coupon)).isOne();
+    }
+
+    @Test
+    void givenAnOrderWhoseConfirmationIsProcessedTwice_whenItFinishes_thenEachEmailIsEnqueuedOnce() throws Exception {
+        Placed placed = placeOrder();
+        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", placed.pesos());
+        notifyPayment(PAYMENT_ID).andExpect(status().isOk());
+
+        notifyPayment(PAYMENT_ID).andExpect(status().isOk());
+
+        assertThat(emails(placed)).containsExactlyInAnyOrder("ORDER_PAID_CUSTOMER", "ORDER_PAID_ADMIN");
+    }
+
+    @Test
+    void givenAnOrderThatExpiresUnpaid_whenItFinishes_thenNoEmailIsEnqueued() throws Exception {
+        Placed placed = placeOrder();
+        owner.update("update orders set created_at = now() - interval '31 minutes', "
+            + "reservation_expires_at = now() - interval '1 minute' where number = ?",
+            placed.number());
+
+        CurrentActor.callAsSystem(expireOverdueOrder::execute);
+
+        assertThat(orderStatus(placed)).isEqualTo("EXPIRED");
+        assertThat(emails(placed)).isEmpty();
     }
 
     @Test
@@ -159,6 +186,7 @@ class MercadoPagoWebhookApiTest {
         assertThat(stock()).containsEntry("on_hand", 3).containsEntry("reserved", 0);
         assertThat(owner.queryForObject("select count(*) from stock_movement where type = 'DEDUCTION'", Long.class))
             .isOne();
+        assertThat(emails(placed)).containsExactlyInAnyOrder("ORDER_PAID_CUSTOMER", "ORDER_PAID_ADMIN");
     }
 
     @Test
@@ -172,6 +200,7 @@ class MercadoPagoWebhookApiTest {
         assertThat(stock()).containsEntry("on_hand", 5).containsEntry("reserved", 2);
         assertThat(payment(placed)).containsEntry("status", "REJECTED")
             .containsEntry("external_payment_id", PAYMENT_ID);
+        assertThat(emails(placed)).isEmpty();
     }
 
     @Test
@@ -203,6 +232,8 @@ class MercadoPagoWebhookApiTest {
         assertThat(stock()).containsEntry("on_hand", 5).containsEntry("reserved", 0);
         assertThat(payment(placed)).containsEntry("status", "APPROVED");
         assertThat(logLines(logs)).contains("Order " + placed.number() + " was paid").contains("refund");
+        // UC-17: a payment approved too late sends no email either
+        assertThat(emails(placed)).isEmpty();
     }
 
     @Test
@@ -334,6 +365,13 @@ class MercadoPagoWebhookApiTest {
 
     private String orderStatus(Placed placed) {
         return owner.queryForObject("select status from orders where number = ?", String.class, placed.number());
+    }
+
+    /** UC-17: the types of the emails enqueued for the order. */
+    private List<String> emails(Placed placed) {
+        return owner.queryForList("""
+            select e.type from email_outbox e join orders o on o.id = e.reference where o.number = ?
+            """, String.class, placed.number());
     }
 
     private Map<String, Object> payment(Placed placed) {

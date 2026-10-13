@@ -1,6 +1,7 @@
 package com.pijamaparty.store.platform.testing;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
+import com.pijamaparty.store.notifications.adapter.out.resend.ResendStubConfiguration;
 import com.pijamaparty.store.payments.adapter.out.mercadopago.MercadoPagoStubConfiguration;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -14,15 +15,15 @@ import org.springframework.test.context.TestConstructor;
 
 /**
  * Whole application behind MockMvc, with the real security filter chain, on Testcontainers PostgreSQL and with
- * MercadoPago replaced by a local stub ({@code MercadoPagoStub}). Add test-only routes with {@code @Import} of a
- * {@code @TestConfiguration}.
+ * MercadoPago and Resend replaced by local stubs ({@code MercadoPagoStub}, {@code ResendStub}). Add test-only
+ * routes with {@code @Import} of a {@code @TestConfiguration}.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import({TestcontainersConfiguration.class, MercadoPagoStubConfiguration.class})
+@Import({TestcontainersConfiguration.class, MercadoPagoStubConfiguration.class, ResendStubConfiguration.class})
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 public @interface ApiTest {
 }

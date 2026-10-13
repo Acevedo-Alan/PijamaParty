@@ -61,12 +61,12 @@ class OrderingSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate order_item, orders");
+        owner.execute("truncate order_tracking_token, order_item, orders");
     }
 
     @Test
     void givenTheOrderTables_whenCheckingTheirProtection_thenRowLevelSecurityIsEnabledAndForced() {
-        for (String table : List.of("orders", "order_item")) {
+        for (String table : List.of("orders", "order_item", "order_tracking_token")) {
             var flags = owner.queryForMap(
                 "select relrowsecurity, relforcerowsecurity from pg_class where oid = ?::regclass", table);
             assertThat(flags).as(table).containsEntry("relrowsecurity", true).containsEntry("relforcerowsecurity", true);

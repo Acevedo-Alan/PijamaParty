@@ -3,6 +3,7 @@ package com.pijamaparty.store.ordering.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.pijamaparty.store.ordering.api.OrderPaid;
 import com.pijamaparty.store.ordering.application.ConfirmOrderPayment.Command;
 import com.pijamaparty.store.ordering.application.ConfirmOrderPayment.Result;
 import com.pijamaparty.store.ordering.domain.OrderId;
@@ -22,8 +23,9 @@ class ConfirmOrderPaymentServiceTest {
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
     private final InMemoryStockReleases stock = new InMemoryStockReleases();
     private final InMemoryOrderCouponRedemptions coupons = new InMemoryOrderCouponRedemptions();
+    private final InMemoryOrderEvents events = new InMemoryOrderEvents();
     private final ConfirmOrderPaymentService service = new ConfirmOrderPaymentService(orders, orders, stock, coupons,
-        Clock.fixed(NOW, ZoneOffset.UTC));
+        events, Clock.fixed(NOW, ZoneOffset.UTC));
     private final OrderId order = OrderId.of(UUID.randomUUID());
     private final UUID variant = UUID.randomUUID();
     private final UUID coupon = UUID.randomUUID();
@@ -41,6 +43,7 @@ class ConfirmOrderPaymentServiceTest {
         assertThat(stock.onHandOf(variant)).isOne();
         assertThat(stock.availableOf(variant)).isOne();
         assertThat(coupons.usesOf(coupon)).isOne();
+        assertThat(events.published()).containsExactly(new OrderPaid(order.value(), number));
     }
 
     @Test
@@ -63,6 +66,7 @@ class ConfirmOrderPaymentServiceTest {
         Result again = service.execute(new Command(order));
 
         assertThat(again).isEqualTo(new Result.AlreadyPaid(number));
+        assertThat(events.published()).hasSize(1);
         assertThat(stock.onHandOf(variant)).isOne();
         assertThat(coupons.usesOf(coupon)).isOne();
     }
@@ -76,6 +80,7 @@ class ConfirmOrderPaymentServiceTest {
             assertThat(service.execute(new Command(further))).isEqualTo(new Result.AlreadyPaid(number));
             assertThat(orders.statusOf(further)).contains(status);
         }
+        assertThat(events.published()).isEmpty();
     }
 
     @Test
@@ -88,6 +93,7 @@ class ConfirmOrderPaymentServiceTest {
         Result result = service.execute(new Command(order));
 
         assertThat(result).isEqualTo(new Result.PaidAfterClosing(number, OrderStatus.EXPIRED));
+        assertThat(events.published()).isEmpty();
         assertThat(orders.statusOf(order)).contains(OrderStatus.EXPIRED);
         assertThat(stock.onHandOf(variant)).isEqualTo(3);
         assertThat(stock.availableOf(variant)).isEqualTo(3);
@@ -100,6 +106,7 @@ class ConfirmOrderPaymentServiceTest {
 
         assertThat(service.execute(new Command(order)))
             .isEqualTo(new Result.PaidAfterClosing(number, OrderStatus.CANCELLED));
+        assertThat(events.published()).isEmpty();
     }
 
     @Test

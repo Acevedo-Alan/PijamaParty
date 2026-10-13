@@ -15,15 +15,17 @@ class ConfirmOrderPaymentService implements ConfirmOrderPayment {
     private final OrderTransitions orderTransitions;
     private final StockDeductions stockDeductions;
     private final OrderCouponRedemptions couponRedemptions;
+    private final OrderEvents orderEvents;
     private final Clock clock;
 
     ConfirmOrderPaymentService(ConfirmableOrders confirmableOrders, OrderTransitions orderTransitions,
                                StockDeductions stockDeductions, OrderCouponRedemptions couponRedemptions,
-                               Clock clock) {
+                               OrderEvents orderEvents, Clock clock) {
         this.confirmableOrders = confirmableOrders;
         this.orderTransitions = orderTransitions;
         this.stockDeductions = stockDeductions;
         this.couponRedemptions = couponRedemptions;
+        this.orderEvents = orderEvents;
         this.clock = clock;
     }
 
@@ -48,6 +50,8 @@ class ConfirmOrderPaymentService implements ConfirmOrderPayment {
         }
         stockDeductions.deduct(order.id());
         order.couponId().ifPresent(coupon -> couponRedemptions.redeem(coupon, order.id(), now));
+        // UC-17: the payment-confirmed emails are enqueued in this same transaction (RNF-23).
+        orderEvents.orderPaid(order.id(), order.number());
         return new Result.Paid(order.number());
     }
 }

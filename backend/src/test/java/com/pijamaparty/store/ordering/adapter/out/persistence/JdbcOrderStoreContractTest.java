@@ -58,7 +58,7 @@ class JdbcOrderStoreContractTest extends OrderStoreContractTest<JdbcOrderStoreCo
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate order_item, orders");
+        owner.execute("truncate order_tracking_token, order_item, orders");
     }
 
     @Test

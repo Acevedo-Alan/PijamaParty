@@ -43,7 +43,7 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 2. A module may use another module only through that module's `api` package (public interfaces, DTO records and events).
 3. **Avoiding cycles:** when two modules need data from each other (for example the admin order screen needs the email-bounce alert from `notifications`), the composition happens in `backoffice`, which depends on both and which nobody depends on. Events flow in one direction only.
 4. Writes touch only the tables of the owning module. Read-side queries may read another module's data only through a database view published by the owner (for example `inventory.v_variant_availability`).
-5. Cross-module reactions use domain events published after commit (section 6), never direct calls into another module's internals.
+5. Cross-module reactions use domain events published after commit (section 6), never direct calls into another module's internals. Exception: a listener that only inserts into a transactional outbox (the emails of `notifications`, UC-17) or makes the state change the event reports (`PaymentApproved` confirming the order, UC-15) runs synchronously in the publisher's transaction, so both commit or neither does; it must be idempotent.
 6. **Foreign keys stay inside a module.** A table that refers to another module's data stores only the `uuid` (for example `stock_level.variant_id`), with no foreign key, so the database does not couple modules against their dependency direction. Consistency comes from events, or from a call through the owner's `api` in the same transaction when the dependency already points that way (`catalog` calls `inventory.api.StockLevels.open` when it creates variants, UC-06).
 
 ## 4. Layers inside a module

@@ -1,5 +1,8 @@
 package com.pijamaparty.store.ordering.application;
 
+import com.pijamaparty.store.ordering.api.PaidOrders.Address;
+import com.pijamaparty.store.ordering.api.PaidOrders.Line;
+import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
@@ -14,10 +17,11 @@ import java.util.UUID;
 
 /**
  * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders}, {@link OrderNumbers},
- * {@link OrdersToPay}, {@link ConfirmableOrders} and {@link TrackedOrders} over the same orders. Locks are not modeled.
+ * {@link OrdersToPay}, {@link ConfirmableOrders}, {@link TrackedOrders}, {@link PaidOrderDetails} and
+ * {@link SaveTrackingLinks} over the same orders. Locks are not modeled.
  */
 public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay,
-    ConfirmableOrders, TrackedOrders {
+    ConfirmableOrders, TrackedOrders, PaidOrderDetails, SaveTrackingLinks {
 
     /** Oldest expiry first; the id breaks ties as PostgreSQL orders uuids (as the canonical text does). */
     private static final Comparator<Map.Entry<OrderId, Row>> OLDEST_EXPIRY_FIRST =
@@ -29,6 +33,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     private final Set<Long> numbers = new HashSet<>();
     private final Set<String> trackingTokenHashes = new HashSet<>();
     private final Map<OrderId, String> shipmentTrackingNumbers = new HashMap<>();
+    private final Map<String, OrderId> trackingLinks = new HashMap<>();
     private long lastNumber = 1000;
 
     /** Test arrangement: an order in any status, without its details nor a coupon; answers its number. */
@@ -59,6 +64,11 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     /** Test inspection: the order as the checkout placed it; empty when it placed no such order. */
     public synchronized Optional<NewOrder> placed(OrderId order) {
         return Optional.ofNullable(placed.get(order));
+    }
+
+    /** Test inspection: the order an extra tracking link (T-E3-09) opens; empty when there is no such link. */
+    public synchronized Optional<OrderId> linkedOrder(String tokenHash) {
+        return Optional.ofNullable(trackingLinks.get(tokenHash));
     }
 
     /** Test inspection: how many orders the checkout placed. */
@@ -119,12 +129,41 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     @Override
     public synchronized Optional<TrackedOrder> find(TrackingToken token) {
         return placed.values().stream()
-            .filter(order -> order.trackingTokenHash().equals(token.hash()))
+            .filter(order -> order.trackingTokenHash().equals(token.hash())
+                || order.id().equals(trackingLinks.get(token.hash())))
             .findFirst()
             .map(order -> new TrackedOrder(order.id(), order.number(), orders.get(order.id()).status(),
                 order.createdAt(), order.buyer().name(), order.address().city(), order.province(), order.lines(),
                 order.amounts(), order.coupon().map(AppliedCoupon::code), order.reservationExpiresAt(),
                 Optional.ofNullable(shipmentTrackingNumbers.get(order.id()))));
+    }
+
+    /** Only the orders the checkout placed carry what the emails tell. */
+    @Override
+    public synchronized Optional<PaidOrder> detailsOf(OrderId order) {
+        return Optional.ofNullable(placed.get(order)).map(placedOrder -> new PaidOrder(order.value(),
+            placedOrder.number(), placedOrder.buyer().name(), placedOrder.buyer().email(),
+            placedOrder.lines().stream().map(line -> new Line(line.productName(), line.size(), line.color(),
+                line.quantity(), line.unitPrice(), line.amount())).toList(),
+            placedOrder.amounts().subtotal(), placedOrder.amounts().discount(),
+            placedOrder.coupon().map(AppliedCoupon::code), placedOrder.amounts().shipping(),
+            placedOrder.amounts().total(),
+            new Address(placedOrder.address().street(), placedOrder.address().number(),
+                placedOrder.address().floor(), placedOrder.address().apartment(), placedOrder.address().city(),
+                placedOrder.province().name(), placedOrder.address().postalCode())));
+    }
+
+    /** As the database: the hash is unique, and only an existing order gets one. */
+    @Override
+    public synchronized boolean add(OrderId order, String tokenHash, Instant at) {
+        if (!orders.containsKey(order)) {
+            return false;
+        }
+        if (trackingLinks.containsKey(tokenHash)) {
+            throw new IllegalStateException("duplicate tracking token");
+        }
+        trackingLinks.put(tokenHash, order);
+        return true;
     }
 
     @Override

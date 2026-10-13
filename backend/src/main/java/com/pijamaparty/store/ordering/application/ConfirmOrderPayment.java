@@ -7,7 +7,8 @@ import java.util.Objects;
 /**
  * UC-15, UC-16: the provider approved the payment of an order. An order awaiting payment becomes {@code PAID}, its
  * reservation a deduction for good, and its coupon gets a use, all in the payment's transaction, which must exist.
- * Runs as {@code SYSTEM}. Repeating it changes nothing (RNF-20.5).
+ * Runs as {@code SYSTEM}. Only the order that becomes {@code PAID} publishes {@code ordering.api.OrderPaid} (UC-17).
+ * Repeating it changes nothing (RNF-20.5).
  *
  * @throws IllegalStateException when there is no such order: its payment exists, so the order must
  */

@@ -13,6 +13,7 @@ per secret, containing only the value (no newline is needed):
 | `SECOND_FACTOR_KEY` | `api`: AES-256 key of the administrator's authenticator secret (T-E1-16), the base64 of 32 random bytes: `openssl rand -base64 32`. Without it the API does not start. Never change it once the administrator enrolled: the stored secret could not be read, and the administrator would have to be reset with `ADMIN_RESET_SECOND_FACTOR=true` |
 | `MERCADOPAGO_ACCESS_TOKEN` | `api`: the seller's MercadoPago access token (T-E3-06), from the MercadoPago developers panel, "Credenciales". Test credentials give the sandbox; production credentials charge for real. Without it the API does not start |
 | `MERCADOPAGO_WEBHOOK_SECRET` | `api`: the secret key that signs MercadoPago's notifications (T-E3-07), from "Tus integraciones" > the application > "Webhooks" (production URL `https://DOMAIN/api/payments/mercadopago/webhook`, event "Pagos"). Without it the API does not start |
+| `RESEND_API_KEY` | `api`: Resend's API key for the payment-confirmed emails (T-E3-09), from the Resend dashboard, "API Keys", with "Sending access" only. `MAIL_FROM` (an address of a domain verified at Resend) and `NOTIFICATIONS_ADMIN_EMAIL` go in `.env`. Without it the API does not start |
 
 Generate each one with a password manager or `openssl rand -base64 32`. The role passwords are set when the database
 volume is created; changing a file later does not change the role password (use `ALTER ROLE`).
@@ -30,4 +31,5 @@ chmod 444 deploy/secrets/DB_*
 chmod 444 deploy/secrets/SECOND_FACTOR_KEY
 chmod 444 deploy/secrets/MERCADOPAGO_ACCESS_TOKEN
 chmod 444 deploy/secrets/MERCADOPAGO_WEBHOOK_SECRET
+chmod 444 deploy/secrets/RESEND_API_KEY
 ```

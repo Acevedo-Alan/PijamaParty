@@ -1,11 +1,16 @@
 package com.pijamaparty.store.ordering.adapter.out.persistence;
 
+import com.pijamaparty.store.ordering.api.PaidOrders.Address;
+import com.pijamaparty.store.ordering.api.PaidOrders.Line;
+import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
 import com.pijamaparty.store.ordering.application.ConfirmableOrders;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderTransitions;
 import com.pijamaparty.store.ordering.application.OrdersToPay;
 import com.pijamaparty.store.ordering.application.OverdueOrders;
+import com.pijamaparty.store.ordering.application.PaidOrderDetails;
 import com.pijamaparty.store.ordering.application.SaveOrders;
+import com.pijamaparty.store.ordering.application.SaveTrackingLinks;
 import com.pijamaparty.store.ordering.application.TrackedOrders;
 import com.pijamaparty.store.ordering.domain.OrderAmounts;
 import com.pijamaparty.store.ordering.domain.OrderId;
@@ -39,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 class JdbcOrderStore
     implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders,
-    TrackedOrders {
+    TrackedOrders, PaidOrderDetails, SaveTrackingLinks {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -86,12 +91,15 @@ class JdbcOrderStore
         FROM orders WHERE id = :id
         """;
 
-    // UC-14 (T-E3-08): the order of a tracking link (orders_tracking_select). Filtering by the hash too keeps a
-    // customer, who also reads its other orders, to this one.
+    // UC-14 (T-E3-08): the order of a tracking link (orders_tracking_select): the checkout's token or one of a
+    // confirmation email (T-E3-09). Filtering by the hash too keeps a customer, who also reads its other orders, to
+    // this one.
     private static final String SELECT_TRACKED = """
         SELECT id, number, status, created_at, customer_name, city, province, subtotal_cents, discount_cents,
                shipping_cents, total_cents, coupon_code, reservation_expires_at, shipment_tracking_number
-        FROM orders WHERE tracking_token_hash = :hash
+        FROM orders o
+        WHERE o.tracking_token_hash = :hash
+           OR EXISTS (SELECT 1 FROM order_tracking_token t WHERE t.order_id = o.id AND t.token_hash = :hash)
         """;
 
     private static final String SELECT_LINES = """
@@ -105,6 +113,20 @@ class JdbcOrderStore
         SELECT id, number, status, coupon_id FROM orders
         WHERE id = :id
         FOR UPDATE
+        """;
+
+    // UC-17 (T-E3-09): the system reads the order a payment-confirmed email tells about (orders_staff_select).
+    private static final String SELECT_PAID = """
+        SELECT id, number, customer_name, customer_email, street, street_number, floor, apartment, city, province,
+               postal_code, subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code
+        FROM orders WHERE id = :id
+        """;
+
+    // UC-17 (T-E3-09): the system keeps the hash of an email's tracking token, for an order that exists; the hash is
+    // the primary key, and 256 random bits never repeat.
+    private static final String INSERT_TRACKING_TOKEN = """
+        INSERT INTO order_tracking_token (token_hash, order_id, created_at)
+        SELECT :hash, id, :at FROM orders WHERE id = :id
         """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -223,6 +245,33 @@ class JdbcOrderStore
                     OrderStatus.valueOf(row.getString("status")),
                     Optional.ofNullable(row.getObject("coupon_id", UUID.class))))
             .stream().findFirst();
+    }
+
+    @Override
+    public Optional<PaidOrder> detailsOf(OrderId order) {
+        return jdbc.query(SELECT_PAID, new MapSqlParameterSource("id", order.value()), (row, n) -> {
+                OrderId id = OrderId.of(row.getObject("id", UUID.class));
+                List<Line> lines = linesOf(id).stream()
+                    .map(line -> new Line(line.productName(), line.size(), line.color(), line.quantity(),
+                        line.unitPrice(), line.amount()))
+                    .toList();
+                return new PaidOrder(id.value(), row.getLong("number"), row.getString("customer_name"),
+                    row.getString("customer_email"), lines, Money.of(row.getLong("subtotal_cents")),
+                    Money.of(row.getLong("discount_cents")), Optional.ofNullable(row.getString("coupon_code")),
+                    Money.of(row.getLong("shipping_cents")), Money.of(row.getLong("total_cents")),
+                    new Address(row.getString("street"), row.getString("street_number"),
+                        Optional.ofNullable(row.getString("floor")), Optional.ofNullable(row.getString("apartment")),
+                        row.getString("city"), row.getString("province"),
+                        row.getString("postal_code")));
+            })
+            .stream().findFirst();
+    }
+
+    @Override
+    public boolean add(OrderId order, String tokenHash, Instant at) {
+        return jdbc.update(INSERT_TRACKING_TOKEN, new MapSqlParameterSource("id", order.value())
+            .addValue("hash", tokenHash)
+            .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
     }
 
     private SqlParameterSource item(OrderId order, int position, OrderLine line) {

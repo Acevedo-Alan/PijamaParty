@@ -36,6 +36,11 @@ spring:
     events:
       # Completed event publications are deleted, so serialized events do not pile up in the database
       completion-mode: delete
+  task:
+    scheduling:
+      # RNF-21: one thread per scheduled job (4 today), so a slow email provider never delays the reservation expiry
+      pool:
+        size: 4
 
 server:
   # RNF-22: the real client IP comes from X-Forwarded-For only when the connection comes from a trusted proxy
@@ -118,6 +123,24 @@ store:
       # notification older than webhook-max-age is refused too: MercadoPago retries for hours.
       webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET:}
       webhook-max-age: 24h
+  notifications:
+    # T-E3-09 (UC-17, RNF-23): the sender (e.g. Pijama Party <pedidos@notificaciones.DOMAIN>, a domain verified at
+    # Resend, T-E3-18), where the buyer's answers go (the business's email; optional) and the administrator told of
+    # every paid order. Production requires MAIL_FROM and NOTIFICATIONS_ADMIN_EMAIL.
+    from: ${MAIL_FROM:}
+    reply-to: ${MAIL_REPLY_TO:}
+    admin-recipient: ${NOTIFICATIONS_ADMIN_EMAIL:}
+    outbox:
+      # T-E3-09: every minute, at second 30 (the reservation expiry runs at second 0), the emails due are sent;
+      # retried at 1, 5, 15 and 60 minutes, at most 5 attempts
+      cron: "30 * * * * *"
+    resend:
+      # T-E3-09: the API key is the Docker secret RESEND_API_KEY in production; empty, every email waits in the
+      # outbox. RNF-21: 3 s to connect, 10 s to read, no retries (the outbox retries).
+      base-url: https://api.resend.com
+      api-key: ${RESEND_API_KEY:}
+      connect-timeout: 3s
+      read-timeout: 10s
   saturation:
     # RNF-21: Retry-After of the 503 sent when a pool is exhausted
     retry-after: 5s
@@ -264,3 +287,9 @@ store:
     mercadopago:
       access-token: ${MERCADOPAGO_ACCESS_TOKEN}
       webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET}
+  # T-E3-09: nor without these
+  notifications:
+    from: ${MAIL_FROM}
+    admin-recipient: ${NOTIFICATIONS_ADMIN_EMAIL}
+    resend:
+      api-key: ${RESEND_API_KEY}
