@@ -39,6 +39,9 @@
 - No se muestra el botón flotante de WhatsApp durante el checkout.
 - Los totales los calcula el servidor.
 - Al elegir la provincia, el servidor devuelve el subtotal, el descuento, el envío y el total del carrito (solo cuentan los ítems disponibles). Si no hay envío a esa provincia, se informa; si el carrito no tiene ítems disponibles, no se puede seguir.
+- Al confirmar, el checkout se rechaza si algún ítem no está disponible, si hay un cambio de precio sin aceptar o si el cupón del carrito ya no aplica: el cliente nunca paga un total que no vio. Para seguir, quita el cupón o corrige el carrito.
+- Para confirmar hay que aceptar los términos; el pedido guarda la versión vigente.
+- Al crearse el pedido, el carrito se vacía: el pedido es la copia de lo comprado y el pago se reintenta desde el enlace de seguimiento.
 
 **Criterios de aceptación**
 - Dado un dato obligatorio vacío, cuando se intenta avanzar, entonces no se avanza y se indica cuál falta.

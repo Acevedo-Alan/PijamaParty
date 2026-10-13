@@ -4,7 +4,7 @@
 - [x] **T-E3-02** Backoffice y API: costos de envío por zona y envío gratis (CU-12).
 - [x] **T-E3-03** Cálculo de envío en el servidor según provincia y subtotal (CU-12, CU-13).
 - [x] **T-E3-04** Reserva atómica de stock y proceso de vencimiento (CU-16).
-- [ ] **T-E3-05** `POST /api/checkout`: validaciones, creación del pedido y reserva (CU-13, CU-14).
+- [x] **T-E3-05** `POST /api/checkout`: validaciones, creación del pedido y reserva (CU-13, CU-14).
 - [ ] **T-E3-06** Integración con MercadoPago: creación del pago y redirección (CU-14).
 - [ ] **T-E3-07** Webhook idempotente con verificación del pago y transiciones de estado (CU-15).
 - [ ] **T-E3-08** Página de seguimiento por token y reintento de pago (CU-14).
