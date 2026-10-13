@@ -125,5 +125,6 @@ class JdbcOrderStoreContractTest extends OrderStoreContractTest<JdbcOrderStoreCo
         public boolean transition(OrderId order, OrderStatus from, OrderStatus to, Instant at) {
             return Boolean.TRUE.equals(run(() -> adapter.transition(order, from, to, at)));
         }
+
     }
 }

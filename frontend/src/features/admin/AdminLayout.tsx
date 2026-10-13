@@ -88,6 +88,7 @@ export function AdminLayout() {
         <div className="wrap admin-header-inner">
           <p className="admin-brand">{es.admin.title}</p>
           <nav aria-label={es.admin.nav} className="admin-nav">
+            <NavLink to="/admin/pedidos">{es.admin.orders}</NavLink>
             <NavLink to="/admin/productos">{es.admin.products}</NavLink>
             <NavLink to="/admin/categorias">{es.admin.categories}</NavLink>
             <NavLink to="/admin/cupones">{es.admin.coupons}</NavLink>

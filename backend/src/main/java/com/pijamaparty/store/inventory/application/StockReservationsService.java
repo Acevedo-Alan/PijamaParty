@@ -25,14 +25,19 @@ class StockReservationsService implements StockReservations {
     private final ReserveStock reserveStock;
     private final OrderReservations orderReservations;
     private final SettleReservations settleReservations;
+    private final OrderDeductions orderDeductions;
+    private final RestockDeductions restockDeductions;
     private final IdGenerator ids;
     private final Clock clock;
 
     StockReservationsService(ReserveStock reserveStock, OrderReservations orderReservations,
-                             SettleReservations settleReservations, IdGenerator ids, Clock clock) {
+                             SettleReservations settleReservations, OrderDeductions orderDeductions,
+                             RestockDeductions restockDeductions, IdGenerator ids, Clock clock) {
         this.reserveStock = reserveStock;
         this.orderReservations = orderReservations;
         this.settleReservations = settleReservations;
+        this.orderDeductions = orderDeductions;
+        this.restockDeductions = restockDeductions;
         this.ids = ids;
         this.clock = clock;
     }
@@ -73,6 +78,20 @@ class StockReservationsService implements StockReservations {
     @Transactional(propagation = Propagation.MANDATORY)
     public void release(UUID orderId) {
         settle(orderId, StockMovement::release);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void restock(UUID orderId) {
+        List<StockMovement> deductions = orderDeductions.notRestocked(OrderRef.of(orderId));
+        if (deductions.isEmpty()) {
+            return;
+        }
+        Instant now = clock.instant();
+        restockDeductions.restock(deductions.stream()
+            .sorted(Comparator.comparing((StockMovement deduction) -> deduction.variantId().value()))
+            .map(deduction -> deduction.restock(MovementId.of(ids.newId()), now))
+            .toList());
     }
 
     private void settle(UUID orderId, Settlement settlement) {

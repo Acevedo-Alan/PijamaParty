@@ -22,14 +22,17 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Contract of {@link LoadStockLevels}, {@link SaveStockLevels}, {@link StockHistory}, {@link AvailableStock},
- * {@link ReserveStock}, {@link OrderReservations} and {@link SettleReservations} over the same storage.
+ * {@link ReserveStock}, {@link OrderReservations}, {@link SettleReservations}, {@link OrderDeductions} and
+ * {@link RestockDeductions} over the same storage.
  */
 public abstract class StockStoreContractTest<T extends LoadStockLevels & SaveStockLevels & StockHistory & AvailableStock
-    & ReserveStock & OrderReservations & SettleReservations> extends ContractTest<T> {
+    & ReserveStock & OrderReservations & SettleReservations & OrderDeductions & RestockDeductions>
+    extends ContractTest<T> {
 
     private static final Instant OPENED = Instant.parse("2026-10-10T12:00:00Z");
     private static final Instant RESERVED = OPENED.plusSeconds(600);
     private static final Instant SETTLED = OPENED.plusSeconds(1200);
+    private static final Instant RESTOCKED = OPENED.plusSeconds(1800);
     private static final UserId ADMIN = UserId.of(UUID.randomUUID());
 
     /** Creates the stock level of a new variant, with nothing on hand, as opening it does (UC-06). */
@@ -268,6 +271,41 @@ public abstract class StockStoreContractTest<T extends LoadStockLevels & SaveSto
         assertThat(subject.availableOf(List.of(variant))).isEqualTo(Map.of(variant, 1));
         assertThat(subject.outstanding(kept)).containsExactly(keptReservation);
         assertThat(subject.outstanding(released)).isEmpty();
+    }
+
+    @Test
+    void givenADeductedOrder_whenRestocked_thenItsUnitsAreBackOnHandOnce() {
+        VariantId variant = VariantId.of(UUID.randomUUID());
+        stocked(variant, 3);
+        OrderRef order = OrderRef.of(UUID.randomUUID());
+        StockMovement deduction = reserve(order, variant, 2).deduction(MovementId.of(UUID.randomUUID()), SETTLED);
+        subject.settle(List.of(deduction));
+        persistAndForget();
+        assertThat(subject.notRestocked(order)).containsExactly(deduction);
+        StockMovement restock = deduction.restock(MovementId.of(UUID.randomUUID()), RESTOCKED);
+
+        subject.restock(List.of(restock));
+        persistAndForget();
+        subject.restock(List.of(deduction.restock(MovementId.of(UUID.randomUUID()), RESTOCKED)));
+        persistAndForget();
+
+        assertThat(subject.onHand(variant)).hasValue(3);
+        assertThat(subject.availableOf(List.of(variant))).isEqualTo(Map.of(variant, 3));
+        assertThat(subject.lockByVariantId(variant)).hasValueSatisfying(level ->
+            assertThat(level.updatedAt()).isEqualTo(RESTOCKED));
+        assertThat(subject.movements(variant, 0, 10)).hasSize(4).startsWith(restock);
+        assertThat(subject.notRestocked(order)).isEmpty();
+    }
+
+    @Test
+    void givenAReleasedOrder_whenItsDeductionsAreAskedFor_thenThereAreNone() {
+        VariantId variant = VariantId.of(UUID.randomUUID());
+        stocked(variant, 3);
+        OrderRef order = OrderRef.of(UUID.randomUUID());
+        subject.settle(List.of(reserve(order, variant, 2).release(MovementId.of(UUID.randomUUID()), SETTLED)));
+        persistAndForget();
+
+        assertThat(subject.notRestocked(order)).isEmpty();
     }
 
     @Test

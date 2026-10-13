@@ -6,8 +6,8 @@ import java.util.UUID;
 
 /**
  * The stock an order holds while it awaits payment (UC-16): reserved at checkout, deducted for good by an approved
- * payment, released when the order expires. Every method joins the caller's transaction, which must exist, and is
- * idempotent per order (RNF-20.4).
+ * payment, released when the order expires, and put back if the administrator says so when cancelling a paid order
+ * (UC-18). Every method joins the caller's transaction, which must exist, and is idempotent per order (RNF-20.4).
  */
 public interface StockReservations {
 
@@ -25,6 +25,9 @@ public interface StockReservations {
 
     /** Every reservation of the order not yet deducted or released gives its units back. */
     void release(UUID orderId);
+
+    /** Every deduction of the order not yet put back returns its units on hand: a cancelled paid order (UC-18). */
+    void restock(UUID orderId);
 
     /** {@code quantity} units of a variant, from 1 to 1,000,000. */
     record StockRequest(UUID variantId, int quantity) {

@@ -3,6 +3,7 @@ package com.pijamaparty.store.notifications.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.notifications.application.InMemoryEmailOutbox.Stored;
+import com.pijamaparty.store.notifications.domain.EmailStatus;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.notifications.domain.OutboxEmail;
 import com.pijamaparty.store.platform.testing.ContractTest;
@@ -13,12 +14,12 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Contract of {@link EnqueueEmails}, {@link LockDueEmails} and {@link RecordEmailOutcomes} (RNF-20.7, RNF-23): each
- * type of email once per reference; the oldest due first; an attempt moves the email's next due instant; an outcome
- * only changes a pending email.
+ * Contract of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes} and {@link EmailStatuses}
+ * (RNF-20.7, RNF-23, UC-18): each type of email once per reference; the oldest due first; an attempt moves the email's
+ * next due instant; an outcome only changes a pending email, and shows in its status.
  */
-public abstract class EmailOutboxContractTest<T extends EnqueueEmails & LockDueEmails & RecordEmailOutcomes>
-    extends ContractTest<T> {
+public abstract class EmailOutboxContractTest<T extends EnqueueEmails & LockDueEmails & RecordEmailOutcomes
+    & EmailStatuses> extends ContractTest<T> {
 
     protected static final Instant NOW = Instant.parse("2026-10-13T15:00:30.123456Z");
 
@@ -137,6 +138,20 @@ public abstract class EmailOutboxContractTest<T extends EnqueueEmails & LockDueE
 
         assertThat(stored(EmailType.ORDER_PAID_ADMIN, order)).map(Stored::status).contains("FAILED");
         assertThat(subject.lockNextDue(NOW.plus(Duration.ofDays(1)))).isEmpty();
+    }
+
+    @Test
+    void givenEmailsOfAnOrder_whenTheirStatusIsAskedFor_thenEachTypeAnswersItsOwn() {
+        subject.enqueue(EmailType.ORDER_PAID_CUSTOMER, order, NOW);
+        subject.enqueue(EmailType.ORDER_PAID_ADMIN, order, NOW);
+        OutboxEmail first = subject.lockNextDue(NOW).orElseThrow();
+        subject.failed(first.id(), NOW.plusSeconds(1));
+        persistAndForget();
+
+        assertThat(subject.statusOf(first.type(), order)).contains(EmailStatus.FAILED);
+        assertThat(subject.statusOf(first.type() == EmailType.ORDER_PAID_CUSTOMER ? EmailType.ORDER_PAID_ADMIN
+            : EmailType.ORDER_PAID_CUSTOMER, order)).contains(EmailStatus.PENDING);
+        assertThat(subject.statusOf(EmailType.ORDER_PAID_CUSTOMER, UUID.randomUUID())).isEmpty();
     }
 
     @Test

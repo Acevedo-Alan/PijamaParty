@@ -28,6 +28,8 @@ export const routes: RouteObject[] = [
     lazy: async () => ({ Component: (await admin()).AdminLayout }),
     children: [
       { index: true, element: <Navigate to="/admin/productos" replace /> },
+      { path: 'pedidos', lazy: async () => ({ Component: (await admin()).OrdersPage }) },
+      { path: 'pedidos/:orderId', lazy: async () => ({ Component: (await admin()).OrderDetailPage }) },
       { path: 'productos', lazy: async () => ({ Component: (await admin()).ProductsPage }) },
       { path: 'productos/nuevo', lazy: async () => ({ Component: (await admin()).NewProductPage }) },
       { path: 'productos/:productId', lazy: async () => ({ Component: (await admin()).ProductEditPage }) },

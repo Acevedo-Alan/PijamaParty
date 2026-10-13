@@ -32,7 +32,8 @@ public interface ConfirmOrderPayment {
 
         /**
          * The order expired or was cancelled before the approval arrived: it stays so, and its stock is not touched
-         * (decided in T-E3-07). The payment has to be refunded from the provider's panel.
+         * (decided in T-E3-07). The payment has to be refunded from the provider's panel: the order is marked paid
+         * after closing, so the back office alerts it (T-E3-10).
          */
         record PaidAfterClosing(long number, OrderStatus status) implements Result {
 

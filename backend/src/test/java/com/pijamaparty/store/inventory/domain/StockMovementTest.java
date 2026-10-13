@@ -81,6 +81,22 @@ class StockMovementTest {
     }
 
     @Test
+    void givenADeduction_whenRestocked_thenItsUnitsComeBackAndNothingElseIsRestocked() {
+        OrderRef order = OrderRef.of(UUID.randomUUID());
+        VariantId variant = VariantId.of(UUID.randomUUID());
+        StockMovement reservation = StockMovement.reservation(MovementId.of(UUID.randomUUID()), variant, order, 2, NOW);
+        StockMovement deduction = reservation.deduction(MovementId.of(UUID.randomUUID()), NOW);
+        MovementId id = MovementId.of(UUID.randomUUID());
+        Instant later = NOW.plusSeconds(60);
+
+        assertThat(deduction.restock(id, later)).isEqualTo(new StockMovement(id, variant, MovementType.RESTOCK, 2,
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(order), later));
+        assertThatThrownBy(() -> reservation.restock(id, later)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> orderMovement(MovementType.RESTOCK, -2, Optional.of(order)))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void givenOrderMovementsWithoutTheirOrderOrSign_whenBuilt_thenTheyAreRefused() {
         Optional<OrderRef> order = Optional.of(OrderRef.of(UUID.randomUUID()));
 

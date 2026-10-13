@@ -3,8 +3,10 @@ package com.pijamaparty.store.inventory.adapter.out.persistence;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.inventory.application.AvailableStock;
 import com.pijamaparty.store.inventory.application.LoadStockLevels;
+import com.pijamaparty.store.inventory.application.OrderDeductions;
 import com.pijamaparty.store.inventory.application.OrderReservations;
 import com.pijamaparty.store.inventory.application.ReserveStock;
+import com.pijamaparty.store.inventory.application.RestockDeductions;
 import com.pijamaparty.store.inventory.application.SaveStockLevels;
 import com.pijamaparty.store.inventory.application.SettleReservations;
 import com.pijamaparty.store.inventory.application.StockHistory;
@@ -60,7 +62,7 @@ class JdbcStockStoreContractTest extends StockStoreContractTest<JdbcStockStoreCo
 
     record InTransaction(JdbcStockLevelStore adapter, TransactionTemplate transactions)
         implements LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock, ReserveStock, OrderReservations,
-        SettleReservations {
+        SettleReservations, OrderDeductions, RestockDeductions {
 
         @Override
         public Optional<StockLevel> lockByVariantId(VariantId variantId) {
@@ -110,6 +112,16 @@ class JdbcStockStoreContractTest extends StockStoreContractTest<JdbcStockStoreCo
         @Override
         public void settle(List<StockMovement> settlements) {
             transactions.executeWithoutResult(status -> adapter.settle(settlements));
+        }
+
+        @Override
+        public List<StockMovement> notRestocked(OrderRef order) {
+            return transactions.execute(status -> adapter.notRestocked(order));
+        }
+
+        @Override
+        public void restock(List<StockMovement> restocks) {
+            transactions.executeWithoutResult(status -> adapter.restock(restocks));
         }
     }
 }

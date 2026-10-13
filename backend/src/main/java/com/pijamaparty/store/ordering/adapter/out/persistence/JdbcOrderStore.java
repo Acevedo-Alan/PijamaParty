@@ -1,22 +1,34 @@
 package com.pijamaparty.store.ordering.adapter.out.persistence;
 
+import com.pijamaparty.store.ordering.api.AdminOrderDetails.AdminOrder;
+import com.pijamaparty.store.ordering.api.AdminOrderDetails.Buyer;
+import com.pijamaparty.store.ordering.api.AdminOrderDetails.Status;
 import com.pijamaparty.store.ordering.api.PaidOrders.Address;
 import com.pijamaparty.store.ordering.api.PaidOrders.Line;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
+import com.pijamaparty.store.ordering.application.AdminOrderViews;
 import com.pijamaparty.store.ordering.application.ConfirmableOrders;
+import com.pijamaparty.store.ordering.application.LatePayments;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
+import com.pijamaparty.store.ordering.application.OrderPages;
+import com.pijamaparty.store.ordering.application.OrderStatuses;
+import com.pijamaparty.store.ordering.application.OrderSummary;
 import com.pijamaparty.store.ordering.application.OrderTransitions;
 import com.pijamaparty.store.ordering.application.OrdersToPay;
 import com.pijamaparty.store.ordering.application.OverdueOrders;
 import com.pijamaparty.store.ordering.application.PaidOrderDetails;
 import com.pijamaparty.store.ordering.application.SaveOrders;
 import com.pijamaparty.store.ordering.application.SaveTrackingLinks;
+import com.pijamaparty.store.ordering.application.ShipmentTrackingNumbers;
+import com.pijamaparty.store.ordering.application.StatusChanges;
 import com.pijamaparty.store.ordering.application.TrackedOrders;
 import com.pijamaparty.store.ordering.domain.OrderAmounts;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderLine;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.PaymentProvider;
+import com.pijamaparty.store.ordering.domain.ShipmentTrackingNumber;
+import com.pijamaparty.store.ordering.domain.StatusChange;
 import com.pijamaparty.store.platform.application.IdGenerator;
 import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
 import com.pijamaparty.store.platform.domain.Money;
@@ -44,7 +56,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 class JdbcOrderStore
     implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders,
-    TrackedOrders, PaidOrderDetails, SaveTrackingLinks {
+    TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews, StatusChanges,
+    ShipmentTrackingNumbers, LatePayments {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -127,6 +140,54 @@ class JdbcOrderStore
     private static final String INSERT_TRACKING_TOKEN = """
         INSERT INTO order_tracking_token (token_hash, order_id, created_at)
         SELECT :hash, id, :at FROM orders WHERE id = :id
+        """;
+
+    // UC-18 (T-E3-10): the administrator locks the order it changes (orders_staff_select, orders_staff_update).
+    private static final String LOCK_STATUS = """
+        SELECT status FROM orders WHERE id = :id FOR UPDATE
+        """;
+
+    // RNF-20.5: conditional, like TRANSITION; SHIPPED also saves the tracking number, DELIVERED the delivery instant.
+    private static final String CHANGE = """
+        UPDATE orders
+        SET status = :to, updated_at = :at,
+            shipment_tracking_number = COALESCE(:trackingNumber, shipment_tracking_number),
+            delivered_at = CASE WHEN :delivered THEN :at ELSE delivered_at END
+        WHERE id = :id AND status = :from
+        """;
+
+    private static final String CORRECT_TRACKING_NUMBER = """
+        UPDATE orders SET shipment_tracking_number = :trackingNumber, updated_at = :at
+        WHERE id = :id AND status = 'SHIPPED'
+        """;
+
+    // UC-15: set once, and only on a closed order (orders_paid_after_closing_ck).
+    private static final String PAID_AFTER_CLOSING = """
+        UPDATE orders SET paid_after_closing_at = :at, updated_at = :at
+        WHERE id = :id AND paid_after_closing_at IS NULL AND status IN ('EXPIRED', 'CANCELLED')
+        """;
+
+    // UC-18: newest first, over orders_created_idx (V20); the number breaks ties between orders of the same instant.
+    private static final String PAGE_ALL = """
+        SELECT id, number, created_at, status, customer_name, city, province, total_cents FROM orders
+        ORDER BY created_at DESC, number DESC
+        LIMIT :limit OFFSET :offset
+        """;
+
+    // UC-18: by status, over orders_status_created_idx (V14).
+    private static final String PAGE_BY_STATUS = """
+        SELECT id, number, created_at, status, customer_name, city, province, total_cents FROM orders
+        WHERE status = :status
+        ORDER BY created_at DESC, number DESC
+        LIMIT :limit OFFSET :offset
+        """;
+
+    private static final String SELECT_ADMIN_VIEW = """
+        SELECT id, number, status, created_at, updated_at, delivered_at, customer_name, customer_email,
+               customer_phone, national_id, street, street_number, floor, apartment, city, province, postal_code,
+               subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code, payment_provider,
+               shipment_tracking_number, paid_after_closing_at
+        FROM orders WHERE id = :id
         """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -272,6 +333,79 @@ class JdbcOrderStore
         return jdbc.update(INSERT_TRACKING_TOKEN, new MapSqlParameterSource("id", order.value())
             .addValue("hash", tokenHash)
             .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
+    }
+
+    @Override
+    public Optional<OrderStatus> lockStatus(OrderId order) {
+        return jdbc.queryForList(LOCK_STATUS, new MapSqlParameterSource("id", order.value()), String.class).stream()
+            .findFirst().map(OrderStatus::valueOf);
+    }
+
+    @Override
+    public boolean change(OrderId order, StatusChange change, Instant at) {
+        if (!change.from().canBecome(change.to())) {
+            throw new IllegalArgumentException("an order cannot go from " + change.from() + " to " + change.to());
+        }
+        return jdbc.update(CHANGE, new MapSqlParameterSource("id", order.value())
+            .addValue("from", change.from().name())
+            .addValue("to", change.to().name())
+            .addValue("trackingNumber", change.trackingNumber().map(ShipmentTrackingNumber::value).orElse(null),
+                Types.VARCHAR)
+            .addValue("delivered", change.to() == OrderStatus.DELIVERED)
+            .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
+    }
+
+    @Override
+    public boolean correct(OrderId order, ShipmentTrackingNumber number, Instant at) {
+        return jdbc.update(CORRECT_TRACKING_NUMBER, new MapSqlParameterSource("id", order.value())
+            .addValue("trackingNumber", number.value())
+            .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
+    }
+
+    @Override
+    public void paidAfterClosing(OrderId order, Instant at) {
+        jdbc.update(PAID_AFTER_CLOSING, new MapSqlParameterSource("id", order.value())
+            .addValue("at", at.atOffset(ZoneOffset.UTC)));
+    }
+
+    @Override
+    public List<OrderSummary> page(Optional<OrderStatus> status, int offset, int limit) {
+        var params = new MapSqlParameterSource("offset", offset).addValue("limit", limit);
+        status.ifPresent(wanted -> params.addValue("status", wanted.name()));
+        return jdbc.query(status.isPresent() ? PAGE_BY_STATUS : PAGE_ALL, params, (row, n) -> new OrderSummary(
+            OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
+            row.getObject("created_at", OffsetDateTime.class).toInstant(), OrderStatus.valueOf(row.getString("status")),
+            row.getString("customer_name"), row.getString("city"), Province.valueOf(row.getString("province")),
+            Money.of(row.getLong("total_cents"))));
+    }
+
+    /** Its own short transaction when the caller has none, so the order and its lines are read together. */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<AdminOrder> adminViewOf(OrderId order) {
+        return jdbc.query(SELECT_ADMIN_VIEW, new MapSqlParameterSource("id", order.value()), (row, n) -> {
+                OrderId id = OrderId.of(row.getObject("id", UUID.class));
+                List<Line> lines = linesOf(id).stream()
+                    .map(line -> new Line(line.productName(), line.size(), line.color(), line.quantity(),
+                        line.unitPrice(), line.amount()))
+                    .toList();
+                return new AdminOrder(id.value(), row.getLong("number"), Status.valueOf(row.getString("status")),
+                    List.of(), row.getObject("created_at", OffsetDateTime.class).toInstant(),
+                    row.getObject("updated_at", OffsetDateTime.class).toInstant(),
+                    Optional.ofNullable(row.getObject("delivered_at", OffsetDateTime.class))
+                        .map(OffsetDateTime::toInstant),
+                    new Buyer(row.getString("customer_name"), row.getString("customer_email"),
+                        row.getString("customer_phone"), row.getString("national_id")),
+                    new Address(row.getString("street"), row.getString("street_number"),
+                        Optional.ofNullable(row.getString("floor")), Optional.ofNullable(row.getString("apartment")),
+                        row.getString("city"), row.getString("province"), row.getString("postal_code")),
+                    lines, Money.of(row.getLong("subtotal_cents")), Money.of(row.getLong("discount_cents")),
+                    Optional.ofNullable(row.getString("coupon_code")), Money.of(row.getLong("shipping_cents")),
+                    Money.of(row.getLong("total_cents")), row.getString("payment_provider"),
+                    Optional.ofNullable(row.getString("shipment_tracking_number")),
+                    row.getObject("paid_after_closing_at", OffsetDateTime.class) != null);
+            })
+            .stream().findFirst();
     }
 
     private SqlParameterSource item(OrderId order, int position, OrderLine line) {

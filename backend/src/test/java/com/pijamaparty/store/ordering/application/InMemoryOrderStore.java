@@ -1,15 +1,21 @@
 package com.pijamaparty.store.ordering.application;
 
+import com.pijamaparty.store.ordering.api.AdminOrderDetails.AdminOrder;
+import com.pijamaparty.store.ordering.api.AdminOrderDetails.Buyer;
+import com.pijamaparty.store.ordering.api.AdminOrderDetails.Status;
 import com.pijamaparty.store.ordering.api.PaidOrders.Address;
 import com.pijamaparty.store.ordering.api.PaidOrders.Line;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
+import com.pijamaparty.store.ordering.domain.ShipmentTrackingNumber;
+import com.pijamaparty.store.ordering.domain.StatusChange;
 import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -17,11 +23,14 @@ import java.util.UUID;
 
 /**
  * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders}, {@link OrderNumbers},
- * {@link OrdersToPay}, {@link ConfirmableOrders}, {@link TrackedOrders}, {@link PaidOrderDetails} and
- * {@link SaveTrackingLinks} over the same orders. Locks are not modeled.
+ * {@link OrdersToPay}, {@link ConfirmableOrders}, {@link TrackedOrders}, {@link PaidOrderDetails},
+ * {@link SaveTrackingLinks}, {@link OrderStatuses}, {@link OrderPages}, {@link AdminOrderViews}, {@link StatusChanges},
+ * {@link ShipmentTrackingNumbers} and
+ * {@link LatePayments} over the same orders. Locks are not modeled.
  */
 public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay,
-    ConfirmableOrders, TrackedOrders, PaidOrderDetails, SaveTrackingLinks {
+    ConfirmableOrders, TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews,
+    StatusChanges, ShipmentTrackingNumbers, LatePayments {
 
     /** Oldest expiry first; the id breaks ties as PostgreSQL orders uuids (as the canonical text does). */
     private static final Comparator<Map.Entry<OrderId, Row>> OLDEST_EXPIRY_FIRST =
@@ -34,6 +43,9 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     private final Set<String> trackingTokenHashes = new HashSet<>();
     private final Map<OrderId, String> shipmentTrackingNumbers = new HashMap<>();
     private final Map<String, OrderId> trackingLinks = new HashMap<>();
+    private final Map<OrderId, Instant> updatedAt = new HashMap<>();
+    private final Map<OrderId, Instant> deliveredAt = new HashMap<>();
+    private final Set<OrderId> paidAfterClosing = new HashSet<>();
     private long lastNumber = 1000;
 
     /** Test arrangement: an order in any status, without its details nor a coupon; answers its number. */
@@ -71,6 +83,21 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
         return Optional.ofNullable(trackingLinks.get(tokenHash));
     }
 
+    /** Test inspection: empty when the order has no shipment tracking number. */
+    public synchronized Optional<String> shipmentTrackingNumberOf(OrderId order) {
+        return Optional.ofNullable(shipmentTrackingNumbers.get(order));
+    }
+
+    /** Test inspection: empty when the order was not delivered. */
+    public synchronized Optional<Instant> deliveredAtOf(OrderId order) {
+        return Optional.ofNullable(deliveredAt.get(order));
+    }
+
+    /** Test inspection: whether the order was paid after it expired or was cancelled. */
+    public synchronized boolean isPaidAfterClosing(OrderId order) {
+        return paidAfterClosing.contains(order);
+    }
+
     /** Test inspection: how many orders the checkout placed. */
     public synchronized int placedCount() {
         return placed.size();
@@ -95,7 +122,80 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
             return false;
         }
         orders.put(order, row.withStatus(to));
+        updatedAt.put(order, at);
         return true;
+    }
+
+    @Override
+    public synchronized boolean change(OrderId order, StatusChange change, Instant at) {
+        if (!transition(order, change.from(), change.to(), at)) {
+            return false;
+        }
+        change.trackingNumber().ifPresent(number -> shipmentTrackingNumbers.put(order, number.value()));
+        if (change.to() == OrderStatus.DELIVERED) {
+            deliveredAt.put(order, at);
+        }
+        return true;
+    }
+
+    @Override
+    public synchronized boolean correct(OrderId order, ShipmentTrackingNumber number, Instant at) {
+        Row row = orders.get(order);
+        if (row == null || row.status() != OrderStatus.SHIPPED) {
+            return false;
+        }
+        shipmentTrackingNumbers.put(order, number.value());
+        updatedAt.put(order, at);
+        return true;
+    }
+
+    /** As the database: only a closed order is marked, once. */
+    @Override
+    public synchronized void paidAfterClosing(OrderId order, Instant at) {
+        Row row = orders.get(order);
+        if (row != null && (row.status() == OrderStatus.EXPIRED || row.status() == OrderStatus.CANCELLED)
+            && paidAfterClosing.add(order)) {
+            updatedAt.put(order, at);
+        }
+    }
+
+    @Override
+    public synchronized Optional<OrderStatus> lockStatus(OrderId order) {
+        return statusOf(order);
+    }
+
+    /** Only the orders the checkout placed carry what the list shows. */
+    @Override
+    public synchronized List<OrderSummary> page(Optional<OrderStatus> status, int offset, int limit) {
+        return placed.values().stream()
+            .filter(order -> status.isEmpty() || orders.get(order.id()).status() == status.get())
+            .sorted(Comparator.comparing(NewOrder::createdAt).thenComparing(NewOrder::number).reversed())
+            .skip(offset)
+            .limit(limit)
+            .map(order -> new OrderSummary(order.id(), order.number(), order.createdAt(),
+                orders.get(order.id()).status(), order.buyer().name(), order.address().city(), order.province(),
+                order.amounts().total()))
+            .toList();
+    }
+
+    /** Only the orders the checkout placed carry what the detail shows. */
+    @Override
+    public synchronized Optional<AdminOrder> adminViewOf(OrderId order) {
+        return Optional.ofNullable(placed.get(order)).map(placedOrder -> new AdminOrder(order.value(),
+            placedOrder.number(), Status.valueOf(orders.get(order).status().name()), List.of(),
+            placedOrder.createdAt(), updatedAt.getOrDefault(order, placedOrder.createdAt()),
+            Optional.ofNullable(deliveredAt.get(order)),
+            new Buyer(placedOrder.buyer().name(), placedOrder.buyer().email(), placedOrder.buyer().phone(),
+                placedOrder.buyer().nationalId()),
+            new Address(placedOrder.address().street(), placedOrder.address().number(),
+                placedOrder.address().floor(), placedOrder.address().apartment(), placedOrder.address().city(),
+                placedOrder.province().name(), placedOrder.address().postalCode()),
+            placedOrder.lines().stream().map(line -> new Line(line.productName(), line.size(), line.color(),
+                line.quantity(), line.unitPrice(), line.amount())).toList(),
+            placedOrder.amounts().subtotal(), placedOrder.amounts().discount(),
+            placedOrder.coupon().map(AppliedCoupon::code), placedOrder.amounts().shipping(),
+            placedOrder.amounts().total(), placedOrder.paymentProvider().name(),
+            Optional.ofNullable(shipmentTrackingNumbers.get(order)), paidAfterClosing.contains(order)));
     }
 
     @Override

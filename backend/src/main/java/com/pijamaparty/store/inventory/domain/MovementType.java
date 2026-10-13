@@ -10,12 +10,19 @@ public enum MovementType {
     RESERVATION,
     /** An approved payment takes the reserved units for good: negative. */
     DEDUCTION,
-    /** An expired or rejected order gives its reserved units back: positive. */
-    RELEASE;
+    /** An expired or cancelled order gives its reserved units back: positive. */
+    RELEASE,
+    /** A cancelled paid order puts its deducted units back when the administrator says so (UC-18): positive. */
+    RESTOCK;
 
     /** Recorded by the administrator, so it has a user and an adjustment key. */
     public boolean isAdministrative() {
         return this == INITIAL_LOAD || this == ADJUSTMENT;
+    }
+
+    /** An order movement that gives units back, so it is positive. */
+    public boolean givesUnitsBack() {
+        return this == RELEASE || this == RESTOCK;
     }
 
     /** Recorded for an order, so it has one (UC-16). */

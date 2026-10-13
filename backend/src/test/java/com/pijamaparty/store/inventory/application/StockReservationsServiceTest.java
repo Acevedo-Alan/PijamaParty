@@ -32,7 +32,7 @@ class StockReservationsServiceTest {
     private static final VariantId HIGH = VariantId.of(new UUID(2, 2));
 
     private final InMemoryStockStore stock = new InMemoryStockStore();
-    private final StockReservationsService service = new StockReservationsService(stock, stock, stock,
+    private final StockReservationsService service = new StockReservationsService(stock, stock, stock, stock, stock,
         new InMemoryIdGenerator(), Clock.fixed(NOW, ZoneOffset.UTC));
     private final UUID order = UUID.randomUUID();
 
@@ -107,6 +107,38 @@ class StockReservationsServiceTest {
 
         assertThat(stock.onHand(LOW)).hasValue(3);
         assertThat(stock.availableOf(List.of(LOW))).isEqualTo(Map.of(LOW, 3));
+        assertThat(stock.movements(LOW, 0, 10)).extracting(StockMovement::type)
+            .containsExactly(MovementType.RELEASE, MovementType.RESERVATION, MovementType.INITIAL_LOAD);
+    }
+
+    @Test
+    void givenAPaidOrder_whenRestockedTwice_thenItsUnitsAreBackOnHandOnce() {
+        stocked(LOW, 3);
+        stocked(HIGH, 1);
+        service.reserve(order, List.of(new StockRequest(LOW.value(), 2), new StockRequest(HIGH.value(), 1)));
+        service.deduct(order);
+
+        service.restock(order);
+        service.restock(order);
+
+        assertThat(stock.onHand(LOW)).hasValue(3);
+        assertThat(stock.availableOf(List.of(LOW, HIGH))).isEqualTo(Map.of(LOW, 3, HIGH, 1));
+        assertThat(stock.movements(HIGH, 0, 1)).singleElement().satisfies(movement -> {
+            assertThat(movement.type()).isEqualTo(MovementType.RESTOCK);
+            assertThat(movement.quantity()).isEqualTo(1);
+            assertThat(movement.createdAt()).isEqualTo(NOW);
+        });
+    }
+
+    @Test
+    void givenAnOrderNeverDeducted_whenRestocked_thenNothingChanges() {
+        stocked(LOW, 3);
+        service.reserve(order, List.of(new StockRequest(LOW.value(), 2)));
+        service.release(order);
+
+        service.restock(order);
+
+        assertThat(stock.onHand(LOW)).hasValue(3);
         assertThat(stock.movements(LOW, 0, 10)).extracting(StockMovement::type)
             .containsExactly(MovementType.RELEASE, MovementType.RESERVATION, MovementType.INITIAL_LOAD);
     }

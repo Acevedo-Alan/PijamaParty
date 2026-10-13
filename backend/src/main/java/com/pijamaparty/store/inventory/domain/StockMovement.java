@@ -37,7 +37,7 @@ public record StockMovement(MovementId id, VariantId variantId, MovementType typ
             throw new IllegalArgumentException(type + (type.isOrderMovement() ? " requires" : " cannot have")
                 + " an order");
         }
-        if (type == MovementType.RELEASE ? quantity < 0 : type.isOrderMovement() && quantity > 0) {
+        if (type.givesUnitsBack() ? quantity < 0 : type.isOrderMovement() && quantity > 0) {
             throw new IllegalArgumentException(type + " has the wrong sign");
         }
     }
@@ -58,6 +58,14 @@ public record StockMovement(MovementId id, VariantId variantId, MovementType typ
     public StockMovement release(MovementId id, Instant at) {
         requireReservation();
         return orderMovement(id, variantId, MovementType.RELEASE, Math.negateExact(quantity), order.orElseThrow(), at);
+    }
+
+    /** Puts this deduction's units back on hand (UC-18). */
+    public StockMovement restock(MovementId id, Instant at) {
+        if (type != MovementType.DEDUCTION) {
+            throw new IllegalStateException("only a deduction is restocked");
+        }
+        return orderMovement(id, variantId, MovementType.RESTOCK, Math.negateExact(quantity), order.orElseThrow(), at);
     }
 
     /** The units this order movement holds, takes or gives back, as a positive number. */

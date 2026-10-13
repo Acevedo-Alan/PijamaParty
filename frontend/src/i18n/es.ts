@@ -197,6 +197,7 @@ export const es = {
   admin: {
     title: 'Backoffice',
     nav: 'Secciones del backoffice',
+    orders: 'Pedidos',
     products: 'Productos',
     categories: 'Categorías',
     coupons: 'Cupones',
@@ -336,6 +337,74 @@ export const es = {
       thresholdHint: 'Se compara con el subtotal con descuento. Vacío: no hay envío gratis.',
       saveThreshold: 'Guardar envío gratis',
       invalidThreshold: 'Un monto de $ 0,01 a $ 10.000.000.',
+    },
+    orderList: {
+      title: 'Pedidos',
+      filter: 'Estado',
+      all: 'Todos',
+      empty: 'No hay pedidos.',
+      emptyInStatus: 'No hay pedidos en este estado.',
+      /** The order number, e.g. "#1001". */
+      number: (number: number) => `#${String(number)}`,
+      /** Who and where, e.g. "Ana Pérez · Santa Fe, Santa Fe". */
+      buyer: (name: string, city: string, province: string) => `${name} · ${city}, ${province}`,
+    },
+    orderDetail: {
+      backToList: 'Volver a pedidos',
+      notFound: 'No encontramos este pedido.',
+      /** The order number, e.g. "Pedido #1001". */
+      title: (number: number) => `Pedido #${String(number)}`,
+      /** When it was placed, already formatted, e.g. "Hecho el 13/10/26, 15:00". */
+      placedAt: (dateTime: string) => `Hecho el ${dateTime}`,
+      deliveredAt: (dateTime: string) => `Entregado el ${dateTime}`,
+      alerts: {
+        PAID_AFTER_CLOSING:
+          'El pago se aprobó después de que el pedido venció o se canceló. Hacé el reembolso desde el panel de MercadoPago.',
+        /** The buyer's phone, to call about the email that did not arrive. */
+        BUYER_EMAIL_FAILED: (phone: string) =>
+          `No pudimos enviarle el correo de confirmación al comprador. Llamalo o escribile al ${phone}.`,
+      },
+      buyer: 'Comprador',
+      nationalId: (id: string) => `DNI ${id}`,
+      address: 'Dirección de envío',
+      /** Floor and apartment, e.g. "Piso 3, depto. B". */
+      floorAndApartment: (floor: string | null, apartment: string | null) =>
+        [floor === null ? null : `Piso ${floor}`, apartment === null ? null : `depto. ${apartment}`]
+          .filter((part) => part !== null)
+          .join(', '),
+      items: 'Productos',
+      /** A line's color, size, quantity and unit price, e.g. "Rosa · Talle M · 2 × $ 20.000". */
+      lineDetail: (color: string, size: string, quantity: number, unitPrice: string) =>
+        `${color} · Talle ${size} · ${String(quantity)} × ${unitPrice}`,
+      payment: (provider: string) => `Pago con ${provider === 'MERCADOPAGO' ? 'MercadoPago' : provider}`,
+      shipment: 'Número de seguimiento',
+      correctShipment: 'Corregir número',
+      correctedShipment: 'Número de seguimiento corregido.',
+      status: 'Estado',
+      changeTo: 'Pasar a',
+      /** The action that moves the order to each status. */
+      actions: {
+        PREPARING: 'Preparar',
+        SHIPPED: 'Marcar como enviado',
+        DELIVERED: 'Marcar como entregado',
+        CANCELLED: 'Cancelar pedido',
+      },
+      shipmentLabel: 'Número de seguimiento del correo',
+      ship: 'Confirmar envío',
+      restockQuestion: '¿Reponer el stock?',
+      restockYes: 'Sí, volver a poner los productos a la venta',
+      restockNo: 'No, el stock queda como está',
+      confirmCancel: 'Confirmar cancelación',
+      keep: 'Volver',
+      changed: (status: string) => `Pedido actualizado: ${status}.`,
+      stale: 'El pedido cambió mientras lo mirabas. Lo actualizamos: revisalo y probá de nuevo.',
+      problems: {
+        INVALID_TRANSITION: 'Este cambio de estado no está permitido.',
+        MISSING_TRACKING_NUMBER: 'Ingresá el número de seguimiento.',
+        INVALID_TRACKING_NUMBER: 'El número de seguimiento tiene que tener de 1 a 60 caracteres.',
+        RESTOCK_DECISION_REQUIRED: 'Elegí si se repone el stock.',
+        UNEXPECTED_FIELD: 'No pudimos guardar el cambio. Recargá la página y probá de nuevo.',
+      },
     },
     productList: {
       title: 'Productos',
@@ -503,6 +572,7 @@ export const es = {
         RESERVATION: 'Reserva',
         DEDUCTION: 'Venta',
         RELEASE: 'Liberación',
+        RESTOCK: 'Reposición por cancelación',
       },
       /** A signed quantity, e.g. "+3" or "−2". */
       signedQuantity: (quantity: number) => (quantity > 0 ? `+${String(quantity)}` : `−${String(-quantity)}`),

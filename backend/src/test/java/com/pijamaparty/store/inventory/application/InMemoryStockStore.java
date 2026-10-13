@@ -18,12 +18,12 @@ import java.util.OptionalInt;
 
 /**
  * Fake of {@link LoadStockLevels}, {@link SaveStockLevels}, {@link StockHistory}, {@link AvailableStock},
- * {@link ReserveStock}, {@link OrderReservations} and {@link SettleReservations} over the same levels and movements.
- * It stores rows, not aggregates, like the database: a loaded level that is not saved changes nothing. Locks are not
- * modeled.
+ * {@link ReserveStock}, {@link OrderReservations}, {@link SettleReservations}, {@link OrderDeductions} and
+ * {@link RestockDeductions} over the same levels and movements. It stores rows, not aggregates, like the database: a
+ * loaded level that is not saved changes nothing. Locks are not modeled.
  */
 public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock,
-    ReserveStock, OrderReservations, SettleReservations {
+    ReserveStock, OrderReservations, SettleReservations, OrderDeductions, RestockDeductions {
 
     /** Newest first; the id breaks ties as PostgreSQL orders uuids (by their bytes, as the canonical text does). */
     private static final Comparator<StockMovement> NEWEST_FIRST = Comparator.comparing(StockMovement::createdAt)
@@ -159,6 +159,41 @@ public class InMemoryStockStore implements LoadStockLevels, SaveStockLevels, Sto
             levels.put(settlement.variantId(), new Row(row.onHand() - taken, reserved, settlement.createdAt()));
             movements.add(settlement);
         }
+    }
+
+    @Override
+    public synchronized List<StockMovement> notRestocked(OrderRef order) {
+        return movements.stream()
+            .filter(movement -> movement.order().equals(Optional.of(order)))
+            .filter(movement -> movement.type() == MovementType.DEDUCTION)
+            .filter(deduction -> !has(order, deduction.variantId(), MovementType.RESTOCK))
+            .sorted(Comparator.comparing(movement -> movement.variantId().value().toString()))
+            .toList();
+    }
+
+    @Override
+    public synchronized void restock(List<StockMovement> restocks) {
+        for (StockMovement restock : restocks) {
+            if (restock.type() != MovementType.RESTOCK) {
+                throw new IllegalArgumentException("not a restock: " + restock.type());
+            }
+            OrderRef order = restock.order().orElseThrow();
+            if (has(order, restock.variantId(), MovementType.RESTOCK)) {
+                continue;
+            }
+            Row row = levels.get(restock.variantId());
+            if (row.onHand() + restock.quantity() > StockLevel.MAX_ON_HAND) {
+                throw new IllegalStateException("on hand stock out of range");
+            }
+            levels.put(restock.variantId(),
+                new Row(row.onHand() + restock.quantity(), row.reserved(), restock.createdAt()));
+            movements.add(restock);
+        }
+    }
+
+    private boolean has(OrderRef order, VariantId variantId, MovementType type) {
+        return movements.stream().anyMatch(movement -> movement.order().equals(Optional.of(order))
+            && movement.variantId().equals(variantId) && movement.type() == type);
     }
 
     private boolean isSettled(OrderRef order, VariantId variantId) {

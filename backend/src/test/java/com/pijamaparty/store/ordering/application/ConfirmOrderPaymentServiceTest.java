@@ -25,7 +25,7 @@ class ConfirmOrderPaymentServiceTest {
     private final InMemoryOrderCouponRedemptions coupons = new InMemoryOrderCouponRedemptions();
     private final InMemoryOrderEvents events = new InMemoryOrderEvents();
     private final ConfirmOrderPaymentService service = new ConfirmOrderPaymentService(orders, orders, stock, coupons,
-        events, Clock.fixed(NOW, ZoneOffset.UTC));
+        events, orders, Clock.fixed(NOW, ZoneOffset.UTC));
     private final OrderId order = OrderId.of(UUID.randomUUID());
     private final UUID variant = UUID.randomUUID();
     private final UUID coupon = UUID.randomUUID();
@@ -98,15 +98,27 @@ class ConfirmOrderPaymentServiceTest {
         assertThat(stock.onHandOf(variant)).isEqualTo(3);
         assertThat(stock.availableOf(variant)).isEqualTo(3);
         assertThat(coupons.usesOf(coupon)).isZero();
+        // UC-18 (T-E3-10): the back office alerts that it must be refunded.
+        assertThat(orders.isPaidAfterClosing(order)).isTrue();
     }
 
     @Test
-    void givenACancelledOrder_whenItsPaymentIsApproved_thenItStaysCancelled() {
+    void givenACancelledOrder_whenItsPaymentIsApproved_thenItStaysCancelledAndIsMarkedPaidAfterClosing() {
         long number = orders.add(order, OrderStatus.CANCELLED, EXPIRES);
 
         assertThat(service.execute(new Command(order)))
             .isEqualTo(new Result.PaidAfterClosing(number, OrderStatus.CANCELLED));
         assertThat(events.published()).isEmpty();
+        assertThat(orders.isPaidAfterClosing(order)).isTrue();
+    }
+
+    @Test
+    void givenAPaidOrder_whenItsApprovalArrivesAgain_thenItIsNotMarkedPaidAfterClosing() {
+        orders.add(order, OrderStatus.PAID, EXPIRES);
+
+        service.execute(new Command(order));
+
+        assertThat(orders.isPaidAfterClosing(order)).isFalse();
     }
 
     @Test

@@ -1,8 +1,10 @@
 package com.pijamaparty.store.notifications.adapter.out.persistence;
 
+import com.pijamaparty.store.notifications.application.EmailStatuses;
 import com.pijamaparty.store.notifications.application.EnqueueEmails;
 import com.pijamaparty.store.notifications.application.LockDueEmails;
 import com.pijamaparty.store.notifications.application.RecordEmailOutcomes;
+import com.pijamaparty.store.notifications.domain.EmailStatus;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.notifications.domain.OutboxEmail;
 import com.pijamaparty.store.platform.application.IdGenerator;
@@ -22,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  * held while an email is sent (RNF-21).
  */
 @Repository
-class JdbcEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes {
+class JdbcEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses {
 
     // RNF-20.7: each type of email once per reference; a repeated event inserts nothing.
     private static final String INSERT = """
@@ -57,6 +59,11 @@ class JdbcEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcom
         WHERE id = :id AND status = 'PENDING'
         """;
 
+    // UC-18: the administrator reads the outbox for the back-office alert (email_outbox_admin_select).
+    private static final String SELECT_STATUS = """
+        SELECT status FROM email_outbox WHERE type = :type AND reference = :reference
+        """;
+
     private final NamedParameterJdbcTemplate jdbc;
     private final IdGenerator ids;
 
@@ -81,6 +88,13 @@ class JdbcEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcom
                 (row, n) -> new OutboxEmail(row.getObject("id", UUID.class), EmailType.valueOf(row.getString("type")),
                     row.getObject("reference", UUID.class), row.getInt("attempts")))
             .stream().findFirst();
+    }
+
+    @Override
+    public Optional<EmailStatus> statusOf(EmailType type, UUID reference) {
+        return jdbc.queryForList(SELECT_STATUS, new MapSqlParameterSource("type", type.name())
+                .addValue("reference", reference), String.class)
+            .stream().findFirst().map(EmailStatus::valueOf);
     }
 
     @Override

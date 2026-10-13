@@ -44,6 +44,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/orders/{id}/shipment-tracking-number": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Correct the tracking number of a shipped order
+         * @description Only while the order is SHIPPED. Requires the CSRF token.
+         */
+        put: operations["correctTrackingNumber"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/coupons/{id}": {
         parameters: {
             query?: never;
@@ -267,6 +287,26 @@ export interface paths {
          * @description quantity is signed, from -10,000 to 10,000 and not 0; note is optional, up to 200 characters. The first movement of a variant is its initial load. Retrying with the same Idempotency-Key, quantity and note changes nothing. Requires the CSRF token.
          */
         post: operations["adjust"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orders/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move an order from the status the administrator saw to another one
+         * @description SHIPPED needs shipmentTrackingNumber; cancelling a PAID or PREPARING order needs restock (put every line's stock back, or none). Requires the CSRF token.
+         */
+        post: operations["changeStatus"];
         delete?: never;
         options?: never;
         head?: never;
@@ -845,6 +885,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The orders, newest first, optionally only those in a status
+         * @description 50 per page, from page 0.
+         */
+        get: operations["list_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An order with its buyer, address, lines, amounts, next statuses and alerts */
+        get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/me": {
         parameters: {
             query?: never;
@@ -922,6 +999,12 @@ export interface components {
         FreeShippingRequest: {
             /** Format: int64 */
             thresholdCents?: number | null;
+        };
+        ShipmentTrackingNumberRequest: {
+            shipmentTrackingNumber: string;
+        };
+        ShipmentTrackingNumberResponse: {
+            shipmentTrackingNumber?: string;
         };
         AdminCouponRequest: {
             code: string;
@@ -1137,6 +1220,18 @@ export interface components {
             /** Format: int32 */
             onHand?: number;
         };
+        OrderStatusChangeRequest: {
+            /** @enum {string} */
+            from: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            /** @enum {string} */
+            to: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            shipmentTrackingNumber?: string | null;
+            restock?: boolean | null;
+        };
+        OrderStatusResponse: {
+            /** @enum {string} */
+            status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+        };
         MatrixRequest: {
             sizes: string[];
             colors: string[];
@@ -1309,7 +1404,7 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            type?: "INITIAL_LOAD" | "ADJUSTMENT" | "RESERVATION" | "DEDUCTION" | "RELEASE";
+            type?: "INITIAL_LOAD" | "ADJUSTMENT" | "RESERVATION" | "DEDUCTION" | "RELEASE" | "RESTOCK";
             /** Format: int32 */
             quantity?: number;
             note?: string;
@@ -1318,6 +1413,82 @@ export interface components {
             userName?: string;
             /** Format: date-time */
             createdAt?: string;
+        };
+        OrderPageResponse: {
+            items?: components["schemas"]["OrderSummaryResponse"][];
+            hasMore?: boolean;
+        };
+        OrderSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int64 */
+            number?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** @enum {string} */
+            status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            buyerName?: string;
+            city?: string;
+            /** @enum {string} */
+            province?: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            /** Format: int64 */
+            totalCents?: number;
+        };
+        AdminOrderAddressResponse: {
+            street?: string;
+            number?: string;
+            floor?: string | null;
+            apartment?: string | null;
+            city?: string;
+            province?: string;
+            postalCode?: string;
+        };
+        AdminOrderBuyerResponse: {
+            name?: string;
+            email?: string;
+            phone?: string;
+            nationalId?: string;
+        };
+        AdminOrderLineResponse: {
+            productName?: string;
+            size?: string;
+            color?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int64 */
+            unitPriceCents?: number;
+            /** Format: int64 */
+            amountCents?: number;
+        };
+        AdminOrderResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int64 */
+            number?: number;
+            /** @enum {string} */
+            status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            nextStatuses?: ("AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED")[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: date-time */
+            deliveredAt?: string | null;
+            buyer?: components["schemas"]["AdminOrderBuyerResponse"];
+            address?: components["schemas"]["AdminOrderAddressResponse"];
+            lines?: components["schemas"]["AdminOrderLineResponse"][];
+            /** Format: int64 */
+            subtotalCents?: number;
+            /** Format: int64 */
+            discountCents?: number;
+            couponCode?: string | null;
+            /** Format: int64 */
+            shippingCents?: number;
+            /** Format: int64 */
+            totalCents?: number;
+            paymentProvider?: string;
+            shipmentTrackingNumber?: string | null;
+            alerts?: ("PAID_AFTER_CLOSING" | "BUYER_EMAIL_FAILED")[];
         };
         ProductPageResponse: {
             items?: components["schemas"]["ProductSummaryResponse"][];
@@ -1422,6 +1593,68 @@ export interface operations {
                 };
             };
             /** @description Threshold out of range */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    correctTrackingNumber: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShipmentTrackingNumberRequest"];
+            };
+        };
+        responses: {
+            /** @description Corrected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentTrackingNumberResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such order (problem ORDER_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The order is not SHIPPED (problem ORDER_NOT_SHIPPED; currentStatus) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Blank or longer than 60 characters (problem INVALID_TRACKING_NUMBER) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2164,6 +2397,68 @@ export interface operations {
                 };
             };
             /** @description See problem: INVALID_QUANTITY, INVALID_NOTE or KEY_REUSED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    changeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderStatusChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatusResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such order (problem ORDER_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description See problem: ORDER_STATUS_CHANGED (the order is no longer in from; currentStatus), INVALID_TRANSITION */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description See problem: MISSING_TRACKING_NUMBER, INVALID_TRACKING_NUMBER, RESTOCK_DECISION_REQUIRED, UNEXPECTED_FIELD (field) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3754,6 +4049,87 @@ export interface operations {
             };
             /** @description Not the administrator */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_3: {
+        parameters: {
+            query?: {
+                status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of orders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderPageResponse"];
+                };
+            };
+            /** @description Unknown status or page out of range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminOrderResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such order (problem ORDER_NOT_FOUND) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

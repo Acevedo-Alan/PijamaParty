@@ -1,5 +1,6 @@
 package com.pijamaparty.store.notifications.application;
 
+import com.pijamaparty.store.notifications.domain.EmailStatus;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.notifications.domain.OutboxEmail;
 import java.time.Instant;
@@ -9,8 +10,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Fake of {@link EnqueueEmails}, {@link LockDueEmails} and {@link RecordEmailOutcomes} over the same outbox. */
-public class InMemoryEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes {
+/**
+ * Fake of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes} and {@link EmailStatuses} over
+ * the same outbox.
+ */
+public class InMemoryEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses {
 
     /** An email of the outbox as the table keeps it. */
     public record Stored(UUID id, EmailType type, UUID reference, String status, int attempts, Instant nextAttemptAt,
@@ -55,6 +59,11 @@ public class InMemoryEmailOutbox implements EnqueueEmails, LockDueEmails, Record
             .filter(stored -> stored.status().equals("PENDING") && !stored.nextAttemptAt().isAfter(now))
             .min(OLDEST_DUE_FIRST)
             .map(stored -> new OutboxEmail(stored.id(), stored.type(), stored.reference(), stored.attempts()));
+    }
+
+    @Override
+    public synchronized Optional<EmailStatus> statusOf(EmailType type, UUID reference) {
+        return find(type, reference).map(stored -> EmailStatus.valueOf(stored.status()));
     }
 
     @Override

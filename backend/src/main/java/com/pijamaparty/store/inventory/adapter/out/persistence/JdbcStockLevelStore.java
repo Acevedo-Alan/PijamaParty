@@ -3,8 +3,10 @@ package com.pijamaparty.store.inventory.adapter.out.persistence;
 import com.pijamaparty.store.inventory.application.AddStockLevels;
 import com.pijamaparty.store.inventory.application.AvailableStock;
 import com.pijamaparty.store.inventory.application.LoadStockLevels;
+import com.pijamaparty.store.inventory.application.OrderDeductions;
 import com.pijamaparty.store.inventory.application.OrderReservations;
 import com.pijamaparty.store.inventory.application.ReserveStock;
+import com.pijamaparty.store.inventory.application.RestockDeductions;
 import com.pijamaparty.store.inventory.application.SaveStockLevels;
 import com.pijamaparty.store.inventory.application.SettleReservations;
 import com.pijamaparty.store.inventory.application.StockHistory;
@@ -39,12 +41,12 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 /**
- * Stock levels and movements in tables {@code stock_level} and {@code stock_movement} (V4, V8, V17), and the available
- * stock in the view {@code v_variant_availability} (V9, V17), in the caller's transaction.
+ * Stock levels and movements in tables {@code stock_level} and {@code stock_movement} (V4, V8, V17, V20), and the
+ * available stock in the view {@code v_variant_availability} (V9, V17), in the caller's transaction.
  */
 @Repository
 class JdbcStockLevelStore implements AddStockLevels, LoadStockLevels, SaveStockLevels, StockHistory, AvailableStock,
-    ReserveStock, OrderReservations, SettleReservations {
+    ReserveStock, OrderReservations, SettleReservations, OrderDeductions, RestockDeductions {
 
     // Idempotent: a variant opened twice keeps its stock.
     private static final String INSERT_EMPTY = """
@@ -141,6 +143,22 @@ class JdbcStockLevelStore implements AddStockLevels, LoadStockLevels, SaveStockL
         UPDATE stock_level
         SET on_hand = on_hand - :taken, reserved = reserved - :units, updated_at = :updatedAt
         WHERE variant_id = :variantId
+        """;
+
+    // UC-18: the deductions of a cancelled order whose units are not back yet.
+    private static final String SELECT_NOT_RESTOCKED = MOVEMENT_COLUMNS + """
+        WHERE order_id = :orderId AND type = 'DEDUCTION'
+          AND NOT EXISTS (SELECT 1 FROM stock_movement s
+                          WHERE s.order_id = stock_movement.order_id AND s.variant_id = stock_movement.variant_id
+                            AND s.type = 'RESTOCK')
+        ORDER BY variant_id
+        """;
+
+    // RNF-20.4: a deduction is restocked once; the unique index makes a repeated one a no-op.
+    private static final String INSERT_RESTOCK = """
+        INSERT INTO stock_movement (id, variant_id, type, quantity, order_id, created_at)
+        VALUES (:id, :variantId, 'RESTOCK', :quantity, :orderId, :createdAt)
+        ON CONFLICT (order_id, variant_id, type) WHERE order_id IS NOT NULL DO NOTHING
         """;
 
     private static final RowMapper<StockMovement> MOVEMENT = JdbcStockLevelStore::movement;
@@ -263,6 +281,32 @@ class JdbcStockLevelStore implements AddStockLevels, LoadStockLevels, SaveStockL
                     .addValue("taken", settlement.type() == MovementType.DEDUCTION ? settlement.units() : 0)
                     .addValue("units", settlement.units())
                     .addValue("updatedAt", settlement.createdAt().atOffset(ZoneOffset.UTC)));
+            }
+        }
+    }
+
+    @Override
+    public List<StockMovement> notRestocked(OrderRef order) {
+        return jdbc.query(SELECT_NOT_RESTOCKED, new MapSqlParameterSource("orderId", order.value()), MOVEMENT);
+    }
+
+    @Override
+    public void restock(List<StockMovement> restocks) {
+        for (StockMovement restock : restocks) {
+            requireType(restock, MovementType.RESTOCK);
+            var variant = new MapSqlParameterSource("variantId", restock.variantId().value());
+            jdbc.queryForList(LOCK_FOR_SETTLEMENT, variant, UUID.class);
+            int inserted = jdbc.update(INSERT_RESTOCK, new MapSqlParameterSource("id", restock.id().value())
+                .addValue("variantId", restock.variantId().value())
+                .addValue("quantity", restock.quantity())
+                .addValue("orderId", restock.order().orElseThrow().value())
+                .addValue("createdAt", restock.createdAt().atOffset(ZoneOffset.UTC)));
+            if (inserted == 1 && jdbc.update(APPLY_MOVEMENT, variant
+                .addValue("quantity", restock.quantity())
+                .addValue("updatedAt", restock.createdAt().atOffset(ZoneOffset.UTC))
+                .addValue("maxOnHand", StockLevel.MAX_ON_HAND)) != 1) {
+                throw new IllegalStateException("the stock of variant " + restock.variantId() + " cannot take back "
+                    + restock.quantity() + " units");
             }
         }
     }

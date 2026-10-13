@@ -16,16 +16,18 @@ class ConfirmOrderPaymentService implements ConfirmOrderPayment {
     private final StockDeductions stockDeductions;
     private final OrderCouponRedemptions couponRedemptions;
     private final OrderEvents orderEvents;
+    private final LatePayments latePayments;
     private final Clock clock;
 
     ConfirmOrderPaymentService(ConfirmableOrders confirmableOrders, OrderTransitions orderTransitions,
                                StockDeductions stockDeductions, OrderCouponRedemptions couponRedemptions,
-                               OrderEvents orderEvents, Clock clock) {
+                               OrderEvents orderEvents, LatePayments latePayments, Clock clock) {
         this.confirmableOrders = confirmableOrders;
         this.orderTransitions = orderTransitions;
         this.stockDeductions = stockDeductions;
         this.couponRedemptions = couponRedemptions;
         this.orderEvents = orderEvents;
+        this.latePayments = latePayments;
         this.clock = clock;
     }
 
@@ -38,7 +40,11 @@ class ConfirmOrderPaymentService implements ConfirmOrderPayment {
         return switch (order.status()) {
             case AWAITING_PAYMENT -> pay(order);
             case PAID, PREPARING, SHIPPED, DELIVERED -> new Result.AlreadyPaid(order.number());
-            case EXPIRED, CANCELLED -> new Result.PaidAfterClosing(order.number(), order.status());
+            case EXPIRED, CANCELLED -> {
+                // UC-18 (T-E3-10): the back office alerts that this payment must be refunded.
+                latePayments.paidAfterClosing(order.id(), clock.instant());
+                yield new Result.PaidAfterClosing(order.number(), order.status());
+            }
         };
     }
 

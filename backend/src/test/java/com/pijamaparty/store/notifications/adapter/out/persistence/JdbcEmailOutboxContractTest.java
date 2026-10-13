@@ -5,13 +5,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.notifications.application.EmailOutboxContractTest;
+import com.pijamaparty.store.notifications.application.EmailStatuses;
 import com.pijamaparty.store.notifications.application.EnqueueEmails;
 import com.pijamaparty.store.notifications.application.InMemoryEmailOutbox.Stored;
 import com.pijamaparty.store.notifications.application.LockDueEmails;
 import com.pijamaparty.store.notifications.application.RecordEmailOutcomes;
+import com.pijamaparty.store.notifications.domain.EmailStatus;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.notifications.domain.OutboxEmail;
 import com.pijamaparty.store.platform.domain.Actor;
+import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import com.pijamaparty.store.platform.testing.RlsPolicyTester;
@@ -135,9 +138,18 @@ class JdbcEmailOutboxContractTest extends EmailOutboxContractTest<JdbcEmailOutbo
         return count == null ? 0 : count;
     }
 
-    /** As the job and the payment run it: the system, enqueueing inside a transaction, the rest in their own. */
+    /**
+     * As the job and the payment run it: the system, enqueueing inside a transaction, the rest in their own. The status
+     * is read as the back office reads it: the administrator, in a read transaction.
+     */
     record AsSystem(JdbcEmailOutbox adapter, TransactionTemplate transactions)
-        implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes {
+        implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses {
+
+        @Override
+        public Optional<EmailStatus> statusOf(EmailType type, UUID reference) {
+            return CurrentActor.callAs(Actor.admin(UserId.of(UUID.randomUUID())),
+                () -> transactions.execute(status -> adapter.statusOf(type, reference)));
+        }
 
         @Override
         public boolean enqueue(EmailType type, UUID reference, Instant at) {
