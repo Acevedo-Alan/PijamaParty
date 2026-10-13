@@ -68,6 +68,8 @@
 - Los datos de tarjeta nunca pasan por la tienda.
 - En la primera versión solo se habilitan medios de pago inmediatos (*Propuesto*).
 - MODO se implementa en una sub-etapa **E3b**, una vez resuelta la integración (*Pendiente*).
+- En MercadoPago el pago es una sola línea, "Pedido #1001 - Pijama Party", por el total que calculó el servidor; se le envían el nombre y el email del cliente para precompletar el pago, nunca el DNI, el teléfono ni la dirección. El pago vence junto con la reserva.
+- Si MercadoPago no responde, el pedido igual queda creado con su stock reservado: el cliente va a la página de seguimiento y reintenta el pago desde ahí.
 
 **Criterios de aceptación**
 - Dado un pedido confirmado, cuando se crea el pago, entonces el cliente es redirigido al proveedor con el monto exacto calculado por el servidor.
