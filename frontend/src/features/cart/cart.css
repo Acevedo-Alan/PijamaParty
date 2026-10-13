@@ -302,3 +302,10 @@ html:has(.cart-panel[open]) {
     animation: none;
   }
 }
+
+/* UC-13 (T-E3-11): the way into the checkout. */
+.cart-checkout {
+  width: 100%;
+  margin-top: 14px;
+  border-radius: 999px;
+}

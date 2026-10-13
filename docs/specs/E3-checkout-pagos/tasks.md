@@ -10,7 +10,7 @@
 - [x] **T-E3-08** Página de seguimiento por token y reintento de pago (CU-14).
 - [x] **T-E3-09** Correo de pago confirmado al cliente y aviso al administrador, con tabla de salida en PostgreSQL, reintentos y servicio transaccional detrás de `EmailSender` (CU-17, RNF-23).
 - [x] **T-E3-10** Backoffice: lista y detalle de pedidos, cambios de estado y número de seguimiento (CU-18).
-- [ ] **T-E3-11** Storefront: checkout de 3 pasos con layout de dos columnas en escritorio (CU-13).
+- [x] **T-E3-11** Storefront: checkout de 3 pasos con layout de dos columnas en escritorio (CU-13).
 - [ ] **T-E3-12** Test de concurrencia: dos compras simultáneas de la última unidad (CU-16).
 - [ ] **T-E3-13** Tests de los criterios de aceptación de CU-12 a CU-18.
 - [ ] **T-E3-14** Tabla `idempotency_key` y mecanismo de idempotencia para `POST /api/checkout`, con tests de repetición y de concurrencia (RNF-20.1, RNF-20.2).

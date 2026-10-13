@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type MouseEvent, type SubmitEvent } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -294,6 +294,7 @@ function Totals({ cart }: { cart: Cart }) {
 export function CartPanel() {
   const panel = useCartPanel();
   const cart = useCart();
+  const navigate = useNavigate();
   const dialog = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -377,6 +378,17 @@ export function CartPanel() {
               {cart.data.items.some((item) => item.previousUnitPriceCents !== null) && <PriceChangeNotice />}
               <CouponField coupon={cart.data.coupon} />
               <Totals cart={cart.data} />
+              <button
+                type="button"
+                className="btn cart-checkout"
+                disabled={!cart.data.items.some((item) => item.status === 'AVAILABLE')}
+                onClick={() => {
+                  panel.close();
+                  void navigate('/checkout');
+                }}
+              >
+                {es.cart.startCheckout}
+              </button>
             </footer>
           </>
         )}

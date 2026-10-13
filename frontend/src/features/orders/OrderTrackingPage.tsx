@@ -1,4 +1,5 @@
-import { Link, useParams } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -21,8 +22,41 @@ function PayProblem({ answer, failed }: { answer: RetryAnswer | undefined; faile
   return null;
 }
 
-/** UC-14: an order awaiting payment can be paid again while its stock is reserved. */
-function PaymentPanel({ token, order }: { token: string; order: TrackedOrder }) {
+/** What the return from the payment provider tells the tracking page (T-E3-11), in the router state. */
+export interface TrackingState {
+  paymentApproved: boolean;
+}
+
+/** How long the page waits for the webhook after an approved return before showing "Pagar" again. */
+export const CONFIRMING_FOR_MS = 120_000;
+
+function approvedReturn(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && (state as Partial<TrackingState>).paymentApproved === true;
+}
+
+/** True from an approved return until 2 minutes later; a reload drops the router state and with it this. */
+function useConfirmingPayment(): boolean {
+  const approved = approvedReturn(useLocation().state);
+  const [confirming, setConfirming] = useState(approved);
+  useEffect(() => {
+    if (!approved) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setConfirming(false);
+    }, CONFIRMING_FOR_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [approved]);
+  return confirming;
+}
+
+/**
+ * UC-14: an order awaiting payment can be paid again while its stock is reserved; right after an approved return it
+ * says the payment is being confirmed instead.
+ */
+function PaymentPanel({ token, order, confirming }: { token: string; order: TrackedOrder; confirming: boolean }) {
   const retry = useRetryPayment(token);
 
   function pay() {
@@ -37,6 +71,13 @@ function PaymentPanel({ token, order }: { token: string; order: TrackedOrder }) 
 
   if (order.status !== 'AWAITING_PAYMENT') {
     return null;
+  }
+  if (confirming) {
+    return (
+      <p className="tracking-note tracking-confirming" role="status">
+        {es.tracking.confirmingPayment}
+      </p>
+    );
   }
   if (!order.canRetryPayment) {
     return <p className="tracking-note">{es.tracking.reservationOver}</p>;
@@ -54,14 +95,14 @@ function PaymentPanel({ token, order }: { token: string; order: TrackedOrder }) 
   );
 }
 
-function TrackedOrderView({ token, order }: { token: string; order: TrackedOrder }) {
+function TrackedOrderView({ token, order, confirming }: { token: string; order: TrackedOrder; confirming: boolean }) {
   return (
     <>
       <title>{`${es.tracking.title(order.number)} | ${es.store.name}`}</title>
       <p className="tracking-greeting">{es.tracking.greeting(order.buyerFirstName)}</p>
       <h1>{es.tracking.title(order.number)}</h1>
       <p className={`tracking-status status-${order.status.toLowerCase()}`}>{es.tracking.statuses[order.status]}</p>
-      <PaymentPanel token={token} order={order} />
+      <PaymentPanel token={token} order={order} confirming={confirming} />
       {order.shipmentTrackingNumber !== null && (
         <dl className="tracking-shipment">
           <dt>{es.tracking.shipment}</dt>
@@ -108,7 +149,8 @@ function TrackedOrderView({ token, order }: { token: string; order: TrackedOrder
 /** The tracking link at /pedido/:token (UC-14, T-E3-08): the order, its status and, while pending, paying again. */
 export function OrderTrackingPage() {
   const { token = '' } = useParams();
-  const tracked = useTrackedOrder(token);
+  const confirming = useConfirmingPayment();
+  const tracked = useTrackedOrder(token, confirming);
 
   return (
     <main className="wrap tracking">
@@ -132,7 +174,9 @@ export function OrderTrackingPage() {
           <Link to="/">{es.tracking.backToStore}</Link>
         </>
       )}
-      {tracked.data?.status === 'found' && <TrackedOrderView token={token} order={tracked.data.order} />}
+      {tracked.data?.status === 'found' && (
+        <TrackedOrderView token={token} order={tracked.data.order} confirming={confirming} />
+      )}
     </main>
   );
 }

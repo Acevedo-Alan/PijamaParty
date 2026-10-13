@@ -1,6 +1,8 @@
 import { Navigate, type RouteObject } from 'react-router';
 import { CatalogPage } from './features/catalog/CatalogPage.tsx';
 import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
+import { CheckoutPage } from './features/checkout/CheckoutPage.tsx';
+import { CheckoutResultPage } from './features/checkout/CheckoutResultPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
 import { OrderTrackingPage } from './features/orders/OrderTrackingPage.tsx';
 import { SearchPage } from './features/search/SearchPage.tsx';
@@ -18,6 +20,8 @@ export const routes: RouteObject[] = [
       { path: '/categoria/:categorySlug', element: <CatalogPage /> },
       { path: '/producto/:productSlug', element: <ProductDetailPage /> },
       { path: '/buscar', element: <SearchPage /> },
+      { path: '/checkout', element: <CheckoutPage /> },
+      { path: '/checkout/result', element: <CheckoutResultPage /> },
       { path: '/pedido/:token', element: <OrderTrackingPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

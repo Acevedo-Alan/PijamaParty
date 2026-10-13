@@ -3,11 +3,23 @@ import { fetchTrackedOrder, retryPayment } from './orderTrackingApi.ts';
 
 export const trackedOrderKey = (token: string) => ['orders', 'tracked', token] as const;
 
-/** The order of the tracking link (UC-14). */
-export function useTrackedOrder(token: string) {
+/** How often the order is read again while an approved payment is being confirmed (T-E3-11). */
+export const CONFIRMING_EVERY_MS = 5_000;
+
+/**
+ * The order of the tracking link (UC-14). With `pollWhileAwaiting` it is read again every 5 seconds while it is
+ * still awaiting payment, until the webhook confirms the payment the buyer just made.
+ */
+export function useTrackedOrder(token: string, pollWhileAwaiting = false) {
   return useQuery({
     queryKey: trackedOrderKey(token),
     queryFn: ({ signal }) => fetchTrackedOrder(token, signal),
+    refetchInterval: (query) => {
+      const answer = query.state.data;
+      return pollWhileAwaiting && answer?.status === 'found' && answer.order.status === 'AWAITING_PAYMENT'
+        ? CONFIRMING_EVERY_MS
+        : false;
+    },
   });
 }
 
