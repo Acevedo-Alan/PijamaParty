@@ -296,6 +296,7 @@ Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its 
 - Given a SKU with stock 1 and two buyers who start the payment at once, when both confirm, then only one gets the reservation and the other sees "not enough stock" naming the variant.
 - Given an expired reservation without payment, when the cleanup runs, then the stock is available again and the order is `EXPIRED`.
 - Given an "approved" webhook repeated, when it arrives a second time, then the stock is not deducted twice.
+- Given an order whose reservation just expired, when its approved payment and the cleanup arrive at once, then only one transition applies (RNF-20.5): either the order is `PAID` with one deduction and no release, or it is `EXPIRED`, marked paid after closing, with one release and no deduction; the reserved units go back to 0 either way (T-E3-16).
 - Given a variant at 0, when its detail is viewed, then the buy button is disabled.
 
 **Design notes**
@@ -308,6 +309,7 @@ Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its 
 - Expiry (T-E3-04): `ExpireOverdueOrder` (`ordering.application`), as `SYSTEM`, one order per transaction: it locks the oldest order `AWAITING_PAYMENT` whose `reservation_expires_at` is not after now (`FOR UPDATE SKIP LOCKED`), moves it to `EXPIRED` with a conditional update (RNF-20.5) and releases its stock in the same transaction. Results `Expired(orderId)` and `NoneDue`. Outbound ports `OverdueOrders` (read and lock), `OrderTransitions` (conditional transition, false when the order is not in the expected status) and `StockReleases` (over `inventory.api`). `OrderStatus` (`ordering.domain`) holds the transition table of UC-18, and `OrderTransitions` refuses a pair outside it.
 - The job `ReservationExpiry` (`ordering.adapter.in.scheduler`) runs every minute (`store.ordering.reservation-expiry.cron`, at second 0) and calls the use case until `NoneDue`, at most 100 orders per run. It logs only how many orders expired.
 - Concurrency test of the last unit (T-E3-12): two guests with the last unit in their carts confirm at once through the API; exactly one order is placed with one reservation, and the other gets `409`, `INSUFFICIENT_STOCK` naming the variant with 0 available when both passed the cart check, or `CART_NOT_READY` when its cart was read after the first committed (the storefront shows the cart notice for both). Against PostgreSQL, a reservation that waits on the row lock of an open one is short when that one commits, and gets the unit when it rolls back.
+- Race of expiry and payment (T-E3-16): both lock the order first (`FOR UPDATE SKIP LOCKED` for the expiry, `FOR UPDATE` for the payment), so the payment that holds the lock leaves the expiry with `NoneDue`, and the expiry that holds it leaves the payment `PaidAfterClosing`. Tested end to end in `ReservationExpiryTest` against PostgreSQL.
 
 ---
 

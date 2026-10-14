@@ -15,7 +15,7 @@
 - [x] **T-E3-13** Tests de los criterios de aceptación de CU-12 a CU-18. Los criterios de idempotencia del checkout (CU-14) se prueban en T-E3-14; el `429` del checkout (CU-13) en T-E3-19; la compra registrada una sola vez (CU-14) en T-E3-20; los rebotes (CU-17, CU-18) en T-E3-22; la corrección del email y su `429` (CU-17) en T-E3-23; la sugerencia de dominios (CU-13) en T-E3-24.
 - [x] **T-E3-14** Tabla `idempotency_key` y mecanismo de idempotencia para `POST /api/checkout`, con tests de repetición y de concurrencia (RNF-20.1, RNF-20.2).
 - [x] **T-E3-15** Tabla `pago_evento` con restricción única, procesamiento idempotente del webhook y test con dos notificaciones simultáneas (RNF-20.3).
-- [ ] **T-E3-16** Restricciones únicas de `movimiento_stock` y transiciones de estado condicionales (RNF-20.4, RNF-20.5).
+- [x] **T-E3-16** Restricciones únicas de `movimiento_stock` y transiciones de estado condicionales (RNF-20.4, RNF-20.5).
 - [ ] **T-E3-17** Cabecera de idempotencia hacia el proveedor de pagos derivada del número de pedido (RNF-20.8).
 - [ ] **T-E3-18** Registros SPF, DKIM y DMARC del subdominio de envío y alerta de volumen diario de correos (RNF-23). *Requiere el dominio registrado.*
 - [ ] **T-E3-19** Activar la política de rate limiting del checkout (RNF-22).
