@@ -16,7 +16,7 @@
 - [x] **T-E3-14** Tabla `idempotency_key` y mecanismo de idempotencia para `POST /api/checkout`, con tests de repetición y de concurrencia (RNF-20.1, RNF-20.2).
 - [x] **T-E3-15** Tabla `pago_evento` con restricción única, procesamiento idempotente del webhook y test con dos notificaciones simultáneas (RNF-20.3).
 - [x] **T-E3-16** Restricciones únicas de `movimiento_stock` y transiciones de estado condicionales (RNF-20.4, RNF-20.5).
-- [ ] **T-E3-17** Cabecera de idempotencia hacia el proveedor de pagos derivada del número de pedido (RNF-20.8).
+- [x] **T-E3-17** Cabecera de idempotencia hacia el proveedor de pagos derivada del número de pedido (RNF-20.8).
 - [ ] **T-E3-18** Registros SPF, DKIM y DMARC del subdominio de envío y alerta de volumen diario de correos (RNF-23). *Requiere el dominio registrado.*
 - [ ] **T-E3-19** Activar la política de rate limiting del checkout (RNF-22).
 - [ ] **T-E3-20** Eventos de analítica `begin_checkout`, `add_payment_info` y `purchase`, este último una sola vez por pedido y solo con el pedido PAGADO (RNF-25).

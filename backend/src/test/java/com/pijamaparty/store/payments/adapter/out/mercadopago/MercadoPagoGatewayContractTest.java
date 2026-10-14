@@ -12,6 +12,13 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.support.ResourceBundleMessageSource;
@@ -81,6 +88,45 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
         assertThat(item.get("unit_price").decimalValue()).isEqualByComparingTo("21000.50");
         assertThat(item.get("currency_id").asText()).isEqualTo("ARS");
         assertThat(body.get("external_reference").asText()).isEqualTo("1001");
+    }
+
+    @Test
+    void givenAnOrder_whenItsCheckoutIsCreatedTwice_thenBothCarryTheSameIdempotencyKeyAndGetTheSamePreference() {
+        PaymentGateway.Outcome first = subject.createCheckout(REQUEST);
+        PaymentGateway.Outcome again = subject.createCheckout(REQUEST);
+
+        assertThat(again).isEqualTo(first);
+        assertThat(stub.requests()).extracting(MercadoPagoStub.Request::idempotencyKey)
+            .containsExactly(MercadoPagoGateway.idempotencyKeyOf(1001), MercadoPagoGateway.idempotencyKeyOf(1001));
+        assertThat(UUID.fromString(stub.lastRequest().idempotencyKey()).toString())
+            .isEqualTo(stub.lastRequest().idempotencyKey());
+    }
+
+    @Test
+    void givenAnOrder_whenItsCheckoutIsCreatedTwiceAtOnce_thenBothGetTheSamePreference() throws Exception {
+        var start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Callable<PaymentGateway.Outcome> create = () -> {
+                start.await(10, TimeUnit.SECONDS);
+                return subject.createCheckout(REQUEST);
+            };
+            Future<PaymentGateway.Outcome> first = executor.submit(create);
+            Future<PaymentGateway.Outcome> second = executor.submit(create);
+            start.countDown();
+
+            assertThat(first.get(10, TimeUnit.SECONDS)).isInstanceOf(PaymentGateway.Outcome.Created.class)
+                .isEqualTo(second.get(10, TimeUnit.SECONDS));
+        } finally {
+            executor.shutdownNow();
+        }
+        assertThat(stub.requests()).extracting(MercadoPagoStub.Request::idempotencyKey)
+            .containsOnly(MercadoPagoGateway.idempotencyKeyOf(1001)).hasSize(2);
+    }
+
+    @Test
+    void givenTwoOrders_whenTheirCheckoutsAreCreated_thenEachHasItsOwnIdempotencyKey() {
+        assertThat(MercadoPagoGateway.idempotencyKeyOf(1001)).isNotEqualTo(MercadoPagoGateway.idempotencyKeyOf(1002));
     }
 
     @Test

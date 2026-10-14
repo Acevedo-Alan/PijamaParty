@@ -10,10 +10,12 @@ import com.pijamaparty.store.platform.domain.Money;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -23,7 +25,8 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
- * UC-14: MercadoPago Checkout Pro. The checkout is a preference, created with {@code POST /checkout/preferences}.
+ * UC-14: MercadoPago Checkout Pro. The checkout is a preference, created with {@code POST /checkout/preferences} and an
+ * {@code X-Idempotency-Key} derived from the order number, so a retry never creates a second one (RNF-20.8, T-E3-17).
  * Anti-corruption layer: MercadoPago's JSON never leaves this class. Its own HTTP client with the RNF-21 timeouts and
  * no retries (a creation, not a read). Logs carry the order number and the HTTP status only: never the payer or the
  * provider's answer (R-05).
@@ -31,6 +34,8 @@ import org.springframework.web.client.RestClientResponseException;
 class MercadoPagoGateway implements PaymentGateway {
 
     static final String PREFERENCES_PATH = "/checkout/preferences";
+    /** RNF-20.8: the name MercadoPago's own SDKs send on every {@code POST}. */
+    static final String IDEMPOTENCY_KEY = "X-Idempotency-Key";
     static final String RESULT_PATH = "/checkout/result";
     /** UC-15: {@code source_news=webhooks} asks for the signed Webhooks notifications only, not the unsigned IPN ones. */
     static final String WEBHOOK_PATH = "/api/payments/mercadopago/webhook?source_news=webhooks";
@@ -72,6 +77,7 @@ class MercadoPagoGateway implements PaymentGateway {
         try {
             response = client.post()
                 .uri(PREFERENCES_PATH)
+                .header(IDEMPOTENCY_KEY, idempotencyKeyOf(request.orderNumber()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .body(preferenceOf(request))
@@ -109,6 +115,15 @@ class MercadoPagoGateway implements PaymentGateway {
             new PaymentMethods(EXCLUDED_PAYMENT_TYPES.stream().map(PaymentType::new).toList()),
             true,
             EXPIRATION.format(request.expiresAt()));
+    }
+
+    /**
+     * RNF-20.8: the same order always sends the same key, a UUID as MercadoPago asks for; the order number never
+     * repeats (RNF-20.6).
+     */
+    static String idempotencyKeyOf(long orderNumber) {
+        return UUID.nameUUIDFromBytes(("pijamaparty:checkout:" + orderNumber).getBytes(StandardCharsets.UTF_8))
+            .toString();
     }
 
     /** MercadoPago takes the price in pesos with decimals; the cents make it exact (R-01). */

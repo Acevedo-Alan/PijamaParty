@@ -20,7 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The MercadoPago API on a free local port (JDK HTTP server, no network). By default it creates a preference with a
- * new id per {@code POST /checkout/preferences}, as MercadoPago does, and shows the payments {@link #holdsPayment}
+ * new id per {@code POST /checkout/preferences}, as MercadoPago does, except that a repeated {@code X-Idempotency-Key}
+ * gets the preference its first request created (T-E3-17), and shows the payments {@link #holdsPayment}
  * arranged at {@code GET /v1/payments/{id}} (404 for any other). Tests can make it fail or slow down, then
  * {@link #reset()} it.
  */
@@ -34,6 +35,7 @@ public final class MercadoPagoStub implements AutoCloseable {
     private final HttpServer server;
     private final List<Request> requests = new CopyOnWriteArrayList<>();
     private final Map<String, String> payments = new ConcurrentHashMap<>();
+    private final Map<String, String> preferencesByKey = new ConcurrentHashMap<>();
     private final AtomicInteger sequence = new AtomicInteger();
     private volatile Integer status;
     private volatile String body;
@@ -41,7 +43,7 @@ public final class MercadoPagoStub implements AutoCloseable {
     private volatile boolean stopped;
 
     /** What the stub received. */
-    public record Request(String method, String path, String authorization, String body) {
+    public record Request(String method, String path, String authorization, String idempotencyKey, String body) {
 
         public JsonNode json() {
             try {
@@ -65,8 +67,9 @@ public final class MercadoPagoStub implements AutoCloseable {
     private void handle(HttpExchange exchange) throws IOException {
         String received = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         String path = exchange.getRequestURI().getPath();
+        String idempotencyKey = exchange.getRequestHeaders().getFirst("X-Idempotency-Key");
         requests.add(new Request(exchange.getRequestMethod(), path,
-            exchange.getRequestHeaders().getFirst("Authorization"), received));
+            exchange.getRequestHeaders().getFirst("Authorization"), idempotencyKey, received));
         try {
             Thread.sleep(delay.toMillis());
         } catch (InterruptedException e) {
@@ -82,7 +85,9 @@ public final class MercadoPagoStub implements AutoCloseable {
             answerStatus = payment == null ? 404 : 200;
             answerBody = payment == null ? "{\"message\":\"Payment not found\",\"status\":404}" : payment;
         } else {
-            String preference = "pref-" + sequence.incrementAndGet();
+            String preference = idempotencyKey == null
+                ? "pref-" + sequence.incrementAndGet()
+                : preferencesByKey.computeIfAbsent(idempotencyKey, key -> "pref-" + sequence.incrementAndGet());
             answerStatus = 201;
             answerBody = "{\"id\":\"" + preference + "\",\"init_point\":\"" + INIT_POINT + preference + "\","
                 + "\"sandbox_init_point\":\"https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id="
@@ -133,6 +138,7 @@ public final class MercadoPagoStub implements AutoCloseable {
         body = null;
         delay = Duration.ZERO;
         payments.clear();
+        preferencesByKey.clear();
         requests.clear();
     }
 
