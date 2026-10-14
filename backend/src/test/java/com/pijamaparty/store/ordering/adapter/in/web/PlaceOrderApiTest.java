@@ -23,15 +23,23 @@ import jakarta.servlet.http.Cookie;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -189,6 +197,58 @@ class PlaceOrderApiTest {
         assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isOne();
         assertThat(owner.queryForObject("select reserved from stock_level where variant_id = ?", Integer.class,
             pijama)).isEqualTo(2);
+    }
+
+    /**
+     * T-E3-12. The loser is refused by the conditional reservation when both passed the cart check, naming the variant;
+     * when it read its cart after the winner committed, the cart is not ready instead. Both show the cart notice.
+     */
+    @Test
+    void givenTheLastUnitInTwoCarts_whenBothBuyersConfirmAtOnce_thenOnlyOneGetsItAndTheOtherIsTold() throws Exception {
+        owner.update("update cart_item set quantity = 1");
+        owner.update("update stock_level set on_hand = 1 where variant_id = ?", pijama);
+        String otherCart = newToken();
+        mvc.perform(post("/api/cart/items").cookie(new Cookie(CART_COOKIE, otherCart)).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("variantId", pijama, "quantity", 1))))
+            .andExpect(status().isOk());
+        var start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        List<MockHttpServletResponse> answers = new ArrayList<>();
+        try {
+            List<Future<MockHttpServletResponse>> pending = new ArrayList<>();
+            for (String token : List.of(cartToken, otherCart)) {
+                pending.add(executor.submit(() -> {
+                    start.await(10, TimeUnit.SECONDS);
+                    return mvc.perform(post(CHECKOUT).cookie(new Cookie(CART_COOKIE, token)).with(csrf())
+                            .header("Idempotency-Key", UUID.randomUUID().toString())
+                            .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(order())))
+                        .andReturn().getResponse();
+                }));
+            }
+            start.countDown();
+            for (Future<MockHttpServletResponse> answer : pending) {
+                answers.add(answer.get(30, TimeUnit.SECONDS));
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(answers).extracting(MockHttpServletResponse::getStatus).containsExactlyInAnyOrder(201, 409);
+        MockHttpServletResponse refused = answers.stream().filter(answer -> answer.getStatus() == 409).findFirst()
+            .orElseThrow();
+        JsonNode problem = json.readTree(refused.getContentAsString());
+        assertThat(problem.get("problem").asText()).isIn("INSUFFICIENT_STOCK", "CART_NOT_READY");
+        if (problem.get("problem").asText().equals("INSUFFICIENT_STOCK")) {
+            assertThat(problem.get("variantId").asText()).isEqualTo(pijama.toString());
+            assertThat(problem.get("available").asInt()).isZero();
+        }
+        assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isOne();
+        assertThat(owner.queryForMap("select on_hand, reserved from stock_level where variant_id = ?", pijama))
+            .containsEntry("on_hand", 1).containsEntry("reserved", 1);
+        assertThat(owner.queryForObject("select count(*) from stock_movement where type = 'RESERVATION'",
+            Integer.class)).isOne();
+        assertThat(mercadoPago.requests()).hasSize(1);
     }
 
     @Test
