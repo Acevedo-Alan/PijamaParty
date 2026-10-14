@@ -98,6 +98,7 @@ class MercadoPagoWebhookController {
                 log.warn("MercadoPago payment {} is not for an order of this store: ignored", dataId);
                 yield ResponseEntity.ok().build();
             }
+            case ConfirmPayment.Result.AlreadyProcessed already -> ResponseEntity.ok().build();
             case ConfirmPayment.Result.NotFoundAtProvider notFound -> {
                 log.warn("MercadoPago does not know payment {}: ignored", dataId);
                 yield ResponseEntity.ok().build();

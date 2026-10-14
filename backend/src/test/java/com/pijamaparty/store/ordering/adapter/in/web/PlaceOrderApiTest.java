@@ -88,9 +88,9 @@ class PlaceOrderApiTest {
     @AfterEach
     void cleanUp() {
         mercadoPago.reset();
-        owner.execute("truncate idempotency_key, payment, order_tracking_token, order_item, orders, cart_item, cart, "
-            + "coupon_redemption, coupon, stock_movement, stock_level, product_image, variant, product, category, "
-            + "shipping_zone_rate");
+        owner.execute("truncate idempotency_key, payment_event, payment, order_tracking_token, order_item, orders, "
+            + "cart_item, cart, coupon_redemption, coupon, stock_movement, stock_level, product_image, variant, "
+            + "product, category, shipping_zone_rate");
     }
 
     @Test

@@ -11,20 +11,23 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * UC-15: the transactional step of {@link ConfirmPaymentService}. The payment is locked, so two notifications of it
- * run one after the other and the approval is recorded and published once (RNF-20.3); the listeners of
- * {@link com.pijamaparty.store.payments.api.PaymentApproved} run in this same transaction.
+ * UC-15: the transactional step of {@link ConfirmPaymentService}. A notification already recorded is not processed
+ * again (T-E3-15, RNF-20.3); the payment is locked, so notifications of it run one after the other and the approval is
+ * recorded and published once; the listeners of {@link com.pijamaparty.store.payments.api.PaymentApproved} run in
+ * this same transaction.
  */
 @Component
 class VerifiedPaymentRecorder {
 
+    private final PaymentNotifications notifications;
     private final PaymentsToConfirm paymentsToConfirm;
     private final PaymentConfirmations confirmations;
     private final PaymentEvents events;
     private final Clock clock;
 
-    VerifiedPaymentRecorder(PaymentsToConfirm paymentsToConfirm, PaymentConfirmations confirmations,
-                            PaymentEvents events, Clock clock) {
+    VerifiedPaymentRecorder(PaymentNotifications notifications, PaymentsToConfirm paymentsToConfirm,
+                            PaymentConfirmations confirmations, PaymentEvents events, Clock clock) {
+        this.notifications = notifications;
         this.paymentsToConfirm = paymentsToConfirm;
         this.confirmations = confirmations;
         this.events = events;
@@ -33,6 +36,9 @@ class VerifiedPaymentRecorder {
 
     @Transactional
     public Result record(PaymentProvider provider, VerifiedPayment verified) {
+        if (!notifications.recordFirst(provider, verified, clock.instant())) {
+            return new Result.AlreadyProcessed();
+        }
         Optional<PaymentsToConfirm.PaymentToConfirm> found = paymentsToConfirm.lock(provider, verified.orderNumber());
         if (found.isEmpty()) {
             return new Result.UnknownPayment();

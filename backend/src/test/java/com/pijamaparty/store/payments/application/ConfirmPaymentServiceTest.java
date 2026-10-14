@@ -30,8 +30,9 @@ class ConfirmPaymentServiceTest {
     private final InMemoryPaymentStore payments = new InMemoryPaymentStore();
     private final InMemoryPaymentVerifier mercadoPago = new InMemoryPaymentVerifier(MERCADOPAGO);
     private final InMemoryPaymentEvents events = new InMemoryPaymentEvents();
+    private final InMemoryPaymentNotifications notifications = new InMemoryPaymentNotifications();
     private final ConfirmPaymentService service = new ConfirmPaymentService(List.of(mercadoPago),
-        new VerifiedPaymentRecorder(payments, payments, events, Clock.fixed(NOW, ZoneOffset.UTC)));
+        new VerifiedPaymentRecorder(notifications, payments, payments, events, Clock.fixed(NOW, ZoneOffset.UTC)));
     private final UUID order = UUID.randomUUID();
 
     @BeforeEach
@@ -59,8 +60,46 @@ class ConfirmPaymentServiceTest {
 
         Result again = service.execute(new Command(MERCADOPAGO, "111"));
 
-        assertThat(again).isEqualTo(new Result.AlreadyApproved(NUMBER));
+        assertThat(again).isEqualTo(new Result.AlreadyProcessed());
         assertThat(events.published()).hasSize(1);
+        assertThat(notifications.recorded()).containsExactly(new InMemoryPaymentNotifications.Recorded(MERCADOPAGO,
+            "111", VerifiedStatus.APPROVED, NUMBER));
+    }
+
+    @Test
+    void givenAnApprovedPayment_whenAnotherApprovedPaymentOfTheOrderIsNotified_thenTheOrderIsNotToldAgain() {
+        mercadoPago.holds(new VerifiedPayment("111", NUMBER, VerifiedStatus.APPROVED, TOTAL));
+        mercadoPago.holds(new VerifiedPayment("222", NUMBER, VerifiedStatus.APPROVED, TOTAL));
+        service.execute(new Command(MERCADOPAGO, "111"));
+
+        Result result = service.execute(new Command(MERCADOPAGO, "222"));
+
+        assertThat(result).isEqualTo(new Result.AlreadyApproved(NUMBER));
+        assertThat(events.published()).hasSize(1);
+        assertThat(payments.paymentOf(order, MERCADOPAGO).orElseThrow().externalPaymentId()).contains("111");
+    }
+
+    @Test
+    void givenTheSameRejectionNotifiedTwice_whenTheSecondIsProcessed_thenNothingHappensAgain() {
+        mercadoPago.holds(new VerifiedPayment("111", NUMBER, VerifiedStatus.REJECTED, TOTAL));
+        service.execute(new Command(MERCADOPAGO, "111"));
+
+        assertThat(service.execute(new Command(MERCADOPAGO, "111"))).isEqualTo(new Result.AlreadyProcessed());
+        assertThat(statusOf()).isEqualTo(PaymentStatus.REJECTED);
+    }
+
+    @Test
+    void givenAPendingPaymentNotified_whenItIsApprovedAndNotifiedAgain_thenTheOrderIsPaid() {
+        mercadoPago.holds(new VerifiedPayment("111", NUMBER, VerifiedStatus.PENDING, TOTAL));
+        service.execute(new Command(MERCADOPAGO, "111"));
+        mercadoPago.holds(new VerifiedPayment("111", NUMBER, VerifiedStatus.APPROVED, TOTAL));
+
+        Result result = service.execute(new Command(MERCADOPAGO, "111"));
+
+        assertThat(result).isEqualTo(new Result.Approved(NUMBER));
+        assertThat(events.published()).containsExactly(new PaymentApproved(order, MERCADOPAGO));
+        assertThat(notifications.recorded()).extracting(InMemoryPaymentNotifications.Recorded::status)
+            .containsExactlyInAnyOrder(VerifiedStatus.PENDING, VerifiedStatus.APPROVED);
     }
 
     @Test
@@ -126,12 +165,15 @@ class ConfirmPaymentServiceTest {
         assertThat(service.execute(new Command(MERCADOPAGO, "111"))).isEqualTo(new Result.UnknownPayment());
         assertThat(statusOf()).isEqualTo(PaymentStatus.PENDING);
         assertThat(events.published()).isEmpty();
+        assertThat(notifications.recorded()).containsExactly(new InMemoryPaymentNotifications.Recorded(MERCADOPAGO,
+            "111", VerifiedStatus.APPROVED, 9999));
     }
 
     @Test
-    void givenAPaymentTheProviderDoesNotKnow_whenNotified_thenItIsIgnored() {
+    void givenAPaymentTheProviderDoesNotKnow_whenNotified_thenItIsIgnoredAndNotRecorded() {
         assertThat(service.execute(new Command(MERCADOPAGO, "404"))).isEqualTo(new Result.NotFoundAtProvider());
         assertThat(statusOf()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(notifications.recorded()).isEmpty();
     }
 
     @Test
@@ -142,6 +184,7 @@ class ConfirmPaymentServiceTest {
         assertThat(service.execute(new Command(MERCADOPAGO, "111"))).isEqualTo(new Result.ProviderUnavailable());
         assertThat(statusOf()).isEqualTo(PaymentStatus.PENDING);
         assertThat(events.published()).isEmpty();
+        assertThat(notifications.recorded()).isEmpty();
     }
 
     @Test
@@ -153,7 +196,7 @@ class ConfirmPaymentServiceTest {
     @Test
     void givenNoVerifierForTheProvider_whenNotified_thenItFails() {
         var withoutVerifiers = new ConfirmPaymentService(List.of(),
-            new VerifiedPaymentRecorder(payments, payments, events, Clock.fixed(NOW, ZoneOffset.UTC)));
+            new VerifiedPaymentRecorder(notifications, payments, payments, events, Clock.fixed(NOW, ZoneOffset.UTC)));
 
         assertThatThrownBy(() -> withoutVerifiers.execute(new Command(MERCADOPAGO, "111")))
             .isInstanceOf(IllegalStateException.class);

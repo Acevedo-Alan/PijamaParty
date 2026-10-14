@@ -49,6 +49,9 @@ public interface ConfirmPayment {
         /** The provider's payment is for an order this store has no payment of. */
         record UnknownPayment() implements Result {}
 
+        /** The provider's payment was already notified with this status: nothing happened again (RNF-20.3). */
+        record AlreadyProcessed() implements Result {}
+
         /** The provider does not know the payment. */
         record NotFoundAtProvider() implements Result {}
 

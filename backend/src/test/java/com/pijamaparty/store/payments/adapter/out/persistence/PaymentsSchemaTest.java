@@ -23,8 +23,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * T-E3-01, T-E3-07: the payments schema (V15, V18) enforces the UC-14 and UC-15 rules, and its Row Level Security
- * policies (RNF-27). The full policy matrix is T-E3-21.
+ * T-E3-01, T-E3-07, T-E3-15: the payments schema (V15, V18, V22) enforces the UC-14 and UC-15 rules, and its Row Level
+ * Security policies (RNF-27). The full policy matrix is T-E3-21.
  */
 @ApiTest
 class PaymentsSchemaTest {
@@ -33,6 +33,11 @@ class PaymentsSchemaTest {
         insert into payment (id, order_id, order_number, provider, amount_cents, status, checkout_id, checkout_url,
                              external_payment_id, created_at, updated_at)
         values (?, ?, nextval('order_number_seq'), 'MERCADOPAGO', 2100000, ?, ?, ?, ?, now(), now())
+        """;
+
+    private static final String INSERT_EVENT = """
+        insert into payment_event (provider, external_payment_id, status, order_number, received_at)
+        values ('MERCADOPAGO', ?, ?, 1001, now())
         """;
 
     private final RlsPolicyTester rls;
@@ -47,7 +52,7 @@ class PaymentsSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate payment");
+        owner.execute("truncate payment_event, payment");
     }
 
     @Test
@@ -123,6 +128,52 @@ class PaymentsSchemaTest {
 
         assertThatThrownBy(() -> rls.as(SYSTEM, jdbc -> jdbc.update("delete from payment")))
             .isInstanceOf(DataAccessException.class).hasStackTraceContaining("permission denied");
+    }
+
+    @Test
+    void givenThePaymentEventTable_whenCheckingItsProtection_thenRowLevelSecurityIsEnabledAndForced() {
+        var flags = owner.queryForMap(
+            "select relrowsecurity, relforcerowsecurity from pg_class where oid = 'payment_event'::regclass");
+
+        assertThat(flags).containsEntry("relrowsecurity", true).containsEntry("relforcerowsecurity", true);
+    }
+
+    @Test
+    void givenANotificationRecorded_whenTheSameProviderPaymentAndStatusIsStoredAgain_thenItIsRejected() {
+        owner.update(INSERT_EVENT, "111", "APPROVED");
+
+        assertThatThrownBy(() -> owner.update(INSERT_EVENT, "111", "APPROVED"))
+            .isInstanceOf(DuplicateKeyException.class).hasMessageContaining("payment_event_pk");
+        assertThatThrownBy(() -> owner.update(INSERT_EVENT, "111", "REFUNDED"))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("payment_event_status_ck");
+        assertThat(owner.update(INSERT_EVENT, "111", "PENDING")).isOne();
+    }
+
+    @Test
+    void givenTheSystem_whenItRecordsANotification_thenTheAdministratorReadsItAndNoBuyerDoes() {
+        rls.as(SYSTEM, jdbc -> jdbc.update(INSERT_EVENT, "111", "APPROVED"));
+
+        assertThat(rls.as(ADMIN, this::eventPaymentIds)).containsExactly("111");
+        assertThat(rls.as(SYSTEM, this::eventPaymentIds)).containsExactly("111");
+        assertThat(rls.as(CUSTOMER_A, this::eventPaymentIds)).isEmpty();
+        assertThat(rls.as(GUEST, this::eventPaymentIds)).isEmpty();
+        assertThat(rls.withoutContext(this::eventPaymentIds)).isEmpty();
+        assertThatThrownBy(() -> rls.as(ADMIN, jdbc -> jdbc.update(INSERT_EVENT, "222", "APPROVED")))
+            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("row-level security");
+    }
+
+    @Test
+    void givenARecordedNotification_whenTheSystemTriesToChangeOrDeleteIt_thenItIsDenied() {
+        owner.update(INSERT_EVENT, "111", "APPROVED");
+
+        assertThatThrownBy(() -> rls.as(SYSTEM, jdbc -> jdbc.update("update payment_event set status = 'OTHER'")))
+            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("permission denied");
+        assertThatThrownBy(() -> rls.as(SYSTEM, jdbc -> jdbc.update("delete from payment_event")))
+            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("permission denied");
+    }
+
+    private List<String> eventPaymentIds(JdbcTemplate jdbc) {
+        return jdbc.queryForList("select external_payment_id from payment_event", String.class);
     }
 
     private void rejects(String status, String checkoutId, String checkoutUrl, String externalId, String constraint) {

@@ -89,9 +89,9 @@ class MercadoPagoWebhookApiTest {
     @AfterEach
     void cleanUp() {
         mercadoPago.reset();
-        owner.execute("truncate idempotency_key, payment, email_outbox, order_tracking_token, order_item, orders, "
-            + "cart_item, cart, coupon_redemption, coupon, stock_movement, stock_level, product_image, variant, "
-            + "product, category, shipping_zone_rate");
+        owner.execute("truncate idempotency_key, payment_event, payment, email_outbox, order_tracking_token, "
+            + "order_item, orders, cart_item, cart, coupon_redemption, coupon, stock_movement, stock_level, "
+            + "product_image, variant, product, category, shipping_zone_rate");
     }
 
     @Test
@@ -187,6 +187,24 @@ class MercadoPagoWebhookApiTest {
         assertThat(owner.queryForObject("select count(*) from stock_movement where type = 'DEDUCTION'", Long.class))
             .isOne();
         assertThat(emails(placed)).containsExactlyInAnyOrder("ORDER_PAID_CUSTOMER", "ORDER_PAID_ADMIN");
+        // RNF-20.3: the second insert waited for the first transaction and recorded nothing
+        assertThat(paymentEvents()).containsExactly(Map.of("provider", "MERCADOPAGO", "external_payment_id",
+            PAYMENT_ID, "status", "APPROVED", "order_number", placed.number()));
+    }
+
+    @Test
+    void givenAPendingPaymentNotified_whenItIsApprovedAndNotifiedAgain_thenTheOrderIsPaidAndBothAreRecorded()
+        throws Exception {
+        Placed placed = placeOrder();
+        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "in_process", placed.pesos());
+        notifyPayment(PAYMENT_ID).andExpect(status().isOk());
+        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", placed.pesos());
+
+        notifyPayment(PAYMENT_ID).andExpect(status().isOk());
+
+        assertThat(orderStatus(placed)).isEqualTo("PAID");
+        assertThat(paymentEvents()).extracting(event -> event.get("status"))
+            .containsExactlyInAnyOrder("PENDING", "APPROVED");
     }
 
     @Test
@@ -376,6 +394,10 @@ class MercadoPagoWebhookApiTest {
 
     private Map<String, Object> payment(Placed placed) {
         return owner.queryForMap("select * from payment where order_number = ?", placed.number());
+    }
+
+    private List<Map<String, Object>> paymentEvents() {
+        return owner.queryForList("select provider, external_payment_id, status, order_number from payment_event");
     }
 
     private Map<String, Object> stock() {
