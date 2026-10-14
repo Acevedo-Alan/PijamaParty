@@ -3,7 +3,10 @@ package com.pijamaparty.store.ordering.application;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import java.time.Instant;
 
-/** Outbound write port (UC-17, T-E3-09): one more tracking token of an order, in the caller's transaction. */
+/**
+ * Outbound write port (UC-17, T-E3-09; T-E3-14): one more tracking token of an order, for an email or a repeated
+ * checkout, in the caller's transaction.
+ */
 public interface SaveTrackingLinks {
 
     /**

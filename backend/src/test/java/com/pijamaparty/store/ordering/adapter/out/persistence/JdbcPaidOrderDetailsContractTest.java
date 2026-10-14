@@ -88,11 +88,11 @@ class JdbcPaidOrderDetailsContractTest
         OrderRows.insert(owner, order, OrderStatus.PAID, Instant.now());
         String hash = newToken().hash();
 
-        // The guest cannot even see the order, and the table only takes the system's rows.
-        Boolean added = CurrentActor.callAs(RlsPolicyTester.GUEST, () -> asActors.transactions()
-            .execute(status -> asActors.adapter().add(order, hash, Instant.now())));
-
-        assertThat(added).isFalse();
+        // The table only takes the system's rows, and a buyer's for the order of one of its own checkout keys
+        // (T-E3-14).
+        assertThatThrownBy(() -> CurrentActor.callAs(RlsPolicyTester.GUEST, () -> asActors.transactions()
+            .execute(status -> asActors.adapter().add(order, hash, Instant.now()))))
+            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("row-level security");
         assertThat(owner.queryForObject("select count(*) from order_tracking_token", Long.class)).isZero();
     }
 

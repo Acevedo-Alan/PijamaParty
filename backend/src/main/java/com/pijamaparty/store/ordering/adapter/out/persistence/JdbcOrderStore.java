@@ -33,6 +33,7 @@ import com.pijamaparty.store.platform.application.IdGenerator;
 import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
 import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
+import com.pijamaparty.store.platform.persistence.Savepoints;
 import com.pijamaparty.store.shipping.api.Province;
 import java.sql.Types;
 import java.time.Instant;
@@ -42,6 +43,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
+import javax.sql.DataSource;
 import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -135,11 +137,12 @@ class JdbcOrderStore
         FROM orders WHERE id = :id
         """;
 
-    // UC-17 (T-E3-09): the system keeps the hash of an email's tracking token, for an order that exists; the hash is
-    // the primary key, and 256 random bits never repeat.
+    // UC-17 (T-E3-09): the system keeps the hash of an email's tracking token; T-E3-14: a buyer that repeats its
+    // checkout keeps the hash of its new one, without reading the order (order_tracking_token_repeat_insert). The
+    // foreign key tells a missing order; the hash is the primary key, and 256 random bits never repeat.
     private static final String INSERT_TRACKING_TOKEN = """
         INSERT INTO order_tracking_token (token_hash, order_id, created_at)
-        SELECT :hash, id, :at FROM orders WHERE id = :id
+        VALUES (:hash, :id, :at)
         """;
 
     // UC-18 (T-E3-10): the administrator locks the order it changes (orders_staff_select, orders_staff_update).
@@ -192,10 +195,12 @@ class JdbcOrderStore
 
     private final NamedParameterJdbcTemplate jdbc;
     private final IdGenerator ids;
+    private final Savepoints savepoints;
 
-    JdbcOrderStore(NamedParameterJdbcTemplate jdbc, IdGenerator ids) {
+    JdbcOrderStore(NamedParameterJdbcTemplate jdbc, IdGenerator ids, DataSource dataSource) {
         this.jdbc = jdbc;
         this.ids = ids;
+        this.savepoints = new Savepoints(dataSource);
     }
 
     @Override
@@ -330,9 +335,11 @@ class JdbcOrderStore
 
     @Override
     public boolean add(OrderId order, String tokenHash, Instant at) {
-        return jdbc.update(INSERT_TRACKING_TOKEN, new MapSqlParameterSource("id", order.value())
+        var params = new MapSqlParameterSource("id", order.value())
             .addValue("hash", tokenHash)
-            .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
+            .addValue("at", at.atOffset(ZoneOffset.UTC));
+        return savepoints.run(() -> jdbc.update(INSERT_TRACKING_TOKEN, params) == 1,
+            violation -> Savepoints.isForeignKeyViolation(violation) ? Optional.of(false) : Optional.empty());
     }
 
     @Override

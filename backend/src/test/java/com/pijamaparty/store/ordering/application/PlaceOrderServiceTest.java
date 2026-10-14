@@ -174,8 +174,8 @@ class PlaceOrderServiceTest {
 
     @Test
     void givenAProvinceWithoutShipping_whenConfirming_thenThereIsNoShippingAndNothingHappens() {
-        assertThat(placeOrder.execute(new PlaceOrder.Command(GUEST, FORM, Province.JUJUY, PaymentProvider.MERCADOPAGO,
-            true))).isEqualTo(new PlaceOrder.Result.NoShipping(Province.JUJUY));
+        assertThat(placeOrder.execute(new PlaceOrder.Command(GUEST, UUID.randomUUID(), FORM, Province.JUJUY,
+            PaymentProvider.MERCADOPAGO, true))).isEqualTo(new PlaceOrder.Result.NoShipping(Province.JUJUY));
         assertNothingHappened();
     }
 
@@ -211,6 +211,7 @@ class PlaceOrderServiceTest {
     }
 
     private static PlaceOrder.Command command(Actor actor, CheckoutForm form, boolean acceptedTerms) {
-        return new PlaceOrder.Command(actor, form, Province.SANTA_FE, PaymentProvider.MERCADOPAGO, acceptedTerms);
+        return new PlaceOrder.Command(actor, UUID.randomUUID(), form, Province.SANTA_FE, PaymentProvider.MERCADOPAGO,
+            acceptedTerms);
     }
 }

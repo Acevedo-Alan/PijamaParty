@@ -63,7 +63,8 @@ export interface PlacedOrder {
 
 /**
  * POST /api/checkout. Every refusal of UC-13 and UC-14 is an expected answer; `unknown` means no answer was read
- * (a network error or a server failure), so the same Idempotency-Key may be repeated.
+ * (a network error or a server failure) or the first request with the key is still being processed, so the same
+ * Idempotency-Key may be repeated.
  */
 export type PlaceOrderAnswer =
   | { status: 'placed'; order: PlacedOrder }
@@ -85,6 +86,9 @@ const COUPON_STATUSES: readonly string[] = ['APPLICABLE', 'INACTIVE', 'NOT_START
 function toRefusal(problem: unknown): PlaceOrderAnswer {
   const body = propertiesOf(problem);
   switch (body.problem) {
+    // T-E3-14: a request with the same key is still being processed; the next try repeats the key and gets its order.
+    case 'IDEMPOTENCY_KEY_IN_USE':
+      return { status: 'unknown' };
     case 'EMPTY_CART':
       return { status: 'emptyCart' };
     case 'CART_NOT_READY':

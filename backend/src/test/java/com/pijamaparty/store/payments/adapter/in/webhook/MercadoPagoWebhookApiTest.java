@@ -89,9 +89,9 @@ class MercadoPagoWebhookApiTest {
     @AfterEach
     void cleanUp() {
         mercadoPago.reset();
-        owner.execute("truncate payment, email_outbox, order_tracking_token, order_item, orders, cart_item, cart, "
-            + "coupon_redemption, coupon, stock_movement, stock_level, product_image, variant, product, category, "
-            + "shipping_zone_rate");
+        owner.execute("truncate idempotency_key, payment, email_outbox, order_tracking_token, order_item, orders, "
+            + "cart_item, cart, coupon_redemption, coupon, stock_movement, stock_level, product_image, variant, "
+            + "product, category, shipping_zone_rate");
     }
 
     @Test

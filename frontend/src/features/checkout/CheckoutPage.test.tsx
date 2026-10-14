@@ -291,6 +291,25 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     expect(keys[2]).not.toBe(keys[1]);
   });
 
+  it('given the same key still being processed, when retried, then the same Idempotency-Key is repeated', async () => {
+    stubGets();
+    const post = stubPost(answer(409, { problem: 'IDEMPOTENCY_KEY_IN_USE' }), placed(PAYMENT_URL));
+    renderRoute('/checkout');
+    await goToReview();
+
+    await acceptAndConfirm();
+    expect(await screen.findByText(es.checkout.refused.unknown)).toBeInTheDocument();
+    await userEvent.click(confirmButton());
+
+    await waitFor(() => {
+      expect(post).toHaveBeenCalledTimes(2);
+    });
+    const keys = post.mock.calls.map(
+      (call) => (call[1] as { params: { header: Record<string, string> } }).params.header['Idempotency-Key'],
+    );
+    expect(keys[1]).toBe(keys[0]);
+  });
+
   it('given an empty cart, when the checkout opens, then it says so with a way back to the store', async () => {
     stubGets(NO_CART);
     renderRoute('/checkout');

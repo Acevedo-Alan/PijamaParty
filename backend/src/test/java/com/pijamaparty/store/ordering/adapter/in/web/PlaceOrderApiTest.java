@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.payments.adapter.out.mercadopago.MercadoPagoStub;
+import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
 import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import jakarta.servlet.http.Cookie;
@@ -86,7 +88,7 @@ class PlaceOrderApiTest {
     @AfterEach
     void cleanUp() {
         mercadoPago.reset();
-        owner.execute("truncate payment, order_tracking_token, order_item, orders, cart_item, cart, "
+        owner.execute("truncate idempotency_key, payment, order_tracking_token, order_item, orders, cart_item, cart, "
             + "coupon_redemption, coupon, stock_movement, stock_level, product_image, variant, product, category, "
             + "shipping_zone_rate");
     }
@@ -184,19 +186,133 @@ class PlaceOrderApiTest {
         assertThat(owner.queryForObject("select count(*) from cart_item", Integer.class)).isZero();
     }
 
+    /**
+     * T-E3-14 (RNF-20.2): a double tap or a network retry. The repetition has a tracking token of its own (only hashes
+     * are stored, RNF-29.6), and both open the same order.
+     */
     @Test
-    void givenAPlacedOrder_whenTheSameCheckoutArrivesAgain_thenItFindsTheCartEmptyAndNoOtherOrderIsCreated()
+    void givenAPlacedOrder_whenTheSameKeyArrivesAgainWithTheSameBody_thenTheSameOrderIsAnsweredAndNothingIsRepeated()
         throws Exception {
         String key = UUID.randomUUID().toString();
-        checkout(order(), key).andExpect(status().isCreated());
+        JsonNode first = json.readTree(checkout(order(), key).andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsString());
 
-        checkout(order(), key)
-            .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.problem").value("EMPTY_CART"));
+        JsonNode second = json.readTree(checkout(order(), key).andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsString());
 
+        assertThat(second.get("number")).isEqualTo(first.get("number"));
+        assertThat(second.get("status")).isEqualTo(first.get("status"));
+        assertThat(second.get("totalCents")).isEqualTo(first.get("totalCents"));
+        assertThat(second.get("reservationExpiresAt")).isEqualTo(first.get("reservationExpiresAt"));
+        assertThat(second.get("paymentUrl")).isEqualTo(first.get("paymentUrl"));
+        assertThat(second.get("trackingToken").asText()).hasSize(43)
+            .isNotEqualTo(first.get("trackingToken").asText());
+        for (JsonNode answer : List.of(first, second)) {
+            mvc.perform(get("/api/orders/" + answer.get("trackingToken").asText()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.number").value(first.get("number").asLong()));
+        }
         assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isOne();
         assertThat(owner.queryForObject("select reserved from stock_level where variant_id = ?", Integer.class,
             pijama)).isEqualTo(2);
+        assertThat(owner.queryForObject("select count(*) from stock_movement where type = 'RESERVATION'",
+            Integer.class)).isOne();
+        assertThat(owner.queryForObject("select count(*) from payment", Integer.class)).isOne();
+        assertThat(mercadoPago.requests()).hasSize(1);
+        var key24h = owner.queryForMap("select * from idempotency_key");
+        assertThat(key24h.get("scope")).isEqualTo("CART:" + new CartToken(cartToken).hash());
+        assertThat(key24h.get("response_body").toString()).doesNotContain(first.get("trackingToken").asText(),
+            "12345678", "ana@example.com");
+    }
+
+    @Test
+    void givenAPlacedOrderWhoseProviderWasDown_whenTheSameKeyArrivesAgain_thenThePaymentIsOpenedNow()
+        throws Exception {
+        String key = UUID.randomUUID().toString();
+        mercadoPago.answer(500, "{\"message\":\"internal_error\"}");
+        checkout(order(), key).andExpect(status().isCreated()).andExpect(jsonPath("$.paymentUrl").value(nullValue()));
+        mercadoPago.reset();
+
+        checkout(order(), key)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.paymentUrl").value(startsWith(MercadoPagoStub.INIT_POINT)));
+
+        assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isOne();
+    }
+
+    @Test
+    void givenAPlacedOrder_whenTheSameKeyArrivesWithADifferentBody_thenItIsRejectedWith422AndNothingHappens()
+        throws Exception {
+        String key = UUID.randomUUID().toString();
+        checkout(order(), key).andExpect(status().isCreated());
+        ObjectNode otherBuyer = order();
+        ((ObjectNode) otherBuyer.get("buyer")).put("email", "otra@example.com");
+
+        checkout(otherBuyer, key)
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.problem").value("IDEMPOTENCY_KEY_REUSED"));
+
+        assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isOne();
+        assertThat(owner.queryForObject("select count(*) from order_tracking_token", Integer.class)).isZero();
+        assertThat(mercadoPago.requests()).hasSize(1);
+    }
+
+    @Test
+    void givenACheckoutRefused_whenTheSameKeyArrivesWithTheDataCorrected_thenTheOrderIsPlaced() throws Exception {
+        String key = UUID.randomUUID().toString();
+        checkout(order().put("acceptedTerms", false), key).andExpect(status().isUnprocessableEntity());
+
+        checkout(order(), key).andExpect(status().isCreated());
+
+        assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isOne();
+    }
+
+    /**
+     * T-E3-14 (RNF-20.1, RNF-20.2): the loser either ran while the winner held the key, and is told to retry, or after
+     * it committed, and gets its answer.
+     */
+    @Test
+    void givenTwoRequestsWithTheSameKey_whenTheyArriveAtOnce_thenOneOrderIsPlacedAndTheOtherGetsItOrIsToldToRetry()
+        throws Exception {
+        String key = UUID.randomUUID().toString();
+        var start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        List<MockHttpServletResponse> answers = new ArrayList<>();
+        try {
+            List<Future<MockHttpServletResponse>> pending = new ArrayList<>();
+            for (int i = 0; i < 2; i++) {
+                pending.add(executor.submit(() -> {
+                    start.await(10, TimeUnit.SECONDS);
+                    return checkout(order(), key).andReturn().getResponse();
+                }));
+            }
+            start.countDown();
+            for (Future<MockHttpServletResponse> answer : pending) {
+                answers.add(answer.get(30, TimeUnit.SECONDS));
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(answers).extracting(MockHttpServletResponse::getStatus).contains(201)
+            .allMatch(code -> code == 201 || code == 409);
+        long number = owner.queryForObject("select number from orders", Long.class);
+        for (MockHttpServletResponse answer : answers) {
+            JsonNode body = json.readTree(answer.getContentAsString());
+            if (answer.getStatus() == 201) {
+                assertThat(body.get("number").asLong()).isEqualTo(number);
+            } else {
+                assertThat(body.get("problem").asText()).isEqualTo("IDEMPOTENCY_KEY_IN_USE");
+                assertThat(answer.getHeader("Retry-After")).isEqualTo("1");
+            }
+        }
+        assertThat(owner.queryForObject("select reserved from stock_level where variant_id = ?", Integer.class,
+            pijama)).isEqualTo(2);
+        assertThat(owner.queryForObject("select count(*) from idempotency_key", Integer.class)).isOne();
+
+        checkout(order(), key).andExpect(status().isCreated()).andExpect(jsonPath("$.number").value(number));
+        assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isOne();
     }
 
     /**

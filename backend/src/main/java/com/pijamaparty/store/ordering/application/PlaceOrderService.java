@@ -1,6 +1,8 @@
 package com.pijamaparty.store.ordering.application;
 
 import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartState;
+import com.pijamaparty.store.ordering.application.PlaceOrder.Command;
+import com.pijamaparty.store.ordering.application.PlaceOrder.Result;
 import com.pijamaparty.store.ordering.application.ReserveOrderStock.Shortage;
 import com.pijamaparty.store.ordering.application.SaveOrders.AppliedCoupon;
 import com.pijamaparty.store.ordering.application.SaveOrders.NewOrder;
@@ -18,8 +20,12 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * The steps of {@link PlaceOrder} for a request seen for the first time. {@link IdempotentPlaceOrder} is the
+ * {@code PlaceOrder} and runs it in its transaction (T-E3-14).
+ */
 @Service
-class PlaceOrderService implements PlaceOrder {
+class PlaceOrderService {
 
     private final CheckoutCartLock carts;
     private final ShippingQuotes shippingQuotes;
@@ -49,7 +55,6 @@ class PlaceOrderService implements PlaceOrder {
      * As the buyer: Row Level Security lets it lock only its own cart and create only the order of its tracking token
      * (RNF-27). The stock is reserved before anything is written, so a short variant leaves nothing behind.
      */
-    @Override
     @Transactional
     public Result execute(Command command) {
         CheckoutForm.Outcome form = command.form().validate();

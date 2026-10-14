@@ -23,7 +23,9 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.UUID;
 import java.util.regex.Pattern;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +49,9 @@ class CheckoutController {
 
     /** Bounds the body; the domain applies the rules of UC-13 and answers 422 (RNF-28). */
     private static final int MAX_TEXT = 300;
+
+    /** T-E3-14: the first request with the key ends within a second or two. */
+    private static final String KEY_IN_USE_RETRY_AFTER_SECONDS = "1";
 
     private final GetShippingCost getShippingCost;
     private final PlaceOrder placeOrder;
@@ -90,23 +95,26 @@ class CheckoutController {
             + "30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's "
             + "tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the "
             + "buyer to; null when the provider could not be reached, and then the client opens the tracking page. "
-            + "Requires the CSRF token.")
+            + "The same Idempotency-Key repeated with the same content gets the same order, with a new "
+            + "trackingToken, and nothing is placed or reserved again. Requires the CSRF token.")
     @ApiResponse(responseCode = "201", description = "The order, awaiting payment",
         content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlacedResponse.class)))
     @ApiResponse(responseCode = "400", description = "Missing or invalid Idempotency-Key, or a body that is not of "
         + "this shape: a missing field, a text longer than 300 characters, an unknown province or provider",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "409", description = "See problem: EMPTY_CART, CART_NOT_READY (read the cart again), "
-        + "COUPON_NOT_APPLICABLE (with couponStatus) or INSUFFICIENT_STOCK (with variantId and available)",
+        + "COUPON_NOT_APPLICABLE (with couponStatus), INSUFFICIENT_STOCK (with variantId and available) or "
+        + "IDEMPOTENCY_KEY_IN_USE (a request with the same key is still being processed: repeat it with the same key "
+        + "after Retry-After seconds)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "422", description = "See problem: INVALID_BUYER_DATA (with fields), "
-        + "TERMS_NOT_ACCEPTED or NO_SHIPPING (with province)",
+        + "TERMS_NOT_ACCEPTED, NO_SHIPPING (with province) or IDEMPOTENCY_KEY_REUSED (the key went with a different "
+        + "content)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> placeOrder(
         @Parameter(description = "A UUID per checkout attempt, repeated on retries") @RequestHeader("Idempotency-Key")
         String idempotencyKey,
         @Valid @RequestBody PlaceOrderRequest body) {
-        // T-E3-14 stores the key and answers a repetition with the stored response.
         if (!UUID_TEXT.matcher(idempotencyKey).matches()) {
             return problem(HttpStatus.BAD_REQUEST, "Invalid Idempotency-Key", "The Idempotency-Key must be a UUID.",
                 null);
@@ -114,8 +122,8 @@ class CheckoutController {
         TrackingToken trackingToken = new TrackingToken(tokens.newToken());
         // UC-14: the new order belongs to a tracking token the buyer gets back; staff buy nothing.
         Actor actor = TrackingActors.withTrackingToken(CurrentActor.get().orElseThrow(), trackingToken);
-        var command = new PlaceOrder.Command(actor, body.toForm(), body.address().province(), body.paymentProvider(),
-            body.acceptedTerms());
+        var command = new PlaceOrder.Command(actor, UUID.fromString(idempotencyKey), body.toForm(),
+            body.address().province(), body.paymentProvider(), body.acceptedTerms());
         // The RLS context is set when the use case's transaction begins, so it must already carry the new token.
         return switch (CurrentActor.callAs(actor, () -> placeOrder.execute(command))) {
             case PlaceOrder.Result.Placed placed -> ResponseEntity.status(HttpStatus.CREATED)
@@ -149,6 +157,13 @@ class CheckoutController {
                 problem.setProperty("available", insufficient.available());
                 yield ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
             }
+            case PlaceOrder.Result.KeyInUse inUse -> ResponseEntity.status(HttpStatus.CONFLICT)
+                .header(HttpHeaders.RETRY_AFTER, KEY_IN_USE_RETRY_AFTER_SECONDS)
+                .body(problemDetail(HttpStatus.CONFLICT, "Idempotency-Key in use",
+                    "A request with the same Idempotency-Key is still being processed.", "IDEMPOTENCY_KEY_IN_USE"));
+            case PlaceOrder.Result.KeyReused reused -> problem(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Idempotency-Key reused", "The Idempotency-Key was already used with a different content.",
+                "IDEMPOTENCY_KEY_REUSED");
         };
     }
 

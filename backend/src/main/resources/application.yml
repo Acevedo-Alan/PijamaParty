@@ -101,6 +101,11 @@ store:
       # T-E2-04: every day at 04:00 store time (America/Argentina/Buenos_Aires), the quietest hour, the carts idle
       # for more than 30 days are deleted
       cron: "0 0 4 * * *"
+  platform:
+    idempotency-purge:
+      # T-E3-14 (RNF-20.2): every day at 04:30 store time, after the cart cleanup, the Idempotency-Keys past their 24
+      # hours are deleted
+      cron: "0 30 4 * * *"
   ordering:
     # T-E3-05, RNF-30.6: the version of the terms and the exchange and returns policy linked in the checkout. Every
     # order keeps the one in force when it was placed; change it whenever the legal texts change.

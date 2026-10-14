@@ -43,8 +43,8 @@
 
 ## Idempotencia (RNF-20)
 
-- `POST /api/checkout` exige `Idempotency-Key`. En **una sola transacción** se inserta la fila de `idempotency_key` (`ON CONFLICT DO NOTHING`), se crea el pedido, se reserva el stock y se guarda la respuesta. Un request concurrente con la misma clave espera en el índice único hasta que la primera transacción confirma, y después recibe la respuesta guardada.
-- El hash se calcula sobre el contenido relevante del checkout (carrito, datos y medio de pago) normalizado. El alcance es el token de carrito o el usuario; las claves vencen a las 24 horas.
+- `POST /api/checkout` exige `Idempotency-Key`. En **una sola transacción** se toma un bloqueo consultivo (advisory lock) sobre la clave y su alcance sin esperar, se crea el pedido, se reserva el stock y se guarda la fila de `idempotency_key` con la respuesta. Un request concurrente con la misma clave recibe `409` con `Retry-After` mientras la primera sigue en curso, y la respuesta guardada una vez confirmada. Una repetición recibe un token de seguimiento nuevo del mismo pedido: el token solo se guarda como hash (RNF-29.6).
+- El hash se calcula sobre el cuerpo del checkout (datos del comprador, dirección, medio de pago y términos) en una codificación canónica. El carrito no entra: el pedido lo vacía, y el alcance (el token de carrito o el usuario) ya ata la clave al carrito. Las claves vencen a las 24 horas y se borran a diario.
 - La creación del pago en el proveedor ocurre **fuera** de la transacción, con la clave de idempotencia del proveedor derivada del número de pedido. Si un reintento encuentra el pedido sin pago creado, lo crea.
 - Webhook: se inserta en `pago_evento` con `ON CONFLICT DO NOTHING ... RETURNING`; solo si devuelve una fila se procesa. El cambio de estado usa `UPDATE ... WHERE estado = :esperado`.
 - Stock: `movimiento_stock` con restricción única `(pedido_id, variante_id, tipo)`.

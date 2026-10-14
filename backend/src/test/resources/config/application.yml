@@ -7,6 +7,10 @@ store:
     cleanup:
       # T-E2-04: tests run the cleanup themselves, never on a schedule ("-" disables the cron)
       cron: "-"
+  platform:
+    idempotency-purge:
+      # T-E3-14: tests run the purge themselves, never on a schedule
+      cron: "-"
   ordering:
     reservation-expiry:
       # T-E3-04: tests run the expiry themselves, never on a schedule

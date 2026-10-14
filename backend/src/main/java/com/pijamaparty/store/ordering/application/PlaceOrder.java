@@ -14,20 +14,24 @@ import java.util.UUID;
 
 /**
  * UC-13, UC-14: the buyer confirms the checkout. The cart becomes an order awaiting payment, with its stock reserved
- * for 30 minutes (UC-16), all in one transaction as the buyer (RNF-27). The amounts are the server's (R-02).
+ * for 30 minutes (UC-16), all in one transaction as the buyer (RNF-27). The amounts are the server's (R-02). The same
+ * {@code Idempotency-Key} repeated with the same content gets the first order again, and nothing is repeated (T-E3-14,
+ * RNF-20.2).
  */
 public interface PlaceOrder {
 
     Result execute(Command command);
 
     /**
-     * @param actor a guest or a customer bound to the new order's tracking token; any other actor has no cart
+     * @param actor          a guest or a customer bound to the new order's tracking token; any other actor has no cart
+     * @param idempotencyKey the request's {@code Idempotency-Key}: a repetition gets the first order (T-E3-14)
      */
-    record Command(Actor actor, CheckoutForm form, Province province, PaymentProvider paymentProvider,
-                   boolean acceptedTerms) {
+    record Command(Actor actor, UUID idempotencyKey, CheckoutForm form, Province province,
+                   PaymentProvider paymentProvider, boolean acceptedTerms) {
 
         public Command {
             Objects.requireNonNull(actor, "actor");
+            Objects.requireNonNull(idempotencyKey, "idempotencyKey");
             Objects.requireNonNull(form, "form");
             Objects.requireNonNull(province, "province");
             Objects.requireNonNull(paymentProvider, "paymentProvider");
@@ -62,5 +66,11 @@ public interface PlaceOrder {
 
         /** The first short variant, and the units it has available; nothing was reserved or written. */
         record InsufficientStock(UUID variantId, int available) implements Result {}
+
+        /** A request with the same {@code Idempotency-Key} is still being processed (T-E3-14): try again shortly. */
+        record KeyInUse() implements Result {}
+
+        /** The {@code Idempotency-Key} was already used with a different content (T-E3-14). */
+        record KeyReused() implements Result {}
     }
 }

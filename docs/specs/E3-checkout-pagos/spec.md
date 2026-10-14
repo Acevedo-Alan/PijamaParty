@@ -78,7 +78,7 @@
 - Dado un pedido confirmado, cuando se crea el pago, entonces el cliente es redirigido al proveedor con el monto exacto calculado por el servidor.
 - Dado un cliente que vuelve sin completar el pago, cuando abre su enlace de seguimiento, entonces ve el pedido pendiente y la opción de reintentar.
 - Dado el mismo `Idempotency-Key` enviado dos veces (doble toque o reintento de red), cuando se procesa el segundo, entonces devuelve el mismo pedido sin crear otro ni reservar stock de nuevo.
-- Dado el mismo `Idempotency-Key` con un carrito distinto, cuando llega, entonces se rechaza con `422`.
+- Dado el mismo `Idempotency-Key` con un contenido distinto (datos del comprador, dirección, medio de pago o términos), cuando llega, entonces se rechaza con `422`.
 - Dados dos requests simultáneos con el mismo `Idempotency-Key`, cuando llegan a la vez, entonces se crea un solo pedido y el otro recibe la respuesta guardada o un `409` con `Retry-After`.
 - Dado un checkout sin `Idempotency-Key`, cuando llega, entonces se rechaza con `400`.
 - Dado un pedido PAGADO, cuando el cliente vuelve a la tienda y recarga la página, entonces la analítica registra una sola compra (RNF-25).
