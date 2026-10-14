@@ -109,7 +109,7 @@ Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its 
 - The checkout refuses a cart with items that are not `AVAILABLE` or with unacknowledged price changes (UC-09), and validates the coupon again (UC-10): a coupon that no longer applies refuses the checkout until the buyer removes it (T-E3-05).
 - A placed order empties the cart (T-E3-05).
 - The order keeps the version of the terms the buyer accepted (`terms_version`, RNF-30.6).
-- Rate-limit policy: checkout (5 per minute per cart and IP), T-E3-19.
+- Rate-limit policy (T-E3-19, RNF-22): `checkout` on `POST /api/checkout`, 5 per minute per cart (the SHA-256 of the guest's `__Host-cart_token`, `CartKeyResolver`) and IP together; every confirmation counts, also a repetition with the same `Idempotency-Key`. Without a cart cookie the policy does not apply: there is no cart to buy, and the checkout answers `409` `EMPTY_CART`. Tested in `RateLimitPoliciesTest`.
 - Analytics: `begin_checkout` and `add_payment_info` (T-E3-20, RNF-25).
 - **Storefront (T-E3-11),** `features/checkout`, inside the store frame (header, cart panel, footer):
   - Entry: "Iniciar compra" in the cart panel's footer goes to `/checkout` and closes the panel; it is disabled while the cart has no `AVAILABLE` item. `/checkout` with an empty cart says so, with a link to the store; it never calls the API to place anything.

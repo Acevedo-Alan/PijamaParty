@@ -203,6 +203,14 @@ store:
         keys: [search, ip]
         capacity: 60
         period: 1m
+      # UC-13 (T-E3-19): checkout confirmations per cart and IP together. Without a cart cookie the policy does not
+      # apply: there is no cart to buy, and the checkout answers 409 EMPTY_CART.
+      - name: checkout
+        paths: [/api/checkout]
+        methods: [POST]
+        keys: [cart, ip]
+        capacity: 5
+        period: 1m
       # UC-14 (T-E3-08): the tracking link per IP, reading the order and retrying its payment. 128 random bits make
       # guessing a token hopeless anyway; this bounds the scraping of known ones.
       - name: order-tracking
