@@ -1,8 +1,6 @@
 package com.pijamaparty.store.payments.adapter.out.persistence;
 
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.ADMIN;
-import static com.pijamaparty.store.platform.testing.RlsPolicyTester.CUSTOMER_A;
-import static com.pijamaparty.store.platform.testing.RlsPolicyTester.GUEST;
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.SYSTEM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -14,7 +12,6 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -23,8 +20,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * T-E3-01, T-E3-07, T-E3-15: the payments schema (V15, V18, V22) enforces the UC-14 and UC-15 rules, and its Row Level
- * Security policies (RNF-27). The full policy matrix is T-E3-21.
+ * T-E3-01, T-E3-07, T-E3-15: the payments schema (V15, V18, V22) enforces the UC-14 and UC-15 rules. Its Row Level
+ * Security policies (RNF-27) are {@link PaymentsRowLevelSecurityTest}.
  */
 @ApiTest
 class PaymentsSchemaTest {
@@ -53,14 +50,6 @@ class PaymentsSchemaTest {
     @AfterEach
     void cleanUp() {
         owner.execute("truncate payment_event, payment");
-    }
-
-    @Test
-    void givenThePaymentTable_whenCheckingItsProtection_thenRowLevelSecurityIsEnabledAndForced() {
-        var flags = owner.queryForMap(
-            "select relrowsecurity, relforcerowsecurity from pg_class where oid = 'payment'::regclass");
-
-        assertThat(flags).containsEntry("relrowsecurity", true).containsEntry("relforcerowsecurity", true);
     }
 
     @Test
@@ -110,35 +99,6 @@ class PaymentsSchemaTest {
     }
 
     @Test
-    void givenAPayment_whenABuyerOrAnActorWithoutContextReadsOrWritesPayments_thenNothingIsReachable() {
-        owner.update(INSERT_PAYMENT, UUID.randomUUID(), UUID.randomUUID(), "PENDING", null, null, null);
-
-        assertThat(rls.as(CUSTOMER_A, this::paymentIds)).isEmpty();
-        assertThat(rls.as(GUEST, this::paymentIds)).isEmpty();
-        assertThat(rls.withoutContext(this::paymentIds)).isEmpty();
-        assertThat(rls.<Integer>as(ADMIN, jdbc -> jdbc.update("update payment set status = 'APPROVED'"))).isZero();
-        assertThatThrownBy(() -> rls.as(GUEST, jdbc -> jdbc.update(INSERT_PAYMENT, UUID.randomUUID(),
-                UUID.randomUUID(), "PENDING", null, null, null)))
-            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("row-level security");
-    }
-
-    @Test
-    void givenAPayment_whenTheSystemTriesToDeleteIt_thenItIsDenied() {
-        owner.update(INSERT_PAYMENT, UUID.randomUUID(), UUID.randomUUID(), "PENDING", null, null, null);
-
-        assertThatThrownBy(() -> rls.as(SYSTEM, jdbc -> jdbc.update("delete from payment")))
-            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("permission denied");
-    }
-
-    @Test
-    void givenThePaymentEventTable_whenCheckingItsProtection_thenRowLevelSecurityIsEnabledAndForced() {
-        var flags = owner.queryForMap(
-            "select relrowsecurity, relforcerowsecurity from pg_class where oid = 'payment_event'::regclass");
-
-        assertThat(flags).containsEntry("relrowsecurity", true).containsEntry("relforcerowsecurity", true);
-    }
-
-    @Test
     void givenANotificationRecorded_whenTheSameProviderPaymentAndStatusIsStoredAgain_thenItIsRejected() {
         owner.update(INSERT_EVENT, "111", "APPROVED");
 
@@ -147,33 +107,6 @@ class PaymentsSchemaTest {
         assertThatThrownBy(() -> owner.update(INSERT_EVENT, "111", "REFUNDED"))
             .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("payment_event_status_ck");
         assertThat(owner.update(INSERT_EVENT, "111", "PENDING")).isOne();
-    }
-
-    @Test
-    void givenTheSystem_whenItRecordsANotification_thenTheAdministratorReadsItAndNoBuyerDoes() {
-        rls.as(SYSTEM, jdbc -> jdbc.update(INSERT_EVENT, "111", "APPROVED"));
-
-        assertThat(rls.as(ADMIN, this::eventPaymentIds)).containsExactly("111");
-        assertThat(rls.as(SYSTEM, this::eventPaymentIds)).containsExactly("111");
-        assertThat(rls.as(CUSTOMER_A, this::eventPaymentIds)).isEmpty();
-        assertThat(rls.as(GUEST, this::eventPaymentIds)).isEmpty();
-        assertThat(rls.withoutContext(this::eventPaymentIds)).isEmpty();
-        assertThatThrownBy(() -> rls.as(ADMIN, jdbc -> jdbc.update(INSERT_EVENT, "222", "APPROVED")))
-            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("row-level security");
-    }
-
-    @Test
-    void givenARecordedNotification_whenTheSystemTriesToChangeOrDeleteIt_thenItIsDenied() {
-        owner.update(INSERT_EVENT, "111", "APPROVED");
-
-        assertThatThrownBy(() -> rls.as(SYSTEM, jdbc -> jdbc.update("update payment_event set status = 'OTHER'")))
-            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("permission denied");
-        assertThatThrownBy(() -> rls.as(SYSTEM, jdbc -> jdbc.update("delete from payment_event")))
-            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("permission denied");
-    }
-
-    private List<String> eventPaymentIds(JdbcTemplate jdbc) {
-        return jdbc.queryForList("select external_payment_id from payment_event", String.class);
     }
 
     private void rejects(String status, String checkoutId, String checkoutUrl, String externalId, String constraint) {

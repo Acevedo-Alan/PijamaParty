@@ -32,7 +32,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 /**
  * T-E3-14 (RNF-27, RNF-29.6): the policy {@code order_tracking_token_repeat_insert} (V21). A buyer that repeats its
  * checkout adds the tracking token it holds only to the order of one of its own idempotency keys. The full matrix of
- * the checkout's tables is T-E3-21.
+ * the ordering tables is {@link OrderingRowLevelSecurityTest} (T-E3-21).
  */
 @ApiTest
 class RepeatedCheckoutTrackingRowLevelSecurityTest {
