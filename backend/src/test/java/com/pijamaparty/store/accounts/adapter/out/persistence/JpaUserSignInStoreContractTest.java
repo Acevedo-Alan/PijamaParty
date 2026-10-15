@@ -60,7 +60,7 @@ class JpaUserSignInStoreContractTest extends UserSignInStoreContractTest<JpaUser
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate admin_recovery_code, app_user");
+        owner.execute("truncate address, user_token, admin_recovery_code, app_user");
     }
 
     @Test

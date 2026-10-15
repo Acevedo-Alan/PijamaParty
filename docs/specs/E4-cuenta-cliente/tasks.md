@@ -1,6 +1,6 @@
 # E4 – Tareas
 
-- [ ] **T-E4-01** Migraciones: `direccion`, ampliación de `usuario` y `token_usuario`. En el código: `address`, `app_user.phone` y `user_token` (V29); `address` y `user_token` nacen con Row Level Security activo y forzado, con sus políticas, y se amplían las de `app_user` (RNF-27).
+- [x] **T-E4-01** Migraciones: `direccion`, ampliación de `usuario` y `token_usuario`. En el código: `address`, `app_user.phone` y `user_token` (V29); `address` y `user_token` nacen con Row Level Security activo y forzado, con sus políticas, y se amplían las de `app_user` (RNF-27).
 - [ ] **T-E4-02** Registro, verificación de email y login de clientes (CU-19).
 - [ ] **T-E4-03** Recuperación y restablecimiento de contraseña (CU-19).
 - [ ] **T-E4-04** Unión del carrito de invitado con el de la cuenta al iniciar sesión (CU-19).

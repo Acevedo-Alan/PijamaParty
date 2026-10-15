@@ -80,7 +80,7 @@ class StockAdminApiTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate stock_movement, stock_level, admin_recovery_code, app_user");
+        owner.execute("truncate stock_movement, stock_level, address, user_token, admin_recovery_code, app_user");
     }
 
     @Test

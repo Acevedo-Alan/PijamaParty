@@ -60,7 +60,7 @@ class UserSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate admin_recovery_code, app_user");
+        owner.execute("truncate address, user_token, admin_recovery_code, app_user");
     }
 
     @Test
@@ -112,7 +112,9 @@ class UserSchemaTest {
         for (Actor customer : List.of(CUSTOMER_A, CUSTOMER_B)) {
             assertThatThrownBy(() -> rls.as(customer, sql -> sql.update(
                     "update app_user set role = 'ADMIN' where id = ?", customer.userId().orElseThrow().value())))
-                .isInstanceOf(DataAccessException.class).hasStackTraceContaining("row-level security");
+                // Since V29 the update guard refuses it before the policy's WITH CHECK, which still backs it up.
+                .isInstanceOf(DataAccessException.class)
+                .hasStackTraceContaining("a customer may only update its name, phone and password");
         }
     }
 
@@ -198,7 +200,8 @@ class UserSchemaTest {
     }
 
     @Test
-    void givenAnyActor_whenCreatingACustomer_thenItIsRejectedUntilE4() {
+    void givenAnyActor_whenCreatingAnAlreadyVerifiedCustomer_thenItIsRejected() {
+        // T-E4-01: the system registers customers unverified (AccountSchemaTest); Google arrives with T-E4-13.
         for (Actor actor : ALL_ACTORS) {
             assertThatThrownBy(() -> rls.as(actor, sql -> sql.update(INSERT_USER, UUID.randomUUID(),
                     "other@example.com", "CUSTOMER")))

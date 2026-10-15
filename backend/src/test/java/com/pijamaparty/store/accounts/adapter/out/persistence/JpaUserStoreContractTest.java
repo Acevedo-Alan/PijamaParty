@@ -41,7 +41,7 @@ class JpaUserStoreContractTest extends UserStoreContractTest<JpaUserStoreContrac
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate admin_recovery_code, app_user");
+        owner.execute("truncate address, user_token, admin_recovery_code, app_user");
     }
 
     record AsSystem(JpaUserStore adapter, TransactionTemplate transactions) implements LoadUser, SaveUser {
