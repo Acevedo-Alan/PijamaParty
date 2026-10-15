@@ -25,33 +25,39 @@ public abstract class PaymentNotificationsContractTest<T extends PaymentNotifica
 
     @Test
     void givenANewNotification_whenRecorded_thenItIsToBeProcessed() {
-        assertThat(subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW)).isTrue();
+        assertThat(subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001, NOW)).isTrue();
     }
 
     @Test
     void givenARecordedNotification_whenRecordedAgain_thenItWasAlreadyProcessed() {
-        subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW);
+        subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001, NOW);
         persistAndForget();
 
-        assertThat(subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW.plusSeconds(900)))
+        assertThat(subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001,
+
+                NOW.plusSeconds(900)))
             .isFalse();
     }
 
     @Test
     void givenAPendingPaymentRecorded_whenItsApprovalIsRecorded_thenItIsToBeProcessed() {
-        subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.PENDING), NOW);
+        subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.PENDING), 1001, NOW);
         persistAndForget();
 
-        assertThat(subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW.plusSeconds(60)))
+        assertThat(subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001,
+
+                NOW.plusSeconds(60)))
             .isTrue();
     }
 
     @Test
     void givenARejectedAttemptRecorded_whenAnotherPaymentIsRecordedWithTheSameStatus_thenItIsToBeProcessed() {
-        subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.REJECTED), NOW);
+        subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.REJECTED), 1001, NOW);
         persistAndForget();
 
-        assertThat(subject.recordFirst(MERCADOPAGO, verified("222", VerifiedStatus.REJECTED), NOW.plusSeconds(60)))
+        assertThat(subject.recordFirst(MERCADOPAGO, verified("222", VerifiedStatus.REJECTED), 1001,
+
+                NOW.plusSeconds(60)))
             .isTrue();
     }
 }

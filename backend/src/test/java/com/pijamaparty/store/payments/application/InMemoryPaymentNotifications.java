@@ -20,12 +20,13 @@ public class InMemoryPaymentNotifications implements PaymentNotifications {
     private final Set<Recorded> recorded = ConcurrentHashMap.newKeySet();
 
     @Override
-    public synchronized boolean recordFirst(PaymentProvider provider, VerifiedPayment verified, Instant receivedAt) {
+    public synchronized boolean recordFirst(PaymentProvider provider, VerifiedPayment verified, long orderNumber,
+                                            Instant receivedAt) {
         boolean seen = recorded.stream().anyMatch(notification -> notification.provider() == provider
             && notification.externalPaymentId().equals(verified.externalId())
             && notification.status() == verified.status());
         return !seen && recorded.add(new Recorded(provider, verified.externalId(), verified.status(),
-            verified.orderNumber()));
+            orderNumber));
     }
 
     public List<Recorded> recorded() {

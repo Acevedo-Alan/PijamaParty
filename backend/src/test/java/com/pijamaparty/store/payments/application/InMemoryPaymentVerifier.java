@@ -12,12 +12,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class InMemoryPaymentVerifier implements PaymentVerifier {
 
     private final PaymentProvider provider;
+    private final boolean byCheckout;
     private final Map<String, VerifiedPayment> payments = new ConcurrentHashMap<>();
     private final AtomicBoolean down = new AtomicBoolean();
     private final List<String> lookups = new CopyOnWriteArrayList<>();
 
     public InMemoryPaymentVerifier(PaymentProvider provider) {
+        this(provider, false);
+    }
+
+    /** @param byCheckout whether its payments are asked for by checkout id, as MODO's (T-E3b-03) */
+    public InMemoryPaymentVerifier(PaymentProvider provider, boolean byCheckout) {
         this.provider = provider;
+        this.byCheckout = byCheckout;
     }
 
     /** Test arrangement: the provider holds this payment, replacing what it held under the same id. */
@@ -36,6 +43,11 @@ public class InMemoryPaymentVerifier implements PaymentVerifier {
     @Override
     public PaymentProvider provider() {
         return provider;
+    }
+
+    @Override
+    public boolean verifiesByCheckout() {
+        return byCheckout;
     }
 
     @Override

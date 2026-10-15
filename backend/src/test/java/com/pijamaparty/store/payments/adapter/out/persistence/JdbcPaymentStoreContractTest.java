@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.payments.api.PaymentProvider;
+import com.pijamaparty.store.payments.application.CheckoutsToReconcile;
 import com.pijamaparty.store.payments.application.LoadPayments;
 import com.pijamaparty.store.payments.application.PaymentConfirmations;
 import com.pijamaparty.store.payments.application.PaymentStoreContractTest;
+import com.pijamaparty.store.payments.application.PaymentsByCheckout;
 import com.pijamaparty.store.payments.application.PaymentsToConfirm;
 import com.pijamaparty.store.payments.application.SavePayments;
 import com.pijamaparty.store.payments.domain.Checkout;
@@ -22,6 +24,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -192,7 +196,8 @@ class JdbcPaymentStoreContractTest extends PaymentStoreContractTest<JdbcPaymentS
 
     /** The system, as the payment use cases run (CurrentActor.callAsSystem); each call its own transaction. */
     record AsSystem(JdbcPaymentStore adapter, TransactionTemplate transactions)
-        implements LoadPayments, SavePayments, PaymentsToConfirm, PaymentConfirmations {
+        implements LoadPayments, SavePayments, PaymentsToConfirm, PaymentConfirmations, PaymentsByCheckout,
+        CheckoutsToReconcile {
 
         <R> R inTransaction(Supplier<R> work) {
             return CurrentActor.callAsSystem(() -> transactions.execute(status -> work.get()));
@@ -229,6 +234,18 @@ class JdbcPaymentStoreContractTest extends PaymentStoreContractTest<JdbcPaymentS
                               Instant at) {
             return Boolean.TRUE.equals(inTransaction(() ->
                 adapter.record(orderId, provider, status, externalPaymentId, at)));
+        }
+
+        @Override
+        public OptionalLong orderNumberOf(PaymentProvider provider, String checkoutId) {
+            return inTransaction(() -> adapter.orderNumberOf(provider, checkoutId));
+        }
+
+        @Override
+        public List<CheckoutToReconcile> due(Set<PaymentProvider> providers, Set<PaymentStatus> statuses,
+                                            Instant createdBefore, Instant expiringAfter, int limit) {
+            return CurrentActor.callAsSystem(() -> adapter.due(providers, statuses, createdBefore, expiringAfter,
+                limit));
         }
     }
 }

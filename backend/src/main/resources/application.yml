@@ -147,6 +147,12 @@ store:
       merchant-name: PijamaParty
       connect-timeout: 3s
       read-timeout: 10s
+    reconciliation:
+      # T-E3b-03, UC-15: every minute, at second 15, the MODO payment requests created more than a minute ago and
+      # expired less than 15 minutes ago, of a payment still pending or rejected, are asked to MODO, since MODO
+      # retries a notification for only 14 seconds. MODO's webhook verifies its signature with the JWK set of
+      # base-url.
+      cron: "15 * * * * *"
   notifications:
     # T-E3-09 (UC-17, RNF-23): the sender (e.g. Pijama Party <pedidos@notificaciones.DOMAIN>, a domain verified at
     # Resend, T-E3-18), where the buyer's answers go (the business's email; optional) and the administrator told of

@@ -13,6 +13,14 @@ public interface PaymentVerifier {
 
     PaymentProvider provider();
 
+    /**
+     * T-E3b-03: whether the provider's payments are asked for by the id of the checkout they paid (MODO's payment
+     * request), so the attempts without a result can be reconciled ({@link ReconcileCheckouts}).
+     */
+    default boolean verifiesByCheckout() {
+        return false;
+    }
+
     /** The payment as the provider reports it now. Never throws for the provider. */
     Verification verify(String externalPaymentId);
 

@@ -25,6 +25,8 @@
         <springdoc.version>2.8.17</springdoc.version>
         <bucket4j.version>8.21.0</bucket4j.version>
         <totp.version>1.7.1</totp.version>
+        <!-- The version Spring Security 6.5 resolves for its OAuth2 client (T-E3b-03) -->
+        <nimbus-jose-jwt.version>9.37.4</nimbus-jose-jwt.version>
         <!-- Aligned with the ArchUnit version that Spring Modulith 1.4.13 brings in -->
         <archunit.version>1.4.2</archunit.version>
         <spotbugs-maven-plugin.version>4.10.4.1</spotbugs-maven-plugin.version>
@@ -102,6 +104,13 @@
             <groupId>dev.samstevens.totp</groupId>
             <artifactId>totp</artifactId>
             <version>${totp.version}</version>
+        </dependency>
+        <!-- MODO's webhook signature, a flattened JWS against MODO's JWK set (T-E3b-03, RNF-29.3); version kept at
+             the one Spring Security's OAuth2 client already uses -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>${nimbus-jose-jwt.version}</version>
         </dependency>
 
         <!-- Modular monolith -->

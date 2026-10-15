@@ -11,22 +11,30 @@ import com.pijamaparty.store.platform.testing.ContractTest;
 import java.net.URI;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
  * Contract of {@link LoadPayments} and {@link SavePayments} (UC-14): one payment per order and provider, its checkout
  * attempts numbered one after another and the latest checkout recorded the current one (T-E3b-02); and of
- * {@link PaymentsToConfirm} and {@link PaymentConfirmations} (UC-15): found by order number, an approval is final.
+ * {@link PaymentsToConfirm} and {@link PaymentConfirmations} (UC-15): found by order number, an approval is final; and
+ * of {@link PaymentsByCheckout} and {@link CheckoutsToReconcile} (T-E3b-03): found by any of its checkouts, and the
+ * recent checkouts of a payment without approval due for reconciliation.
  */
 public abstract class PaymentStoreContractTest<
-    T extends LoadPayments & SavePayments & PaymentsToConfirm & PaymentConfirmations> extends ContractTest<T> {
+    T extends LoadPayments & SavePayments & PaymentsToConfirm & PaymentConfirmations & PaymentsByCheckout
+        & CheckoutsToReconcile> extends ContractTest<T> {
 
     protected static final Instant NOW = Instant.parse("2026-10-12T15:00:00Z");
     protected static final PaymentProvider MERCADOPAGO = PaymentProvider.MERCADOPAGO;
     protected static final PaymentProvider MODO = PaymentProvider.MODO;
+    /** The statuses the reconciliation asks for. */
+    private static final Set<PaymentStatus> OPEN = Set.of(PaymentStatus.PENDING, PaymentStatus.REJECTED);
     protected static final Checkout CHECKOUT =
         new Checkout("123-pref", URI.create("https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=123-pref"));
     private static final Checkout OTHER_CHECKOUT =
@@ -243,5 +251,105 @@ public abstract class PaymentStoreContractTest<
     @Test
     void givenNoPayment_whenAVerificationIsRecorded_thenNothingIsRecorded() {
         assertThat(subject.record(order, MERCADOPAGO, PaymentStatus.APPROVED, "222", NOW)).isFalse();
+    }
+
+    @Test
+    void givenAModoPaymentWithTwoRequests_whenEachIsLookedUp_thenBothLeadToTheOrder() {
+        SavePayments.NewPayment payment = pendingPayment(order, MODO);
+        subject.insertPending(payment);
+        int first = subject.startAttempt(order, MODO, NOW).orElseThrow().number();
+        int second = subject.startAttempt(order, MODO, NOW.plusSeconds(700)).orElseThrow().number();
+        subject.recordCheckout(order, MODO, first, MODO_REQUEST, NOW);
+        subject.recordCheckout(order, MODO, second, LATER_MODO_REQUEST, NOW.plusSeconds(700));
+        persistAndForget();
+
+        assertThat(subject.orderNumberOf(MODO, "modo-1")).isEqualTo(OptionalLong.of(payment.orderNumber()));
+        assertThat(subject.orderNumberOf(MODO, "modo-2")).isEqualTo(OptionalLong.of(payment.orderNumber()));
+    }
+
+    @Test
+    void givenACheckoutThisStoreDidNotCreate_whenLookedUp_thenNoOrderIsFound() {
+        CheckoutAttempt attempt = paymentWithAnAttempt(order, MODO);
+        subject.recordCheckout(order, MODO, attempt.number(), MODO_REQUEST, NOW);
+        persistAndForget();
+
+        assertThat(subject.orderNumberOf(MODO, "modo-unknown")).isEmpty();
+        assertThat(subject.orderNumberOf(MERCADOPAGO, "modo-1")).isEmpty();
+    }
+
+    @Test
+    void givenARecentModoRequestOfAPendingPayment_whenTheReconciliationLooks_thenItIsDue() {
+        CheckoutAttempt attempt = paymentWithAnAttempt(order, MODO);
+        subject.recordCheckout(order, MODO, attempt.number(), MODO_REQUEST, NOW);
+        persistAndForget();
+
+        assertThat(subject.due(Set.of(MODO), OPEN, NOW.plusSeconds(60), NOW.minusSeconds(900), 50))
+            .containsExactly(new CheckoutsToReconcile.CheckoutToReconcile(MODO, "modo-1"));
+    }
+
+    @Test
+    void givenAModoRequestOutsideTheWindow_whenTheReconciliationLooks_thenItIsNotDue() {
+        CheckoutAttempt attempt = paymentWithAnAttempt(order, MODO);
+        subject.recordCheckout(order, MODO, attempt.number(), MODO_REQUEST, NOW);
+        persistAndForget();
+
+        // Created at NOW, which is not before NOW; and expired at NOW + 600 s, which is not after the window start
+        assertThat(subject.due(Set.of(MODO), OPEN, NOW, NOW.minusSeconds(900), 50)).isEmpty();
+        assertThat(subject.due(Set.of(MODO), OPEN, NOW.plusSeconds(1600), NOW.plusSeconds(600), 50)).isEmpty();
+    }
+
+    @Test
+    void givenARejectedPayment_whenTheReconciliationLooks_thenItsRequestIsStillDue() {
+        CheckoutAttempt attempt = paymentWithAnAttempt(order, MODO);
+        subject.recordCheckout(order, MODO, attempt.number(), MODO_REQUEST, NOW);
+        subject.record(order, MODO, PaymentStatus.REJECTED, "modo-1", NOW.plusSeconds(30));
+        persistAndForget();
+
+        assertThat(subject.due(Set.of(MODO), OPEN, NOW.plusSeconds(60), NOW.minusSeconds(900), 50)).hasSize(1);
+    }
+
+    @Test
+    void givenARejectedPayment_whenTheReconciliationLooksOnlyForPendingOnes_thenItsRequestIsNotDue() {
+        CheckoutAttempt attempt = paymentWithAnAttempt(order, MODO);
+        subject.recordCheckout(order, MODO, attempt.number(), MODO_REQUEST, NOW);
+        subject.record(order, MODO, PaymentStatus.REJECTED, "modo-1", NOW.plusSeconds(30));
+        persistAndForget();
+
+        assertThat(subject.due(Set.of(MODO), Set.of(PaymentStatus.PENDING), NOW.plusSeconds(60), NOW.minusSeconds(900),
+            50)).isEmpty();
+    }
+
+    @Test
+    void givenAnApprovedPayment_whenTheReconciliationLooks_thenNoneOfItsRequestsIsDue() {
+        CheckoutAttempt attempt = paymentWithAnAttempt(order, MODO);
+        subject.recordCheckout(order, MODO, attempt.number(), MODO_REQUEST, NOW);
+        subject.record(order, MODO, PaymentStatus.APPROVED, "modo-1", NOW.plusSeconds(30));
+        persistAndForget();
+
+        assertThat(subject.due(Set.of(MODO), OPEN, NOW.plusSeconds(60), NOW.minusSeconds(900), 50)).isEmpty();
+    }
+
+    @Test
+    void givenACheckoutThatLastsAsLongAsTheReservation_whenTheReconciliationLooks_thenItIsNeverDue() {
+        CheckoutAttempt attempt = paymentWithAnAttempt(order, MERCADOPAGO);
+        subject.recordCheckout(order, MERCADOPAGO, attempt.number(), CHECKOUT, NOW);
+        persistAndForget();
+
+        assertThat(subject.due(Set.of(MERCADOPAGO, MODO), OPEN, NOW.plusSeconds(60), NOW.minusSeconds(900), 50)).isEmpty();
+    }
+
+    @Test
+    void givenTheRequestsOfTwoPayments_whenTheReconciliationLooksForOne_thenTheOldestIsDue() {
+        UUID later = UUID.randomUUID();
+        subject.insertPending(pendingPayment(later, MODO));
+        int laterAttempt = subject.startAttempt(later, MODO, NOW.plusSeconds(10)).orElseThrow().number();
+        subject.recordCheckout(later, MODO, laterAttempt, LATER_MODO_REQUEST, NOW.plusSeconds(10));
+        CheckoutAttempt attempt = paymentWithAnAttempt(order, MODO);
+        subject.recordCheckout(order, MODO, attempt.number(), MODO_REQUEST, NOW);
+        persistAndForget();
+
+        assertThat(subject.due(Set.of(MODO), OPEN, NOW.plusSeconds(60), NOW.minusSeconds(900), 1))
+            .containsExactly(new CheckoutsToReconcile.CheckoutToReconcile(MODO, "modo-1"));
+        assertThat(subject.due(Set.of(MODO), OPEN, NOW.plusSeconds(60), NOW.minusSeconds(900), 50)).hasSize(2);
     }
 }

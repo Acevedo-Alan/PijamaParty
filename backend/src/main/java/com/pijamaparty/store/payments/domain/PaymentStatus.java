@@ -4,5 +4,10 @@ package com.pijamaparty.store.payments.domain;
 public enum PaymentStatus {
     PENDING,
     APPROVED,
-    REJECTED
+    REJECTED;
+
+    /** RNF-20.5: an approved payment is final; a pending or rejected one may still be paid (UC-15). */
+    public boolean isFinal() {
+        return this == APPROVED;
+    }
 }

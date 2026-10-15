@@ -15,6 +15,10 @@ store:
     reservation-expiry:
       # T-E3-04: tests run the expiry themselves, never on a schedule
       cron: "-"
+  payments:
+    reconciliation:
+      # T-E3b-03: tests run the reconciliation themselves, never on a schedule
+      cron: "-"
   notifications:
     # T-E3-09: tests send the outbox themselves, never on a schedule; Resend is a local stub (ResendStub)
     from: "Pijama Party <pedidos@pijamaparty.test>"

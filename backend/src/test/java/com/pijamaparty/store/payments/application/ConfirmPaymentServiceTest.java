@@ -7,10 +7,13 @@ import com.pijamaparty.store.payments.api.PaymentApproved;
 import com.pijamaparty.store.payments.api.PaymentProvider;
 import com.pijamaparty.store.payments.application.ConfirmPayment.Command;
 import com.pijamaparty.store.payments.application.ConfirmPayment.Result;
+import com.pijamaparty.store.payments.domain.Checkout;
+import com.pijamaparty.store.payments.domain.PaymentReference;
 import com.pijamaparty.store.payments.domain.PaymentStatus;
 import com.pijamaparty.store.payments.domain.VerifiedPayment;
 import com.pijamaparty.store.payments.domain.VerifiedStatus;
 import com.pijamaparty.store.platform.domain.Money;
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -29,10 +32,12 @@ class ConfirmPaymentServiceTest {
 
     private final InMemoryPaymentStore payments = new InMemoryPaymentStore();
     private final InMemoryPaymentVerifier mercadoPago = new InMemoryPaymentVerifier(MERCADOPAGO);
+    private final InMemoryPaymentVerifier modo = new InMemoryPaymentVerifier(PaymentProvider.MODO, true);
     private final InMemoryPaymentEvents events = new InMemoryPaymentEvents();
     private final InMemoryPaymentNotifications notifications = new InMemoryPaymentNotifications();
-    private final ConfirmPaymentService service = new ConfirmPaymentService(List.of(mercadoPago),
-        new VerifiedPaymentRecorder(notifications, payments, payments, events, Clock.fixed(NOW, ZoneOffset.UTC)));
+    private final ConfirmPaymentService service = new ConfirmPaymentService(List.of(mercadoPago, modo),
+        new VerifiedPaymentRecorder(notifications, payments, payments, payments, events,
+            Clock.fixed(NOW, ZoneOffset.UTC)));
     private final UUID order = UUID.randomUUID();
 
     @BeforeEach
@@ -196,10 +201,52 @@ class ConfirmPaymentServiceTest {
     @Test
     void givenNoVerifierForTheProvider_whenNotified_thenItFails() {
         var withoutVerifiers = new ConfirmPaymentService(List.of(),
-            new VerifiedPaymentRecorder(notifications, payments, payments, events, Clock.fixed(NOW, ZoneOffset.UTC)));
+            new VerifiedPaymentRecorder(notifications, payments, payments, payments, events,
+                Clock.fixed(NOW, ZoneOffset.UTC)));
 
         assertThatThrownBy(() -> withoutVerifiers.execute(new Command(MERCADOPAGO, "111")))
             .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void givenAnApprovedModoRequestOfAnOlderAttempt_whenNotified_thenItsOrderIsPaid() {
+        UUID modoOrder = modoPaymentWithRequests(1002, "pr-1", "pr-2");
+        modo.holds(new VerifiedPayment("pr-1", new PaymentReference.ByCheckout("pr-1"), VerifiedStatus.APPROVED,
+            TOTAL));
+
+        Result result = service.execute(new Command(PaymentProvider.MODO, "pr-1"));
+
+        assertThat(result).isEqualTo(new Result.Approved(1002));
+        assertThat(events.published()).containsExactly(new PaymentApproved(modoOrder, PaymentProvider.MODO));
+        assertThat(payments.paymentOf(modoOrder, PaymentProvider.MODO).orElseThrow().externalPaymentId())
+            .contains("pr-1");
+        assertThat(notifications.recorded()).containsExactly(new InMemoryPaymentNotifications.Recorded(
+            PaymentProvider.MODO, "pr-1", VerifiedStatus.APPROVED, 1002));
+    }
+
+    @Test
+    void givenAModoRequestThisStoreDidNotCreate_whenNotified_thenItIsUnknownAndRecordedNowhere() {
+        modoPaymentWithRequests(1002, "pr-1");
+        modo.holds(new VerifiedPayment("pr-9", new PaymentReference.ByCheckout("pr-9"), VerifiedStatus.APPROVED,
+            TOTAL));
+
+        assertThat(service.execute(new Command(PaymentProvider.MODO, "pr-9"))).isEqualTo(new Result.UnknownPayment());
+        assertThat(events.published()).isEmpty();
+        assertThat(notifications.recorded()).isEmpty();
+    }
+
+    /** A MODO payment of another order, with one attempt and payment request per id. */
+    private UUID modoPaymentWithRequests(long number, String... requestIds) {
+        UUID modoOrder = UUID.randomUUID();
+        payments.insertPending(new SavePayments.NewPayment(UUID.randomUUID(), modoOrder, number, PaymentProvider.MODO,
+            TOTAL, NOW.minusSeconds(600)));
+        for (String id : requestIds) {
+            int attempt = payments.startAttempt(modoOrder, PaymentProvider.MODO, NOW.minusSeconds(600)).orElseThrow()
+                .number();
+            payments.recordCheckout(modoOrder, PaymentProvider.MODO, attempt, new Checkout(id,
+                URI.create("https://site.modo.com.ar/checkout?id=" + id), Optional.of(NOW)), NOW.minusSeconds(600));
+        }
+        return modoOrder;
     }
 
     private PaymentStatus statusOf() {

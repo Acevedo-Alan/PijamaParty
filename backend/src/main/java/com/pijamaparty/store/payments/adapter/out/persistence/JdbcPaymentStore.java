@@ -1,8 +1,10 @@
 package com.pijamaparty.store.payments.adapter.out.persistence;
 
 import com.pijamaparty.store.payments.api.PaymentProvider;
+import com.pijamaparty.store.payments.application.CheckoutsToReconcile;
 import com.pijamaparty.store.payments.application.LoadPayments;
 import com.pijamaparty.store.payments.application.PaymentConfirmations;
+import com.pijamaparty.store.payments.application.PaymentsByCheckout;
 import com.pijamaparty.store.payments.application.PaymentsToConfirm;
 import com.pijamaparty.store.payments.application.SavePayments;
 import com.pijamaparty.store.payments.domain.Checkout;
@@ -13,8 +15,11 @@ import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -25,11 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Payments in table {@code payment} (V15, V18) and their checkout attempts in {@code payment_checkout} (V27). Opening
  * a payment runs each call in its own transaction (or joins the caller's), so the payment use case commits before
- * calling the provider (RNF-21); confirming one locks and records it in the caller's transaction. Row Level Security
- * lets only the system write (RNF-27).
+ * calling the provider (RNF-21); confirming one locks and records it in the caller's transaction, and finds MODO's
+ * payments by their checkout (T-E3b-03). Row Level Security lets only the system write (RNF-27).
  */
 @Repository
-class JdbcPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm, PaymentConfirmations {
+class JdbcPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm, PaymentConfirmations,
+    PaymentsByCheckout, CheckoutsToReconcile {
 
     // The payment's current checkout, with the expiry its attempt recorded (T-E3b-02).
     private static final String SELECT_CHECKOUT = """
@@ -87,6 +93,24 @@ class JdbcPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm,
         SELECT order_id, order_number, status, amount_cents FROM payment
         WHERE provider = :provider AND order_number = :orderNumber
         FOR UPDATE
+        """;
+
+    // T-E3b-03: over payment_checkout_provider_checkout_uk.
+    private static final String ORDER_NUMBER_BY_CHECKOUT = """
+        SELECT p.order_number FROM payment_checkout c
+        JOIN payment p ON p.id = c.payment_id AND p.provider = c.provider
+        WHERE c.provider = :provider AND c.checkout_id = :checkoutId
+        """;
+
+    // T-E3b-03: over payment_checkout_expires_idx (V28). A checkout without expiry (MercadoPago) is never due.
+    private static final String DUE_CHECKOUTS = """
+        SELECT c.provider, c.checkout_id FROM payment_checkout c
+        JOIN payment p ON p.id = c.payment_id AND p.provider = c.provider
+        WHERE c.provider IN (:providers) AND c.checkout_id IS NOT NULL
+          AND c.created_at < :createdBefore AND c.expires_at > :expiringAfter
+          AND p.status IN (:statuses)
+        ORDER BY c.created_at, c.payment_id, c.attempt
+        LIMIT :limit
         """;
 
     // RNF-20.5: an approved payment is final.
@@ -182,6 +206,31 @@ class JdbcPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm,
             .addValue("status", status.name())
             .addValue("externalPaymentId", externalPaymentId)
             .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public OptionalLong orderNumberOf(PaymentProvider provider, String checkoutId) {
+        return jdbc.query(ORDER_NUMBER_BY_CHECKOUT, new MapSqlParameterSource("provider", provider.name())
+                .addValue("checkoutId", checkoutId), (row, n) -> row.getLong("order_number"))
+            .stream().mapToLong(Long::longValue).findFirst();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CheckoutToReconcile> due(Set<PaymentProvider> providers, Set<PaymentStatus> statuses,
+                                        Instant createdBefore, Instant expiringAfter, int limit) {
+        if (providers.isEmpty() || statuses.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.query(DUE_CHECKOUTS, new MapSqlParameterSource("providers",
+                    providers.stream().map(PaymentProvider::name).toList())
+                .addValue("statuses", statuses.stream().map(PaymentStatus::name).toList())
+                .addValue("createdBefore", createdBefore.atOffset(ZoneOffset.UTC))
+                .addValue("expiringAfter", expiringAfter.atOffset(ZoneOffset.UTC))
+                .addValue("limit", limit),
+            (row, n) -> new CheckoutToReconcile(PaymentProvider.valueOf(row.getString("provider")),
+                row.getString("checkout_id")));
     }
 
     private Optional<LockedPayment> lockPayment(UUID orderId, PaymentProvider provider) {

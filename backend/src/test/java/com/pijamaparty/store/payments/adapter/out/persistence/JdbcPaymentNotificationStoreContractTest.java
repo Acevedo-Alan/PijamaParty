@@ -67,7 +67,7 @@ class JdbcPaymentNotificationStoreContractTest
     @Test
     void givenANewNotification_whenRecorded_thenItsPaymentStatusOrderNumberAndTimeAreStored() {
         subject.recordFirst(MERCADOPAGO, new VerifiedPayment("9876543210", 1001, VerifiedStatus.APPROVED,
-            Money.of(2_100_050)), NOW);
+            Money.of(2_100_050)), 1001, NOW);
 
         Map<String, Object> row = owner.queryForMap("select * from payment_event");
         assertThat(row).containsEntry("provider", "MERCADOPAGO").containsEntry("external_payment_id", "9876543210")
@@ -79,11 +79,13 @@ class JdbcPaymentNotificationStoreContractTest
     @Test
     void givenATransactionThatRecordedANotificationAndFailed_whenTheNotificationArrivesAgain_thenItIsToBeProcessed() {
         assertThatThrownBy(() -> asSystem.inTransaction(() -> {
-            adapter.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW);
+            adapter.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001, NOW);
             throw new IllegalStateException("the order could not be paid");
         })).isInstanceOf(IllegalStateException.class);
 
-        assertThat(subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW.plusSeconds(900)))
+        assertThat(subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001,
+
+                NOW.plusSeconds(900)))
             .isTrue();
     }
 
@@ -95,14 +97,15 @@ class JdbcPaymentNotificationStoreContractTest
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             Future<Boolean> first = executor.submit(() -> asSystem.inTransaction(() -> {
-                boolean inserted = adapter.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW);
+                boolean inserted =
+                    adapter.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001, NOW);
                 recorded.countDown();
                 await(release);
                 return inserted;
             }));
             assertThat(recorded.await(10, TimeUnit.SECONDS)).isTrue();
             Future<Boolean> second = executor.submit(() ->
-                subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW));
+                subject.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001, NOW));
 
             Thread.sleep(300);
             assertThat(second.isDone()).isFalse();
@@ -120,7 +123,7 @@ class JdbcPaymentNotificationStoreContractTest
     @Test
     void givenNoTransaction_whenANotificationIsRecorded_thenItIsRefused() {
         assertThatThrownBy(() -> CurrentActor.callAsSystem(() ->
-            adapter.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW)))
+            adapter.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001, NOW)))
             .isInstanceOf(IllegalTransactionStateException.class);
     }
 
@@ -129,7 +132,7 @@ class JdbcPaymentNotificationStoreContractTest
         var guest = Actor.anonymous(Optional.empty(), Optional.empty());
 
         assertThatThrownBy(() -> CurrentActor.callAs(guest, () -> asSystem.transactions().execute(status ->
-            adapter.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), NOW))))
+            adapter.recordFirst(MERCADOPAGO, verified("111", VerifiedStatus.APPROVED), 1001, NOW))))
             .isInstanceOf(RuntimeException.class);
         assertThat(owner.queryForObject("select count(*) from payment_event", Long.class)).isZero();
     }
@@ -154,8 +157,10 @@ class JdbcPaymentNotificationStoreContractTest
         }
 
         @Override
-        public boolean recordFirst(PaymentProvider provider, VerifiedPayment verified, Instant receivedAt) {
-            return Boolean.TRUE.equals(inTransaction(() -> adapter.recordFirst(provider, verified, receivedAt)));
+        public boolean recordFirst(PaymentProvider provider, VerifiedPayment verified, long orderNumber,
+                                   Instant receivedAt) {
+            return Boolean.TRUE.equals(inTransaction(() ->
+                adapter.recordFirst(provider, verified, orderNumber, receivedAt)));
         }
     }
 }

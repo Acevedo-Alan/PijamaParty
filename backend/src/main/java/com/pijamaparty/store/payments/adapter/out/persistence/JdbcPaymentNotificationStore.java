@@ -35,11 +35,12 @@ class JdbcPaymentNotificationStore implements PaymentNotifications {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public boolean recordFirst(PaymentProvider provider, VerifiedPayment verified, Instant receivedAt) {
+    public boolean recordFirst(PaymentProvider provider, VerifiedPayment verified, long orderNumber,
+                               Instant receivedAt) {
         return !jdbc.queryForList(INSERT_FIRST, new MapSqlParameterSource("provider", provider.name())
                 .addValue("externalPaymentId", verified.externalId())
                 .addValue("status", verified.status().name())
-                .addValue("orderNumber", verified.orderNumber())
+                .addValue("orderNumber", orderNumber)
                 .addValue("receivedAt", receivedAt.atOffset(ZoneOffset.UTC)), String.class)
             .isEmpty();
     }

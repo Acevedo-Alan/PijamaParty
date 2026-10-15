@@ -14,7 +14,8 @@ public interface PaymentNotifications {
      * Records the notification of the provider's payment with the status it was verified with, unless it is already
      * recorded. A concurrent caller recording the same one waits until the first transaction ends.
      *
+     * @param orderNumber the order the payment is for: its own, or the one of the checkout it paid (T-E3b-03)
      * @return true when recorded now, so the notification is to be processed; false when it already was
      */
-    boolean recordFirst(PaymentProvider provider, VerifiedPayment verified, Instant receivedAt);
+    boolean recordFirst(PaymentProvider provider, VerifiedPayment verified, long orderNumber, Instant receivedAt);
 }

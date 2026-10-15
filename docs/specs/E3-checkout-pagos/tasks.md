@@ -30,7 +30,7 @@
 - [x] **T-E3-28** Activar la política de rate limiting del backoffice autenticado: 300 solicitudes por minuto por usuario en `/api/admin/**`, para cupones, envíos y lo que se sume (RNF-22).
 - [x] **T-E3b-01** Averiguar la integración de MODO y escribir su plan antes de implementarla (plan, sección "MODO (E3b)").
 - [x] **T-E3b-02** MODO en el backend: tabla `pago_checkout` con los intentos (también los de MercadoPago), `MODO` como proveedor del checkout, `ModoGateway` con token en memoria y vencimiento de 5 a 10 minutos, y "Pagar" que crea una payment request nueva cuando la anterior venció (CU-14, RNF-20.8).
-- [ ] **T-E3b-03** Webhook de MODO con verificación de la firma JWS, consulta del pago a MODO y conciliación cada minuto de los intentos sin resultado (CU-15, RNF-20.3, RNF-29.3).
+- [x] **T-E3b-03** Webhook de MODO con verificación de la firma JWS, consulta del pago a MODO y conciliación cada minuto de los intentos sin resultado (CU-15, RNF-20.3, RNF-29.3).
 - [ ] **T-E3b-04** Storefront: opción MODO en el paso de pago (solo si está habilitado, `GET /api/checkout/payment-providers`), regreso desde el sitio de MODO y nuevo texto de la opción de MercadoPago (CU-13, CU-14).
 - [ ] **T-E3b-05** Tests de los criterios de aceptación de MODO en CU-14 y CU-15, y una compra completa en preproducción con la app de prueba de MODO.
 - [ ] **T-E3b-06** Devoluciones de MODO: decidir con el negocio entre un botón "Devolver" en el backoffice y la devolución desde el gateway; actualizar el caso de uso antes de implementarla. *Requiere el gateway elegido.*

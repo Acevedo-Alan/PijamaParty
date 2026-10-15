@@ -7,19 +7,23 @@ import com.pijamaparty.store.payments.domain.PaymentStatus;
 import com.pijamaparty.store.platform.domain.Money;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Fake of {@link LoadPayments}, {@link SavePayments}, {@link PaymentsToConfirm} and {@link PaymentConfirmations}: one
- * payment per order and provider, and per order number and provider, as the unique keys; the attempts of each payment
- * numbered one after another, a checkout id once per provider. Every call is synchronized, as the row lock would
- * serialize it.
+ * Fake of {@link LoadPayments}, {@link SavePayments}, {@link PaymentsToConfirm}, {@link PaymentConfirmations},
+ * {@link PaymentsByCheckout} and {@link CheckoutsToReconcile}: one payment per order and provider, and per order number
+ * and provider, as the unique keys; the attempts of each payment numbered one after another, a checkout id once per
+ * provider. Every call is synchronized, as the row lock would serialize it.
  */
-public class InMemoryPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm, PaymentConfirmations {
+public class InMemoryPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm, PaymentConfirmations,
+    PaymentsByCheckout, CheckoutsToReconcile {
 
     /** What the table would hold of a payment; {@code checkout} is the current one. */
     public record StoredPayment(UUID id, long orderNumber, Money amount, Optional<Checkout> checkout,
@@ -121,6 +125,33 @@ public class InMemoryPaymentStore implements LoadPayments, SavePayments, Payment
         }
         payments.put(key, before.verified(status, externalPaymentId));
         return true;
+    }
+
+    @Override
+    public synchronized OptionalLong orderNumberOf(PaymentProvider provider, String checkoutId) {
+        return attempts.entrySet().stream()
+            .filter(entry -> entry.getKey().provider() == provider && entry.getValue().stream()
+                .anyMatch(attempt -> attempt.checkout().filter(c -> c.id().equals(checkoutId)).isPresent()))
+            .mapToLong(entry -> payments.get(entry.getKey()).orderNumber())
+            .findFirst();
+    }
+
+    @Override
+    public synchronized List<CheckoutToReconcile> due(Set<PaymentProvider> providers, Set<PaymentStatus> statuses,
+                                                      Instant createdBefore, Instant expiringAfter, int limit) {
+        record Due(PaymentProvider provider, Checkout checkout, Instant createdAt) {}
+        return attempts.entrySet().stream()
+            .filter(entry -> providers.contains(entry.getKey().provider()))
+            .filter(entry -> statuses.contains(payments.get(entry.getKey()).status()))
+            .flatMap(entry -> entry.getValue().stream()
+                .filter(attempt -> attempt.checkout().isPresent())
+                .map(attempt -> new Due(entry.getKey().provider(), attempt.checkout().get(), attempt.createdAt())))
+            .filter(due -> due.createdAt().isBefore(createdBefore))
+            .filter(due -> due.checkout().expiresAt().filter(expiry -> expiry.isAfter(expiringAfter)).isPresent())
+            .sorted(Comparator.comparing(Due::createdAt))
+            .limit(limit)
+            .map(due -> new CheckoutToReconcile(due.provider(), due.checkout().id()))
+            .toList();
     }
 
     public synchronized Optional<StoredPayment> paymentOf(UUID orderId, PaymentProvider provider) {
