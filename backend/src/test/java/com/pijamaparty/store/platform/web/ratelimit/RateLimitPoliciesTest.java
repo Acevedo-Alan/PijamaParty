@@ -22,8 +22,8 @@ import org.springframework.test.context.TestConstructor;
 /**
  * The RNF-22 policies as configured in application.yml: login per IP (UC-04) and per account (RNF-29.5), catalog and
  * search (UC-26) of T-E1-15, cart changes (UC-08, UC-09) of T-E2-04, coupon attempts (UC-10) of T-E2-11, the
- * tracking link and its payment retry (UC-14) of T-E3-08, checkout confirmations (UC-13) of T-E3-19 and email
- * corrections (UC-17) of T-E3-23. The test client (127.0.0.1) plays Caddy, so {@code X-Forwarded-For} is the client
+ * tracking link and its payment retry (UC-14) of T-E3-08, checkout confirmations (UC-13) of T-E3-19, email
+ * corrections (UC-17) of T-E3-23 and withdrawal requests (UC-29) of T-E3-27. The test client (127.0.0.1) plays Caddy, so {@code X-Forwarded-For} is the client
  * IP and each test uses its own addresses.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -194,6 +194,24 @@ class RateLimitPoliciesTest {
             .as("the bucket is per order and IP together").isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void givenThreeWithdrawalRequestsInAnHourOfTheSameOrderAndIp_whenAnotherArrives_thenItGets429WithRetryAfter() {
+        for (String number : List.of("99999901", "99999901", "#99999901")) {
+            assertThat(requestWithdrawal("203.0.113.80", number).getStatusCode())
+                .as("%s: a number nobody ordered matches no order", number).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        ResponseEntity<String> limited = requestWithdrawal("203.0.113.80", "99999901");
+        assertThat(limited.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(limited.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(Long.parseLong(limited.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)))
+            .as("3 per hour: one more every 20 minutes").isBetween(60L, 1200L);
+        assertThat(requestWithdrawal("203.0.113.80", "99999902").getStatusCode())
+            .as("another order from that IP has its own bucket").isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(requestWithdrawal("203.0.113.81", "99999901").getStatusCode())
+            .as("the bucket is per order and IP together").isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
     /**
      * The buckets refill continuously (Bucket4j greedy refill: 120 per minute is one token every 0.5 s), so the
      * requests above give back a few tokens while they run. The limit must show within a handful more.
@@ -272,6 +290,16 @@ class RateLimitPoliciesTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         return http.exchange("/api/orders/" + trackingToken + "/email", HttpMethod.PATCH,
             new HttpEntity<>("{\"email\":\"ana.perez@gmail.com\"}", headers), String.class);
+    }
+
+    private ResponseEntity<String> requestWithdrawal(String clientIp, String orderNumber) {
+        var headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", clientIp);
+        headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + csrfToken);
+        headers.add("X-XSRF-TOKEN", csrfToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String body = "{\"orderNumber\":\"" + orderNumber + "\",\"email\":\"ana@example.com\"}";
+        return http.exchange("/api/withdrawals", HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
     }
 
     private ResponseEntity<String> get(String path, String clientIp) {
