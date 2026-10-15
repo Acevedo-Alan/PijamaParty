@@ -183,6 +183,13 @@
   background: var(--rose-soft);
 }
 
+/* UC-29: a withdrawal requested after the 10-day term, for the administrator to decide. */
+.admin-badge.withdrawal-late {
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid var(--danger);
+}
+
 .admin-actions {
   display: flex;
   flex-wrap: wrap;

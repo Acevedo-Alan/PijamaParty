@@ -93,6 +93,24 @@ describe('order detail (UC-18)', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(messages.alerts.BUYER_EMAIL_FAILED('3425551234'));
   });
 
+  it('given an order being withdrawn out of term, when opened, then an alert shows its code and the mark', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      [DETAIL]: answer(
+        200,
+        order({
+          withdrawal: { id: 'w-1', code: 'ARR-7K2M9QXZ', outOfTerm: true, requestedAt: '2026-10-14T12:00:00Z' },
+          alerts: ['WITHDRAWAL_REQUESTED'],
+        }),
+      ),
+    });
+
+    await openOrder();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(messages.alerts.WITHDRAWAL_REQUESTED('ARR-7K2M9QXZ', true));
+    expect(screen.getByRole('alert')).toHaveTextContent(/fuera de término/);
+  });
+
   it('given an order whose buyers email bounced, when opened, then an alert shows the buyers phone', async () => {
     stubApi({
       'GET /api/admin/auth/me': signedIn,

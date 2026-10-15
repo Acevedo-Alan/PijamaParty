@@ -7,6 +7,9 @@ import java.util.Optional;
 /** UC-18: what the back-office order detail warns the administrator about, most urgent first. */
 public enum OrderAlert {
 
+    /** The buyer asked to withdraw from the purchase: do not ship it, arrange the return (UC-29, T-E3-26). */
+    WITHDRAWAL_REQUESTED,
+
     /** The payment was approved after the order expired or was cancelled: refund it from the provider's panel. */
     PAID_AFTER_CLOSING,
 
@@ -23,8 +26,12 @@ public enum OrderAlert {
     }
 
     /** The alerts of an order, most urgent first. */
-    public static List<OrderAlert> of(boolean paidAfterClosing, Optional<BuyerEmailProblem> buyerEmail) {
+    public static List<OrderAlert> of(boolean withdrawalRequested, boolean paidAfterClosing,
+                                      Optional<BuyerEmailProblem> buyerEmail) {
         List<OrderAlert> alerts = new ArrayList<>();
+        if (withdrawalRequested) {
+            alerts.add(WITHDRAWAL_REQUESTED);
+        }
         if (paidAfterClosing) {
             alerts.add(PAID_AFTER_CLOSING);
         }

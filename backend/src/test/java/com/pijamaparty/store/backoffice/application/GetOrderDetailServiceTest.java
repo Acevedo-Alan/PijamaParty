@@ -8,6 +8,7 @@ import com.pijamaparty.store.backoffice.domain.OrderAlert;
 import com.pijamaparty.store.ordering.api.AdminOrderDetails.AdminOrder;
 import com.pijamaparty.store.ordering.api.AdminOrderDetails.Buyer;
 import com.pijamaparty.store.ordering.api.AdminOrderDetails.Status;
+import com.pijamaparty.store.ordering.api.OrderWithdrawals.ActiveWithdrawal;
 import com.pijamaparty.store.ordering.api.PaidOrders.Address;
 import com.pijamaparty.store.ordering.api.PaidOrders.Line;
 import com.pijamaparty.store.platform.domain.Actor;
@@ -26,7 +27,20 @@ class GetOrderDetailServiceTest {
 
     private final InMemoryOrderDetails orders = new InMemoryOrderDetails();
     private final InMemoryBuyerEmails emails = new InMemoryBuyerEmails();
-    private final GetOrderDetailService service = new GetOrderDetailService(orders, emails);
+    private final InMemoryWithdrawalRequests withdrawals = new InMemoryWithdrawalRequests();
+    private final GetOrderDetailService service = new GetOrderDetailService(orders, emails, withdrawals);
+
+    @Test
+    void givenAnOrderBeingWithdrawn_whenTheAdministratorOpensTheDetail_thenTheRequestShowsWithItsAlertFirst() {
+        AdminOrder order = order(false);
+        orders.add(order);
+        emails.failed(order.orderId());
+        var withdrawal = new ActiveWithdrawal(UUID.randomUUID(), "ARR-7K2M9QXZ", true, NOW);
+        withdrawals.requested(order.orderId(), withdrawal);
+
+        assertThat(service.execute(new Query(ADMIN, order.orderId()))).isEqualTo(new Result.Found(order,
+            Optional.of(withdrawal), List.of(OrderAlert.WITHDRAWAL_REQUESTED, OrderAlert.BUYER_EMAIL_FAILED)));
+    }
 
     @Test
     void givenAnOrderWhoseBuyersEmailFailed_whenTheAdministratorOpensTheDetail_thenAnAlertShowsWithThePhone() {
@@ -35,7 +49,7 @@ class GetOrderDetailServiceTest {
         emails.failed(order.orderId());
 
         assertThat(service.execute(new Query(ADMIN, order.orderId())))
-            .isEqualTo(new Result.Found(order, List.of(OrderAlert.BUYER_EMAIL_FAILED)));
+            .isEqualTo(new Result.Found(order, Optional.empty(), List.of(OrderAlert.BUYER_EMAIL_FAILED)));
         assertThat(order.buyer().phone()).isEqualTo("3425551234");
     }
 
@@ -46,7 +60,7 @@ class GetOrderDetailServiceTest {
         emails.bounced(order.orderId());
 
         assertThat(service.execute(new Query(ADMIN, order.orderId())))
-            .isEqualTo(new Result.Found(order, List.of(OrderAlert.BUYER_EMAIL_BOUNCED)));
+            .isEqualTo(new Result.Found(order, Optional.empty(), List.of(OrderAlert.BUYER_EMAIL_BOUNCED)));
         assertThat(order.buyer().phone()).isEqualTo("3425551234");
     }
 
@@ -56,7 +70,7 @@ class GetOrderDetailServiceTest {
         orders.add(order);
 
         assertThat(service.execute(new Query(ADMIN, order.orderId())))
-            .isEqualTo(new Result.Found(order, List.of(OrderAlert.PAID_AFTER_CLOSING)));
+            .isEqualTo(new Result.Found(order, Optional.empty(), List.of(OrderAlert.PAID_AFTER_CLOSING)));
     }
 
     @Test
@@ -65,7 +79,7 @@ class GetOrderDetailServiceTest {
         orders.add(order);
 
         assertThat(service.execute(new Query(ADMIN, order.orderId())))
-            .isEqualTo(new Result.Found(order, List.of()));
+            .isEqualTo(new Result.Found(order, Optional.empty(), List.of()));
     }
 
     @Test

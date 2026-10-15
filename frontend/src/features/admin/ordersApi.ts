@@ -67,6 +67,8 @@ export interface AdminOrder {
   totalCents: number;
   paymentProvider: string;
   shipmentTrackingNumber: string | null;
+  /** Its received withdrawal request (UC-29), if any. */
+  withdrawal: { code: string; outOfTerm: boolean } | null;
   alerts: OrderAlert[];
 }
 
@@ -180,6 +182,7 @@ function toOrder(body: DetailResponse): AdminOrder {
     totalCents: body.totalCents ?? 0,
     paymentProvider: body.paymentProvider ?? '',
     shipmentTrackingNumber: body.shipmentTrackingNumber ?? null,
+    withdrawal: body.withdrawal?.code ? { code: body.withdrawal.code, outOfTerm: body.withdrawal.outOfTerm === true } : null,
     alerts: body.alerts ?? [],
   };
 }

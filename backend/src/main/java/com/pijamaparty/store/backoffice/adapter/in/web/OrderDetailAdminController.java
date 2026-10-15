@@ -4,6 +4,7 @@ import com.pijamaparty.store.backoffice.application.GetOrderDetail;
 import com.pijamaparty.store.backoffice.domain.OrderAlert;
 import com.pijamaparty.store.ordering.api.AdminOrderDetails.AdminOrder;
 import com.pijamaparty.store.ordering.api.AdminOrderDetails.Status;
+import com.pijamaparty.store.ordering.api.OrderWithdrawals.ActiveWithdrawal;
 import com.pijamaparty.store.ordering.api.PaidOrders.Address;
 import com.pijamaparty.store.ordering.api.PaidOrders.Line;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
@@ -36,7 +37,7 @@ class OrderDetailAdminController {
     }
 
     @GetMapping("/api/admin/orders/{id}")
-    @Operation(summary = "An order with its buyer, address, lines, amounts, next statuses and alerts")
+    @Operation(summary = "An order with its buyer, address, lines, amounts, next statuses, withdrawal and alerts")
     @ApiResponse(responseCode = "200", description = "The order", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = AdminOrderResponse.class)))
     @ApiResponse(responseCode = "404", description = "No such order (problem ORDER_NOT_FOUND)",
@@ -44,7 +45,8 @@ class OrderDetailAdminController {
     ResponseEntity<?> get(@PathVariable UUID id) {
         return switch (getOrderDetail.execute(new GetOrderDetail.Query(CurrentActor.get().orElseThrow(), id))) {
             case GetOrderDetail.Result.Found found ->
-                ResponseEntity.ok(AdminOrderResponse.of(found.order(), found.alerts()));
+                ResponseEntity.ok(AdminOrderResponse.of(found.order(), found.withdrawal().map(
+                    AdminOrderWithdrawalResponse::of).orElse(null), found.alerts()));
             case GetOrderDetail.Result.NotFound notFound -> {
                 var problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "There is no such order.");
                 problem.setTitle("Order not found");
@@ -61,8 +63,9 @@ class OrderDetailAdminController {
      *
      * @param nextStatuses what the administrator may move the order to
      * @param paymentProvider e.g. MERCADOPAGO
-     * @param alerts most urgent first: PAID_AFTER_CLOSING (refund it from the provider's panel), BUYER_EMAIL_BOUNCED
-     *     and BUYER_EMAIL_FAILED (call the buyer)
+     * @param withdrawal its received withdrawal request (UC-29), if any
+     * @param alerts most urgent first: WITHDRAWAL_REQUESTED (do not ship it), PAID_AFTER_CLOSING (refund it from the
+     *     provider's panel), BUYER_EMAIL_BOUNCED and BUYER_EMAIL_FAILED (call the buyer)
      */
     record AdminOrderResponse(UUID id, long number, Status status, List<Status> nextStatuses, Instant createdAt,
                               Instant updatedAt, @Schema(nullable = true) Instant deliveredAt,
@@ -70,9 +73,11 @@ class OrderDetailAdminController {
                               List<AdminOrderLineResponse> lines, long subtotalCents, long discountCents,
                               @Schema(nullable = true) String couponCode, long shippingCents, long totalCents,
                               String paymentProvider, @Schema(nullable = true) String shipmentTrackingNumber,
+                              @Schema(nullable = true) AdminOrderWithdrawalResponse withdrawal,
                               List<OrderAlert> alerts) {
 
-        static AdminOrderResponse of(AdminOrder order, List<OrderAlert> alerts) {
+        static AdminOrderResponse of(AdminOrder order, AdminOrderWithdrawalResponse withdrawal,
+                                     List<OrderAlert> alerts) {
             var buyer = order.buyer();
             return new AdminOrderResponse(order.orderId(), order.number(), order.status(), order.nextStatuses(),
                 order.createdAt(), order.updatedAt(), order.deliveredAt().orElse(null),
@@ -80,12 +85,22 @@ class OrderDetailAdminController {
                 AdminOrderAddressResponse.of(order.address()),
                 order.lines().stream().map(AdminOrderLineResponse::of).toList(), order.subtotal().cents(),
                 order.discount().cents(), order.couponCode().orElse(null), order.shipping().cents(),
-                order.total().cents(), order.paymentProvider(), order.shipmentTrackingNumber().orElse(null), alerts);
+                order.total().cents(), order.paymentProvider(), order.shipmentTrackingNumber().orElse(null), withdrawal,
+                alerts);
         }
 
         @Override
         public String toString() {
             return "AdminOrderResponse[number=" + number + ", ***]";
+        }
+    }
+
+    /** @param outOfTerm requested after the 10-day term; recorded so the administrator decides */
+    record AdminOrderWithdrawalResponse(UUID id, String code, boolean outOfTerm, Instant requestedAt) {
+
+        static AdminOrderWithdrawalResponse of(ActiveWithdrawal withdrawal) {
+            return new AdminOrderWithdrawalResponse(withdrawal.requestId(), withdrawal.code(), withdrawal.outOfTerm(),
+                withdrawal.requestedAt());
         }
     }
 

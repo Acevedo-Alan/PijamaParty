@@ -10,3 +10,4 @@ export { ProductEditPage } from './ProductEditPage.tsx';
 export { ProductsPage } from './ProductsPage.tsx';
 export { SignInPage } from './SignInPage.tsx';
 export { StockPage } from './StockPage.tsx';
+export { WithdrawalsPage } from './WithdrawalsPage.tsx';

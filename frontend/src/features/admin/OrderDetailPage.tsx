@@ -10,6 +10,7 @@ import {
   correctTrackingNumber,
   fetchOrder,
   type AdminOrder,
+  type OrderAlert,
   type OrderStatus,
   type StatusChange,
 } from './ordersApi.ts';
@@ -260,6 +261,18 @@ function TrackingNumberForm({ order, onChanged }: Props) {
   );
 }
 
+function alertText(alert: OrderAlert, order: AdminOrder): string {
+  switch (alert) {
+    case 'WITHDRAWAL_REQUESTED':
+      return messages.alerts.WITHDRAWAL_REQUESTED(order.withdrawal?.code ?? '', order.withdrawal?.outOfTerm === true);
+    case 'PAID_AFTER_CLOSING':
+      return messages.alerts.PAID_AFTER_CLOSING;
+    case 'BUYER_EMAIL_FAILED':
+    case 'BUYER_EMAIL_BOUNCED':
+      return messages.alerts[alert](order.buyer.phone);
+  }
+}
+
 function OrderView({ order, onChanged }: Props) {
   const { buyer, address } = order;
   const floorAndApartment = messages.floorAndApartment(address.floor, address.apartment);
@@ -276,7 +289,7 @@ function OrderView({ order, onChanged }: Props) {
       </p>
       {order.alerts.map((alert) => (
         <p key={alert} className="order-alert" role="alert">
-          {alert === 'PAID_AFTER_CLOSING' ? messages.alerts.PAID_AFTER_CLOSING : messages.alerts[alert](buyer.phone)}
+          {alertText(alert, order)}
         </p>
       ))}
       <section className="admin-section" aria-labelledby="order-status">

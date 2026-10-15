@@ -313,6 +313,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/withdrawals/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a received withdrawal request as resolved
+         * @description Whatever its order's status; the order is not touched. Requires the CSRF token.
+         */
+        post: operations["resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/stock-adjustments": {
         parameters: {
             query?: never;
@@ -908,6 +928,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/withdrawals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The withdrawal requests, newest first, optionally only those in a status
+         * @description 50 per page, from page 0.
+         */
+        get: operations["list_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/variants/{id}/stock-movements": {
         parameters: {
             query?: never;
@@ -956,7 +996,7 @@ export interface paths {
          * The orders, newest first, optionally only those in a status
          * @description 50 per page, from page 0.
          */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -972,7 +1012,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** An order with its buyer, address, lines, amounts, next statuses and alerts */
+        /** An order with its buyer, address, lines, amounts, next statuses, withdrawal and alerts */
         get: operations["get_2"];
         put?: never;
         post?: never;
@@ -1275,6 +1315,12 @@ export interface components {
         ApplyCouponRequest: {
             code: string;
         };
+        WithdrawalResolvedResponse: {
+            /** @enum {string} */
+            status?: "RECEIVED" | "RESOLVED";
+            /** Format: date-time */
+            resolvedAt?: string;
+        };
         AdjustmentRequest: {
             /** Format: uuid */
             variantId: string;
@@ -1467,6 +1513,29 @@ export interface components {
             slug?: string;
             name?: string;
         };
+        WithdrawalPageResponse: {
+            items?: components["schemas"]["WithdrawalSummaryResponse"][];
+            hasMore?: boolean;
+        };
+        WithdrawalSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            /** Format: uuid */
+            orderId?: string;
+            /** Format: int64 */
+            orderNumber?: number;
+            /** @enum {string} */
+            orderStatus?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            buyerName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            outOfTerm?: boolean;
+            /** @enum {string} */
+            status?: "RECEIVED" | "RESOLVED";
+            /** Format: date-time */
+            resolvedAt?: string | null;
+        };
         MovementPageResponse: {
             /** Format: uuid */
             variantId?: string;
@@ -1563,7 +1632,16 @@ export interface components {
             totalCents?: number;
             paymentProvider?: string;
             shipmentTrackingNumber?: string | null;
-            alerts?: ("PAID_AFTER_CLOSING" | "BUYER_EMAIL_BOUNCED" | "BUYER_EMAIL_FAILED")[];
+            withdrawal?: components["schemas"]["AdminOrderWithdrawalResponse"];
+            alerts?: ("WITHDRAWAL_REQUESTED" | "PAID_AFTER_CLOSING" | "BUYER_EMAIL_BOUNCED" | "BUYER_EMAIL_FAILED")[];
+        };
+        AdminOrderWithdrawalResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            outOfTerm?: boolean;
+            /** Format: date-time */
+            requestedAt?: string;
         };
         ProductPageResponse: {
             items?: components["schemas"]["ProductSummaryResponse"][];
@@ -2494,6 +2572,55 @@ export interface operations {
             };
             /** @description This actor cannot have a cart */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    resolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resolved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalResolvedResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such request (problem WITHDRAWAL_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Already resolved (problem WITHDRAWAL_ALREADY_RESOLVED; resolvedAt) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4226,6 +4353,47 @@ export interface operations {
             };
         };
     };
+    list_3: {
+        parameters: {
+            query?: {
+                status?: "RECEIVED" | "RESOLVED";
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalPageResponse"];
+                };
+            };
+            /** @description Unknown status or page out of range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     movements: {
         parameters: {
             query?: {
@@ -4297,7 +4465,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: {
                 status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";

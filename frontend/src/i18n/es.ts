@@ -302,6 +302,7 @@ export const es = {
     title: 'Backoffice',
     nav: 'Secciones del backoffice',
     orders: 'Pedidos',
+    withdrawals: 'Arrepentimientos',
     products: 'Productos',
     categories: 'Categorías',
     coupons: 'Cupones',
@@ -453,6 +454,25 @@ export const es = {
       /** Who and where, e.g. "Ana Pérez · Santa Fe, Santa Fe". */
       buyer: (name: string, city: string, province: string) => `${name} · ${city}, ${province}`,
     },
+    withdrawalList: {
+      title: 'Arrepentimientos',
+      filter: 'Estado',
+      all: 'Todas',
+      statuses: { RECEIVED: 'Pendiente', RESOLVED: 'Resuelta' },
+      empty: 'No hay solicitudes de arrepentimiento.',
+      emptyInStatus: 'No hay solicitudes en este estado.',
+      /** The order it is for, e.g. "Pedido #1001". */
+      order: (number: number) => `Pedido #${String(number)}`,
+      outOfTerm: 'Fuera de término',
+      /** Who and when, e.g. "Ana Pérez · pedida el 13/10/26, 15:00". */
+      requested: (buyerName: string, dateTime: string) => `${buyerName} · pedida el ${dateTime}`,
+      resolvedAt: (dateTime: string) => `Resuelta el ${dateTime}`,
+      resolve: 'Marcar resuelta',
+      resolving: 'Guardando…',
+      resolved: (code: string) => `Solicitud ${code} resuelta.`,
+      alreadyResolved: 'Esa solicitud ya estaba resuelta. Actualizamos la lista.',
+      notFound: 'No encontramos esa solicitud. Actualizamos la lista.',
+    },
     orderDetail: {
       backToList: 'Volver a pedidos',
       notFound: 'No encontramos este pedido.',
@@ -462,6 +482,9 @@ export const es = {
       placedAt: (dateTime: string) => `Hecho el ${dateTime}`,
       deliveredAt: (dateTime: string) => `Entregado el ${dateTime}`,
       alerts: {
+        /** The procedure code, and whether it came after the 10-day term. */
+        WITHDRAWAL_REQUESTED: (code: string, outOfTerm: boolean) =>
+          `El comprador pidió arrepentirse de la compra (trámite ${code}${outOfTerm ? ', fuera de término' : ''}). No lo envíes: coordiná la devolución.`,
         PAID_AFTER_CLOSING:
           'El pago se aprobó después de que el pedido venció o se canceló. Hacé el reembolso desde el panel de MercadoPago.',
         /** The buyer's phone, to call about the email that did not arrive. */
