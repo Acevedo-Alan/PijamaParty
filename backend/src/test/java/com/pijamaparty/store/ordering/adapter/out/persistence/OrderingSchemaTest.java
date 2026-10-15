@@ -48,7 +48,7 @@ class OrderingSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate order_tracking_token, order_item, orders");
+        owner.execute("truncate withdrawal_request, order_tracking_token, order_item, orders");
     }
 
     @Test

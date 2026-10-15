@@ -66,7 +66,7 @@ class RepeatedCheckoutTrackingRowLevelSecurityTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate idempotency_key, order_tracking_token, order_item, orders");
+        owner.execute("truncate idempotency_key, withdrawal_request, order_tracking_token, order_item, orders");
     }
 
     @Test

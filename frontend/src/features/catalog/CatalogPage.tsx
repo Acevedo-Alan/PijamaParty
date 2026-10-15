@@ -1,5 +1,6 @@
 import { useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { WithdrawalHomeBlock } from '../withdrawal/WithdrawalLink.tsx';
 import { FilterPanel } from './FilterPanel.tsx';
 import { NO_FILTERS, withoutText } from './listingCriteria.ts';
 import { ProductListing } from './ProductListing.tsx';
@@ -40,6 +41,7 @@ export function CatalogPage() {
           setCriteria({ filters: NO_FILTERS, sort: criteria.sort });
         }}
       />
+      {categorySlug === undefined && <WithdrawalHomeBlock />}
     </main>
   );
 }

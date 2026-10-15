@@ -90,9 +90,12 @@ class ResendWebhookController {
         switch (CurrentActor.callAsSystem(() -> recordEmailEvent.execute(command))) {
             case RecordEmailEvent.Result.Bounced bounced when bounced.type() == EmailType.ORDER_PAID_ADMIN ->
                 log.error("The administrator's notice of order {} bounced", bounced.reference());
-            case RecordEmailEvent.Result.Bounced bounced ->
+            case RecordEmailEvent.Result.Bounced bounced when bounced.type() == EmailType.ORDER_PAID_CUSTOMER ->
                 log.warn("The {} email of order {} bounced: the back office shows an alert", bounced.type(),
                     bounced.reference());
+            // UC-29: the order alert is only about the confirmation.
+            case RecordEmailEvent.Result.Bounced bounced ->
+                log.warn("The {} email about {} bounced", bounced.type(), bounced.reference());
             case RecordEmailEvent.Result.Recorded recorded ->
                 log.info("Resend reported {} for email {}", recorded.type(), command.providerMessageId());
             case RecordEmailEvent.Result.UnknownEmail unknown ->

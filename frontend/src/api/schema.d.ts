@@ -149,6 +149,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/withdrawals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw from a purchase (botón de arrepentimiento)
+         * @description With the order number (1001 or #1001) and the purchase email, no account needed. Records the request and emails its procedure code to the order's email; an order with an active request answers its code again and sends nothing. Never reveals whether an order number exists. Requires the CSRF token; 3 per hour per order number and IP.
+         */
+        post: operations["request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/payments/mercadopago/webhook": {
         parameters: {
             query?: never;
@@ -1148,6 +1168,13 @@ export interface components {
             position?: number;
             active?: boolean;
         };
+        WithdrawalRequest: {
+            orderNumber: string;
+            email: string;
+        };
+        WithdrawalResponse: {
+            code?: string;
+        };
         RetryResponse: {
             /** Format: uri */
             paymentUrl?: string;
@@ -2011,6 +2038,66 @@ export interface operations {
                 };
             };
             /** @description The order does not name every category exactly once */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithdrawalRequest"];
+            };
+        };
+        responses: {
+            /** @description The order already has an active request: its code */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalResponse"];
+                };
+            };
+            /** @description Recorded: the procedure code, also emailed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalResponse"];
+                };
+            };
+            /** @description A body that is not {orderNumber, email}, or too long */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The order awaits payment, expired or was cancelled: there is no payment to return (problem ORDER_NOT_WITHDRAWABLE, with status) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No order has this number and email (problem NO_MATCHING_ORDER), the same for an unknown number, a wrong email or unusable values */
             422: {
                 headers: {
                     [name: string]: unknown;

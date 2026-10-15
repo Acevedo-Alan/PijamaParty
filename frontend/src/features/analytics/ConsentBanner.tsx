@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
 import {
   analyticsIds,
   analyticsLoaded,
@@ -121,13 +122,17 @@ export function Analytics() {
   );
 }
 
-/** The footer of the public pages, with the link to change the analytics choice (RNF-25). */
+/**
+ * The footer of the public pages, with the withdrawal button (UC-29, RNF-30.1) and the link to change the analytics
+ * choice (RNF-25).
+ */
 export function StoreFooter() {
   const enabled = hasAnalytics(analyticsIds());
   return (
     <footer className="site-footer">
       <div className="wrap site-footer-inner">
         <p>{es.store.name}</p>
+        <WithdrawalLink />
         {enabled && (
           <button type="button" className="link-btn" onClick={reopenConsent}>
             {messages.footerLink}

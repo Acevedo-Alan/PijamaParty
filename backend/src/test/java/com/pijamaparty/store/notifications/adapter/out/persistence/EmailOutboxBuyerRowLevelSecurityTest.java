@@ -111,7 +111,7 @@ class EmailOutboxBuyerRowLevelSecurityTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate email_outbox, order_tracking_token, order_item, orders");
+        owner.execute("truncate email_outbox, withdrawal_request, order_tracking_token, order_item, orders");
     }
 
     @ParameterizedTest(name = "{0}")

@@ -25,7 +25,7 @@ class EnqueueOrderPaidEmailsServiceTest {
         Result result = service.execute(new Command(order));
 
         assertThat(result).isEqualTo(new Result(2));
-        for (EmailType type : EmailType.values()) {
+        for (EmailType type : new EmailType[] {EmailType.ORDER_PAID_CUSTOMER, EmailType.ORDER_PAID_ADMIN}) {
             assertThat(outbox.find(type, order)).hasValueSatisfying(email -> {
                 assertThat(email.status()).isEqualTo("PENDING");
                 assertThat(email.nextAttemptAt()).isEqualTo(NOW);

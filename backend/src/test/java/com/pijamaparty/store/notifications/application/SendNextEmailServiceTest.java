@@ -41,10 +41,14 @@ class SendNextEmailServiceTest {
     private final InMemoryEmailOutbox outbox = new InMemoryEmailOutbox();
     private final InMemoryEmailComposer buyer = new InMemoryEmailComposer(EmailType.ORDER_PAID_CUSTOMER);
     private final InMemoryEmailComposer admin = new InMemoryEmailComposer(EmailType.ORDER_PAID_ADMIN);
+    private final InMemoryEmailComposer withdrawalBuyer =
+        new InMemoryEmailComposer(EmailType.WITHDRAWAL_RECEIVED_CUSTOMER);
+    private final InMemoryEmailComposer withdrawalAdmin = new InMemoryEmailComposer(EmailType.WITHDRAWAL_RECEIVED_ADMIN);
     private final InMemoryEmailSender sender = new InMemoryEmailSender();
     private final ClaimNextEmailService claims = new ClaimNextEmailService(outbox, outbox, clock);
     private final SendNextEmailService service =
-        new SendNextEmailService(claims, outbox, List.of(buyer, admin), sender, clock);
+        new SendNextEmailService(claims, outbox, List.of(buyer, admin, withdrawalBuyer, withdrawalAdmin), sender,
+            clock);
     private final UUID order = UUID.randomUUID();
 
     @Test
@@ -172,7 +176,8 @@ class SendNextEmailServiceTest {
     void givenAComposerMissingOrRepeated_whenTheServiceIsCreated_thenItFails() {
         assertThatThrownBy(() -> new SendNextEmailService(claims, outbox, List.of(buyer), sender, clock))
             .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new SendNextEmailService(claims, outbox, List.of(buyer, admin, buyer), sender,
+        assertThatThrownBy(() -> new SendNextEmailService(claims, outbox,
+            List.of(buyer, admin, withdrawalBuyer, withdrawalAdmin, buyer), sender,
             clock)).isInstanceOf(IllegalArgumentException.class);
     }
 }

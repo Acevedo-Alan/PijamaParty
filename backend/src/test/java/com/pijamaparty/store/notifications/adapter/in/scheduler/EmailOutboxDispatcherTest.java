@@ -79,7 +79,7 @@ class EmailOutboxDispatcherTest {
     @AfterEach
     void cleanUp() {
         resend.reset();
-        owner.execute("truncate email_outbox, order_tracking_token, order_item, orders");
+        owner.execute("truncate email_outbox, withdrawal_request, order_tracking_token, order_item, orders");
     }
 
     @Test

@@ -743,6 +743,27 @@ export const es = {
       error: 'No pudimos guardar el email. Probá de nuevo.',
     },
   },
+  /** UC-29 (T-E3-25). The texts about the right are placeholders, to be validated with a professional. */
+  withdrawal: {
+    link: 'Botón de arrepentimiento',
+    homeText:
+      '¿Te arrepentiste de una compra? Tenés 10 días corridos desde que la recibiste para pedir la devolución, sin costo.',
+    title: 'Botón de arrepentimiento',
+    intro:
+      'Podés revocar tu compra dentro de los 10 días corridos desde que la recibiste o desde que la hiciste, lo que haya pasado último. La devolución no tiene costo para vos. Completá el número de pedido y el email con el que compraste.',
+    orderNumber: 'Número de pedido',
+    orderNumberHint: 'Por ejemplo, 1001',
+    email: 'Email de la compra',
+    send: 'Enviar solicitud',
+    sending: 'Enviando…',
+    requested: 'Recibimos tu solicitud. Tu código de trámite es:',
+    alreadyRequested: 'Ya habías hecho esta solicitud. Tu código de trámite es:',
+    keepIt: 'Guardalo; también te lo enviamos por email.',
+    noMatchingOrder: 'No encontramos un pedido con ese número y ese email. Revisá los datos.',
+    notWithdrawable: 'Este pedido no tiene un pago para devolver.',
+    tooManyAttempts: 'Hiciste muchos intentos. Probá de nuevo en un rato.',
+    error: 'No pudimos enviar la solicitud. Probá de nuevo.',
+  },
   notFound: {
     title: 'No encontramos esta página',
     body: 'Puede que el enlace esté mal escrito o que la página ya no exista.',

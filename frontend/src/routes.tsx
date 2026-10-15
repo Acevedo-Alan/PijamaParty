@@ -7,6 +7,8 @@ import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
 import { OrderTrackingPage } from './features/orders/OrderTrackingPage.tsx';
 import { SearchPage } from './features/search/SearchPage.tsx';
 import { StoreLayout } from './features/search/StoreLayout.tsx';
+import { WITHDRAWAL_PATH } from './features/withdrawal/WithdrawalLink.tsx';
+import { WithdrawalPage } from './features/withdrawal/WithdrawalPage.tsx';
 
 /** The back office loads on demand, so shoppers never download it. */
 const admin = () => import('./features/admin/adminPages.ts');
@@ -23,6 +25,7 @@ export const routes: RouteObject[] = [
       { path: '/checkout', element: <CheckoutPage /> },
       { path: '/checkout/result', element: <CheckoutResultPage /> },
       { path: '/pedido/:token', element: <OrderTrackingPage /> },
+      { path: WITHDRAWAL_PATH, element: <WithdrawalPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

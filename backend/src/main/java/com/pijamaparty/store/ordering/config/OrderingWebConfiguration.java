@@ -30,4 +30,13 @@ class OrderingWebConfiguration {
             .requestMatchers(HttpMethod.POST, "/api/orders/*/retry-payment").permitAll()
             .requestMatchers(HttpMethod.PATCH, "/api/orders/*/email").permitAll();
     }
+
+    /**
+     * UC-29 (T-E3-25): the withdrawal button needs no account; the order's number and email are checked by the use
+     * case, as the system (RNF-27).
+     */
+    @Bean
+    HttpAuthorizationRules withdrawalAuthorizationRules() {
+        return registry -> registry.requestMatchers(HttpMethod.POST, "/api/withdrawals").permitAll();
+    }
 }

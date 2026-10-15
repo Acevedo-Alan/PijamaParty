@@ -49,7 +49,7 @@ class ReservationExpiryTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate email_outbox, order_tracking_token, order_item, orders, stock_movement, stock_level");
+        owner.execute("truncate email_outbox, withdrawal_request, order_tracking_token, order_item, orders, stock_movement, stock_level");
     }
 
     @Test

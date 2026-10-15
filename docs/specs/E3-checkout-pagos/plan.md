@@ -32,7 +32,7 @@
 - **Pagos:** MercadoPago con redirección a su página de pago (los datos de tarjeta nunca tocan el servidor). MODO en E3b, según la documentación que se consiga.
 - **Mails:** envío asíncrono con reintentos; proveedor SMTP o servicio transaccional a definir.
 - **Seguimiento sin cuenta:** `token_seguimiento` aleatorio y no adivinable por pedido (al menos 128 bits, guardado hasheado; RNF-29.6).
-- **Botón de arrepentimiento:** el código de trámite se genera aleatorio y legible (por ejemplo `ARR-` más 8 caracteres). El correo usa el outbox con tipo propio, así que también es idempotente (RNF-20.7).
+- **Botón de arrepentimiento:** el código de trámite se genera aleatorio y legible (por ejemplo `ARR-` más 8 caracteres). El correo usa el outbox con tipo propio, así que también es idempotente (RNF-20.7). *Decidido en T-E3-25:* solo se aceptan pedidos pagados (PAGADO a ENTREGADO); uno pendiente de pago, vencido o cancelado se rechaza sin registrar nada. El plazo se cuenta en días corridos, hora de Argentina, hasta el fin del décimo día posterior a la compra o a la entrega, la más tardía. El administrador recibe un aviso por correo con el código y la marca de fuera de término. Un pedido con una solicitud resuelta puede recibir otra.
 - **Datos personales:** el DNI se guarda solo en el pedido y no se registra en logs (R-05).
 
 ## Riesgos

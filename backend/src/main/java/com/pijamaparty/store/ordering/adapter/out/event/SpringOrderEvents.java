@@ -2,8 +2,10 @@ package com.pijamaparty.store.ordering.adapter.out.event;
 
 import com.pijamaparty.store.ordering.api.OrderEmailCorrected;
 import com.pijamaparty.store.ordering.api.OrderPaid;
+import com.pijamaparty.store.ordering.api.WithdrawalRequested;
 import com.pijamaparty.store.ordering.application.OrderEvents;
 import com.pijamaparty.store.ordering.domain.OrderId;
+import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -25,5 +27,10 @@ class SpringOrderEvents implements OrderEvents {
     @Override
     public void orderEmailCorrected(OrderId order, long number) {
         publisher.publishEvent(new OrderEmailCorrected(order.value(), number));
+    }
+
+    @Override
+    public void withdrawalRequested(UUID request, OrderId order, long number) {
+        publisher.publishEvent(new WithdrawalRequested(request, order.value(), number));
     }
 }

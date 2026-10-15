@@ -24,7 +24,7 @@
 - [x] **T-E3-22** Webhook de rebotes y quejas del proveedor de correo, tabla `email_evento` y alerta en el pedido del backoffice (CU-17, CU-18).
 - [x] **T-E3-23** Corrección del email desde la página de resultado y el enlace de seguimiento, con reenvío y rate limiting (CU-17).
 - [x] **T-E3-24** Sugerencia de dominios de email mal escritos en el paso de envío (CU-13).
-- [ ] **T-E3-25** Botón de arrepentimiento: enlace en inicio y pie, formulario, código de trámite, correo y aviso al administrador (CU-29).
+- [x] **T-E3-25** Botón de arrepentimiento: enlace en inicio y pie, formulario, código de trámite, correo y aviso al administrador (CU-29).
 - [ ] **T-E3-26** Backoffice: lista de solicitudes de arrepentimiento, marca de fuera de término y resolución (CU-29).
 - [ ] **T-E3-27** Tests de los criterios de aceptación de CU-29, Row Level Security de `solicitud_arrepentimiento` y política de rate limiting (RNF-22, RNF-27).
 - [x] **T-E3-28** Activar la política de rate limiting del backoffice autenticado: 300 solicitudes por minuto por usuario en `/api/admin/**`, para cupones, envíos y lo que se sume (RNF-22).

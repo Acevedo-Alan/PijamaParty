@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.ordering.api.OrderEmailCorrected;
 import com.pijamaparty.store.ordering.api.OrderPaid;
+import com.pijamaparty.store.ordering.api.WithdrawalRequested;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.platform.testing.ContractTest;
 import java.util.List;
@@ -44,5 +45,15 @@ public abstract class OrderEventsContractTest<T extends OrderEvents> extends Con
         subject.orderEmailCorrected(order, 1001);
 
         assertThat(published()).containsExactly(new OrderEmailCorrected(order.value(), 1001));
+    }
+
+    @Test
+    void givenAWithdrawalRequest_whenPublished_thenWithdrawalRequestedCarriesTheRequestTheOrderAndItsNumber() {
+        UUID request = UUID.randomUUID();
+        OrderId order = OrderId.of(UUID.randomUUID());
+
+        subject.withdrawalRequested(request, order, 1001);
+
+        assertThat(published()).containsExactly(new WithdrawalRequested(request, order.value(), 1001));
     }
 }

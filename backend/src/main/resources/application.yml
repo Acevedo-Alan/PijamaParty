@@ -236,6 +236,14 @@ store:
         keys: [tracking, ip]
         capacity: 3
         period: 1h
+      # UC-29 (T-E3-25): withdrawal requests per order number (from the body) and IP together; each new one sends
+      # two emails
+      - name: withdrawal
+        paths: [/api/withdrawals]
+        methods: [POST]
+        keys: [order-number, ip]
+        capacity: 3
+        period: 1h
       # T-E3-28: the authenticated back office per user (from the session). Without a signed-in session the policy
       # does not apply: the route answers 401, and the sign-in has its own policies above.
       - name: back-office

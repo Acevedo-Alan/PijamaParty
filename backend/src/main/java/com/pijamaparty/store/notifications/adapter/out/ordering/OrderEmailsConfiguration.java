@@ -2,6 +2,7 @@ package com.pijamaparty.store.notifications.adapter.out.ordering;
 
 import com.pijamaparty.store.ordering.api.PaidOrders;
 import com.pijamaparty.store.ordering.api.TrackingLinks;
+import com.pijamaparty.store.ordering.api.WithdrawalNotices;
 import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -9,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * The composers of the emails about an order (UC-17).
+ * The composers of the emails about an order (UC-17) and its withdrawal requests (UC-29).
  *
  * <p>{@code store.public-url}: the storefront's origin, where the tracking link points. {@code
  * store.notifications.admin-recipient}: the administrator's address ({@code NOTIFICATIONS_ADMIN_EMAIL}), read with
@@ -29,5 +30,17 @@ class OrderEmailsConfiguration {
     OrderPaidAdminComposer orderPaidAdminComposer(
         PaidOrders orders, MessageSource messages, @Value("${store.notifications.admin-recipient}") String recipient) {
         return new OrderPaidAdminComposer(orders, messages, recipient);
+    }
+
+    @Bean
+    WithdrawalCustomerComposer withdrawalCustomerComposer(WithdrawalNotices notices, MessageSource messages) {
+        return new WithdrawalCustomerComposer(notices, messages);
+    }
+
+    @Bean
+    WithdrawalAdminComposer withdrawalAdminComposer(
+        WithdrawalNotices notices, MessageSource messages,
+        @Value("${store.notifications.admin-recipient}") String recipient) {
+        return new WithdrawalAdminComposer(notices, messages, recipient);
     }
 }
