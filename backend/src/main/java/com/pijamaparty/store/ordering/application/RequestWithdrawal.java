@@ -6,7 +6,7 @@ import java.util.Objects;
 
 /**
  * UC-29 (T-E3-25): a person withdraws from a purchase with its order number and email, without an account. Run as
- * {@code SYSTEM}: only the system reads an order by its number and records requests (RNF-27).
+ * that person, a guest or a customer: the database reaches the order only when its number and email match (RNF-27).
  */
 public interface RequestWithdrawal {
 

@@ -15,8 +15,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Contract of {@link WithdrawableOrders}, {@link ActiveWithdrawals}, {@link SaveWithdrawals} and
- * {@link WithdrawalNoticeDetails} (UC-29, T-E3-25): an order found by its number, its active request, a code taken
- * once, and what the emails of a request tell.
+ * {@link WithdrawalNoticeDetails} (UC-29, T-E3-25): an order found by its number and email, its active request, a code
+ * taken once, and what the emails of a request tell.
  */
 public abstract class WithdrawalStoreContractTest<T extends WithdrawableOrders & ActiveWithdrawals & SaveWithdrawals
     & WithdrawalNoticeDetails> extends ContractTest<T> {
@@ -24,6 +24,8 @@ public abstract class WithdrawalStoreContractTest<T extends WithdrawableOrders &
     protected static final Instant PLACED_AT = Instant.parse("2026-10-01T13:00:00Z");
     protected static final Instant DELIVERED_AT = Instant.parse("2026-10-05T18:30:00Z");
     protected static final Instant NOW = Instant.parse("2026-10-08T15:00:00Z");
+    /** The email of every order {@link #placed}, normalized. */
+    protected static final String EMAIL = "ana@example.com";
 
     /**
      * An order of Ana Pérez ({@code ana@example.com}) in {@code status}, placed at {@code createdAt}; delivered at
@@ -35,20 +37,21 @@ public abstract class WithdrawalStoreContractTest<T extends WithdrawableOrders &
     protected abstract void resolved(UUID request, Instant at);
 
     @Test
-    void givenAPaidOrder_whenLockedByItsNumber_thenItComesWithItsEmailStatusAndDates() {
+    void givenAPaidOrder_whenLockedByItsNumberAndEmail_thenItComesWithItsStatusAndDates() {
         WithdrawableOrder order = placed(OrderStatus.PAID, PLACED_AT, Optional.empty());
         persistAndForget();
 
-        assertThat(subject.lock(order.number())).contains(new WithdrawableOrder(order.id(), order.number(),
-            "ana@example.com", OrderStatus.PAID, PLACED_AT, Optional.empty()));
+        assertThat(subject.lock(order.number(), EMAIL)).contains(new WithdrawableOrder(order.id(), order.number(),
+            OrderStatus.PAID, PLACED_AT, Optional.empty()));
     }
 
     @Test
-    void givenADeliveredOrder_whenLockedByItsNumber_thenItComesWithItsDeliveryDate() {
+    void givenADeliveredOrder_whenLockedByItsNumberAndEmail_thenItComesWithItsDeliveryDate() {
         WithdrawableOrder order = placed(OrderStatus.DELIVERED, PLACED_AT, Optional.of(DELIVERED_AT));
         persistAndForget();
 
-        assertThat(subject.lock(order.number())).map(WithdrawableOrder::deliveredAt).contains(Optional.of(DELIVERED_AT));
+        assertThat(subject.lock(order.number(), EMAIL)).map(WithdrawableOrder::deliveredAt)
+            .contains(Optional.of(DELIVERED_AT));
     }
 
     @Test
@@ -56,7 +59,15 @@ public abstract class WithdrawalStoreContractTest<T extends WithdrawableOrders &
         WithdrawableOrder order = placed(OrderStatus.PAID, PLACED_AT, Optional.empty());
         persistAndForget();
 
-        assertThat(subject.lock(order.number() + 1000)).isEmpty();
+        assertThat(subject.lock(order.number() + 1000, EMAIL)).isEmpty();
+    }
+
+    @Test
+    void givenTheNumberOfAnOrderWithAnotherEmail_whenLocked_thenThereIsNoneAsForAnUnknownNumber() {
+        WithdrawableOrder order = placed(OrderStatus.PAID, PLACED_AT, Optional.empty());
+        persistAndForget();
+
+        assertThat(subject.lock(order.number(), "otra@example.com")).isEmpty();
     }
 
     @Test

@@ -5,8 +5,8 @@ import java.util.UUID;
 
 /**
  * UC-29 (T-E3-25): a withdrawal request gets its emails, the procedure code to the buyer and the notice to the
- * administrator, enqueued in the transaction that recorded it, which must exist. Runs as {@code SYSTEM}. Repeating
- * it enqueues nothing more (RNF-20.7).
+ * administrator, enqueued in the transaction that recorded it, which must exist. Runs as the person that sent the
+ * form (V26). Repeating it enqueues nothing more (RNF-20.7).
  */
 public interface EnqueueWithdrawalEmails {
 

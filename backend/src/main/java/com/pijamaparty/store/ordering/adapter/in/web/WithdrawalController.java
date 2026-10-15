@@ -2,7 +2,6 @@ package com.pijamaparty.store.ordering.adapter.in.web;
 
 import com.pijamaparty.store.ordering.application.RequestWithdrawal;
 import com.pijamaparty.store.ordering.domain.WithdrawalCode;
-import com.pijamaparty.store.platform.persistence.CurrentActor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -55,8 +54,8 @@ class WithdrawalController {
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> request(@Valid @RequestBody WithdrawalRequest body) {
         var command = new RequestWithdrawal.Command(body.orderNumber(), body.email());
-        // Nobody holds a token or an account for the order: only the system reads it by its number (RNF-27).
-        return switch (CurrentActor.callAsSystem(() -> requestWithdrawal.execute(command))) {
+        // As the guest or the customer that sends it: the database reaches the order only by its number and email.
+        return switch (requestWithdrawal.execute(command)) {
             case RequestWithdrawal.Result.Requested requested ->
                 ResponseEntity.status(HttpStatus.CREATED).body(WithdrawalResponse.of(requested.code()));
             case RequestWithdrawal.Result.AlreadyRequested already ->

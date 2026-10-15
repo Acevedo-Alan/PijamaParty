@@ -32,8 +32,8 @@ class OrderingWebConfiguration {
     }
 
     /**
-     * UC-29 (T-E3-25): the withdrawal button needs no account; the order's number and email are checked by the use
-     * case, as the system (RNF-27).
+     * UC-29 (T-E3-25): the withdrawal button needs no account; the database reaches the order only when its number
+     * and email match (RNF-27).
      */
     @Bean
     HttpAuthorizationRules withdrawalAuthorizationRules() {

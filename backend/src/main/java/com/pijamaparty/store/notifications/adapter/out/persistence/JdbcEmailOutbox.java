@@ -22,10 +22,10 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The outbox in table {@code email_outbox} (V19, V23, V24), as {@code SYSTEM} (RNF-27), and as the buyer that
- * corrects its email to send its confirmation again (T-E3-23). Enqueueing, locking and bouncing join the caller's
- * transaction; recording joins it or, when there is none, runs in its own short one, so no connection is
- * held while an email is sent (RNF-21).
+ * The outbox in table {@code email_outbox} (V19, V23, V24, V26), as {@code SYSTEM} (RNF-27), as the buyer that
+ * corrects its email to send its confirmation again (T-E3-23), and as the person that sends the withdrawal form
+ * (T-E3-25). Enqueueing, locking and bouncing join the caller's transaction; recording joins it or, when there is
+ * none, runs in its own short one, so no connection is held while an email is sent (RNF-21).
  */
 @Repository
 class JdbcEmailOutbox

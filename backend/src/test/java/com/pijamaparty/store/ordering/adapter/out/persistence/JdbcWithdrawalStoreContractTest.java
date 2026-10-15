@@ -15,12 +15,16 @@ import com.pijamaparty.store.ordering.application.WithdrawalStoreContractTest;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.WithdrawalCode;
+import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
@@ -32,26 +36,29 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * Orders stored as the owner; looked up, locked and given requests as the system, each call in its own committed
- * transaction, as the withdrawal button runs, so Row Level Security applies as in production (RNF-27). The policies
- * for every actor come in T-E3-27.
+ * Orders stored as the owner; matched, locked and given requests as a guest, each call in its own committed
+ * transaction that first matches the order's number and email, as the withdrawal form runs, so Row Level Security
+ * applies as in production (RNF-27, V26). Notices read as the system, as the email job does. The policies for every
+ * actor come in T-E3-27.
  */
 @ApiTest
-class JdbcWithdrawalStoreContractTest extends WithdrawalStoreContractTest<JdbcWithdrawalStoreContractTest.AsSystem> {
+class JdbcWithdrawalStoreContractTest extends WithdrawalStoreContractTest<JdbcWithdrawalStoreContractTest.AsGuest> {
 
-    private final AsSystem asSystem;
+    private static final Actor GUEST = Actor.anonymous(Optional.empty(), Optional.empty());
+
+    private final AsGuest asGuest;
     private final JdbcTemplate owner;
 
     JdbcWithdrawalStoreContractTest(JdbcWithdrawalStore adapter, PlatformTransactionManager transactionManager,
                                     PostgreSQLContainer<?> postgres) {
-        this.asSystem = new AsSystem(adapter, new TransactionTemplate(transactionManager));
+        this.asGuest = new AsGuest(adapter, new TransactionTemplate(transactionManager), new ConcurrentHashMap<>());
         this.owner = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), "tienda_owner",
             TestcontainersConfiguration.OWNER_PASSWORD));
     }
 
     @Override
-    protected AsSystem createSubject() {
-        return asSystem;
+    protected AsGuest createSubject() {
+        return asGuest;
     }
 
     @Override
@@ -64,8 +71,9 @@ class JdbcWithdrawalStoreContractTest extends WithdrawalStoreContractTest<JdbcWi
         } else {
             owner.update("update orders set status = ? where id = ?", status.name(), order.value());
         }
-        return new WithdrawableOrder(order, OrderRows.numberOf(owner, order), "ana@example.com", status, createdAt,
-            deliveredAt);
+        long number = OrderRows.numberOf(owner, order);
+        asGuest.numbers().put(order, number);
+        return new WithdrawableOrder(order, number, status, createdAt, deliveredAt);
     }
 
     @Override
@@ -83,44 +91,97 @@ class JdbcWithdrawalStoreContractTest extends WithdrawalStoreContractTest<JdbcWi
     void givenAnOrderLockedByAWithdrawal_whenAnotherTransactionLocksItWithoutWaiting_thenItIsHeld() {
         WithdrawableOrder order = placed(OrderStatus.PAID, PLACED_AT, Optional.empty());
 
-        CurrentActor.runAsSystem(() -> asSystem.transactions().executeWithoutResult(status -> {
-            assertThat(asSystem.adapter().lock(order.number())).isPresent();
+        asGuest.inOneTransaction(() -> {
+            assertThat(asGuest.adapter().lock(order.number(), EMAIL)).isPresent();
             assertThatThrownBy(() -> owner.queryForList(
                 "select id from orders where id = ? for update nowait", order.id().value()))
                 .isInstanceOf(DataAccessException.class).hasStackTraceContaining("could not obtain lock");
-        }));
+            return null;
+        });
     }
 
     @Test
     void givenAnOrderWithAnActiveRequest_whenASecondOneIsInsertedWithAnotherCode_thenTheDatabaseRefusesIt() {
         WithdrawableOrder order = placed(OrderStatus.PAID, PLACED_AT, Optional.empty());
-        asSystem.insert(new NewWithdrawal(UUID.randomUUID(), order.id(), new WithdrawalCode("ARR-7K2M9QXZ"), false,
+        asGuest.insert(new NewWithdrawal(UUID.randomUUID(), order.id(), new WithdrawalCode("ARR-7K2M9QXZ"), false,
             NOW));
 
-        assertThatThrownBy(() -> asSystem.insert(new NewWithdrawal(UUID.randomUUID(), order.id(),
+        assertThatThrownBy(() -> asGuest.insert(new NewWithdrawal(UUID.randomUUID(), order.id(),
             new WithdrawalCode("ARR-22222222"), false, NOW)))
             .isInstanceOf(DataIntegrityViolationException.class)
             .hasStackTraceContaining("withdrawal_request_active_order_uk");
     }
 
-    /** Every call as the system, in its own committed transaction. */
-    record AsSystem(JdbcWithdrawalStore adapter, TransactionTemplate transactions)
+    @Test
+    void givenAGuestWithTheWrongEmail_whenItReadsOrRecordsARequestOfTheOrder_thenRowLevelSecurityRefusesIt() {
+        WithdrawableOrder order = placed(OrderStatus.PAID, PLACED_AT, Optional.empty());
+        asGuest.insert(new NewWithdrawal(UUID.randomUUID(), order.id(), new WithdrawalCode("ARR-7K2M9QXZ"), false,
+            NOW));
+
+        asGuest.inOneTransaction(() -> {
+            assertThat(asGuest.adapter().lock(order.number(), "otra@example.com")).isEmpty();
+            assertThat(asGuest.adapter().codeOf(order.id())).isEmpty();
+            return null;
+        });
+        assertThatThrownBy(() -> asGuest.inOneTransaction(() -> {
+            asGuest.adapter().lock(order.number(), "otra@example.com");
+            return asGuest.adapter().insert(new NewWithdrawal(UUID.randomUUID(), order.id(),
+                new WithdrawalCode("ARR-22222222"), false, NOW));
+        })).isInstanceOf(DataAccessException.class).hasStackTraceContaining("row-level security");
+    }
+
+    @Test
+    void givenAGuestThatMatchedOneOrder_whenItRecordsARequestOfAnother_thenRowLevelSecurityRefusesIt() {
+        WithdrawableOrder matched = placed(OrderStatus.PAID, PLACED_AT, Optional.empty());
+        WithdrawableOrder other = placed(OrderStatus.PAID, PLACED_AT, Optional.empty());
+
+        assertThatThrownBy(() -> asGuest.inOneTransaction(() -> {
+            asGuest.adapter().lock(matched.number(), EMAIL);
+            return asGuest.adapter().insert(new NewWithdrawal(UUID.randomUUID(), other.id(),
+                new WithdrawalCode("ARR-7K2M9QXZ"), false, NOW));
+        })).isInstanceOf(DataAccessException.class).hasStackTraceContaining("row-level security");
+    }
+
+    @Test
+    void givenTheSystem_whenItLooksAnOrderUpByNumberAndEmail_thenItGetsNothing() {
+        WithdrawableOrder order = placed(OrderStatus.PAID, PLACED_AT, Optional.empty());
+
+        Optional<WithdrawableOrder> found = CurrentActor.callAsSystem(() -> asGuest.transactions().execute(status ->
+            asGuest.adapter().lock(order.number(), EMAIL)));
+
+        assertThat(found).isEmpty();
+    }
+
+    /**
+     * Every call as a guest in its own committed transaction, which first matches the order by its number and
+     * {@link #EMAIL}, as the form does; notices as the system.
+     */
+    record AsGuest(JdbcWithdrawalStore adapter, TransactionTemplate transactions, Map<OrderId, Long> numbers)
         implements WithdrawableOrders, ActiveWithdrawals, SaveWithdrawals, WithdrawalNoticeDetails {
 
+        <T> T inOneTransaction(Supplier<T> block) {
+            return CurrentActor.callAs(GUEST, () -> transactions.execute(status -> block.get()));
+        }
+
         @Override
-        public Optional<WithdrawableOrder> lock(long number) {
-            return CurrentActor.callAsSystem(() -> transactions.execute(status -> adapter.lock(number)));
+        public Optional<WithdrawableOrder> lock(long number, String email) {
+            return inOneTransaction(() -> adapter.lock(number, email));
         }
 
         @Override
         public Optional<WithdrawalCode> codeOf(OrderId order) {
-            return CurrentActor.callAsSystem(() -> transactions.execute(status -> adapter.codeOf(order)));
+            return inOneTransaction(() -> {
+                adapter.lock(numbers.get(order), EMAIL);
+                return adapter.codeOf(order);
+            });
         }
 
         @Override
         public boolean insert(NewWithdrawal withdrawal) {
-            return Boolean.TRUE.equals(CurrentActor.callAsSystem(
-                () -> transactions.execute(status -> adapter.insert(withdrawal))));
+            return Boolean.TRUE.equals(inOneTransaction(() -> {
+                adapter.lock(numbers.get(withdrawal.order()), EMAIL);
+                return adapter.insert(withdrawal);
+            }));
         }
 
         @Override

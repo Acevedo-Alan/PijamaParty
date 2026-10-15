@@ -131,11 +131,11 @@ Es una defensa en profundidad: no reemplaza la autorización de la aplicación, 
 | `direccion` | Todo sobre las propias | – | Lee | – |
 | `usuario` | Lee y actualiza el propio | – | Lee el propio | Crea el administrador inicial, lee para autenticar y actualiza intentos fallidos y bloqueo |
 | `identidad_externa` | Lee y desvincula las propias | – | – | Crea y lee para autenticar |
-| `solicitud_arrepentimiento` | – | – | Lee y resuelve | Crea (validando pedido y email) |
+| `solicitud_arrepentimiento` | Crea y lee las del pedido cuyo número y email acaba de verificar la base | Igual que el cliente | Lee y resuelve | Lee (para componer los correos) |
 | `carrito`, `carrito_item` | Los propios | Los de su token de carrito | – | Limpieza |
 | `resena` | Crea y edita las propias; lee las aprobadas | Lee las aprobadas | Modera | – |
 | `idempotency_key` | Las propias (por usuario) | Las de su token de carrito | – | Limpieza |
-| `email_outbox`, `email_evento` | – | – | Lee | Todo |
+| `email_outbox`, `email_evento` | Encola los correos de su solicitud de arrepentimiento y reenvía la confirmación de su pedido | Igual que el cliente | Lee | Todo |
 
 - **Verificación:** cada política se prueba con cliente A, cliente B, invitado, administrador y sistema. Un test comprueba que el rol de la aplicación no es dueño ni tiene `BYPASSRLS`, y que las tablas protegidas tienen RLS activo y forzado.
 

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * UC-29 (T-E3-25): a withdrawal request gets its emails. A plain (synchronous) listener, so they are enqueued in the
- * request's transaction, as {@code SYSTEM}, and commit or roll back with it.
+ * request's transaction, as the person that sent the form, and commit or roll back with it.
  */
 @Component
 class WithdrawalRequestedListener {

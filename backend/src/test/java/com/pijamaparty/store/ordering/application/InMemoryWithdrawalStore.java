@@ -33,8 +33,7 @@ public class InMemoryWithdrawalStore
 
     /** An order of {@link #BUYER_NAME} and {@link #BUYER_EMAIL}; answers it with its number. */
     public synchronized WithdrawableOrder place(OrderStatus status, Instant createdAt, Optional<Instant> deliveredAt) {
-        var order = new WithdrawableOrder(OrderId.of(UUID.randomUUID()), nextNumber++, BUYER_EMAIL, status, createdAt,
-            deliveredAt);
+        var order = new WithdrawableOrder(OrderId.of(UUID.randomUUID()), nextNumber++, status, createdAt, deliveredAt);
         orders.put(order.number(), order);
         return order;
     }
@@ -49,8 +48,8 @@ public class InMemoryWithdrawalStore
     }
 
     @Override
-    public synchronized Optional<WithdrawableOrder> lock(long number) {
-        return Optional.ofNullable(orders.get(number));
+    public synchronized Optional<WithdrawableOrder> lock(long number, String email) {
+        return BUYER_EMAIL.equals(email) ? Optional.ofNullable(orders.get(number)) : Optional.empty();
     }
 
     @Override
@@ -79,7 +78,7 @@ public class InMemoryWithdrawalStore
             WithdrawableOrder order = orders.values().stream()
                 .filter(each -> each.id().equals(withdrawal.order())).findFirst().orElseThrow();
             return new WithdrawalNotice(withdrawal.id(), withdrawal.code().value(), order.number(), BUYER_NAME,
-                order.email(), withdrawal.outOfTerm());
+                BUYER_EMAIL, withdrawal.outOfTerm());
         });
     }
 }

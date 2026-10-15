@@ -17,18 +17,19 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Withdrawal requests in table {@code withdrawal_request} (V25), and the orders they are for, in the caller's
- * transaction, as {@code SYSTEM} (RNF-27).
+ * Withdrawal requests in table {@code withdrawal_request} (V25, V26), and the orders they are for, in the caller's
+ * transaction. The form runs as the guest or the customer that sends it, which reaches an order's requests only after
+ * {@link #lock} matched its number and email in the same transaction; the email job reads the notices as
+ * {@code SYSTEM} (RNF-27).
  */
 @Repository
 class JdbcWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, SaveWithdrawals, WithdrawalNoticeDetails {
 
-    // UC-29: the number is unique (orders_number_uk); the lock holds a second request for the order until this one
-    // commits.
-    private static final String LOCK_BY_NUMBER = """
-        SELECT id, number, customer_email, status, created_at, delivered_at FROM orders
-        WHERE number = :number
-        FOR UPDATE
+    // UC-29 (V26): only an order of this number and email, locked, which the transaction may then reach
+    // (app_withdrawal_order_id). The lock holds a second request for the order until this one commits.
+    private static final String LOCK_MATCHING = """
+        SELECT order_id, order_number, order_status, order_created_at, order_delivered_at
+        FROM lock_withdrawable_order(:number, :email)
         """;
 
     private static final String ACTIVE_CODE = """
@@ -57,12 +58,12 @@ class JdbcWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, Save
     }
 
     @Override
-    public Optional<WithdrawableOrder> lock(long number) {
-        return jdbc.query(LOCK_BY_NUMBER, new MapSqlParameterSource("number", number), (row, n) ->
-                new WithdrawableOrder(OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
-                    row.getString("customer_email"), OrderStatus.valueOf(row.getString("status")),
-                    row.getObject("created_at", OffsetDateTime.class).toInstant(),
-                    Optional.ofNullable(row.getObject("delivered_at", OffsetDateTime.class))
+    public Optional<WithdrawableOrder> lock(long number, String email) {
+        return jdbc.query(LOCK_MATCHING, new MapSqlParameterSource("number", number).addValue("email", email),
+                (row, n) -> new WithdrawableOrder(OrderId.of(row.getObject("order_id", UUID.class)),
+                    row.getLong("order_number"), OrderStatus.valueOf(row.getString("order_status")),
+                    row.getObject("order_created_at", OffsetDateTime.class).toInstant(),
+                    Optional.ofNullable(row.getObject("order_delivered_at", OffsetDateTime.class))
                         .map(OffsetDateTime::toInstant)))
             .stream().findFirst();
     }

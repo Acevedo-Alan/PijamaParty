@@ -17,8 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * UC-29 (T-E3-25). One transaction, as the system: the order stays locked from comparing its email until the request
- * and the emails the listeners of {@code WithdrawalRequested} enqueue commit together.
+ * UC-29 (T-E3-25). One transaction, as the person that sends the form: the order stays locked from matching its
+ * number and email until the request and the emails the listeners of {@code WithdrawalRequested} enqueue commit
+ * together.
  */
 @Service
 class RequestWithdrawalService implements RequestWithdrawal {
@@ -53,8 +54,8 @@ class RequestWithdrawalService implements RequestWithdrawal {
         if (number.isEmpty() || email.isEmpty()) {
             return new Result.NoMatchingOrder();
         }
-        Optional<WithdrawableOrder> found = orders.lock(number.getAsLong());
-        if (found.isEmpty() || !found.get().email().equals(email.get())) {
+        Optional<WithdrawableOrder> found = orders.lock(number.getAsLong(), email.get());
+        if (found.isEmpty()) {
             return new Result.NoMatchingOrder();
         }
         WithdrawableOrder order = found.get();
