@@ -43,7 +43,7 @@
 - Para confirmar hay que aceptar los términos; el pedido guarda la versión vigente.
 - Al crearse el pedido, el carrito se vacía: el pedido es la copia de lo comprado y el pago se reintenta desde el enlace de seguimiento.
 - Si al abrir el checkout hay ítems sin stock o cambios de precio sin aceptar, se avisa y el botón "Revisar carrito" abre el carrito para corregirlo (decidido en T-E3-11). El cupón se carga en el carrito; en el checkout solo se ve y se puede quitar.
-- Al volver de MercadoPago, la tienda abre la página de seguimiento del pedido. Si el pago fue aprobado y la confirmación todavía no llegó, muestra "Estamos confirmando tu pago" y vuelve a consultar durante unos minutos (decidido en T-E3-11). Si se vuelve en otra pestaña o dispositivo, se avisa que la confirmación llega por email.
+- Al volver de MercadoPago o de MODO, la tienda abre la página de seguimiento del pedido. Si el pago fue aprobado y la confirmación todavía no llegó, muestra "Estamos confirmando tu pago" y vuelve a consultar durante unos minutos (decidido en T-E3-11). Si se vuelve en otra pestaña o dispositivo, se avisa que la confirmación llega por email.
 
 **Criterios de aceptación**
 - Dado un dato obligatorio vacío, cuando se intenta avanzar, entonces no se avanza y se indica cuál falta.
@@ -69,7 +69,8 @@
 **Reglas**
 - Los datos de tarjeta nunca pasan por la tienda.
 - En la primera versión solo se habilitan medios de pago inmediatos (*Propuesto*).
-- MODO se implementa en una sub-etapa **E3b**, una vez resuelta la integración (*Pendiente*).
+- MODO se implementa en la sub-etapa **E3b** (plan en `plan.md`, sección "MODO (E3b)"). El comprador paga desde la app de su banco o la app MODO; cada intento de pago vence a los 10 minutos, y "Pagar" en el seguimiento crea uno nuevo mientras dure la reserva (decidido en T-E3b-01).
+- Las tarjetas de crédito y débito (Visa, Mastercard y demás) se pagan por MercadoPago, que no exige cuenta (decidido en T-E3b-01).
 - En MercadoPago el pago es una sola línea, "Pedido #1001 - Pijama Party", por el total que calculó el servidor; se le envían el nombre y el email del cliente para precompletar el pago, nunca el DNI, el teléfono ni la dirección. El pago vence junto con la reserva.
 - Si MercadoPago no responde, el pedido igual queda creado con su stock reservado: el cliente va a la página de seguimiento y reintenta el pago desde ahí.
 - La página de seguimiento (`/pedido/{token}`) muestra el número y el estado del pedido, los productos, los importes, la ciudad y la provincia, el nombre de pila del cliente y el número de seguimiento del envío cuando lo hay. Nunca muestra el DNI, el email, el teléfono ni la calle, porque el enlace se puede reenviar o quedar en el historial (decidido). Mientras el pedido está pendiente de pago y la reserva vigente, muestra hasta cuándo están reservados los productos y el botón "Pagar"; si la reserva venció, lo dice.
@@ -82,6 +83,8 @@
 - Dados dos requests simultáneos con el mismo `Idempotency-Key`, cuando llegan a la vez, entonces se crea un solo pedido y el otro recibe la respuesta guardada o un `409` con `Retry-After`.
 - Dado un checkout sin `Idempotency-Key`, cuando llega, entonces se rechaza con `400`.
 - Dado un pedido PAGADO, cuando el cliente vuelve a la tienda y recarga la página, entonces la analítica registra una sola compra (RNF-25).
+- Dado un pedido con MODO cuyo intento de pago venció mientras dura la reserva, cuando el cliente toca "Pagar", entonces se crea un intento nuevo por el mismo monto y se lo redirige a MODO (T-E3b-02).
+- Dado un intento de pago de MODO, cuando se crea, entonces vence en 10 minutos como máximo y nunca después de la reserva, salvo el mínimo de 5 minutos de MODO (T-E3b-02).
 
 ## CU-15 Confirmar el pago (webhook)
 
@@ -103,6 +106,8 @@
 - Dado un pago aprobado de un pedido ya EXPIRADO, cuando llega la notificación, entonces el pedido sigue EXPIRADO, no se toca el stock y queda un aviso con el número de pedido para devolver el dinero desde el panel de MercadoPago (decidido).
 - Dada una notificación de un pago inexistente, cuando llega, entonces se ignora y se registra un aviso sin datos personales.
 - Dadas dos notificaciones idénticas que llegan a la vez, cuando se procesan, entonces solo una produce efectos.
+- Dada una notificación de MODO cuya firma no se verifica con las claves de MODO, cuando llega, entonces se rechaza con `401` y no se procesa nada (T-E3b-03).
+- Dado un pago de MODO aprobado cuya notificación nunca llegó, cuando corre la conciliación, entonces el pedido pasa a PAGADO una sola vez (T-E3b-03).
 
 ## CU-16 Reservar y liberar stock
 

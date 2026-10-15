@@ -35,6 +35,7 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | SolicitudArrepentimiento | id, pedidoId, codigo, estado (RECIBIDA / RESUELTA), fueraDeTermino, creadoEn, resueltoEn |
 | PedidoItem | pedidoId, posicion, varianteId, sku, nombre, talle, color, precioCentavos, cantidad (inmutable) |
 | Pago | id, pedidoId, proveedor (uno por pedido y proveedor), montoCentavos, estado (PENDIENTE / APROBADO / RECHAZADO), idCheckout?, urlCheckout? (la preferencia de MercadoPago), idPagoExterno? (último pago verificado), creadoEn, actualizadoEn |
+| Intento de checkout (E3b) | pagoId, intento (1, 2, …), referenciaExterna (`{número de pedido}-{intento}`), idCheckout?, urlCheckout?, venceEn? (MODO: de 5 a 10 minutos; MercadoPago: con la reserva), creadoEn. Uno por checkout creado en el proveedor |
 | CostoEnvioZona | provincia (una de las 24 jurisdicciones), costoCentavos (0 a 1.000.000.000) |
 | ConfigTienda | envioGratisDesdeCentavos? (una sola fila) |
 | IdempotencyKey | id, clave, alcance, hashRequest, estado, codigoRespuesta, cuerpoRespuesta, creadoEn, venceEn |
@@ -86,7 +87,8 @@ PAGADO | PREPARANDO → CANCELADO
 | Datos del comprador en el pedido | Decidido | Nombre 1 a 100; email hasta 254, en minúsculas; teléfono solo dígitos, 8 a 15; DNI solo dígitos, 7 u 8; calle 1 a 100, número 1 a 10, piso y depto opcionales hasta 10, ciudad 1 a 80; código postal de 4 dígitos o CPA (`S3000ABC`) en mayúsculas (CU-13) |
 | Contexto de RLS del checkout | Decidido | La transacción del checkout corre como el comprador (invitado o cliente), atada al hash del token de seguimiento del pedido nuevo; el pago, el proveedor, el webhook y el vencimiento corren como SISTEMA (RNF-27) |
 | Versión de los términos en el pedido | Decidido | Se guarda al comprar (RNF-30.6); la marca de facturado espera la decisión de facturación (RNF-30.7) |
-| Integración con MODO | Pendiente | Averiguar documentación y acuerdo comercial |
+| Integración con MODO | Decidido | Plan en E3, sección "MODO (E3b)" (T-E3b-01): botón de pago con redirección, sobre un gateway de tarjetas todavía sin elegir; las tarjetas siguen por MercadoPago |
+| Devoluciones de MODO | Pendiente | MODO exige devolver por su API: botón en el backoffice o devolución desde el gateway (T-E3b-06) |
 | Reglas de reseñas | Pendiente | Documento de alcance, punto 12 |
 | Reglas de cupones automáticos | Pendiente | Documento de alcance, punto 12 |
 | Guardar DNI en la cuenta del cliente | Pendiente | Propuesta: pedirlo en cada compra |
