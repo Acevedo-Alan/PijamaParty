@@ -831,6 +831,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checkout/payment-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The payment providers buyers may choose
+         * @description Step 2 of the checkout. MERCADOPAGO always, first; MODO only while the store has it switched on. The same for every buyer.
+         */
+        get: operations["paymentProviders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/catalog/suggestions": {
         parameters: {
             query?: never;
@@ -1458,6 +1478,9 @@ export interface components {
             shippingCents?: number;
             /** Format: int64 */
             totalCents?: number;
+        };
+        PaymentProvidersResponse: {
+            providers?: ("MERCADOPAGO" | "MODO")[];
         };
         ListingImageResponse: {
             placeholder?: string;
@@ -2206,29 +2229,6 @@ export interface operations {
             };
         };
     };
-    notify: {
-        parameters: {
-            query?: {
-                /** @description The kind of resource, payment */
-                type?: string;
-                /** @description MercadoPago's id of the payment */
-                "data.id"?: string;
-            };
-            header?: {
-                "x-signature"?: string;
-                "x-request-id"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Processed, or ignored (not a payment, or a payment this store does not know) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
     notifyModo: {
         parameters: {
             query?: never;
@@ -2271,6 +2271,29 @@ export interface operations {
             };
         };
     };
+    notify: {
+        parameters: {
+            query?: {
+                /** @description The kind of resource, payment */
+                type?: string;
+                /** @description MercadoPago's id of the payment */
+                "data.id"?: string;
+            };
+            header?: {
+                "x-signature"?: string;
+                "x-request-id"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Processed, or ignored (not a payment, or a payment this store does not know) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "*/*": Record<string, never>;
                 };
             };
@@ -4138,6 +4161,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    paymentProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The providers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProvidersResponse"];
                 };
             };
         };

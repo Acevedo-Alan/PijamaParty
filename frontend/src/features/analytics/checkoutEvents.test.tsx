@@ -48,8 +48,11 @@ function cartWithCoupon() {
 }
 
 /** GET answers: this cart and ARS 4,500 of shipping to any province. */
-function stubCheckout(currentCart: unknown = cart([cartItem({ quantity: 2 })])) {
+function stubCheckout(currentCart: unknown = cart([cartItem({ quantity: 2 })]), providers = ['MERCADOPAGO']) {
   vi.spyOn(api, 'GET').mockImplementation(((path: string) => {
+    if (path === '/api/checkout/payment-providers') {
+      return Promise.resolve(answer(200, { providers }));
+    }
     if (path === '/api/checkout/shipping-cost') {
       return Promise.resolve(
         answer(200, {
@@ -221,6 +224,17 @@ describe('checkout analytics events (RNF-25, T-E3-20)', { timeout: 30_000 }, () 
       ],
     ]);
     expect(gaEvents('begin_checkout')).toHaveLength(1);
+  });
+
+  it('given MODO chosen at the payment step, when the buyer goes on to the review, then add_payment_info goes with MODO', async () => {
+    stubCheckout(cart([cartItem({ quantity: 2 })]), ['MERCADOPAGO', 'MODO']);
+    renderRoute('/checkout');
+    await goToPaymentStep();
+
+    await userEvent.click(await screen.findByRole('radio', { name: /^MODO/ }));
+    await toReview();
+
+    expect(gaEvents('add_payment_info')).toEqual([expect.objectContaining({ payment_type: 'MODO' })]);
   });
 
   it('given no consent, when the buyer goes through the checkout, then nothing is sent', async () => {

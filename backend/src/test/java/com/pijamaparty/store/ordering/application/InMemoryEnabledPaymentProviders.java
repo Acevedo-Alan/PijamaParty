@@ -9,9 +9,4 @@ public record InMemoryEnabledPaymentProviders(Set<PaymentProvider> enabled) impl
     public InMemoryEnabledPaymentProviders {
         enabled = Set.copyOf(enabled);
     }
-
-    @Override
-    public boolean isEnabled(PaymentProvider provider) {
-        return enabled.contains(provider);
-    }
 }

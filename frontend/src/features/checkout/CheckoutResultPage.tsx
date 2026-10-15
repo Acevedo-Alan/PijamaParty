@@ -5,7 +5,8 @@ import { keptTrackingToken } from './trackingTokenStore.ts';
 import './checkout.css';
 
 /**
- * The return from MercadoPago (`back_urls` of T-E3-06, T-E3-11). The provider never gets the tracking token, so the
+ * The return from MercadoPago (`back_urls` of T-E3-06, T-E3-11) and from MODO (`callbackSuccess` with `status=approved`
+ * and `callback`, T-E3b-04). The provider never gets the tracking token, so the
  * order is the one placed last in this tab; its tracking page shows the real status, which only the webhook sets.
  */
 export function CheckoutResultPage() {

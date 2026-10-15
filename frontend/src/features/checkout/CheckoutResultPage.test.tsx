@@ -111,3 +111,33 @@ describe('return from MercadoPago (UC-14, T-E3-11)', () => {
     expect(screen.getByRole('link', { name: es.checkoutResult.backToStore })).toHaveAttribute('href', '/');
   });
 });
+
+describe('return from MODO (UC-14, T-E3b-04)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('given an approved MODO payment not confirmed yet, when the buyer comes back to callbackSuccess, then the page says it is confirming', async () => {
+    keepTrackingToken(TOKEN);
+    stubOrder(answer(200, trackedOrder('AWAITING_PAYMENT')));
+
+    const { router } = renderRoute('/checkout/result?status=approved');
+
+    expect(router.state.location.pathname).toBe(`/pedido/${TOKEN}`);
+    expect(await screen.findByText(es.tracking.confirmingPayment)).toBeInTheDocument();
+  });
+
+  it('given a MODO payment not made, when the buyer comes back to callback, then the order can be paid again', async () => {
+    keepTrackingToken(TOKEN);
+    stubOrder(answer(200, trackedOrder('AWAITING_PAYMENT')));
+
+    renderRoute('/checkout/result?status=failure');
+
+    expect(await screen.findByRole('button', { name: es.tracking.pay })).toBeEnabled();
+    expect(screen.queryByText(es.tracking.confirmingPayment)).not.toBeInTheDocument();
+  });
+});

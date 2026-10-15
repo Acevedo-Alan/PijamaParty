@@ -1,7 +1,7 @@
 import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
 import type { CouponStatus } from '../cart/cartApi.ts';
-import { isProvince, type Province } from './checkoutForm.ts';
+import { isProvince, type PaymentProvider, type Province } from './checkoutForm.ts';
 
 type ShippingCostResponse = components['schemas']['ShippingCostResponse'];
 type PlaceOrderRequest = components['schemas']['PlaceOrderRequest'];
@@ -53,6 +53,15 @@ export async function fetchShippingCost(province: Province, signal?: AbortSignal
   }
 }
 
+/** GET /api/checkout/payment-providers (T-E3b-04): the providers the buyer may choose, MercadoPago first. */
+export async function fetchPaymentProviders(signal?: AbortSignal): Promise<PaymentProvider[]> {
+  const { data, response } = await api.GET('/api/checkout/payment-providers', { signal: signal ?? null });
+  if (data?.providers === undefined) {
+    throw new Error(`The payment providers failed with status ${String(response.status)}`);
+  }
+  return data.providers;
+}
+
 /** The order placed: where to pay, and its tracking token, shown only in this answer. */
 export interface PlacedOrder {
   number: number;
@@ -75,6 +84,7 @@ export type PlaceOrderAnswer =
   | { status: 'termsNotAccepted' }
   | { status: 'noShipping'; province: Province | null }
   | { status: 'tooManyAttempts' }
+  | { status: 'paymentProviderNotEnabled' }
   | { status: 'unknown' };
 
 function propertiesOf(problem: unknown): Record<string, unknown> {
@@ -134,6 +144,10 @@ export async function placeOrder(idempotencyKey: string, body: PlaceOrderRequest
   }
   if (response.status === 429) {
     return { status: 'tooManyAttempts' };
+  }
+  // T-E3b-04: the chosen provider was switched off after the page read the providers.
+  if (response.status === 400 && propertiesOf(error).problem === 'PAYMENT_PROVIDER_NOT_ENABLED') {
+    return { status: 'paymentProviderNotEnabled' };
   }
   if (response.status >= 500) {
     return { status: 'unknown' };

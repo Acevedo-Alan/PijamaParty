@@ -32,11 +32,17 @@ const SHIPPING: Record<string, unknown> = {
   JUJUY: answer(422, { problem: 'NO_SHIPPING', province: 'JUJUY' }),
 };
 
-/** GET answers: this cart (the same for every read) and the shipping costs above. */
-function stubGets(currentCart: unknown = cart([cartItem()])) {
+const MODO_OFF = answer(200, { providers: ['MERCADOPAGO'] });
+const MODO_ON = answer(200, { providers: ['MERCADOPAGO', 'MODO'] });
+
+/** GET answers: this cart (the same for every read), the shipping costs above and these payment providers. */
+function stubGets(currentCart: unknown = cart([cartItem()]), providers: unknown = MODO_OFF) {
   return vi.spyOn(api, 'GET').mockImplementation(((path: string, options?: { params?: { query?: { province?: string } } }) => {
     if (path === '/api/checkout/shipping-cost') {
       return Promise.resolve(SHIPPING[options?.params?.query?.province ?? '']);
+    }
+    if (path === '/api/checkout/payment-providers') {
+      return Promise.resolve(providers);
     }
     return Promise.resolve(path === '/api/cart' ? currentCart : NO_CART);
   }) as never);
@@ -91,8 +97,8 @@ async function chooseProvince(province: string) {
 const summary = () => within(screen.getByRole('complementary', { name: es.checkout.summaryTitle }));
 const totalOfSummary = () => summary().getByText(es.checkout.total).nextElementSibling;
 
-/** Fills step 1 to Santa Fe, then goes through step 2 to the review. */
-async function goToReview() {
+/** Fills step 1 to Santa Fe and goes on to step 2. */
+async function goToPaymentStep() {
   await screen.findByRole('heading', { name: es.checkout.shippingTitle });
   await fillShipping();
   await chooseProvince('SANTA_FE');
@@ -100,9 +106,20 @@ async function goToReview() {
     expect(totalOfSummary()).toHaveTextContent(/^\$\s29\.500$/);
   });
   await userEvent.click(next());
-  await userEvent.click(await screen.findByRole('button', { name: es.checkout.toReview }));
+  await screen.findByRole('heading', { name: es.checkout.paymentTitle });
+}
+
+/** Fills step 1 to Santa Fe, then goes through step 2 to the review, choosing this provider. */
+async function goToReview(providerName?: string) {
+  await goToPaymentStep();
+  if (providerName !== undefined) {
+    await userEvent.click(await screen.findByRole('radio', { name: new RegExp(`^${escaped(providerName)}`) }));
+  }
+  await userEvent.click(screen.getByRole('button', { name: es.checkout.toReview }));
   await screen.findByRole('heading', { name: es.checkout.reviewTitle });
 }
+
+const providerOptions = () => screen.getAllByRole('radio').map((radio) => (radio as HTMLInputElement).value);
 
 const confirmButton = () => screen.getByRole('button', { name: es.checkout.confirm });
 
@@ -290,6 +307,70 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
       expect(router.state.location.pathname).toBe(`/pedido/${TOKEN}`);
     });
     expect(goToPayment).not.toHaveBeenCalled();
+  });
+
+  it('given MODO switched off, when the payment step opens, then only MercadoPago is offered, chosen', async () => {
+    stubGets();
+    renderRoute('/checkout');
+
+    await goToPaymentStep();
+
+    expect(providerOptions()).toEqual(['MERCADOPAGO']);
+    expect(screen.getByRole('radio', { name: /^MercadoPago/ })).toBeChecked();
+    expect(screen.getByText(es.checkout.providers.MERCADOPAGO.hint)).toBeInTheDocument();
+  });
+
+  it('given the payment providers could not be read, when the payment step opens, then MercadoPago is offered', async () => {
+    stubGets(cart([cartItem()]), answer(500));
+    renderRoute('/checkout');
+
+    await goToPaymentStep();
+
+    expect(providerOptions()).toEqual(['MERCADOPAGO']);
+  });
+
+  it('given MODO switched on, when the buyer chooses it and confirms, then the order is placed with MODO', async () => {
+    stubGets(cart([cartItem()]), MODO_ON);
+    const post = stubPost(placed('https://site.modo.com.ar/checkout?id=pr-1'));
+    renderRoute('/checkout');
+
+    await goToPaymentStep();
+    await waitFor(() => {
+      expect(providerOptions()).toEqual(['MERCADOPAGO', 'MODO']);
+    });
+    expect(screen.getByRole('radio', { name: /^MercadoPago/ })).toBeChecked();
+    expect(screen.getByText(es.checkout.providers.MODO.hint)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: /^MODO/ }));
+    await userEvent.click(screen.getByRole('button', { name: es.checkout.toReview }));
+    await screen.findByRole('heading', { name: es.checkout.reviewTitle });
+    expect(screen.getByText(es.checkout.providers.MODO.name)).toBeInTheDocument();
+
+    await acceptAndConfirm();
+
+    await waitFor(() => {
+      expect(goToPayment).toHaveBeenCalledWith('https://site.modo.com.ar/checkout?id=pr-1');
+    });
+    expect(post).toHaveBeenCalledWith('/api/checkout', expect.objectContaining({
+      body: expect.objectContaining({ paymentProvider: 'MODO' }) as unknown,
+    }));
+  });
+
+  it('given MODO switched off after the page read it, when confirming with MODO, then the payment step asks for another method', async () => {
+    const get = stubGets(cart([cartItem()]), MODO_ON);
+    stubPost(answer(400, { problem: 'PAYMENT_PROVIDER_NOT_ENABLED', paymentProvider: 'MODO' }));
+    renderRoute('/checkout');
+    await goToReview(es.checkout.providers.MODO.name);
+    get.mockImplementation(((path: string) =>
+      Promise.resolve(path === '/api/checkout/payment-providers' ? MODO_OFF : cart([cartItem()]))) as never);
+
+    await acceptAndConfirm();
+
+    expect(await screen.findByRole('heading', { name: es.checkout.paymentTitle })).toHaveFocus();
+    expect(screen.getByText(es.checkout.refused.paymentProviderNotEnabled)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(providerOptions()).toEqual(['MERCADOPAGO']);
+    });
+    expect(screen.getByRole('radio', { name: /^MercadoPago/ })).toBeChecked();
   });
 
   it('given the terms not accepted, when confirming, then nothing is sent and the checkbox says why', async () => {

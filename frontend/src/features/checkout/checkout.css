@@ -169,6 +169,8 @@
 }
 
 .checkout-payment {
+  display: grid;
+  gap: 10px;
   margin-bottom: 20px;
   border: none;
 }
@@ -195,6 +197,12 @@
   display: block;
   font-size: 14px;
   font-weight: 600;
+}
+
+/* MODO's wordmark stands in for its logo until the brand kit arrives (T-E3b-04). */
+.checkout-pay-modo {
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 .checkout-pay-hint {

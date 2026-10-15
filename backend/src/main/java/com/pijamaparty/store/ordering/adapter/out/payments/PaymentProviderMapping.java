@@ -2,7 +2,7 @@ package com.pijamaparty.store.ordering.adapter.out.payments;
 
 import com.pijamaparty.store.ordering.domain.PaymentProvider;
 
-/** The order's provider as the payments module names it. */
+/** The order's provider as the payments module names it, and back. */
 final class PaymentProviderMapping {
 
     private PaymentProviderMapping() {
@@ -12,6 +12,13 @@ final class PaymentProviderMapping {
         return switch (provider) {
             case MERCADOPAGO -> com.pijamaparty.store.payments.api.PaymentProvider.MERCADOPAGO;
             case MODO -> com.pijamaparty.store.payments.api.PaymentProvider.MODO;
+        };
+    }
+
+    static PaymentProvider fromPayments(com.pijamaparty.store.payments.api.PaymentProvider provider) {
+        return switch (provider) {
+            case MERCADOPAGO -> PaymentProvider.MERCADOPAGO;
+            case MODO -> PaymentProvider.MODO;
         };
     }
 }

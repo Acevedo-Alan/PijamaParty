@@ -1,6 +1,7 @@
 package com.pijamaparty.store.ordering.adapter.in.web;
 
 import com.pijamaparty.store.ordering.application.GetShippingCost;
+import com.pijamaparty.store.ordering.application.ListPaymentProviders;
 import com.pijamaparty.store.ordering.application.OpenOrderPayment;
 import com.pijamaparty.store.ordering.application.PlaceOrder;
 import com.pijamaparty.store.ordering.domain.CheckoutForm;
@@ -23,6 +24,7 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpHeaders;
@@ -54,13 +56,15 @@ class CheckoutController {
     private static final String KEY_IN_USE_RETRY_AFTER_SECONDS = "1";
 
     private final GetShippingCost getShippingCost;
+    private final ListPaymentProviders listPaymentProviders;
     private final PlaceOrder placeOrder;
     private final OpenOrderPayment openOrderPayment;
     private final TokenGenerator tokens;
 
-    CheckoutController(GetShippingCost getShippingCost, PlaceOrder placeOrder, OpenOrderPayment openOrderPayment,
-                       TokenGenerator tokens) {
+    CheckoutController(GetShippingCost getShippingCost, ListPaymentProviders listPaymentProviders,
+                       PlaceOrder placeOrder, OpenOrderPayment openOrderPayment, TokenGenerator tokens) {
         this.getShippingCost = getShippingCost;
+        this.listPaymentProviders = listPaymentProviders;
         this.placeOrder = placeOrder;
         this.openOrderPayment = openOrderPayment;
         this.tokens = tokens;
@@ -87,6 +91,16 @@ class CheckoutController {
             case GetShippingCost.Result.NoShipping none -> noShipping(none.province());
             case GetShippingCost.Result.EmptyCart empty -> emptyCart();
         };
+    }
+
+    @GetMapping("/payment-providers")
+    @Operation(summary = "The payment providers buyers may choose",
+        description = "Step 2 of the checkout. MERCADOPAGO always, first; MODO only while the store has it switched "
+            + "on. The same for every buyer.")
+    @ApiResponse(responseCode = "200", description = "The providers", content = @Content(
+        mediaType = "application/json", schema = @Schema(implementation = PaymentProvidersResponse.class)))
+    PaymentProvidersResponse paymentProviders() {
+        return new PaymentProvidersResponse(listPaymentProviders.execute().providers());
     }
 
     @PostMapping
@@ -238,6 +252,9 @@ class CheckoutController {
                 quoted.shipping().cents(), quoted.total().cents());
         }
     }
+
+    /** In the order to show them, MERCADOPAGO first (T-E3b-04). */
+    record PaymentProvidersResponse(List<PaymentProvider> providers) {}
 
     /** {@code paymentProvider}: MERCADOPAGO, or MODO while it is switched on (T-E3b-02). */
     record PlaceOrderRequest(@NotNull @Valid BuyerRequest buyer, @NotNull @Valid AddressRequest address,

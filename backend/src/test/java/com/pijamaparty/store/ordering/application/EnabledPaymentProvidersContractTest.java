@@ -21,4 +21,9 @@ public abstract class EnabledPaymentProvidersContractTest<T extends EnabledPayme
     void givenTheDefaultConfiguration_whenAskedForMODO_thenItIsSwitchedOff() {
         assertThat(subject.isEnabled(PaymentProvider.MODO)).isFalse();
     }
+
+    @Test
+    void givenTheDefaultConfiguration_whenListed_thenOnlyMercadoPagoIsEnabled() {
+        assertThat(subject.enabled()).containsExactly(PaymentProvider.MERCADOPAGO);
+    }
 }

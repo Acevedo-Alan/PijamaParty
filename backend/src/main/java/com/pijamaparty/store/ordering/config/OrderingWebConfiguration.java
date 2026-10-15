@@ -16,6 +16,7 @@ class OrderingWebConfiguration {
     HttpAuthorizationRules checkoutAuthorizationRules() {
         return registry -> registry
             .requestMatchers(HttpMethod.GET, "/api/checkout/shipping-cost").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/checkout/payment-providers").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/checkout").permitAll();
     }
 

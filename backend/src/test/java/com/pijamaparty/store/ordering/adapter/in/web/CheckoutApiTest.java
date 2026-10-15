@@ -66,6 +66,17 @@ class CheckoutApiTest {
         owner.update("update shop_setting set free_shipping_threshold_cents = null");
     }
 
+    /** T-E3b-04: MODO switched on is in {@link PaymentProvidersApiTest}. */
+    @Test
+    void givenTheDefaultConfiguration_whenAVisitorAsksThePaymentProviders_thenOnlyMercadoPagoIsOffered()
+        throws Exception {
+        mvc.perform(get("/api/checkout/payment-providers"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.providers.length()").value(1))
+            .andExpect(jsonPath("$.providers[0]").value("MERCADOPAGO"));
+    }
+
     @Test
     void givenACartWithACoupon_whenAskingTheShippingToAProvince_thenTheServerReturnsEveryAmountOfTheSummary()
         throws Exception {

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EMPTY_CART, type Cart } from '../cart/cartApi.ts';
 import { CART_KEY } from '../cart/useCart.ts';
-import { fetchShippingCost, placeOrder } from './checkoutApi.ts';
+import { fetchPaymentProviders, fetchShippingCost, placeOrder } from './checkoutApi.ts';
 import type { Province } from './checkoutForm.ts';
 import { keepTrackingToken } from './trackingTokenStore.ts';
 
@@ -14,6 +14,17 @@ export function useShippingCost(province: Province | '', cart: Cart | undefined)
     queryKey: ['checkout', 'shipping-cost', province, cart?.subtotalCents, cart?.discountCents] as const,
     queryFn: ({ signal }) => fetchShippingCost(province as Province, signal),
     enabled: province !== '' && cart !== undefined,
+  });
+}
+
+const PAYMENT_PROVIDERS_KEY = ['checkout', 'payment-providers'] as const;
+
+/** The providers of step 2 (T-E3b-04), read once when the checkout opens. */
+export function usePaymentProviders() {
+  return useQuery({
+    queryKey: PAYMENT_PROVIDERS_KEY,
+    queryFn: ({ signal }) => fetchPaymentProviders(signal),
+    staleTime: Infinity,
   });
 }
 
@@ -37,6 +48,9 @@ export function usePlaceOrder() {
           break;
         case 'noShipping':
           void queryClient.invalidateQueries({ queryKey: ['checkout', 'shipping-cost'] });
+          break;
+        case 'paymentProviderNotEnabled':
+          void queryClient.invalidateQueries({ queryKey: PAYMENT_PROVIDERS_KEY });
           break;
         default:
           break;

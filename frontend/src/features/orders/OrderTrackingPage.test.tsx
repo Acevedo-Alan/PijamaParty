@@ -91,7 +91,7 @@ describe('tracking link (UC-14, T-E3-08)', () => {
     expect(goToPayment).toHaveBeenCalledWith(PAYMENT_URL);
   });
 
-  it('given MercadoPago down, when the buyer taps pay, then it is asked to try again in a moment and stays', async () => {
+  it('given the payment provider down, when the buyer taps pay, then it is asked to try again in a moment and stays', async () => {
     stubOrder(answer(200, trackedOrder()));
     vi.spyOn(api, 'POST').mockResolvedValue(answer(503));
     renderRoute(`/pedido/${TOKEN}`);

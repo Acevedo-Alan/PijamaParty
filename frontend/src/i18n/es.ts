@@ -194,8 +194,11 @@ export const es = {
     shippingError: 'No pudimos calcular el envío.',
     toPayment: 'Continuar a pago',
     paymentTitle: 'Medio de pago',
-    mercadoPago: 'MercadoPago',
-    mercadoPagoHint: 'Tarjetas, dinero en cuenta, transferencia',
+    /** The options of step 2 (T-E3b-04); MODO's name stands in for its logo until the brand kit arrives. */
+    providers: {
+      MERCADOPAGO: { name: 'MercadoPago', hint: 'Tarjetas de crédito y débito, dinero en cuenta' },
+      MODO: { name: 'MODO', hint: 'Pagá con la app de tu banco' },
+    },
     toReview: 'Revisar compra',
     back: 'Volver',
     reviewTitle: 'Revisá tu compra',
@@ -224,6 +227,7 @@ export const es = {
       cartNotReady: 'Algunos productos cambiaron. Revisá tu carrito antes de confirmar.',
       couponNotApplicable: 'Tu cupón ya no aplica. Quitalo para seguir con la compra.',
       tooManyAttempts: 'Hiciste muchos intentos. Esperá un minuto y probá de nuevo.',
+      paymentProviderNotEnabled: 'Ese medio de pago ya no está disponible. Elegí otro para seguir.',
       unknown: 'No pudimos confirmar tu compra. Probá de nuevo.',
     },
     summaryTitle: 'Mi compra',
@@ -239,7 +243,7 @@ export const es = {
   },
   checkoutResult: {
     title: 'Gracias por tu compra',
-    /** Back from MercadoPago in a tab without the order's token: another tab or device. */
+    /** Back from MercadoPago or MODO in a tab without the order's token: another tab or device. */
     noOrder: 'Cuando se confirme el pago te va a llegar un email con el enlace para seguir tu pedido.',
     backToStore: 'Volver a la tienda',
   },
@@ -735,7 +739,7 @@ export const es = {
     /** Back from an approved payment before its confirmation arrived (T-E3-11). */
     confirmingPayment: 'Estamos confirmando tu pago. Esto puede tardar unos segundos.',
     reservationOver: 'La reserva de tus productos venció y el pedido no se pagó. Podés volver a comprarlos desde la tienda.',
-    providerUnavailable: 'MercadoPago no respondió. Esperá un momento y probá de nuevo.',
+    providerUnavailable: 'El medio de pago no respondió. Esperá un momento y probá de nuevo.',
     tooManyAttempts: 'Hiciste muchos intentos. Esperá un minuto y probá de nuevo.',
     payError: 'No pudimos abrir el pago. Probá de nuevo.',
     shipment: 'Número de seguimiento del envío',

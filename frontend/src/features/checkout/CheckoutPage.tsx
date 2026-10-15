@@ -17,10 +17,11 @@ import {
   toFormFields,
   toPlaceOrderRequest,
   type FormField,
+  type PaymentProvider,
   type ShippingForm,
 } from './checkoutForm.ts';
 import { suggestEmail } from './emailSuggestion.ts';
-import { useEmptiedCart, usePlaceOrder, useShippingCost } from './useCheckout.ts';
+import { useEmptiedCart, usePaymentProviders, usePlaceOrder, useShippingCost } from './useCheckout.ts';
 import './checkout.css';
 
 type Step = 1 | 2 | 3;
@@ -54,12 +55,20 @@ function refusalMessage(answer: PlaceOrderAnswer): string | null {
       return es.checkout.refused.couponNotApplicable;
     case 'tooManyAttempts':
       return es.checkout.refused.tooManyAttempts;
+    case 'paymentProviderNotEnabled':
+      return es.checkout.refused.paymentProviderNotEnabled;
     case 'unknown':
       return es.checkout.refused.unknown;
     default:
       return null;
   }
 }
+
+/** MercadoPago is always enabled: it is the only option while the providers are being read or could not be. */
+const DEFAULT_PROVIDERS: readonly PaymentProvider[] = ['MERCADOPAGO'];
+
+/** The analytics name of a provider (RNF-25), as `payment_type`. */
+const PAYMENT_TYPES: Record<PaymentProvider, string> = { MERCADOPAGO: 'MercadoPago', MODO: 'MODO' };
 
 function Steps({ step }: { step: Step }) {
   return (
@@ -312,6 +321,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState<ShippingForm>(EMPTY_FORM);
   const [invalid, setInvalid] = useState<readonly FormField[]>([]);
+  const [chosenProvider, setChosenProvider] = useState<PaymentProvider>('MERCADOPAGO');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsError, setTermsError] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
@@ -328,6 +338,9 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   const idOf = (field: FormField) => `${prefix}-${field}`;
   const termsId = `${prefix}-terms`;
   const shipping = useShippingCost(form.province, cart);
+  const providers = usePaymentProviders().data ?? DEFAULT_PROVIDERS;
+  // A provider no longer offered falls back to MercadoPago.
+  const provider = providers.includes(chosenProvider) ? chosenProvider : 'MERCADOPAGO';
   const ready = isReady(cart);
 
   useEffect(() => {
@@ -404,7 +417,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
     // RNF-25: the first time in the visit only.
     if (!paymentInfoSent.current) {
       paymentInfoSent.current = true;
-      trackAddPaymentInfo(forAnalytics(cart), 'MercadoPago');
+      trackAddPaymentInfo(forAnalytics(cart), PAYMENT_TYPES[provider]);
     }
     goTo(3);
   }
@@ -441,6 +454,12 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
         setTermsError(true);
         setFocusTarget({ kind: 'terms' });
         return;
+      case 'paymentProviderNotEnabled':
+        setChosenProvider('MERCADOPAGO');
+        setStep(2);
+        setRefusal(refusalMessage(answer));
+        setFocusTarget({ kind: 'heading' });
+        return;
       default:
         setRefusal(refusalMessage(answer));
     }
@@ -456,7 +475,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
       goTo(1);
       return;
     }
-    const body = toPlaceOrderRequest(form, form.province, 'MERCADOPAGO', true);
+    const body = toPlaceOrderRequest(form, form.province, provider, true);
     const json = JSON.stringify(body);
     const current = attempt.current?.body === json ? attempt.current : { body: json, key: crypto.randomUUID() };
     attempt.current = current;
@@ -598,14 +617,30 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
             </h2>
             <fieldset className="checkout-payment">
               <legend className="visually-hidden">{es.checkout.paymentTitle}</legend>
-              <label className="checkout-pay-option active">
-                <input type="radio" name="paymentProvider" value="MERCADOPAGO" checked readOnly />
-                <span>
-                  <span className="checkout-pay-name">{es.checkout.mercadoPago}</span>
-                  <span className="checkout-pay-hint">{es.checkout.mercadoPagoHint}</span>
-                </span>
-              </label>
+              {providers.map((each) => (
+                <label key={each} className={each === provider ? 'checkout-pay-option active' : 'checkout-pay-option'}>
+                  <input
+                    type="radio"
+                    name="paymentProvider"
+                    value={each}
+                    checked={each === provider}
+                    onChange={() => {
+                      setChosenProvider(each);
+                      setRefusal(null);
+                    }}
+                  />
+                  <span>
+                    <span className={each === 'MODO' ? 'checkout-pay-name checkout-pay-modo' : 'checkout-pay-name'}>
+                      {es.checkout.providers[each].name}
+                    </span>
+                    <span className="checkout-pay-hint">{es.checkout.providers[each].hint}</span>
+                  </span>
+                </label>
+              ))}
             </fieldset>
+            <p className="checkout-error" role="alert">
+              {refusal}
+            </p>
             <div className="checkout-actions">
               <button
                 type="button"
@@ -654,7 +689,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 goTo(2);
               }}
             >
-              <p>{es.checkout.mercadoPago}</p>
+              <p>{es.checkout.providers[provider].name}</p>
             </ReviewBlock>
             <div className={termsError ? 'checkout-terms error' : 'checkout-terms'}>
               <input
