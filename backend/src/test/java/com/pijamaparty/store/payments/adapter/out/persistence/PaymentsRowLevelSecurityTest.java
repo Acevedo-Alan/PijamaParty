@@ -31,12 +31,13 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * T-E3-21: the Row Level Security policies of {@code payment} (V15) and {@code payment_event} (V22), tested for reads,
- * inserts, updates and deletes with customer A, customer B, a guest, the administrator and the system, plus a missing
- * context, a guest without a token and a customer holding a guest's token (RNF-27). Payments are no buyer's: the
- * system creates, reads and updates them and records each notification once, the administrator reads both tables,
- * everybody else reaches nothing, and nobody deletes a payment or changes a notification (R-15). Every transaction is
- * committed by the application role.
+ * T-E3-21, T-E3b-02: the Row Level Security policies of {@code payment} (V15), {@code payment_event} (V22) and
+ * {@code payment_checkout} (V27), tested for reads, inserts, updates and deletes with customer A, customer B, a guest,
+ * the administrator and the system, plus a missing context, a guest without a token and a customer holding a guest's
+ * token (RNF-27). Payments are no buyer's: the system creates, reads and updates them and their checkout attempts and
+ * records each notification once, the administrator reads the three tables, everybody else reaches nothing, and
+ * nobody deletes a payment or an attempt or changes a notification (R-15). Every transaction is committed by the
+ * application role.
  */
 @ApiTest
 class PaymentsRowLevelSecurityTest {
@@ -48,6 +49,14 @@ class PaymentsRowLevelSecurityTest {
     private static final String INSERT_EVENT = """
         insert into payment_event (provider, external_payment_id, status, order_number, received_at)
         values ('MERCADOPAGO', ?, 'APPROVED', 1001, now())
+        """;
+    private static final String INSERT_ATTEMPT = """
+        insert into payment_checkout (payment_id, provider, attempt, external_reference, created_at)
+        values (?, 'MERCADOPAGO', 1, '1001-1', now())
+        """;
+    private static final String RECORD_ATTEMPT_CHECKOUT = """
+        update payment_checkout set checkout_id = 'pref-1', checkout_url = 'https://www.mercadopago.com.ar/x'
+        where payment_id = ? and attempt = 1
         """;
     private static final String RLS_VIOLATION = "row-level security";
     private static final String PERMISSION_DENIED = "permission denied";
@@ -98,12 +107,12 @@ class PaymentsRowLevelSecurityTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate payment_event, payment");
+        owner.execute("truncate payment_event, payment_checkout, payment");
     }
 
     @Test
     void givenThePaymentTables_whenCheckingTheirProtection_thenRowLevelSecurityIsEnabledAndForced() {
-        for (String table : List.of("payment", "payment_event")) {
+        for (String table : List.of("payment", "payment_event", "payment_checkout")) {
             var flags = owner.queryForMap(
                 "select relrowsecurity, relforcerowsecurity from pg_class where oid = ?::regclass", table);
             assertThat(flags).as(table).containsEntry("relrowsecurity", true).containsEntry("relforcerowsecurity", true);
@@ -180,6 +189,54 @@ class PaymentsRowLevelSecurityTest {
         assertThat(owner.queryForObject("select count(*) from payment", Integer.class)).isEqualTo(2);
         assertThat(owner.queryForObject("select count(*) from payment_event where status = 'APPROVED'",
             Integer.class)).isEqualTo(2);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callers")
+    void givenTwoAttempts_whenReading_thenOnlyTheAdministratorAndTheSystemSeeThem(Caller caller) {
+        var payments = seedWithAttempts();
+
+        var visible = caller.run(rls, sql -> sql.queryForList("select payment_id from payment_checkout", UUID.class));
+
+        assertThat(visible).containsExactlyInAnyOrderElementsOf(caller.reads() ? payments : List.of());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callers")
+    void givenAPayment_whenStartingAnAttemptAndRecordingItsCheckout_thenOnlyTheSystemIsAccepted(Caller caller) {
+        var payment = UUID.randomUUID();
+        owner.update(INSERT_PAYMENT, payment, UUID.randomUUID());
+
+        if (caller.writes()) {
+            assertThat(caller.<Integer>run(rls, sql -> sql.update(INSERT_ATTEMPT, payment))).isOne();
+            assertThat(caller.<Integer>run(rls, sql -> sql.update(RECORD_ATTEMPT_CHECKOUT, payment))).isOne();
+        } else {
+            assertThatThrownBy(() -> caller.run(rls, sql -> sql.update(INSERT_ATTEMPT, payment)))
+                .isInstanceOf(DataAccessException.class).hasStackTraceContaining(RLS_VIOLATION);
+            owner.update(INSERT_ATTEMPT, payment);
+            assertThat(caller.<Integer>run(rls, sql -> sql.update(RECORD_ATTEMPT_CHECKOUT, payment))).isZero();
+            assertThat(owner.queryForObject("select count(*) from payment_checkout where checkout_id is not null",
+                Integer.class)).isZero();
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callers")
+    void givenTwoAttempts_whenDeletingThem_thenItIsDenied(Caller caller) {
+        seedWithAttempts();
+
+        assertThatThrownBy(() -> caller.run(rls, jdbc -> jdbc.update("delete from payment_checkout")))
+            .isInstanceOf(DataAccessException.class).hasStackTraceContaining(PERMISSION_DENIED);
+        assertThat(owner.queryForObject("select count(*) from payment_checkout", Integer.class)).isEqualTo(2);
+    }
+
+    /** {@link #seed()} plus the first attempt of each payment; answers the payment ids. */
+    private List<UUID> seedWithAttempts() {
+        var payments = seed();
+        for (UUID payment : payments) {
+            owner.update(INSERT_ATTEMPT, payment);
+        }
+        return payments;
     }
 
     /** Two payments and two notifications, stored by the owner role (no policies); answers the payment ids. */

@@ -34,12 +34,13 @@ class PlaceOrderService {
     private final SaveOrders saveOrders;
     private final ClearCart clearCart;
     private final CurrentTerms terms;
+    private final EnabledPaymentProviders providers;
     private final IdGenerator ids;
     private final Clock clock;
 
     PlaceOrderService(CheckoutCartLock carts, ShippingQuotes shippingQuotes, ReserveOrderStock stock,
                       OrderNumbers orderNumbers, SaveOrders saveOrders, ClearCart clearCart, CurrentTerms terms,
-                      IdGenerator ids, Clock clock) {
+                      EnabledPaymentProviders providers, IdGenerator ids, Clock clock) {
         this.carts = carts;
         this.shippingQuotes = shippingQuotes;
         this.stock = stock;
@@ -47,6 +48,7 @@ class PlaceOrderService {
         this.saveOrders = saveOrders;
         this.clearCart = clearCart;
         this.terms = terms;
+        this.providers = providers;
         this.ids = ids;
         this.clock = clock;
     }
@@ -57,6 +59,10 @@ class PlaceOrderService {
      */
     @Transactional
     public Result execute(Command command) {
+        // T-E3b-02: a provider switched off is refused before anything else, as an unknown one.
+        if (!providers.isEnabled(command.paymentProvider())) {
+            return new Result.PaymentProviderNotEnabled(command.paymentProvider());
+        }
         CheckoutForm.Outcome form = command.form().validate();
         if (form instanceof CheckoutForm.Outcome.Invalid invalid) {
             return new Result.InvalidBuyerData(invalid.fields());

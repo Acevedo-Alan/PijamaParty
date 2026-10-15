@@ -126,7 +126,8 @@ MODO exige que toda devolución pase por su API. Hoy las devoluciones de Mercado
 
 ### A verificar en preproducción
 
-- La zona horaria de `expiration_date`, que no la indica (`YYYY-MM-DDTHH:MM:SS`).
+- La zona horaria de `expiration_date`, que no la indica (`YYYY-MM-DDTHH:MM:SS`); *decidido en T-E3b-02:* se envía en hora de Argentina hasta confirmarlo.
+- Los nombres de los campos de la respuesta del token (se asumen `access_token` y `expires_in` en segundos) y que `amount` va como número en pesos con dos decimales (T-E3b-02).
 - Qué responde `GET /data` para una payment request todavía sin pagar (se asume `404` o un estado sin pago, tratado como pendiente).
 - Si MODO rechaza un `external_intention_id` repetido (una base de desarrollo recreada repite números de pedido).
 - El algoritmo y el `kid` de las JWK, y si el cuerpo firmado trae el `external_intention_id`.

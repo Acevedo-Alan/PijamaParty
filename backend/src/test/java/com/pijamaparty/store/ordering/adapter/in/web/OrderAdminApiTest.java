@@ -88,7 +88,7 @@ class OrderAdminApiTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate idempotency_key, payment_event, payment, email_event, email_outbox, "
+        owner.execute("truncate idempotency_key, payment_event, payment_checkout, payment, email_event, email_outbox, "
             + "withdrawal_request, order_tracking_token, order_item, orders, cart_item, cart, stock_movement, "
             + "stock_level, product_image, "
             + "variant, product, category, shipping_zone_rate");

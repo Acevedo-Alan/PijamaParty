@@ -5,6 +5,7 @@ import com.pijamaparty.store.payments.api.CheckoutRequest;
 import com.pijamaparty.store.payments.api.PaymentProvider;
 import com.pijamaparty.store.payments.application.PaymentGateway;
 import com.pijamaparty.store.payments.domain.Checkout;
+import com.pijamaparty.store.payments.domain.CheckoutAttempt;
 import com.pijamaparty.store.platform.config.TimeConfiguration;
 import com.pijamaparty.store.platform.domain.Money;
 import java.math.BigDecimal;
@@ -27,6 +28,8 @@ import org.springframework.web.client.RestClientResponseException;
 /**
  * UC-14: MercadoPago Checkout Pro. The checkout is a preference, created with {@code POST /checkout/preferences} and an
  * {@code X-Idempotency-Key} derived from the order number, so a retry never creates a second one (RNF-20.8, T-E3-17).
+ * It lasts as long as the reservation, so another attempt starts only when one got no checkout (T-E3b-02); the
+ * {@code external_reference} stays the order number, by which UC-15 finds the payment, not the attempt's reference.
  * Anti-corruption layer: MercadoPago's JSON never leaves this class. Its own HTTP client with the RNF-21 timeouts and
  * no retries (a creation, not a read). Logs carry the order number and the HTTP status only: never the payer or the
  * provider's answer (R-05).
@@ -67,7 +70,7 @@ class MercadoPagoGateway implements PaymentGateway {
     }
 
     @Override
-    public Outcome createCheckout(CheckoutRequest request) {
+    public Outcome createCheckout(CheckoutRequest request, CheckoutAttempt attempt) {
         if (!configured) {
             log.warn("MercadoPago has no access token (store.payments.mercadopago.access-token): order {} has no "
                 + "checkout", request.orderNumber());

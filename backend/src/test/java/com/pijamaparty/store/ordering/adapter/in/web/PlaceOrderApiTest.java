@@ -88,7 +88,7 @@ class PlaceOrderApiTest {
     @AfterEach
     void cleanUp() {
         mercadoPago.reset();
-        owner.execute("truncate idempotency_key, payment_event, payment, withdrawal_request, order_tracking_token, order_item, orders, "
+        owner.execute("truncate idempotency_key, payment_event, payment_checkout, payment, withdrawal_request, order_tracking_token, order_item, orders, "
             + "cart_item, cart, coupon_redemption, coupon, stock_movement, stock_level, product_image, variant, "
             + "product, category, shipping_zone_rate");
     }
@@ -388,7 +388,7 @@ class PlaceOrderApiTest {
         ObjectNode unknownProvince = order();
         ((ObjectNode) unknownProvince.get("address")).put("province", "ATLANTIDA");
         ObjectNode unknownProvider = order();
-        unknownProvider.put("paymentProvider", "MODO");
+        unknownProvider.put("paymentProvider", "PAYPAL");
         ObjectNode tooLong = order();
         ((ObjectNode) tooLong.get("address")).put("street", "s".repeat(301));
 
@@ -397,6 +397,16 @@ class PlaceOrderApiTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
         }
+        assertNoOrder();
+    }
+
+    @Test
+    void givenMODOSwitchedOff_whenTheBuyerChoosesIt_thenItIsRejectedWith400AndNothingHappens() throws Exception {
+        checkout(order().put("paymentProvider", "MODO"))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.problem").value("PAYMENT_PROVIDER_NOT_ENABLED"))
+            .andExpect(jsonPath("$.paymentProvider").value("MODO"));
         assertNoOrder();
     }
 

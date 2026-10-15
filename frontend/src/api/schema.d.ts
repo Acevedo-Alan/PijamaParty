@@ -1239,7 +1239,7 @@ export interface components {
             buyer: components["schemas"]["BuyerRequest"];
             address: components["schemas"]["AddressRequest"];
             /** @enum {string} */
-            paymentProvider: "MERCADOPAGO";
+            paymentProvider: "MERCADOPAGO" | "MODO";
             acceptedTerms: boolean;
         };
         PlacedResponse: {
@@ -2348,7 +2348,7 @@ export interface operations {
                     "application/json": components["schemas"]["PlacedResponse"];
                 };
             };
-            /** @description Missing or invalid Idempotency-Key, or a body that is not of this shape: a missing field, a text longer than 300 characters, an unknown province or provider */
+            /** @description Missing or invalid Idempotency-Key, or a body that is not of this shape: a missing field, a text longer than 300 characters, an unknown province or provider; or a provider switched off (problem PAYMENT_PROVIDER_NOT_ENABLED, with paymentProvider) */
             400: {
                 headers: {
                     [name: string]: unknown;

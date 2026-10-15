@@ -8,6 +8,9 @@ import java.util.UUID;
 /** UC-14: the payments already created. Joins the caller's transaction, or runs in its own. */
 public interface LoadPayments {
 
-    /** The checkout of the order's payment at the provider; empty without a payment or before its checkout. */
+    /**
+     * The current checkout of the order's payment at the provider, with its expiry; empty without a payment or before
+     * its first checkout.
+     */
     Optional<Checkout> checkoutOf(UUID orderId, PaymentProvider provider);
 }

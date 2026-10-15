@@ -128,6 +128,25 @@ store:
       # notification older than webhook-max-age is refused too: MercadoPago retries for hours.
       webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET:}
       webhook-max-age: 24h
+    modo:
+      # T-E3b-02: MODO's payment button, switched off by default (MODO_ENABLED), so the store can go live with
+      # MercadoPago alone; off, the checkout refuses MODO. The credentials are the Docker secrets MODO_USERNAME and
+      # MODO_PASSWORD in production; MODO's generic preproduction credentials serve for development, with the
+      # preproduction URLs (https://merchants.preprod.playdigital.com.ar and https://site.preprod.modo.com.ar).
+      # Without credentials or processor code every MODO checkout is unavailable. RNF-21: 3 s to connect, 10 s to
+      # read, no retries.
+      enabled: ${MODO_ENABLED:false}
+      base-url: ${MODO_BASE_URL:https://merchants.playdigital.com.ar}
+      checkout-url: ${MODO_CHECKOUT_URL:https://site.modo.com.ar}
+      username: ${MODO_USERNAME:}
+      password: ${MODO_PASSWORD:}
+      # The card gateway's code (Payway, Fiserv, Getnet or Line) that MODO sends with the credentials
+      processor-code: ${MODO_PROCESSOR_CODE:}
+      # One payment, no installments: MODO reports the amount with the installments' interest
+      cc-code: 1CSI
+      merchant-name: PijamaParty
+      connect-timeout: 3s
+      read-timeout: 10s
   notifications:
     # T-E3-09 (UC-17, RNF-23): the sender (e.g. Pijama Party <pedidos@notificaciones.DOMAIN>, a domain verified at
     # Resend, T-E3-18), where the buyer's answers go (the business's email; optional) and the administrator told of
@@ -319,6 +338,9 @@ store:
     mercadopago:
       access-token: ${MERCADOPAGO_ACCESS_TOKEN}
       webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET}
+    modo:
+      # T-E3b-02: nor with MODO enabled without its credentials and processor code
+      require-credentials: true
   # T-E3-09: nor without these
   notifications:
     from: ${MAIL_FROM}

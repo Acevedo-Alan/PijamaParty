@@ -5,7 +5,6 @@ import com.pijamaparty.store.ordering.application.OrdersToPay.OrderToPay;
 import com.pijamaparty.store.payments.api.CheckoutOpening;
 import com.pijamaparty.store.payments.api.CheckoutRequest;
 import com.pijamaparty.store.payments.api.PaymentCheckouts;
-import com.pijamaparty.store.payments.api.PaymentProvider;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import java.net.URI;
 import java.util.Optional;
@@ -28,17 +27,11 @@ class PaymentsModuleOpenPayments implements OpenPayments {
     @Override
     public Optional<URI> open(OrderToPay order) {
         var request = new CheckoutRequest(order.id().value(), order.number(), order.total(),
-            providerOf(order.provider()), new CheckoutRequest.Payer(order.buyerName(), order.buyerEmail()),
-            order.reservationExpiresAt());
+            PaymentProviderMapping.toPayments(order.provider()),
+            new CheckoutRequest.Payer(order.buyerName(), order.buyerEmail()), order.reservationExpiresAt());
         return switch (CurrentActor.callAsSystem(() -> checkouts.open(request))) {
             case CheckoutOpening.Opened opened -> Optional.of(opened.checkoutUrl());
             case CheckoutOpening.ProviderUnavailable unavailable -> Optional.empty();
-        };
-    }
-
-    private static PaymentProvider providerOf(com.pijamaparty.store.ordering.domain.PaymentProvider provider) {
-        return switch (provider) {
-            case MERCADOPAGO -> PaymentProvider.MERCADOPAGO;
         };
     }
 }

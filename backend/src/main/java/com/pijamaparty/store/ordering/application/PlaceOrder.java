@@ -53,6 +53,9 @@ public interface PlaceOrder {
 
         record TermsNotAccepted() implements Result {}
 
+        /** The provider is switched off at the checkout (T-E3b-02: MODO, by configuration). */
+        record PaymentProviderNotEnabled(PaymentProvider provider) implements Result {}
+
         /** No cart or no items; also an actor that cannot own a cart. */
         record EmptyCart() implements Result {}
 

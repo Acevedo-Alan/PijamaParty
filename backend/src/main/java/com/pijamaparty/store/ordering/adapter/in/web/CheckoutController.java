@@ -100,7 +100,8 @@ class CheckoutController {
     @ApiResponse(responseCode = "201", description = "The order, awaiting payment",
         content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlacedResponse.class)))
     @ApiResponse(responseCode = "400", description = "Missing or invalid Idempotency-Key, or a body that is not of "
-        + "this shape: a missing field, a text longer than 300 characters, an unknown province or provider",
+        + "this shape: a missing field, a text longer than 300 characters, an unknown province or provider; or a "
+        + "provider switched off (problem PAYMENT_PROVIDER_NOT_ENABLED, with paymentProvider)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "409", description = "See problem: EMPTY_CART, CART_NOT_READY (read the cart again), "
         + "COUPON_NOT_APPLICABLE (with couponStatus), INSUFFICIENT_STOCK (with variantId and available) or "
@@ -137,6 +138,12 @@ class CheckoutController {
                     .map(CheckoutController::fieldName)
                     .toList());
                 yield ResponseEntity.unprocessableEntity().body(problem);
+            }
+            case PlaceOrder.Result.PaymentProviderNotEnabled notEnabled -> {
+                var problem = problemDetail(HttpStatus.BAD_REQUEST, "Payment provider not enabled",
+                    "The store does not take payments with this provider.", "PAYMENT_PROVIDER_NOT_ENABLED");
+                problem.setProperty("paymentProvider", notEnabled.provider().name());
+                yield ResponseEntity.badRequest().body(problem);
             }
             case PlaceOrder.Result.TermsNotAccepted notAccepted -> problem(HttpStatus.UNPROCESSABLE_ENTITY,
                 "Terms not accepted", "The terms must be accepted to place the order.", "TERMS_NOT_ACCEPTED");
@@ -232,7 +239,7 @@ class CheckoutController {
         }
     }
 
-    /** {@code paymentProvider}: only MERCADOPAGO until E3b. */
+    /** {@code paymentProvider}: MERCADOPAGO, or MODO while it is switched on (T-E3b-02). */
     record PlaceOrderRequest(@NotNull @Valid BuyerRequest buyer, @NotNull @Valid AddressRequest address,
                              @NotNull PaymentProvider paymentProvider, @NotNull Boolean acceptedTerms) {
 

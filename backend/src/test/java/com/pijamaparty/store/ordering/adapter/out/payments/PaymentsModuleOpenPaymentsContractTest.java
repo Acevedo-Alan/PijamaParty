@@ -53,7 +53,7 @@ class PaymentsModuleOpenPaymentsContractTest extends OpenPaymentsContractTest<Op
     @AfterEach
     void cleanUp() {
         mercadoPago.reset();
-        owner.execute("truncate payment");
+        owner.execute("truncate payment_checkout, payment");
     }
 
     @Test

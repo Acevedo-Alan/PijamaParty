@@ -11,14 +11,19 @@ import com.pijamaparty.store.payments.application.PaymentStoreContractTest;
 import com.pijamaparty.store.payments.application.PaymentsToConfirm;
 import com.pijamaparty.store.payments.application.SavePayments;
 import com.pijamaparty.store.payments.domain.Checkout;
+import com.pijamaparty.store.payments.domain.CheckoutAttempt;
 import com.pijamaparty.store.payments.domain.PaymentStatus;
 import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.pijamaparty.store.platform.testing.ApiTest;
+import java.net.URI;
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -60,7 +65,7 @@ class JdbcPaymentStoreContractTest extends PaymentStoreContractTest<JdbcPaymentS
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate payment");
+        owner.execute("truncate payment_checkout, payment");
     }
 
     @Test
@@ -83,6 +88,48 @@ class JdbcPaymentStoreContractTest extends PaymentStoreContractTest<JdbcPaymentS
 
         Map<String, Object> row = owner.queryForMap("select * from payment where order_id = ?", order);
         assertThat(row).containsEntry("status", "APPROVED").containsEntry("external_payment_id", "1234567890");
+    }
+
+    @Test
+    void givenAModoPayment_whenAnAttemptGetsItsCheckout_thenTheAttemptRowHoldsItWithItsExpiry() {
+        CheckoutAttempt attempt = paymentWithAnAttempt(order, MODO);
+        var request = new Checkout("modo-abc", URI.create("https://site.modo.com.ar/checkout?id=modo-abc"),
+            Optional.of(NOW.plusSeconds(600)));
+
+        subject.recordCheckout(order, MODO, attempt.number(), request, NOW.plusSeconds(1));
+
+        Map<String, Object> row = owner.queryForMap("""
+            select c.provider, c.attempt, c.external_reference, c.checkout_id, c.checkout_url, c.expires_at
+            from payment_checkout c join payment p on p.id = c.payment_id where p.order_id = ?
+            """, order);
+        assertThat(row).containsEntry("provider", "MODO").containsEntry("attempt", 1)
+            .containsEntry("external_reference", attempt.externalReference())
+            .containsEntry("checkout_id", "modo-abc")
+            .containsEntry("checkout_url", "https://site.modo.com.ar/checkout?id=modo-abc");
+        assertThat(((Timestamp) row.get("expires_at")).toInstant()).isEqualTo(NOW.plusSeconds(600));
+        assertThat(owner.queryForObject("select checkout_id from payment where order_id = ?", String.class, order))
+            .isEqualTo("modo-abc");
+    }
+
+    @Test
+    void givenAPayment_whenTwoAttemptsStartAtOnce_thenEachGetsItsOwnNumber() throws Exception {
+        subject.insertPending(pendingPayment(order, MODO));
+        var start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Callable<Optional<CheckoutAttempt>> attempt = () -> {
+                start.await(10, TimeUnit.SECONDS);
+                return subject.startAttempt(order, MODO, NOW);
+            };
+            Future<Optional<CheckoutAttempt>> first = executor.submit(attempt);
+            Future<Optional<CheckoutAttempt>> second = executor.submit(attempt);
+            start.countDown();
+
+            assertThat(List.of(first.get(10, TimeUnit.SECONDS).orElseThrow().number(),
+                second.get(10, TimeUnit.SECONDS).orElseThrow().number())).containsExactlyInAnyOrder(1, 2);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
@@ -162,8 +209,14 @@ class JdbcPaymentStoreContractTest extends PaymentStoreContractTest<JdbcPaymentS
         }
 
         @Override
-        public boolean recordCheckout(UUID orderId, PaymentProvider provider, Checkout checkout, Instant at) {
-            return CurrentActor.callAsSystem(() -> adapter.recordCheckout(orderId, provider, checkout, at));
+        public Optional<CheckoutAttempt> startAttempt(UUID orderId, PaymentProvider provider, Instant at) {
+            return CurrentActor.callAsSystem(() -> adapter.startAttempt(orderId, provider, at));
+        }
+
+        @Override
+        public boolean recordCheckout(UUID orderId, PaymentProvider provider, int attempt, Checkout checkout,
+                                      Instant at) {
+            return CurrentActor.callAsSystem(() -> adapter.recordCheckout(orderId, provider, attempt, checkout, at));
         }
 
         @Override

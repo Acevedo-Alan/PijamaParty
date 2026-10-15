@@ -8,6 +8,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import com.pijamaparty.store.platform.testing.RlsPolicyTester;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -20,8 +22,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * T-E3-01, T-E3-07, T-E3-15: the payments schema (V15, V18, V22) enforces the UC-14 and UC-15 rules. Its Row Level
- * Security policies (RNF-27) are {@link PaymentsRowLevelSecurityTest}.
+ * T-E3-01, T-E3-07, T-E3-15, T-E3b-02: the payments schema (V15, V18, V22, V27) enforces the UC-14 and UC-15 rules.
+ * Its Row Level Security policies (RNF-27) are {@link PaymentsRowLevelSecurityTest}.
  */
 @ApiTest
 class PaymentsSchemaTest {
@@ -30,6 +32,12 @@ class PaymentsSchemaTest {
         insert into payment (id, order_id, order_number, provider, amount_cents, status, checkout_id, checkout_url,
                              external_payment_id, created_at, updated_at)
         values (?, ?, nextval('order_number_seq'), 'MERCADOPAGO', 2100000, ?, ?, ?, ?, now(), now())
+        """;
+
+    private static final String INSERT_ATTEMPT = """
+        insert into payment_checkout (payment_id, provider, attempt, external_reference, checkout_id, checkout_url,
+                                      expires_at, created_at)
+        values (?, ?, ?, '1001-1', ?, ?, ?, now())
         """;
 
     private static final String INSERT_EVENT = """
@@ -49,7 +57,7 @@ class PaymentsSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate payment_event, payment");
+        owner.execute("truncate payment_event, payment_checkout, payment");
     }
 
     @Test
@@ -107,6 +115,42 @@ class PaymentsSchemaTest {
         assertThatThrownBy(() -> owner.update(INSERT_EVENT, "111", "REFUNDED"))
             .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("payment_event_status_ck");
         assertThat(owner.update(INSERT_EVENT, "111", "PENDING")).isOne();
+    }
+
+    @Test
+    void givenAnAttemptOfAPayment_whenTheSameAttemptOrTheSameCheckoutIsStoredAgain_thenItIsRejected() {
+        var payment = UUID.randomUUID();
+        owner.update(INSERT_PAYMENT, payment, UUID.randomUUID(), "PENDING", null, null, null);
+        owner.update(INSERT_ATTEMPT, payment, "MERCADOPAGO", 1, "pref-1", "https://www.mercadopago.com.ar/x", null);
+
+        assertThatThrownBy(() -> owner.update(INSERT_ATTEMPT, payment, "MERCADOPAGO", 1, null, null, null))
+            .isInstanceOf(DuplicateKeyException.class).hasMessageContaining("payment_checkout_pk");
+        assertThatThrownBy(() -> owner.update(INSERT_ATTEMPT, payment, "MERCADOPAGO", 2, "pref-1",
+                "https://www.mercadopago.com.ar/x", null))
+            .isInstanceOf(DuplicateKeyException.class).hasMessageContaining("payment_checkout_provider_checkout_uk");
+        assertThat(owner.update(INSERT_ATTEMPT, payment, "MERCADOPAGO", 2, null, null, null)).isOne();
+    }
+
+    @Test
+    void givenInconsistentAttemptData_whenStored_thenItIsRejected() {
+        var payment = UUID.randomUUID();
+        owner.update(INSERT_PAYMENT, payment, UUID.randomUUID(), "PENDING", null, null, null);
+        Timestamp expiry = Timestamp.from(Instant.parse("2026-10-12T15:10:00Z"));
+
+        rejectsAttempt(payment, "MODO", 1, null, null, null, "payment_checkout_payment_fk");
+        rejectsAttempt(UUID.randomUUID(), "MERCADOPAGO", 1, null, null, null, "payment_checkout_payment_fk");
+        rejectsAttempt(payment, "MERCADOPAGO", 0, null, null, null, "payment_checkout_attempt_ck");
+        rejectsAttempt(payment, "MERCADOPAGO", 1, "pr-1", null, null, "payment_checkout_checkout_ck");
+        rejectsAttempt(payment, "MERCADOPAGO", 1, "pr-1", "http://site.modo.com.ar/x", null,
+            "payment_checkout_checkout_url_ck");
+        rejectsAttempt(payment, "MERCADOPAGO", 1, null, null, expiry, "payment_checkout_expires_ck");
+    }
+
+    private void rejectsAttempt(UUID payment, String provider, int attempt, String checkoutId, String checkoutUrl,
+                                Timestamp expiresAt, String constraint) {
+        assertThatThrownBy(() -> owner.update(INSERT_ATTEMPT, payment, provider, attempt, checkoutId, checkoutUrl,
+                expiresAt)).as(constraint)
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining(constraint);
     }
 
     private void rejects(String status, String checkoutId, String checkoutUrl, String externalId, String constraint) {

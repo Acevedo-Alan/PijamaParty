@@ -52,7 +52,8 @@ class PlaceOrderServiceTest {
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
     private final UUID orderId = UUID.randomUUID();
     private final PlaceOrderService placeOrder = new PlaceOrderService(carts, shipping, stock, orders, orders, carts,
-        new InMemoryCurrentTerms("2026-10"), () -> orderId, Clock.fixed(NOW, ZoneOffset.UTC));
+        new InMemoryCurrentTerms("2026-10"), new InMemoryEnabledPaymentProviders(Set.of(PaymentProvider.MERCADOPAGO)),
+        () -> orderId, Clock.fixed(NOW, ZoneOffset.UTC));
 
     /** 2 pijamas at ARS 20,000 and 1 camisón at ARS 10,000, 5 of each in stock; shipping to Santa Fe ARS 3,000. */
     @BeforeEach
@@ -93,6 +94,31 @@ class PlaceOrderServiceTest {
         assertThat(stock.reservedBy(OrderId.of(orderId))).containsExactly(PIJAMAS, CAMISONES);
         assertThat(stock.availableOf(PIJAMA)).isEqualTo(3);
         assertThat(carts.wasCleared(GUEST)).isTrue();
+    }
+
+    @Test
+    void givenMODOSwitchedOff_whenTheBuyerChoosesIt_thenItIsRefusedAndNothingHappens() {
+        var command = new PlaceOrder.Command(GUEST, UUID.randomUUID(), FORM, Province.SANTA_FE, PaymentProvider.MODO,
+            true);
+
+        assertThat(placeOrder.execute(command))
+            .isEqualTo(new PlaceOrder.Result.PaymentProviderNotEnabled(PaymentProvider.MODO));
+        assertNothingHappened();
+    }
+
+    @Test
+    void givenMODOSwitchedOn_whenTheBuyerChoosesIt_thenTheOrderKeepsItAsItsProvider() {
+        var withModo = new PlaceOrderService(carts, shipping, stock, orders, orders, carts,
+            new InMemoryCurrentTerms("2026-10"),
+            new InMemoryEnabledPaymentProviders(Set.of(PaymentProvider.MERCADOPAGO, PaymentProvider.MODO)),
+            () -> orderId, Clock.fixed(NOW, ZoneOffset.UTC));
+
+        var result = withModo.execute(new PlaceOrder.Command(GUEST, UUID.randomUUID(), FORM, Province.SANTA_FE,
+            PaymentProvider.MODO, true));
+
+        assertThat(result).isInstanceOf(PlaceOrder.Result.Placed.class);
+        assertThat(orders.placed(OrderId.of(orderId)).orElseThrow().paymentProvider())
+            .isEqualTo(PaymentProvider.MODO);
     }
 
     @Test

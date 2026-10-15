@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.pijamaparty.store.payments.api.CheckoutRequest;
 import com.pijamaparty.store.payments.api.PaymentProvider;
 import com.pijamaparty.store.payments.domain.Checkout;
+import com.pijamaparty.store.payments.domain.CheckoutAttempt;
 import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.testing.ContractTest;
 import java.time.Instant;
@@ -12,7 +13,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Contract of {@link PaymentGateway} (UC-14, Liskov Substitution): every provider, MercadoPago now and MODO in E3b,
+ * Contract of {@link PaymentGateway} (UC-14, Liskov Substitution): every provider, MercadoPago and MODO (T-E3b-02),
  * charges exactly the server's amount, answers an https checkout, and turns its failures into {@code Unavailable}.
  */
 public abstract class PaymentGatewayContractTest<T extends PaymentGateway> extends ContractTest<T> {
@@ -20,6 +21,7 @@ public abstract class PaymentGatewayContractTest<T extends PaymentGateway> exten
     protected static final CheckoutRequest REQUEST = new CheckoutRequest(UUID.randomUUID(), 1001,
         Money.of(2_100_050), PaymentProvider.MERCADOPAGO, new CheckoutRequest.Payer("Ana Pérez", "ana@example.com"),
         Instant.parse("2026-10-12T15:30:00Z"));
+    protected static final CheckoutAttempt ATTEMPT = CheckoutAttempt.of(1001, 1);
 
     protected abstract PaymentProvider expectedProvider();
 
@@ -36,7 +38,7 @@ public abstract class PaymentGatewayContractTest<T extends PaymentGateway> exten
 
     @Test
     void givenAConfirmedOrder_whenTheCheckoutIsCreated_thenItChargesExactlyTheServersAmountOverHttps() {
-        PaymentGateway.Outcome outcome = subject.createCheckout(REQUEST);
+        PaymentGateway.Outcome outcome = subject.createCheckout(REQUEST, ATTEMPT);
 
         assertThat(outcome).isInstanceOf(PaymentGateway.Outcome.Created.class);
         Checkout checkout = ((PaymentGateway.Outcome.Created) outcome).checkout();
@@ -48,6 +50,6 @@ public abstract class PaymentGatewayContractTest<T extends PaymentGateway> exten
     void givenTheProviderDown_whenTheCheckoutIsCreated_thenItIsUnavailableWithoutThrowing() {
         providerIsDown();
 
-        assertThat(subject.createCheckout(REQUEST)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
+        assertThat(subject.createCheckout(REQUEST, ATTEMPT)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
     }
 }

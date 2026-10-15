@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -54,7 +55,7 @@ class IdempotentPlaceOrderTest {
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private final IdempotentPlaceOrder placeOrder = new IdempotentPlaceOrder(
         new PlaceOrderService(carts, shipping, stock, orders, orders, carts, new InMemoryCurrentTerms("2026-10"),
-            () -> orderId, clock),
+            new InMemoryEnabledPaymentProviders(Set.of(PaymentProvider.MERCADOPAGO)), () -> orderId, clock),
         keys, orders, clock);
     private final UUID key = UUID.randomUUID();
 

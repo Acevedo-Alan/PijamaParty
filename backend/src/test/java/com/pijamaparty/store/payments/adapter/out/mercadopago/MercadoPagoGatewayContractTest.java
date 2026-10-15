@@ -7,6 +7,7 @@ import com.pijamaparty.store.payments.api.PaymentProvider;
 import com.pijamaparty.store.payments.application.PaymentGateway;
 import com.pijamaparty.store.payments.application.PaymentGatewayContractTest;
 import com.pijamaparty.store.payments.domain.Checkout;
+import com.pijamaparty.store.payments.domain.CheckoutAttempt;
 import com.pijamaparty.store.platform.domain.Money;
 import java.net.URI;
 import java.time.Duration;
@@ -67,7 +68,7 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
 
     @Test
     void givenAConfirmedOrder_whenTheCheckoutIsCreated_thenTheAnswersIdAndInitPointAreTheCheckout() {
-        PaymentGateway.Outcome outcome = subject.createCheckout(REQUEST);
+        PaymentGateway.Outcome outcome = subject.createCheckout(REQUEST, ATTEMPT);
 
         assertThat(outcome).isEqualTo(new PaymentGateway.Outcome.Created(
             new Checkout("pref-1", URI.create(MercadoPagoStub.INIT_POINT + "pref-1"))));
@@ -75,7 +76,7 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
 
     @Test
     void givenAConfirmedOrder_whenTheCheckoutIsCreated_thenThePreferenceIsOneLineForTheOrderTotal() {
-        subject.createCheckout(REQUEST);
+        subject.createCheckout(REQUEST, ATTEMPT);
 
         assertThat(stub.lastRequest().path()).isEqualTo("/checkout/preferences");
         assertThat(stub.lastRequest().authorization()).isEqualTo("Bearer " + TOKEN);
@@ -92,8 +93,8 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
 
     @Test
     void givenAnOrder_whenItsCheckoutIsCreatedTwice_thenBothCarryTheSameIdempotencyKeyAndGetTheSamePreference() {
-        PaymentGateway.Outcome first = subject.createCheckout(REQUEST);
-        PaymentGateway.Outcome again = subject.createCheckout(REQUEST);
+        PaymentGateway.Outcome first = subject.createCheckout(REQUEST, ATTEMPT);
+        PaymentGateway.Outcome again = subject.createCheckout(REQUEST, ATTEMPT);
 
         assertThat(again).isEqualTo(first);
         assertThat(stub.requests()).extracting(MercadoPagoStub.Request::idempotencyKey)
@@ -109,7 +110,7 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
         try {
             Callable<PaymentGateway.Outcome> create = () -> {
                 start.await(10, TimeUnit.SECONDS);
-                return subject.createCheckout(REQUEST);
+                return subject.createCheckout(REQUEST, ATTEMPT);
             };
             Future<PaymentGateway.Outcome> first = executor.submit(create);
             Future<PaymentGateway.Outcome> second = executor.submit(create);
@@ -125,13 +126,25 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
     }
 
     @Test
+    void givenASecondAttempt_whenTheCheckoutIsCreated_thenTheOrderNumberStaysTheReferenceAndTheKey() {
+        PaymentGateway.Outcome first = subject.createCheckout(REQUEST, ATTEMPT);
+
+        PaymentGateway.Outcome second = subject.createCheckout(REQUEST, CheckoutAttempt.of(1001, 2));
+
+        assertThat(second).isEqualTo(first);
+        assertThat(stub.lastRequest().json().get("external_reference").asText()).isEqualTo("1001");
+        assertThat(stub.lastRequest().idempotencyKey()).isEqualTo(MercadoPagoGateway.idempotencyKeyOf(1001));
+        assertThat(((PaymentGateway.Outcome.Created) second).checkout().expiresAt()).isEmpty();
+    }
+
+    @Test
     void givenTwoOrders_whenTheirCheckoutsAreCreated_thenEachHasItsOwnIdempotencyKey() {
         assertThat(MercadoPagoGateway.idempotencyKeyOf(1001)).isNotEqualTo(MercadoPagoGateway.idempotencyKeyOf(1002));
     }
 
     @Test
     void givenAConfirmedOrder_whenTheCheckoutIsCreated_thenOnlyTheBuyersNameAndEmailGoToTheProvider() {
-        subject.createCheckout(REQUEST);
+        subject.createCheckout(REQUEST, ATTEMPT);
 
         JsonNode payer = stub.lastRequest().json().get("payer");
         List<String> fields = new ArrayList<>();
@@ -143,7 +156,7 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
 
     @Test
     void givenAConfirmedOrder_whenTheCheckoutIsCreated_thenTheBuyerComesBackToTheStoreWithoutTheTrackingToken() {
-        subject.createCheckout(REQUEST);
+        subject.createCheckout(REQUEST, ATTEMPT);
 
         JsonNode body = stub.lastRequest().json();
         for (String result : List.of("success", "failure", "pending")) {
@@ -157,7 +170,7 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
 
     @Test
     void givenAConfirmedOrder_whenTheCheckoutIsCreated_thenOnlyImmediateMethodsAndItExpiresWithTheReservation() {
-        subject.createCheckout(REQUEST);
+        subject.createCheckout(REQUEST, ATTEMPT);
 
         JsonNode body = stub.lastRequest().json();
         List<String> excluded = new ArrayList<>();
@@ -173,7 +186,7 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
     void givenNoAccessToken_whenTheCheckoutIsCreated_thenItIsUnavailableWithoutCallingTheProvider() {
         MercadoPagoGateway unconfigured = gateway("", Duration.ofSeconds(2));
 
-        assertThat(unconfigured.createCheckout(REQUEST)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
+        assertThat(unconfigured.createCheckout(REQUEST, ATTEMPT)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
         assertThat(stub.requests()).isEmpty();
     }
 
@@ -181,7 +194,7 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
     void givenTheProviderRefusesTheRequest_whenTheCheckoutIsCreated_thenItIsUnavailable() {
         stub.answer(400, "{\"message\":\"invalid items\",\"status\":400}");
 
-        assertThat(subject.createCheckout(REQUEST)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
+        assertThat(subject.createCheckout(REQUEST, ATTEMPT)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
     }
 
     @Test
@@ -189,35 +202,35 @@ class MercadoPagoGatewayContractTest extends PaymentGatewayContractTest<MercadoP
         MercadoPagoGateway impatient = gateway(TOKEN, Duration.ofMillis(200));
         stub.delay(Duration.ofSeconds(2));
 
-        assertThat(impatient.createCheckout(REQUEST)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
+        assertThat(impatient.createCheckout(REQUEST, ATTEMPT)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
     }
 
     @Test
     void givenTheProviderIsUnreachable_whenTheCheckoutIsCreated_thenItIsUnavailable() {
         stub.stop();
 
-        assertThat(subject.createCheckout(REQUEST)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
+        assertThat(subject.createCheckout(REQUEST, ATTEMPT)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
     }
 
     @Test
     void givenAnAnswerWithoutAnHttpsInitPoint_whenTheCheckoutIsCreated_thenItIsUnavailable() {
         stub.answer(201, "{\"id\":\"123-pref\",\"init_point\":\"http://www.mercadopago.com.ar/checkout\"}");
 
-        assertThat(subject.createCheckout(REQUEST)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
+        assertThat(subject.createCheckout(REQUEST, ATTEMPT)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
     }
 
     @Test
     void givenAnAnswerWithoutAnId_whenTheCheckoutIsCreated_thenItIsUnavailable() {
         stub.answer(201, "{\"init_point\":\"" + MercadoPagoStub.INIT_POINT + "x\"}");
 
-        assertThat(subject.createCheckout(REQUEST)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
+        assertThat(subject.createCheckout(REQUEST, ATTEMPT)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
     }
 
     @Test
     void givenAnAnswerThatIsNotJson_whenTheCheckoutIsCreated_thenItIsUnavailable() {
         stub.answer(201, "<html>maintenance</html>");
 
-        assertThat(subject.createCheckout(REQUEST)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
+        assertThat(subject.createCheckout(REQUEST, ATTEMPT)).isInstanceOf(PaymentGateway.Outcome.Unavailable.class);
     }
 
     private MercadoPagoGateway gateway(String token, Duration readTimeout) {
