@@ -8,6 +8,6 @@ import java.util.UUID;
 /** Outbound read port (UC-18): where an email of the outbox stands, within the caller's transaction. */
 public interface EmailStatuses {
 
-    /** Empty when the outbox has no email of this type and reference. */
+    /** Of the latest version (T-E3-23); empty when the outbox has no email of this type and reference. */
     Optional<EmailStatus> statusOf(EmailType type, UUID reference);
 }

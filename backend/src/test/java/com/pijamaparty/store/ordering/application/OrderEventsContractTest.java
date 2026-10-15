@@ -2,6 +2,7 @@ package com.pijamaparty.store.ordering.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.pijamaparty.store.ordering.api.OrderEmailCorrected;
 import com.pijamaparty.store.ordering.api.OrderPaid;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.platform.testing.ContractTest;
@@ -34,5 +35,14 @@ public abstract class OrderEventsContractTest<T extends OrderEvents> extends Con
 
         assertThat(published()).containsExactly(new OrderPaid(first.value(), 1001),
             new OrderPaid(second.value(), 1002));
+    }
+
+    @Test
+    void givenAPaidOrderWhoseEmailWasCorrected_whenPublished_thenOrderEmailCorrectedCarriesItsIdAndNumber() {
+        OrderId order = OrderId.of(UUID.randomUUID());
+
+        subject.orderEmailCorrected(order, 1001);
+
+        assertThat(published()).containsExactly(new OrderEmailCorrected(order.value(), 1001));
     }
 }

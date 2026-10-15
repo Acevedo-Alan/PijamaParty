@@ -643,6 +643,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/{token}/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Correct the buyer's email of an order
+         * @description Replaces the email of the order of a tracking link. On a paid order (PAID to DELIVERED) the confirmation is sent again to it; awaiting payment, the confirmation goes there once paid. Never answers an email. Requires the CSRF token; 3 per hour per link and IP.
+         */
+        patch: operations["correctEmail"];
+        trace?: never;
+    };
     "/api/cart/items/{id}": {
         parameters: {
             query?: never;
@@ -1280,6 +1300,12 @@ export interface components {
         EnrolledResponse: {
             administrator?: components["schemas"]["AdministratorResponse"];
             recoveryCodes?: string[];
+        };
+        EmailCorrectionRequest: {
+            email: string;
+        };
+        EmailCorrectionResponse: {
+            confirmationResent?: boolean;
         };
         ChangeQuantityRequest: {
             /** Format: int32 */
@@ -3410,6 +3436,68 @@ export interface operations {
             };
             /** @description Over 5 attempts per minute from this IP (RNF-22); Retry-After says when to retry */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    correctEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Corrected; confirmationResent tells whether the confirmation goes again now */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailCorrectionResponse"];
+                };
+            };
+            /** @description A body that is not {email}, or an email longer than 300 characters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No order has this token (problem ORDER_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The order is cancelled or expired (problem ORDER_CLOSED, with status): read the order again */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not an email (problem INVALID_EMAIL) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

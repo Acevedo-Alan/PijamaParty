@@ -1,5 +1,6 @@
 package com.pijamaparty.store.ordering.adapter.in.web;
 
+import com.pijamaparty.store.ordering.application.CorrectOrderEmail;
 import com.pijamaparty.store.ordering.application.GetTrackedOrder;
 import com.pijamaparty.store.ordering.application.RetryOrderPayment;
 import com.pijamaparty.store.ordering.application.TrackedOrders.TrackedOrder;
@@ -15,6 +16,9 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -26,14 +30,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * UC-14 (T-E3-08): the tracking link of an order, opened with its token by a guest or a customer. Only translates
- * between HTTP and the use cases.
+ * UC-14 (T-E3-08): the tracking link of an order, opened with its token by a guest or a customer; UC-17 (T-E3-23): the
+ * buyer corrects its email there. Only translates between HTTP and the use cases.
  */
 @RestController
 @RequestMapping("/api/orders/{token}")
@@ -46,12 +52,18 @@ class OrderTrackingController {
     /** MercadoPago is usually back within seconds; the buyer taps again. */
     static final String RETRY_AFTER_SECONDS = "30";
 
+    /** Bounds the body; the domain applies the rule of UC-13 and answers 422 (RNF-28). */
+    private static final int MAX_TEXT = 300;
+
     private final GetTrackedOrder getTrackedOrder;
     private final RetryOrderPayment retryOrderPayment;
+    private final CorrectOrderEmail correctOrderEmail;
 
-    OrderTrackingController(GetTrackedOrder getTrackedOrder, RetryOrderPayment retryOrderPayment) {
+    OrderTrackingController(GetTrackedOrder getTrackedOrder, RetryOrderPayment retryOrderPayment,
+                            CorrectOrderEmail correctOrderEmail) {
         this.getTrackedOrder = getTrackedOrder;
         this.retryOrderPayment = retryOrderPayment;
+        this.correctOrderEmail = correctOrderEmail;
     }
 
     @GetMapping
@@ -108,6 +120,45 @@ class OrderTrackingController {
                 .body(problemDetail(HttpStatus.SERVICE_UNAVAILABLE, "Payment provider unavailable",
                     "The payment provider could not be reached. Try again in a moment.",
                     "PAYMENT_PROVIDER_UNAVAILABLE"));
+        };
+    }
+
+    @PatchMapping("/email")
+    @Operation(summary = "Correct the buyer's email of an order",
+        description = "Replaces the email of the order of a tracking link. On a paid order (PAID to DELIVERED) the "
+            + "confirmation is sent again to it; awaiting payment, the confirmation goes there once paid. Never "
+            + "answers an email. Requires the CSRF token; 3 per hour per link and IP.")
+    @ApiResponse(responseCode = "200", description = "Corrected; confirmationResent tells whether the confirmation "
+        + "goes again now", content = @Content(mediaType = "application/json",
+        schema = @Schema(implementation = EmailCorrectionResponse.class)))
+    @ApiResponse(responseCode = "400", description = "A body that is not {email}, or an email longer than 300 "
+        + "characters", content = @Content(mediaType = "application/problem+json",
+        schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "No order has this token (problem ORDER_NOT_FOUND)",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "409", description = "The order is cancelled or expired (problem ORDER_CLOSED, with "
+        + "status): read the order again",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "422", description = "Not an email (problem INVALID_EMAIL)",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<?> correctEmail(@PathVariable String token, @Valid @RequestBody EmailCorrectionRequest body) {
+        Optional<TrackingToken> trackingToken = parse(token);
+        if (trackingToken.isEmpty()) {
+            return orderNotFound();
+        }
+        var command = new CorrectOrderEmail.Command(trackingToken.get(), body.email());
+        return switch (CurrentActor.callAs(buyerOf(trackingToken.get()), () -> correctOrderEmail.execute(command))) {
+            case CorrectOrderEmail.Result.Corrected corrected ->
+                ResponseEntity.ok(new EmailCorrectionResponse(corrected.confirmationResent()));
+            case CorrectOrderEmail.Result.NotFound notFound -> orderNotFound();
+            case CorrectOrderEmail.Result.InvalidEmail invalid -> problem(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Invalid email", "The email breaks the rules of the checkout.", "INVALID_EMAIL");
+            case CorrectOrderEmail.Result.Closed closed -> {
+                var problem = problemDetail(HttpStatus.CONFLICT, "Order closed",
+                    "The order is cancelled or expired; its email is no longer corrected.", "ORDER_CLOSED");
+                problem.setProperty("status", closed.status());
+                yield ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+            }
         };
     }
 
@@ -173,4 +224,16 @@ class OrderTrackingController {
 
     /** The payment provider's checkout to redirect the buyer to. */
     record RetryResponse(URI paymentUrl) {}
+
+    /** The email as typed: personal data (R-05), so {@link #toString()} hides it. */
+    record EmailCorrectionRequest(@NotNull @Size(max = MAX_TEXT) String email) {
+
+        @Override
+        public String toString() {
+            return "EmailCorrectionRequest[email=***]";
+        }
+    }
+
+    /** Whether the order is paid and its confirmation goes again now, to the new email. */
+    record EmailCorrectionResponse(boolean confirmationResent) {}
 }

@@ -9,25 +9,31 @@ import com.pijamaparty.store.notifications.domain.OutboxEmail;
 import com.pijamaparty.store.platform.testing.ContractTest;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Contract of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes}, {@link EmailStatuses} and
- * {@link BounceEmails} (RNF-20.7, RNF-23, UC-18, T-E3-22): each type of email once per reference; the oldest due
- * first; an attempt moves the email's next due instant; an outcome only changes a pending email, only a sent email
- * bounces, and each shows in its status.
+ * Contract of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes}, {@link EmailStatuses},
+ * {@link BounceEmails} and {@link ResendEmails} (RNF-20.7, RNF-23, UC-18, T-E3-22, T-E3-23): each version of a type
+ * of email once per reference; the oldest due first; an attempt moves the email's next due instant; an outcome only
+ * changes a pending email, only a sent email bounces, and the latest version shows in the status.
  */
 public abstract class EmailOutboxContractTest<T extends EnqueueEmails & LockDueEmails & RecordEmailOutcomes
-    & EmailStatuses & BounceEmails> extends ContractTest<T> {
+    & EmailStatuses & BounceEmails & ResendEmails> extends ContractTest<T> {
 
     protected static final Instant NOW = Instant.parse("2026-10-13T15:00:30.123456Z");
 
     private final UUID order = UUID.randomUUID();
 
-    /** The email as stored; empty when there is none of this type and reference. */
-    protected abstract Optional<Stored> stored(EmailType type, UUID reference);
+    /** Every version of the email as stored, from the first; empty when there is none of this type and reference. */
+    protected abstract List<Stored> storedVersions(EmailType type, UUID reference);
+
+    /** The first version of the email as stored. */
+    protected Optional<Stored> stored(EmailType type, UUID reference) {
+        return storedVersions(type, reference).stream().findFirst();
+    }
 
     @Test
     void givenANewEmail_whenEnqueued_thenItIsPendingAndDueAtOnce() {
@@ -35,6 +41,7 @@ public abstract class EmailOutboxContractTest<T extends EnqueueEmails & LockDueE
         persistAndForget();
 
         assertThat(stored(EmailType.ORDER_PAID_CUSTOMER, order)).hasValueSatisfying(email -> {
+            assertThat(email.version()).isZero();
             assertThat(email.status()).isEqualTo("PENDING");
             assertThat(email.attempts()).isZero();
             assertThat(email.nextAttemptAt()).isEqualTo(NOW);
@@ -234,5 +241,107 @@ public abstract class EmailOutboxContractTest<T extends EnqueueEmails & LockDueE
             assertThat(stored.attempts()).isZero();
             assertThat(stored.providerMessageId()).contains("re_0123456789");
         });
+    }
+
+    @Test
+    void givenAnEmailNotAttemptedYet_whenLockedToResend_thenItIsThere() {
+        subject.enqueue(EmailType.ORDER_PAID_CUSTOMER, order, NOW);
+
+        assertThat(subject.lockUnattempted(EmailType.ORDER_PAID_CUSTOMER, order)).isTrue();
+    }
+
+    @Test
+    void givenNoEmailOrOnlyOfAnotherType_whenLockedToResend_thenThereIsNone() {
+        subject.enqueue(EmailType.ORDER_PAID_ADMIN, order, NOW);
+
+        assertThat(subject.lockUnattempted(EmailType.ORDER_PAID_CUSTOMER, order)).isFalse();
+        assertThat(subject.lockUnattempted(EmailType.ORDER_PAID_CUSTOMER, UUID.randomUUID())).isFalse();
+    }
+
+    @Test
+    void givenAnEmailWithAnAttemptBegun_whenLockedToResend_thenThereIsNone() {
+        subject.enqueue(EmailType.ORDER_PAID_CUSTOMER, order, NOW);
+        OutboxEmail email = subject.lockNextDue(NOW).orElseThrow();
+        subject.attempting(email.id(), 1, NOW.plus(Duration.ofMinutes(1)), NOW);
+
+        assertThat(subject.lockUnattempted(EmailType.ORDER_PAID_CUSTOMER, order)).isFalse();
+    }
+
+    @Test
+    void givenASentOrAFailedEmail_whenLockedToResend_thenThereIsNone() {
+        sentEmail(EmailType.ORDER_PAID_CUSTOMER, "re_0123456789");
+        subject.enqueue(EmailType.ORDER_PAID_ADMIN, order, NOW);
+        subject.failed(subject.lockNextDue(NOW).orElseThrow().id(), NOW);
+
+        assertThat(subject.lockUnattempted(EmailType.ORDER_PAID_CUSTOMER, order)).isFalse();
+        assertThat(subject.lockUnattempted(EmailType.ORDER_PAID_ADMIN, order)).isFalse();
+    }
+
+    @Test
+    void givenASentEmail_whenResentTwice_thenVersionsOneAndTwoArePendingAndDueAtOnce() {
+        sentEmail(EmailType.ORDER_PAID_CUSTOMER, "re_0123456789");
+        Instant later = NOW.plusSeconds(600);
+
+        assertThat(subject.enqueueNextVersion(EmailType.ORDER_PAID_CUSTOMER, order, later)).isOne();
+        assertThat(subject.enqueueNextVersion(EmailType.ORDER_PAID_CUSTOMER, order, later)).isEqualTo(2);
+        persistAndForget();
+
+        assertThat(storedVersions(EmailType.ORDER_PAID_CUSTOMER, order)).satisfiesExactly(
+            first -> assertThat(first.status()).isEqualTo("SENT"),
+            second -> {
+                assertThat(second.version()).isOne();
+                assertThat(second.status()).isEqualTo("PENDING");
+                assertThat(second.attempts()).isZero();
+                assertThat(second.nextAttemptAt()).isEqualTo(later);
+                assertThat(second.providerMessageId()).isEmpty();
+            },
+            third -> assertThat(third.version()).isEqualTo(2));
+    }
+
+    @Test
+    void givenNoEmail_whenResent_thenItIsVersionOne() {
+        assertThat(subject.enqueueNextVersion(EmailType.ORDER_PAID_CUSTOMER, order, NOW)).isOne();
+        persistAndForget();
+
+        assertThat(storedVersions(EmailType.ORDER_PAID_CUSTOMER, order)).singleElement()
+            .satisfies(email -> assertThat(email.version()).isOne());
+    }
+
+    @Test
+    void givenAResentEmail_whenTheFirstVersionIsEnqueuedAgain_thenNothingIsAdded() {
+        subject.enqueue(EmailType.ORDER_PAID_CUSTOMER, order, NOW);
+        subject.enqueueNextVersion(EmailType.ORDER_PAID_CUSTOMER, order, NOW);
+
+        assertThat(subject.enqueue(EmailType.ORDER_PAID_CUSTOMER, order, NOW)).isFalse();
+        persistAndForget();
+
+        assertThat(storedVersions(EmailType.ORDER_PAID_CUSTOMER, order)).hasSize(2);
+    }
+
+    @Test
+    void givenAFailedEmailResent_whenItsStatusIsAskedFor_thenTheLatestVersionAnswers() {
+        subject.enqueue(EmailType.ORDER_PAID_CUSTOMER, order, NOW);
+        subject.failed(subject.lockNextDue(NOW).orElseThrow().id(), NOW);
+
+        subject.enqueueNextVersion(EmailType.ORDER_PAID_CUSTOMER, order, NOW.plusSeconds(60));
+        persistAndForget();
+
+        assertThat(subject.statusOf(EmailType.ORDER_PAID_CUSTOMER, order)).contains(EmailStatus.PENDING);
+    }
+
+    @Test
+    void givenAResentEmail_whenTheFirstVersionBouncesLate_thenItBouncesAndTheLatestVersionStillAnswers() {
+        sentEmail(EmailType.ORDER_PAID_CUSTOMER, "re_0123456789");
+        subject.enqueueNextVersion(EmailType.ORDER_PAID_CUSTOMER, order, NOW.plusSeconds(60));
+        OutboxEmail resent = subject.lockNextDue(NOW.plusSeconds(60)).orElseThrow();
+        subject.sent(resent.id(), "re_resent", NOW.plusSeconds(62));
+
+        assertThat(subject.bounce("re_0123456789", NOW.plusSeconds(120)))
+            .contains(new BounceEmails.Bounced(EmailType.ORDER_PAID_CUSTOMER, order));
+        persistAndForget();
+
+        assertThat(storedVersions(EmailType.ORDER_PAID_CUSTOMER, order)).extracting(Stored::status)
+            .containsExactly("BOUNCED", "SENT");
+        assertThat(subject.statusOf(EmailType.ORDER_PAID_CUSTOMER, order)).contains(EmailStatus.SENT);
     }
 }

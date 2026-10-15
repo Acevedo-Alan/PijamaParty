@@ -30,7 +30,7 @@ The highest-risk stage: stock must never be sold twice and a payment must never 
 | `order_item` | Follows its orders: reads them, adds lines to an order it can see | Same as the customer | Reads | Reads |
 | `payment` | – | – | Reads | Reads, creates and updates |
 
-Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its own update policy for customers and guests in T-E3-23.
+Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its own update policy for customers and guests in T-E3-23 (`orders_buyer_email_update`, only `customer_email` and `updated_at`).
 
 ---
 
@@ -378,7 +378,23 @@ Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its 
   - `email_outbox` (V23): `status` gains `BOUNCED`, which keeps `sent_at` and `provider_message_id` (their checks now hold for `SENT` and `BOUNCED`), and an index on `provider_message_id` for step 2.
   - Ports of `notifications`, each with its fake and contract test: `EmailEvents` (`JdbcEmailEventStore`) and `BounceEmails` (`JdbcEmailOutbox`, part of `EmailOutboxContractTest`).
   - **Back office (UC-18):** `notifications.api.BuyerEmailStatus` answers `BOUNCED` for a buyer's email `BOUNCED`, and `GetOrderDetail` adds the alert `BUYER_EMAIL_BOUNCED`, which the detail page shows with the buyer's phone, like `BUYER_EMAIL_FAILED`.
-- Email correction: `PATCH /api/orders/{token}/email`, with a versioned reference so the outbox stays unique (T-E3-23).
+- **Email correction (T-E3-23):** the buyer types its email again on the tracking page. The result page (`/checkout/result`) opens the tracking page with the token the storefront kept from the checkout's `201` (T-E3-11), so both reach the same form.
+  - **By status (decided),** `EmailCorrection` (`ordering.domain`): `AWAITING_PAYMENT`: only the order's email changes, and the confirmation goes there once the order is paid. `PAID`, `PREPARING`, `SHIPPED`, `DELIVERED`: the email changes and the buyer's confirmation is sent again. `CANCELLED`, `EXPIRED`: refused, the order is closed. The same email as before is not special: it is saved again and, on a paid order, the confirmation is sent again (a buyer who could not find it). The administrator's notice is never sent again.
+  - **Who may (decided):** whoever holds the link, as for reading the order. The resent confirmation carries the shipping address, which the tracking page hides; the 3 corrections per hour bound it, and the link is already the order's bearer secret.
+  - **`CorrectOrderEmail` (`ordering.application`), as the buyer, one transaction.** The controller binds the path's token in the actor before it begins, as the tracking page does.
+    1. The email is normalized and validated by the rule of UC-13 (`BuyerEmail`, shared with `CheckoutForm`: trimmed, lower case, at most 254 characters, printable characters with one `@` and text on both sides): `InvalidEmail`.
+    2. The order of the token is locked (`CorrectableOrders.lock`, `FOR UPDATE`, filtered by the token hash like `TrackedOrders`): `NotFound`.
+    3. `EmailCorrection` of its status: `Closed(status)`.
+    4. `BuyerEmails.change` sets `customer_email` and `updated_at`.
+    5. On a paid order, `OrderEvents` publishes `ordering.api.OrderEmailCorrected(orderId, number)`. Result `Corrected(confirmationResent)`.
+  - **Resend, in the same transaction, as the buyer** (the outbox exception of ARCHITECTURE.md section 3, rule 5: the correction and its email commit or roll back together). `OrderEmailCorrectedListener` (`notifications.adapter.in.event`) runs `EnqueueCorrectedOrderEmail` (`notifications.application`, transaction mandatory), through the port `ResendEmails` (`JdbcEmailOutbox`):
+    1. A buyer's email of the order still `PENDING` that has not begun any attempt is locked (`FOR UPDATE`; the job skips locked rows, so it cannot take it before the correction commits). It is composed when sent, from the order, so it already goes to the new address: nothing is enqueued. Result `PendingTakesIt`.
+    2. Otherwise an `ORDER_PAID_CUSTOMER` with the order's next version is enqueued. Result `Enqueued(version)`. It is composed when sent too: the new address and a new tracking link (T-E3-09). A buyer's email still retrying (`PENDING` with attempts) is left alone, so the buyer may get two confirmations at the new address.
+  - **Versioned reference (V24):** `email_outbox.version` (0 for the email the payment enqueues, then 1, 2, ...), unique `(type, reference, version)` instead of `(type, reference)`: each version once (RNF-20.7). The back-office alert (`BuyerEmailStatus`) reads the buyer's latest version, so a new `PENDING` or `SENT` one clears `BUYER_EMAIL_FAILED` or `BUYER_EMAIL_BOUNCED`. A bounce finds its email by the provider's message id, whatever its version.
+  - **Row Level Security (V24, RNF-27):** `orders` gains `orders_buyer_email_update` for a guest or a customer, over the order of its tracking token (the expression of `orders_tracking_select`); the trigger `orders_buyer_email_update_guard` keeps that update to `customer_email` and `updated_at`. `email_outbox` gains, for a guest or a customer and only the buyer's emails (`ORDER_PAID_CUSTOMER`) of an order it can see (`EXISTS` over `orders` under its own policies, as `order_item` does): read them; insert one `PENDING`, of version 1 or more, without attempts; and lock one `PENDING` without attempts (`FOR UPDATE` needs an update policy, whose check refuses every actual update).
+  - **Endpoint:** `PATCH /api/orders/{token}/email` (public; requires the CSRF token), body `{email}`. `200` with `confirmationResent`; `400` for a body that is not JSON of that shape or an email longer than 300 characters; `404` problem `ORDER_NOT_FOUND` for an unknown or malformed token; `409` problem `ORDER_CLOSED` with `status`; `422` problem `INVALID_EMAIL`. No answer carries an email, and no log either (R-05).
+  - **Rate limiting (RNF-22):** `email-correction` per tracking token (its SHA-256, `TrackingKeyResolver`) and IP, 3 per hour, on `PATCH`; the `order-tracking` policy per IP covers the route too.
+  - **Storefront (`features/orders`):** the tracking page of an order that is not `CANCELLED` or `EXPIRED` shows "¿Escribiste mal tu email?", which opens a form with one email field (never filled in: the page does not know the email). Saved: on a paid order, that the confirmation was sent again to the new email; awaiting payment, that the confirmation will go there once the payment is approved. `422`: the email is not valid. `429`: too many changes, try again later. `409`: reloads the order. `404`: the order was not found.
 
 ---
 

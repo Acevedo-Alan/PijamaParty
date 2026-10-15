@@ -726,6 +726,20 @@ export const es = {
     total: 'Total',
     /** Where the order goes: the city and province only, e.g. "Envío a Santa Fe, Santa Fe". */
     shipTo: (city: string, province: string) => `Envío a ${city}, ${province}`,
+    /** UC-17 (T-E3-23): the buyer corrects its email; the page never shows the one the order has. */
+    emailCorrection: {
+      open: '¿Escribiste mal tu email?',
+      label: 'Tu email correcto',
+      save: 'Guardar',
+      saving: 'Guardando…',
+      /** The email as the buyer just typed it. */
+      resent: (email: string) => `Listo. Te reenviamos la confirmación a ${email}.`,
+      savedForLater: (email: string) =>
+        `Listo. Cuando se acredite el pago, te enviaremos la confirmación a ${email}.`,
+      invalid: 'Revisá el email: no parece válido.',
+      tooManyAttempts: 'Cambiaste el email muchas veces. Probá de nuevo en un rato.',
+      error: 'No pudimos guardar el email. Probá de nuevo.',
+    },
   },
   notFound: {
     title: 'No encontramos esta página',

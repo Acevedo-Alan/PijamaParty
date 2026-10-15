@@ -22,9 +22,9 @@ import org.springframework.test.context.TestConstructor;
 /**
  * The RNF-22 policies as configured in application.yml: login per IP (UC-04) and per account (RNF-29.5), catalog and
  * search (UC-26) of T-E1-15, cart changes (UC-08, UC-09) of T-E2-04, coupon attempts (UC-10) of T-E2-11, the
- * tracking link and its payment retry (UC-14) of T-E3-08, and checkout confirmations (UC-13) of T-E3-19. The
- * test client (127.0.0.1) plays Caddy, so {@code X-Forwarded-For} is the client IP and each test uses its own
- * addresses.
+ * tracking link and its payment retry (UC-14) of T-E3-08, checkout confirmations (UC-13) of T-E3-19 and email
+ * corrections (UC-17) of T-E3-23. The test client (127.0.0.1) plays Caddy, so {@code X-Forwarded-For} is the client
+ * IP and each test uses its own addresses.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = "store.rate-limit.enabled=true")
@@ -175,6 +175,25 @@ class RateLimitPoliciesTest {
             .as("the bucket is per order and IP together").isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void givenThreeEmailCorrectionsInAnHourOfTheSameOrder_whenAnotherArrives_thenItGets429WithRetryAfter() {
+        String order = "e".repeat(43);
+        for (int i = 0; i < 3; i++) {
+            assertThat(correctEmail("203.0.113.70", order).getStatusCode())
+                .as("a token nobody issued finds no order").isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        ResponseEntity<String> limited = correctEmail("203.0.113.70", order);
+        assertThat(limited.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(limited.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(Long.parseLong(limited.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)))
+            .as("3 per hour: one more every 20 minutes").isBetween(60L, 1200L);
+        assertThat(correctEmail("203.0.113.70", "f".repeat(43)).getStatusCode())
+            .as("another order from that IP has its own bucket").isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(correctEmail("203.0.113.71", order).getStatusCode())
+            .as("the bucket is per order and IP together").isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
     /**
      * The buckets refill continuously (Bucket4j greedy refill: 120 per minute is one token every 0.5 s), so the
      * requests above give back a few tokens while they run. The limit must show within a handful more.
@@ -243,6 +262,16 @@ class RateLimitPoliciesTest {
         headers.add("X-XSRF-TOKEN", csrfToken);
         return http.exchange("/api/orders/" + trackingToken + "/retry-payment", HttpMethod.POST,
             new HttpEntity<>(headers), String.class);
+    }
+
+    private ResponseEntity<String> correctEmail(String clientIp, String trackingToken) {
+        var headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", clientIp);
+        headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + csrfToken);
+        headers.add("X-XSRF-TOKEN", csrfToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return http.exchange("/api/orders/" + trackingToken + "/email", HttpMethod.PATCH,
+            new HttpEntity<>("{\"email\":\"ana.perez@gmail.com\"}", headers), String.class);
     }
 
     private ResponseEntity<String> get(String path, String clientIp) {

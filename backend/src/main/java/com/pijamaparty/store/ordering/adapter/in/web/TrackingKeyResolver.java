@@ -11,10 +11,10 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 /**
- * The order of a tracking-link request, for the payment-retry policy of T-E3-08 (RNF-22 "Pedido + IP"): the token of
- * the path {@code /api/orders/{token}/...}. The key is the token's SHA-256, so not even the limiter's memory holds the
- * token. A path without a well-formed token has no order and the policy does not apply; the tracking policy per IP
- * is the baseline.
+ * The order of a tracking-link request, for the payment-retry policy of T-E3-08 and the email-correction policy of
+ * T-E3-23 (RNF-22 "Pedido + IP"): the token of the path {@code /api/orders/{token}/...}. The key is the token's
+ * SHA-256, so not even the limiter's memory holds the token. A path without a well-formed token has no order and the
+ * policy does not apply; the tracking policy per IP is the baseline.
  */
 @Component
 class TrackingKeyResolver implements RateLimitKeyResolver {

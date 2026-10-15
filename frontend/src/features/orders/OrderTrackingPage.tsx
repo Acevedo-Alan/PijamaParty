@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState, type SyntheticEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { trackPurchase } from '../analytics/checkoutEvents.ts';
-import type { OrderStatus, RetryAnswer, TrackedOrder } from './orderTrackingApi.ts';
+import type { EmailCorrectionAnswer, OrderStatus, RetryAnswer, TrackedOrder } from './orderTrackingApi.ts';
 import { goToPayment } from './redirect.ts';
-import { useRetryPayment, useTrackedOrder } from './useTrackedOrder.ts';
+import { useCorrectEmail, useRetryPayment, useTrackedOrder } from './useTrackedOrder.ts';
 import './orders.css';
 
 /** Why the last tap on "Pagar" did not leave the store; nothing while it works or after a redirect. */
@@ -96,6 +96,99 @@ function PaymentPanel({ token, order, confirming }: { token: string; order: Trac
   );
 }
 
+/** Why the email was not saved; nothing while it works, after it is saved or when the order is read again. */
+function EmailProblem({ answer, failed }: { answer: EmailCorrectionAnswer | undefined; failed: boolean }) {
+  if (failed) {
+    return <>{es.tracking.emailCorrection.error}</>;
+  }
+  if (answer?.status === 'invalidEmail') {
+    return <>{es.tracking.emailCorrection.invalid}</>;
+  }
+  if (answer?.status === 'tooManyAttempts') {
+    return <>{es.tracking.emailCorrection.tooManyAttempts}</>;
+  }
+  return null;
+}
+
+/** The statuses that close an order: its email is no longer corrected (UC-17). */
+const CLOSED: ReadonlySet<OrderStatus> = new Set(['CANCELLED', 'EXPIRED']);
+
+/**
+ * UC-17 (T-E3-23): the buyer corrects a misspelled email. The page never shows the order's email, since the link can
+ * be forwarded, so the field starts empty; on a paid order the confirmation is sent again to the new one.
+ */
+function EmailCorrection({ token, order }: { token: string; order: TrackedOrder }) {
+  const correction = useCorrectEmail(token);
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [saved, setSaved] = useState<{ email: string; resent: boolean } | null>(null);
+  const id = useId();
+
+  function save(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const typed = email.trim();
+    correction.mutate(typed, {
+      onSuccess: (answer) => {
+        if (answer.status === 'corrected') {
+          setSaved({ email: typed, resent: answer.confirmationResent });
+          setOpen(false);
+          setEmail('');
+        }
+      },
+    });
+  }
+
+  if (CLOSED.has(order.status)) {
+    return null;
+  }
+  return (
+    <section className="tracking-email">
+      <p className="tracking-email-saved" role="status">
+        {saved !== null &&
+          (saved.resent
+            ? es.tracking.emailCorrection.resent(saved.email)
+            : es.tracking.emailCorrection.savedForLater(saved.email))}
+      </p>
+      {open ? (
+        <form className="tracking-email-form" onSubmit={save} noValidate>
+          <label htmlFor={id}>{es.tracking.emailCorrection.label}</label>
+          <input
+            id={id}
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            maxLength={254}
+            required
+            value={email}
+            onChange={(event) => {
+              setEmail(event.target.value);
+            }}
+          />
+          <button type="submit" className="btn" disabled={correction.isPending || email.trim() === ''}>
+            {correction.isPending ? es.tracking.emailCorrection.saving : es.tracking.emailCorrection.save}
+          </button>
+          <p className="tracking-error" role="alert">
+            <EmailProblem answer={correction.data} failed={correction.isError} />
+          </p>
+        </form>
+      ) : (
+        <button
+          type="button"
+          className="link-btn"
+          onClick={() => {
+            setOpen(true);
+            setSaved(null);
+            correction.reset();
+          }}
+        >
+          {es.tracking.emailCorrection.open}
+        </button>
+      )}
+    </section>
+  );
+}
+
 /** The statuses of an order already paid (UC-14): its purchase counts from PAID on, never if it was not paid. */
 const PAID: ReadonlySet<OrderStatus> = new Set(['PAID', 'PREPARING', 'SHIPPED', 'DELIVERED']);
 
@@ -172,6 +265,7 @@ function TrackedOrderView({ token, order, confirming }: { token: string; order: 
         </dl>
         <p className="tracking-ship-to">{es.tracking.shipTo(order.city, es.provinces[order.province])}</p>
       </section>
+      <EmailCorrection token={token} order={order} />
     </>
   );
 }

@@ -11,6 +11,7 @@ import com.pijamaparty.store.notifications.application.EnqueueEmails;
 import com.pijamaparty.store.notifications.application.InMemoryEmailOutbox.Stored;
 import com.pijamaparty.store.notifications.application.LockDueEmails;
 import com.pijamaparty.store.notifications.application.RecordEmailOutcomes;
+import com.pijamaparty.store.notifications.application.ResendEmails;
 import com.pijamaparty.store.notifications.domain.EmailStatus;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.notifications.domain.OutboxEmail;
@@ -20,6 +21,7 @@ import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -33,7 +35,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
  * The outbox in {@code email_outbox}, as the system, each call in its own committed transaction (enqueueing inside
- * one, as the payment's), so Row Level Security applies as in production (RNF-27). Read back as the owner.
+ * one, as the payment's; resending as the system too, its buyer's policies are tested in
+ * {@link EmailOutboxRowLevelSecurityTest}), so Row Level Security applies as in production (RNF-27). Read back as the
+ * owner.
  * Its Row Level Security policies are {@link EmailOutboxRowLevelSecurityTest}.
  */
 @ApiTest
@@ -57,14 +61,16 @@ class JdbcEmailOutboxContractTest extends EmailOutboxContractTest<JdbcEmailOutbo
     }
 
     @Override
-    protected Optional<Stored> stored(EmailType type, UUID reference) {
-        return owner.query("select * from email_outbox where type = ? and reference = ?", (row, n) -> new Stored(
+    protected List<Stored> storedVersions(EmailType type, UUID reference) {
+        return owner.query("select * from email_outbox where type = ? and reference = ? order by version",
+            (row, n) -> new Stored(
                 row.getObject("id", UUID.class), EmailType.valueOf(row.getString("type")),
-                row.getObject("reference", UUID.class), row.getString("status"), row.getInt("attempts"),
+                row.getObject("reference", UUID.class), row.getInt("version"), row.getString("status"),
+                row.getInt("attempts"),
                 row.getObject("next_attempt_at", OffsetDateTime.class).toInstant(),
                 Optional.ofNullable(row.getString("provider_message_id")),
                 Optional.ofNullable(row.getObject("sent_at", OffsetDateTime.class)).map(OffsetDateTime::toInstant)),
-            type.name(), reference).stream().findFirst();
+            type.name(), reference);
     }
 
     @AfterEach
@@ -86,6 +92,16 @@ class JdbcEmailOutboxContractTest extends EmailOutboxContractTest<JdbcEmailOutbo
     }
 
     @Test
+    void givenNoTransaction_whenAnEmailIsResent_thenItIsRefused() {
+        assertThatThrownBy(() -> CurrentActor.callAsSystem(
+                () -> adapter.enqueueNextVersion(EmailType.ORDER_PAID_CUSTOMER, UUID.randomUUID(), NOW)))
+            .isInstanceOf(IllegalTransactionStateException.class);
+        assertThatThrownBy(() -> CurrentActor.callAsSystem(
+                () -> adapter.lockUnattempted(EmailType.ORDER_PAID_CUSTOMER, UUID.randomUUID())))
+            .isInstanceOf(IllegalTransactionStateException.class);
+    }
+
+    @Test
     void givenNoTransaction_whenTheNextEmailDueIsLocked_thenItIsRefused() {
         assertThatThrownBy(() -> CurrentActor.callAsSystem(() -> adapter.lockNextDue(NOW)))
             .isInstanceOf(IllegalTransactionStateException.class);
@@ -96,7 +112,20 @@ class JdbcEmailOutboxContractTest extends EmailOutboxContractTest<JdbcEmailOutbo
      * is read as the back office reads it: the administrator, in a read transaction.
      */
     record AsSystem(JdbcEmailOutbox adapter, TransactionTemplate transactions)
-        implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses, BounceEmails {
+        implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses, BounceEmails, ResendEmails {
+
+        @Override
+        public boolean lockUnattempted(EmailType type, UUID reference) {
+            return Boolean.TRUE.equals(CurrentActor.callAsSystem(
+                () -> transactions.execute(status -> adapter.lockUnattempted(type, reference))));
+        }
+
+        @Override
+        public int enqueueNextVersion(EmailType type, UUID reference, Instant at) {
+            Integer version = CurrentActor.callAsSystem(
+                () -> transactions.execute(status -> adapter.enqueueNextVersion(type, reference, at)));
+            return version == null ? -1 : version;
+        }
 
         /** As the bounce webhook runs it: the system, inside a transaction. */
         @Override

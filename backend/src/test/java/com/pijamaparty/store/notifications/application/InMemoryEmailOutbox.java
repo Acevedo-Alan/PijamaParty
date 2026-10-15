@@ -6,24 +6,26 @@ import com.pijamaparty.store.notifications.domain.OutboxEmail;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Fake of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes}, {@link EmailStatuses} and
- * {@link BounceEmails} over the same outbox.
+ * Fake of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes}, {@link EmailStatuses},
+ * {@link BounceEmails} and {@link ResendEmails} over the same outbox. Locks are not modeled.
  */
 public class InMemoryEmailOutbox
-    implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses, BounceEmails {
+    implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses, BounceEmails, ResendEmails {
 
     /** An email of the outbox as the table keeps it. */
-    public record Stored(UUID id, EmailType type, UUID reference, String status, int attempts, Instant nextAttemptAt,
-                         Optional<String> providerMessageId, Optional<Instant> sentAt) {
+    public record Stored(UUID id, EmailType type, UUID reference, int version, String status, int attempts,
+                         Instant nextAttemptAt, Optional<String> providerMessageId, Optional<Instant> sentAt) {
 
         Stored with(String newStatus, int newAttempts, Instant newNextAttemptAt, Optional<String> messageId,
                     Optional<Instant> newSentAt) {
-            return new Stored(id, type, reference, newStatus, newAttempts, newNextAttemptAt, messageId, newSentAt);
+            return new Stored(id, type, reference, version, newStatus, newAttempts, newNextAttemptAt, messageId,
+                newSentAt);
         }
     }
 
@@ -32,11 +34,17 @@ public class InMemoryEmailOutbox
 
     private final Map<UUID, Stored> emails = new LinkedHashMap<>();
 
-    /** Test inspection: empty when the outbox has no such email. */
+    /** Test inspection: the first version of the email; empty when the outbox has no such email. */
     public synchronized Optional<Stored> find(EmailType type, UUID reference) {
+        return versions(type, reference).stream().findFirst();
+    }
+
+    /** Test inspection: every version of the email, from the first. */
+    public synchronized List<Stored> versions(EmailType type, UUID reference) {
         return emails.values().stream()
             .filter(stored -> stored.type() == type && stored.reference().equals(reference))
-            .findFirst();
+            .sorted(Comparator.comparingInt(Stored::version))
+            .toList();
     }
 
     /** Test inspection: how many emails the outbox holds. */
@@ -50,8 +58,24 @@ public class InMemoryEmailOutbox
             return false;
         }
         UUID id = UUID.randomUUID();
-        emails.put(id, new Stored(id, type, reference, "PENDING", 0, at, Optional.empty(), Optional.empty()));
+        emails.put(id, new Stored(id, type, reference, 0, "PENDING", 0, at, Optional.empty(), Optional.empty()));
         return true;
+    }
+
+    @Override
+    public synchronized boolean lockUnattempted(EmailType type, UUID reference) {
+        return versions(type, reference).stream()
+            .anyMatch(stored -> stored.status().equals("PENDING") && stored.attempts() == 0);
+    }
+
+    @Override
+    public synchronized int enqueueNextVersion(EmailType type, UUID reference, Instant at) {
+        List<Stored> versions = versions(type, reference);
+        int version = versions.isEmpty() ? 1 : versions.getLast().version() + 1;
+        UUID id = UUID.randomUUID();
+        emails.put(id, new Stored(id, type, reference, version, "PENDING", 0, at, Optional.empty(),
+            Optional.empty()));
+        return version;
     }
 
     @Override
@@ -64,7 +88,8 @@ public class InMemoryEmailOutbox
 
     @Override
     public synchronized Optional<EmailStatus> statusOf(EmailType type, UUID reference) {
-        return find(type, reference).map(stored -> EmailStatus.valueOf(stored.status()));
+        return versions(type, reference).stream().reduce((first, second) -> second)
+            .map(stored -> EmailStatus.valueOf(stored.status()));
     }
 
     @Override

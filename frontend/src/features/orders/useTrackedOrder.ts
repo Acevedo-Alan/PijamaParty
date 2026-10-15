@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchTrackedOrder, retryPayment } from './orderTrackingApi.ts';
+import { correctEmail, fetchTrackedOrder, retryPayment } from './orderTrackingApi.ts';
 
 export const trackedOrderKey = (token: string) => ['orders', 'tracked', token] as const;
 
@@ -30,6 +30,22 @@ export function useRetryPayment(token: string) {
     mutationFn: () => retryPayment(token),
     onSuccess: (answer) => {
       if (answer.status === 'notPayable' || answer.status === 'notFound') {
+        void queryClient.invalidateQueries({ queryKey: trackedOrderKey(token) });
+      }
+    },
+  });
+}
+
+/**
+ * Corrects the email of the order (UC-17, T-E3-23); an order that closed meanwhile, or is no longer found, is read
+ * again, to show why.
+ */
+export function useCorrectEmail(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (email: string) => correctEmail(token, email),
+    onSuccess: (answer) => {
+      if (answer.status === 'closed' || answer.status === 'notFound') {
         void queryClient.invalidateQueries({ queryKey: trackedOrderKey(token) });
       }
     },

@@ -25,12 +25,12 @@ import java.util.UUID;
  * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders}, {@link OrderNumbers},
  * {@link OrdersToPay}, {@link ConfirmableOrders}, {@link TrackedOrders}, {@link PaidOrderDetails},
  * {@link SaveTrackingLinks}, {@link OrderStatuses}, {@link OrderPages}, {@link AdminOrderViews}, {@link StatusChanges},
- * {@link ShipmentTrackingNumbers} and
- * {@link LatePayments} over the same orders. Locks are not modeled.
+ * {@link ShipmentTrackingNumbers}, {@link LatePayments}, {@link CorrectableOrders} and {@link BuyerEmails} over the
+ * same orders. Locks are not modeled.
  */
 public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay,
     ConfirmableOrders, TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews,
-    StatusChanges, ShipmentTrackingNumbers, LatePayments {
+    StatusChanges, ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails {
 
     /** Oldest expiry first; the id breaks ties as PostgreSQL orders uuids (as the canonical text does). */
     private static final Comparator<Map.Entry<OrderId, Row>> OLDEST_EXPIRY_FIRST =
@@ -46,6 +46,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     private final Map<OrderId, Instant> updatedAt = new HashMap<>();
     private final Map<OrderId, Instant> deliveredAt = new HashMap<>();
     private final Set<OrderId> paidAfterClosing = new HashSet<>();
+    private final Map<OrderId, String> correctedEmails = new HashMap<>();
     private long lastNumber = 1000;
 
     /** Test arrangement: an order in any status, without its details nor a coupon; answers its number. */
@@ -96,6 +97,16 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     /** Test inspection: whether the order was paid after it expired or was cancelled. */
     public synchronized boolean isPaidAfterClosing(OrderId order) {
         return paidAfterClosing.contains(order);
+    }
+
+    /** Test inspection: the buyer's email of an order the checkout placed, as last corrected. */
+    public synchronized Optional<String> emailOf(OrderId order) {
+        return Optional.ofNullable(placed.get(order)).map(this::buyerEmailOf);
+    }
+
+    /** Test inspection: when the order was last updated; empty when it never was. */
+    public synchronized Optional<Instant> updatedAtOf(OrderId order) {
+        return Optional.ofNullable(updatedAt.get(order));
     }
 
     /** Test inspection: how many orders the checkout placed. */
@@ -185,7 +196,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
             placedOrder.number(), Status.valueOf(orders.get(order).status().name()), List.of(),
             placedOrder.createdAt(), updatedAt.getOrDefault(order, placedOrder.createdAt()),
             Optional.ofNullable(deliveredAt.get(order)),
-            new Buyer(placedOrder.buyer().name(), placedOrder.buyer().email(), placedOrder.buyer().phone(),
+            new Buyer(placedOrder.buyer().name(), buyerEmailOf(placedOrder), placedOrder.buyer().phone(),
                 placedOrder.buyer().nationalId()),
             new Address(placedOrder.address().street(), placedOrder.address().number(),
                 placedOrder.address().floor(), placedOrder.address().apartment(), placedOrder.address().city(),
@@ -222,7 +233,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     public synchronized Optional<OrderToPay> find(OrderId order) {
         return Optional.ofNullable(placed.get(order)).map(placedOrder -> new OrderToPay(order, placedOrder.number(),
             orders.get(order).status(), placedOrder.amounts().total(), placedOrder.paymentProvider(),
-            placedOrder.buyer().name(), placedOrder.buyer().email(), placedOrder.reservationExpiresAt()));
+            placedOrder.buyer().name(), buyerEmailOf(placedOrder), placedOrder.reservationExpiresAt()));
     }
 
     /** Only the orders the checkout placed carry a tracking token. */
@@ -242,7 +253,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     @Override
     public synchronized Optional<PaidOrder> detailsOf(OrderId order) {
         return Optional.ofNullable(placed.get(order)).map(placedOrder -> new PaidOrder(order.value(),
-            placedOrder.number(), placedOrder.buyer().name(), placedOrder.buyer().email(),
+            placedOrder.number(), placedOrder.buyer().name(), buyerEmailOf(placedOrder),
             placedOrder.lines().stream().map(line -> new Line(line.productName(), line.size(), line.color(),
                 line.quantity(), line.unitPrice(), line.amount())).toList(),
             placedOrder.amounts().subtotal(), placedOrder.amounts().discount(),
@@ -270,6 +281,27 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     public synchronized Optional<ConfirmableOrder> lock(OrderId order) {
         return Optional.ofNullable(orders.get(order))
             .map(row -> new ConfirmableOrder(order, row.number(), row.status(), row.couponId()));
+    }
+
+    /** Only the orders the checkout placed carry a tracking token. */
+    @Override
+    public synchronized Optional<CorrectableOrder> lock(TrackingToken token) {
+        return find(token).map(order -> new CorrectableOrder(order.id(), order.number(), order.status()));
+    }
+
+    /** Only the orders the checkout placed carry a buyer. */
+    @Override
+    public synchronized boolean replace(OrderId order, String email, Instant at) {
+        if (!placed.containsKey(order)) {
+            return false;
+        }
+        correctedEmails.put(order, email);
+        updatedAt.put(order, at);
+        return true;
+    }
+
+    private String buyerEmailOf(NewOrder order) {
+        return correctedEmails.getOrDefault(order.id(), order.buyer().email());
     }
 
     private record Row(long number, OrderStatus status, Instant reservationExpiresAt, Optional<UUID> couponId) {

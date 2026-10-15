@@ -7,7 +7,9 @@ import com.pijamaparty.store.ordering.api.PaidOrders.Address;
 import com.pijamaparty.store.ordering.api.PaidOrders.Line;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
 import com.pijamaparty.store.ordering.application.AdminOrderViews;
+import com.pijamaparty.store.ordering.application.BuyerEmails;
 import com.pijamaparty.store.ordering.application.ConfirmableOrders;
+import com.pijamaparty.store.ordering.application.CorrectableOrders;
 import com.pijamaparty.store.ordering.application.LatePayments;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderPages;
@@ -59,7 +61,7 @@ import org.springframework.transaction.annotation.Transactional;
 class JdbcOrderStore
     implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders,
     TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews, StatusChanges,
-    ShipmentTrackingNumbers, LatePayments {
+    ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -162,6 +164,21 @@ class JdbcOrderStore
     private static final String CORRECT_TRACKING_NUMBER = """
         UPDATE orders SET shipment_tracking_number = :trackingNumber, updated_at = :at
         WHERE id = :id AND status = 'SHIPPED'
+        """;
+
+    // UC-17 (T-E3-23): the buyer locks the order of its tracking link (orders_tracking_select,
+    // orders_buyer_email_update), filtered by the hash as SELECT_TRACKED.
+    private static final String LOCK_CORRECTABLE = """
+        SELECT id, number, status FROM orders o
+        WHERE o.tracking_token_hash = :hash
+           OR EXISTS (SELECT 1 FROM order_tracking_token t WHERE t.order_id = o.id AND t.token_hash = :hash)
+        FOR UPDATE
+        """;
+
+    // UC-17 (T-E3-23): only the email (orders_buyer_email_update_guard).
+    private static final String REPLACE_EMAIL = """
+        UPDATE orders SET customer_email = :email, updated_at = :at
+        WHERE id = :id
         """;
 
     // UC-15: set once, and only on a closed order (orders_paid_after_closing_ck).
@@ -366,6 +383,21 @@ class JdbcOrderStore
     public boolean correct(OrderId order, ShipmentTrackingNumber number, Instant at) {
         return jdbc.update(CORRECT_TRACKING_NUMBER, new MapSqlParameterSource("id", order.value())
             .addValue("trackingNumber", number.value())
+            .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
+    }
+
+    @Override
+    public Optional<CorrectableOrder> lock(TrackingToken token) {
+        return jdbc.query(LOCK_CORRECTABLE, new MapSqlParameterSource("hash", token.hash()), (row, n) ->
+                new CorrectableOrder(OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
+                    OrderStatus.valueOf(row.getString("status"))))
+            .stream().findFirst();
+    }
+
+    @Override
+    public boolean replace(OrderId order, String email, Instant at) {
+        return jdbc.update(REPLACE_EMAIL, new MapSqlParameterSource("id", order.value())
+            .addValue("email", email)
             .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
     }
 

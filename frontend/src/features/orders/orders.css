@@ -95,3 +95,43 @@
 .tracking-total {
   font-weight: 700;
 }
+
+/* UC-17 (T-E3-23): correcting the buyer's email, below the summary. */
+.tracking-email {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.tracking-email-saved {
+  margin: 0 0 8px;
+}
+
+.tracking-email-saved:empty {
+  display: none;
+}
+
+.tracking-email-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tracking-email-form input {
+  width: 100%;
+  min-height: 46px;
+  margin-bottom: 12px;
+  padding: 11px 13px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 16px; /* 16px keeps iOS from zooming into the field */
+}
+
+.tracking-email-form input:focus {
+  border-color: var(--accent);
+}
+
+.tracking-email-form .btn {
+  width: 100%;
+}

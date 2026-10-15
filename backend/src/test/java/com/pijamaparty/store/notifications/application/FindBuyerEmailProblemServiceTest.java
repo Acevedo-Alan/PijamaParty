@@ -57,6 +57,16 @@ class FindBuyerEmailProblemServiceTest {
     }
 
     @Test
+    void givenTheBuyersEmailFailedAndWasResentAfterACorrection_whenAskedAbout_thenTheLatestVersionHasNoProblem() {
+        outbox.enqueue(EmailType.ORDER_PAID_CUSTOMER, order, NOW);
+        outbox.failed(outbox.lockNextDue(NOW).orElseThrow().id(), NOW);
+
+        outbox.enqueueNextVersion(EmailType.ORDER_PAID_CUSTOMER, order, NOW.plusSeconds(60));
+
+        assertThat(service.problemOf(order)).isEmpty();
+    }
+
+    @Test
     void givenOnlyTheAdministratorsEmailFailed_whenAskedAbout_thenTheBuyerHasNoProblem() {
         outbox.enqueue(EmailType.ORDER_PAID_ADMIN, order, NOW);
         outbox.failed(outbox.lockNextDue(NOW).orElseThrow().id(), NOW);

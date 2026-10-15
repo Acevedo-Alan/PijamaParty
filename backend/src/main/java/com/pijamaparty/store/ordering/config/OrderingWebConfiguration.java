@@ -21,12 +21,13 @@ class OrderingWebConfiguration {
 
     /**
      * UC-14 (T-E3-08): the tracking link needs no account; its token is the credential, and Row Level Security only
-     * shows the order of that token (RNF-27).
+     * shows the order of that token (RNF-27). UC-17 (T-E3-23): its holder corrects the order's email the same way.
      */
     @Bean
     HttpAuthorizationRules orderTrackingAuthorizationRules() {
         return registry -> registry
             .requestMatchers(HttpMethod.GET, "/api/orders/*").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/orders/*/retry-payment").permitAll();
+            .requestMatchers(HttpMethod.POST, "/api/orders/*/retry-payment").permitAll()
+            .requestMatchers(HttpMethod.PATCH, "/api/orders/*/email").permitAll();
     }
 }

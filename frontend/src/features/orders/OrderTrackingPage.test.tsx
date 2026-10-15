@@ -144,3 +144,99 @@ describe('tracking link (UC-14, T-E3-08)', () => {
     expect(screen.getByRole('link', { name: es.tracking.backToStore })).toHaveAttribute('href', '/');
   });
 });
+
+describe('email correction (UC-17, T-E3-23)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const openForm = async () => {
+    await userEvent.click(await screen.findByRole('button', { name: es.tracking.emailCorrection.open }));
+  };
+
+  const save = async (email: string) => {
+    await userEvent.type(screen.getByLabelText(es.tracking.emailCorrection.label), email);
+    await userEvent.click(screen.getByRole('button', { name: es.tracking.emailCorrection.save }));
+  };
+
+  it('given a paid order, when the buyer corrects its email, then it is told the confirmation was sent again there', async () => {
+    stubOrder(answer(200, trackedOrder({ status: 'PAID', canRetryPayment: false })));
+    const patch = vi.spyOn(api, 'PATCH').mockResolvedValue(answer(200, { confirmationResent: true }));
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await openForm();
+    await save(' ana.perez@gmail.com ');
+
+    expect(patch).toHaveBeenCalledWith('/api/orders/{token}/email', {
+      params: { path: { token: TOKEN } },
+      body: { email: 'ana.perez@gmail.com' },
+    });
+    expect(await screen.findByRole('status')).toHaveTextContent(es.tracking.emailCorrection.resent('ana.perez@gmail.com'));
+    expect(screen.queryByLabelText(es.tracking.emailCorrection.label)).not.toBeInTheDocument();
+  });
+
+  it('given an order awaiting payment, when the buyer corrects its email, then it is told the confirmation will go there once paid', async () => {
+    stubOrder(answer(200, trackedOrder()));
+    vi.spyOn(api, 'PATCH').mockResolvedValue(answer(200, { confirmationResent: false }));
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await openForm();
+    await save('ana.perez@gmail.com');
+
+    expect(await screen.findByText(es.tracking.emailCorrection.savedForLater('ana.perez@gmail.com'))).toBeInTheDocument();
+  });
+
+  it('given the form open, when it is still empty, then it cannot be saved', async () => {
+    stubOrder(answer(200, trackedOrder({ status: 'PAID', canRetryPayment: false })));
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await openForm();
+
+    expect(screen.getByLabelText(es.tracking.emailCorrection.label)).toHaveValue('');
+    expect(screen.getByRole('button', { name: es.tracking.emailCorrection.save })).toBeDisabled();
+  });
+
+  it('given an email the server refuses, when saved, then the buyer is asked to check it and the form stays', async () => {
+    stubOrder(answer(200, trackedOrder({ status: 'PAID', canRetryPayment: false })));
+    vi.spyOn(api, 'PATCH').mockResolvedValue(answer(422));
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await openForm();
+    await save('ana.perez@');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.tracking.emailCorrection.invalid);
+    expect(screen.getByLabelText(es.tracking.emailCorrection.label)).toHaveValue('ana.perez@');
+  });
+
+  it('given more than 3 corrections in an hour, when another is saved, then the buyer is asked to try later', async () => {
+    stubOrder(answer(200, trackedOrder({ status: 'PAID', canRetryPayment: false })));
+    vi.spyOn(api, 'PATCH').mockResolvedValue(answer(429));
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await openForm();
+    await save('ana.perez@gmail.com');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.tracking.emailCorrection.tooManyAttempts);
+  });
+
+  it('given an order that expired meanwhile, when the email is saved, then the order is read again and the form is gone', async () => {
+    stubOrder(answer(200, trackedOrder()), answer(200, trackedOrder({ status: 'EXPIRED', canRetryPayment: false })));
+    vi.spyOn(api, 'PATCH').mockResolvedValue(answer(409));
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await openForm();
+    await save('ana.perez@gmail.com');
+
+    expect(await screen.findByText(es.tracking.statuses.EXPIRED)).toBeInTheDocument();
+    expect(screen.queryByLabelText(es.tracking.emailCorrection.label)).not.toBeInTheDocument();
+  });
+
+  it('given a cancelled or expired order, when its link opens, then the email cannot be corrected', async () => {
+    stubOrder(answer(200, trackedOrder({ status: 'CANCELLED', canRetryPayment: false })));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    expect(await screen.findByText(es.tracking.statuses.CANCELLED)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: es.tracking.emailCorrection.open })).not.toBeInTheDocument();
+  });
+});

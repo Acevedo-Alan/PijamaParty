@@ -155,3 +155,33 @@ export async function retryPayment(token: string): Promise<RetryAnswer> {
       throw new Error(`Retrying the payment failed with status ${String(response.status)}`);
   }
 }
+
+/** PATCH /api/orders/{token}/email (UC-17, T-E3-23): the email was corrected, or why not. */
+export type EmailCorrectionAnswer =
+  | { status: 'corrected'; confirmationResent: boolean }
+  | { status: 'invalidEmail' }
+  | { status: 'closed' }
+  | { status: 'tooManyAttempts' }
+  | { status: 'notFound' };
+
+export async function correctEmail(token: string, email: string): Promise<EmailCorrectionAnswer> {
+  const { data, response } = await api.PATCH('/api/orders/{token}/email', {
+    params: { path: { token } },
+    body: { email },
+  });
+  if (data?.confirmationResent !== undefined) {
+    return { status: 'corrected', confirmationResent: data.confirmationResent };
+  }
+  switch (response.status) {
+    case 422:
+      return { status: 'invalidEmail' };
+    case 409:
+      return { status: 'closed' };
+    case 429:
+      return { status: 'tooManyAttempts' };
+    case 404:
+      return { status: 'notFound' };
+    default:
+      throw new Error(`Correcting the email failed with status ${String(response.status)}`);
+  }
+}

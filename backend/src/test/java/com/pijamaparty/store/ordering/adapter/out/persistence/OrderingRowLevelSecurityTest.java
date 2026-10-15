@@ -42,7 +42,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * token of a confirmation email and a customer holding a guest's token (RNF-27). A buyer reads its own orders and the
  * one of the tracking token it holds, and creates only its own order awaiting payment, bound to that token; items
  * follow their order; the administrator and the system read and update every order and nobody deletes one; only the
- * system mints tracking tokens. A buyer adding its token to a repeated checkout's order is
+ * system mints tracking tokens. A buyer updates only the email of the order of the tracking token it holds (T-E3-23,
+ * also {@link OrderEmailRowLevelSecurityTest}). A buyer adding its token to a repeated checkout's order is
  * {@link RepeatedCheckoutTrackingRowLevelSecurityTest}. Every transaction is committed by the application role.
  */
 @ApiTest
@@ -110,6 +111,26 @@ class OrderingRowLevelSecurityTest {
 
         boolean isSystem() {
             return actor.filter(a -> a.is(Role.SYSTEM)).isPresent();
+        }
+
+        /**
+         * UC-17 (T-E3-23): a buyer updates the order of the tracking token it holds, the checkout's or a confirmation
+         * email's, and only its email.
+         */
+        Set<Owner> correctsEmail() {
+            Optional<TrackingToken> token = actor.filter(a -> a.is(Role.CUSTOMER) || a.is(Role.ANONYMOUS))
+                .flatMap(Actor::trackingToken);
+            if (token.isEmpty()) {
+                return NONE;
+            }
+            Set<Owner> reached = EnumSet.noneOf(Owner.class);
+            for (Owner order : Owner.values()) {
+                if (order.checkoutToken.equals(token.get())
+                    || (order == Owner.EMAILED && token.get().equals(EMAILED_TRACKING))) {
+                    reached.add(order);
+                }
+            }
+            return reached;
         }
 
         /** Buyers add lines to the orders they can see; the administrator and the system never do. */
@@ -243,14 +264,45 @@ class OrderingRowLevelSecurityTest {
     void givenAnOrderOfEveryBuyer_whenUpdatingAllOrders_thenOnlyTheAdministratorAndTheSystemChangeThem(
             Caller caller) {
         seedOrders();
+        var cancel = (Function<JdbcTemplate, List<UUID>>) sql -> sql.queryForList(
+            "update orders set status = 'CANCELLED', updated_at = now() returning id", UUID.class);
 
-        var updated = caller.run(rls, sql -> sql.queryForList(
-            "update orders set status = 'CANCELLED', updated_at = now() returning id", UUID.class));
+        if (!caller.correctsEmail().isEmpty()) {
+            // T-E3-23: it reaches the order of its token, whose guard keeps it to the email.
+            assertThatThrownBy(() -> caller.run(rls, cancel))
+                .isInstanceOf(DataAccessException.class).hasStackTraceContaining("a buyer may only update the email");
+            assertThat(owner.queryForList("select id from orders where status = 'CANCELLED'", UUID.class))
+                .as("stored").isEmpty();
+            return;
+        }
+        var updated = caller.run(rls, cancel);
 
         var expected = caller.isStaff() ? ALL : NONE;
         assertThat(owners(updated)).isEqualTo(expected);
         assertThat(owners(owner.queryForList("select id from orders where status = 'CANCELLED'", UUID.class)))
             .as("stored").isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callers")
+    void givenAnOrderOfEveryBuyer_whenCorrectingTheEmailOfAllOrders_thenABuyerChangesOnlyTheOrderOfItsToken(
+            Caller caller) {
+        seedOrders();
+        var correct = (Function<JdbcTemplate, List<UUID>>) sql -> sql.queryForList(
+            "update orders set customer_email = 'nuevo@example.com', updated_at = now() returning id", UUID.class);
+
+        if (caller.isStaff()) {
+            assertThatThrownBy(() -> caller.run(rls, correct))
+                .isInstanceOf(DataAccessException.class).hasStackTraceContaining("may only update the status");
+            assertThat(owner.queryForList("select id from orders where customer_email = 'nuevo@example.com'",
+                UUID.class)).as("stored").isEmpty();
+            return;
+        }
+        var corrected = caller.run(rls, correct);
+
+        assertThat(owners(corrected)).isEqualTo(caller.correctsEmail());
+        assertThat(owners(owner.queryForList("select id from orders where customer_email = 'nuevo@example.com'",
+            UUID.class))).as("stored").isEqualTo(caller.correctsEmail());
     }
 
     @Test

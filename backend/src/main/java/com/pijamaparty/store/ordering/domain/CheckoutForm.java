@@ -17,9 +17,6 @@ import java.util.regex.Pattern;
 public record CheckoutForm(String name, String email, String phone, String nationalId, String street, String number,
                            String floor, String apartment, String city, String postalCode) {
 
-    // Printable ASCII without spaces, one '@' with text on both sides: lower case is then the same in Java and in
-    // PostgreSQL, whose check compares with lower().
-    private static final Pattern EMAIL = Pattern.compile("[\\x21-\\x3F\\x41-\\x7E]+@[\\x21-\\x3F\\x41-\\x7E]+");
     private static final Pattern PHONE_SEPARATORS = Pattern.compile("[\\s+\\-()]");
     private static final Pattern PHONE = Pattern.compile("[0-9]{8,15}");
     private static final Pattern NATIONAL_ID_SEPARATORS = Pattern.compile("[.\\s]");
@@ -36,8 +33,8 @@ public record CheckoutForm(String name, String email, String phone, String natio
         Set<Field> invalid = EnumSet.noneOf(Field.class);
         String trimmedName = trimmed(name);
         check(trimmedName, 1, 100, Field.NAME, invalid);
-        String normalizedEmail = trimmed(email).toLowerCase(Locale.ROOT);
-        if (normalizedEmail.length() > 254 || !EMAIL.matcher(normalizedEmail).matches()) {
+        Optional<String> normalizedEmail = BuyerEmail.normalize(email);
+        if (normalizedEmail.isEmpty()) {
             invalid.add(Field.EMAIL);
         }
         String digitsOfPhone = PHONE_SEPARATORS.matcher(Objects.requireNonNullElse(phone, "")).replaceAll("");
@@ -67,7 +64,7 @@ public record CheckoutForm(String name, String email, String phone, String natio
             return new Outcome.Invalid(invalid);
         }
         return new Outcome.Valid(
-            new BuyerDetails(trimmedName, normalizedEmail, digitsOfPhone, digitsOfNationalId),
+            new BuyerDetails(trimmedName, normalizedEmail.orElseThrow(), digitsOfPhone, digitsOfNationalId),
             new ShippingAddress(trimmedStreet, trimmedNumber, optionalFloor, optionalApartment, trimmedCity,
                 normalizedPostalCode));
     }

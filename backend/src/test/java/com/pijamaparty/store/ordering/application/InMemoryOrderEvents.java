@@ -1,5 +1,6 @@
 package com.pijamaparty.store.ordering.application;
 
+import com.pijamaparty.store.ordering.api.OrderEmailCorrected;
 import com.pijamaparty.store.ordering.api.OrderPaid;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import java.util.List;
@@ -13,6 +14,11 @@ public class InMemoryOrderEvents implements OrderEvents {
     @Override
     public void orderPaid(OrderId order, long number) {
         published.add(new OrderPaid(order.value(), number));
+    }
+
+    @Override
+    public void orderEmailCorrected(OrderId order, long number) {
+        published.add(new OrderEmailCorrected(order.value(), number));
     }
 
     public List<Object> published() {
