@@ -93,6 +93,17 @@ describe('order detail (UC-18)', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(messages.alerts.BUYER_EMAIL_FAILED('3425551234'));
   });
 
+  it('given an order whose buyers email bounced, when opened, then an alert shows the buyers phone', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      [DETAIL]: answer(200, order({ alerts: ['BUYER_EMAIL_BOUNCED'] })),
+    });
+
+    await openOrder();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(messages.alerts.BUYER_EMAIL_BOUNCED('3425551234'));
+  });
+
   it('given an order paid after it expired, when opened, then it alerts to refund it and offers no change', async () => {
     stubApi({
       'GET /api/admin/auth/me': signedIn,

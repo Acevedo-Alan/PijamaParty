@@ -40,6 +40,17 @@ class GetOrderDetailServiceTest {
     }
 
     @Test
+    void givenAnOrderWithABouncedEmail_whenTheAdministratorOpensTheDetail_thenAnAlertShowsWithThePhone() {
+        AdminOrder order = order(false);
+        orders.add(order);
+        emails.bounced(order.orderId());
+
+        assertThat(service.execute(new Query(ADMIN, order.orderId())))
+            .isEqualTo(new Result.Found(order, List.of(OrderAlert.BUYER_EMAIL_BOUNCED)));
+        assertThat(order.buyer().phone()).isEqualTo("3425551234");
+    }
+
+    @Test
     void givenAnOrderPaidAfterItExpired_whenTheAdministratorOpensTheDetail_thenItIsToBeRefunded() {
         AdminOrder order = order(true);
         orders.add(order);

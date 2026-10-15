@@ -65,7 +65,7 @@ Decisión pendiente (ver `00-dominio-y-reglas.md`). La compra ya recopila DNI y 
 
 - Un único tipo de correo al cliente (`PAGO_CONFIRMADO`) y uno al administrador (`PAGO_CONFIRMADO_ADMIN`), ambos en la tabla de salida con restricción única `(tipo, referencia)`.
 - **Corrección de email:** `PATCH /api/pedidos/{token}/email` valida el formato, actualiza el pedido y encola un nuevo correo con una referencia que incluye una versión (`pedido_id:n`), de modo que la restricción única siga evitando duplicados. Política de límite: 3 por hora por pedido.
-- **Rebotes:** `POST /api/correos/webhook` verifica la firma del proveedor, registra el evento en `email_evento` (restricción única `(proveedor, id_evento)`), marca el correo como REBOTADO y levanta una alerta en el pedido.
+- **Rebotes:** `POST /api/correos/webhook` verifica la firma del proveedor, registra el evento en `email_evento` (restricción única `(proveedor, id_evento)`), marca el correo como REBOTADO y levanta una alerta en el pedido. *Decidido en T-E3-22:* solo un rebote permanente o una dirección suprimida por el proveedor marcan el correo como REBOTADO; un rebote temporal y una queja (el cliente recibió el correo y lo marcó como spam) solo se registran. Si rebota el aviso al administrador, se marca y se registra como error, sin alerta en el pedido.
 - **Backoffice:** el detalle del pedido muestra la alerta con el teléfono del cliente. *Propuesto:* permitir al administrador corregir el email y reenviar la confirmación.
 - **Página de resultado y seguimiento:** muestra a qué email se envió la confirmación, con un botón para corregirlo.
 - **Prevención:** sugerencia de dominios comunes mal escritos en el paso de envío del checkout.

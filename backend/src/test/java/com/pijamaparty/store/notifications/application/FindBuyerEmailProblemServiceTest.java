@@ -27,6 +27,24 @@ class FindBuyerEmailProblemServiceTest {
     }
 
     @Test
+    void givenTheBuyersEmailBounced_whenAskedAbout_thenItIsAProblem() {
+        outbox.enqueue(EmailType.ORDER_PAID_CUSTOMER, order, NOW);
+        outbox.sent(outbox.lockNextDue(NOW).orElseThrow().id(), "re_1", NOW);
+        outbox.bounce("re_1", NOW.plusSeconds(60));
+
+        assertThat(service.problemOf(order)).contains(Problem.BOUNCED);
+    }
+
+    @Test
+    void givenOnlyTheAdministratorsEmailBounced_whenAskedAbout_thenTheBuyerHasNoProblem() {
+        outbox.enqueue(EmailType.ORDER_PAID_ADMIN, order, NOW);
+        outbox.sent(outbox.lockNextDue(NOW).orElseThrow().id(), "re_1", NOW);
+        outbox.bounce("re_1", NOW.plusSeconds(60));
+
+        assertThat(service.problemOf(order)).isEmpty();
+    }
+
+    @Test
     void givenTheBuyersEmailPendingOrSent_whenAskedAbout_thenThereIsNoProblem() {
         UUID sent = UUID.randomUUID();
         outbox.enqueue(EmailType.ORDER_PAID_CUSTOMER, order, NOW);

@@ -1,5 +1,6 @@
 package com.pijamaparty.store.notifications.adapter.out.persistence;
 
+import com.pijamaparty.store.notifications.application.BounceEmails;
 import com.pijamaparty.store.notifications.application.EmailStatuses;
 import com.pijamaparty.store.notifications.application.EnqueueEmails;
 import com.pijamaparty.store.notifications.application.LockDueEmails;
@@ -19,12 +20,12 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The outbox in table {@code email_outbox} (V19), as {@code SYSTEM} (RNF-27). Enqueueing and locking join the
- * caller's transaction; recording joins it or, when there is none, runs in its own short one, so no connection is
+ * The outbox in table {@code email_outbox} (V19, V23), as {@code SYSTEM} (RNF-27). Enqueueing, locking and bouncing
+ * join the caller's transaction; recording joins it or, when there is none, runs in its own short one, so no connection is
  * held while an email is sent (RNF-21).
  */
 @Repository
-class JdbcEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses {
+class JdbcEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses, BounceEmails {
 
     // RNF-20.7: each type of email once per reference; a repeated event inserts nothing.
     private static final String INSERT = """
@@ -57,6 +58,13 @@ class JdbcEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcom
     private static final String FAILED = """
         UPDATE email_outbox SET status = 'FAILED', updated_at = :at
         WHERE id = :id AND status = 'PENDING'
+        """;
+
+    // T-E3-22: only a sent email bounces, once; over email_outbox_provider_message_idx.
+    private static final String BOUNCE = """
+        UPDATE email_outbox SET status = 'BOUNCED', updated_at = :at
+        WHERE provider_message_id = :messageId AND status = 'SENT'
+        RETURNING type, reference
         """;
 
     // UC-18: the administrator reads the outbox for the back-office alert (email_outbox_admin_select).
@@ -95,6 +103,16 @@ class JdbcEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcom
         return jdbc.queryForList(SELECT_STATUS, new MapSqlParameterSource("type", type.name())
                 .addValue("reference", reference), String.class)
             .stream().findFirst().map(EmailStatus::valueOf);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<Bounced> bounce(String providerMessageId, Instant at) {
+        return jdbc.query(BOUNCE, new MapSqlParameterSource("messageId", providerMessageId)
+                    .addValue("at", at.atOffset(ZoneOffset.UTC)),
+                (row, n) -> new Bounced(EmailType.valueOf(row.getString("type")),
+                    row.getObject("reference", UUID.class)))
+            .stream().findFirst();
     }
 
     @Override

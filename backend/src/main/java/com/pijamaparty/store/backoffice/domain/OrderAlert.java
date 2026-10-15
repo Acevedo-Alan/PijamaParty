@@ -10,12 +10,16 @@ public enum OrderAlert {
     /** The payment was approved after the order expired or was cancelled: refund it from the provider's panel. */
     PAID_AFTER_CLOSING,
 
+    /** The buyer's payment-confirmed email bounced: call the buyer (T-E3-22). */
+    BUYER_EMAIL_BOUNCED,
+
     /** The buyer did not get the payment-confirmed email: call the buyer (decided in T-E3-10). */
     BUYER_EMAIL_FAILED;
 
-    /** Why the buyer did not get the payment-confirmed email; bounces arrive with T-E3-22. */
+    /** Why the buyer did not get the payment-confirmed email. */
     public enum BuyerEmailProblem {
-        FAILED
+        FAILED,
+        BOUNCED
     }
 
     /** The alerts of an order, most urgent first. */
@@ -26,6 +30,7 @@ public enum OrderAlert {
         }
         buyerEmail.ifPresent(problem -> alerts.add(switch (problem) {
             case FAILED -> BUYER_EMAIL_FAILED;
+            case BOUNCED -> BUYER_EMAIL_BOUNCED;
         }));
         return List.copyOf(alerts);
     }

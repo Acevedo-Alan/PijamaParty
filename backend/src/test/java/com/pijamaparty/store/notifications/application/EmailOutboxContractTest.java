@@ -14,12 +14,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Contract of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes} and {@link EmailStatuses}
- * (RNF-20.7, RNF-23, UC-18): each type of email once per reference; the oldest due first; an attempt moves the email's
- * next due instant; an outcome only changes a pending email, and shows in its status.
+ * Contract of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes}, {@link EmailStatuses} and
+ * {@link BounceEmails} (RNF-20.7, RNF-23, UC-18, T-E3-22): each type of email once per reference; the oldest due
+ * first; an attempt moves the email's next due instant; an outcome only changes a pending email, only a sent email
+ * bounces, and each shows in its status.
  */
 public abstract class EmailOutboxContractTest<T extends EnqueueEmails & LockDueEmails & RecordEmailOutcomes
-    & EmailStatuses> extends ContractTest<T> {
+    & EmailStatuses & BounceEmails> extends ContractTest<T> {
 
     protected static final Instant NOW = Instant.parse("2026-10-13T15:00:30.123456Z");
 
@@ -152,6 +153,69 @@ public abstract class EmailOutboxContractTest<T extends EnqueueEmails & LockDueE
         assertThat(subject.statusOf(first.type() == EmailType.ORDER_PAID_CUSTOMER ? EmailType.ORDER_PAID_ADMIN
             : EmailType.ORDER_PAID_CUSTOMER, order)).contains(EmailStatus.PENDING);
         assertThat(subject.statusOf(EmailType.ORDER_PAID_CUSTOMER, UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    void givenASentEmail_whenItBounces_thenItIsBouncedKeepingWhenAndWithWhichIdItWasSent() {
+        UUID sent = sentEmail(EmailType.ORDER_PAID_CUSTOMER, "re_0123456789");
+
+        assertThat(subject.bounce("re_0123456789", NOW.plusSeconds(60)))
+            .contains(new BounceEmails.Bounced(EmailType.ORDER_PAID_CUSTOMER, order));
+        persistAndForget();
+
+        assertThat(stored(EmailType.ORDER_PAID_CUSTOMER, order)).hasValueSatisfying(stored -> {
+            assertThat(stored.id()).isEqualTo(sent);
+            assertThat(stored.status()).isEqualTo("BOUNCED");
+            assertThat(stored.providerMessageId()).contains("re_0123456789");
+            assertThat(stored.sentAt()).contains(NOW.plusSeconds(2));
+        });
+        assertThat(subject.statusOf(EmailType.ORDER_PAID_CUSTOMER, order)).contains(EmailStatus.BOUNCED);
+    }
+
+    @Test
+    void givenABouncedEmail_whenItBouncesAgain_thenNothingBounces() {
+        sentEmail(EmailType.ORDER_PAID_ADMIN, "re_0123456789");
+        subject.bounce("re_0123456789", NOW.plusSeconds(60));
+
+        assertThat(subject.bounce("re_0123456789", NOW.plusSeconds(120))).isEmpty();
+        persistAndForget();
+
+        assertThat(stored(EmailType.ORDER_PAID_ADMIN, order)).map(Stored::status).contains("BOUNCED");
+    }
+
+    @Test
+    void givenNoSentEmailWithTheProvidersId_whenItBounces_thenNothingBouncesAndAPendingEmailStaysPending() {
+        sentEmail(EmailType.ORDER_PAID_CUSTOMER, "re_0123456789");
+        subject.enqueue(EmailType.ORDER_PAID_ADMIN, order, NOW);
+
+        assertThat(subject.bounce("re_unknown", NOW.plusSeconds(60))).isEmpty();
+        persistAndForget();
+
+        assertThat(stored(EmailType.ORDER_PAID_CUSTOMER, order)).map(Stored::status).contains("SENT");
+        assertThat(stored(EmailType.ORDER_PAID_ADMIN, order)).map(Stored::status).contains("PENDING");
+    }
+
+    @Test
+    void givenABouncedEmail_whenLateOutcomesArrive_thenItStaysBounced() {
+        UUID email = sentEmail(EmailType.ORDER_PAID_CUSTOMER, "re_0123456789");
+        subject.bounce("re_0123456789", NOW.plusSeconds(60));
+
+        subject.failed(email, NOW.plusSeconds(61));
+        subject.sent(email, "re_other", NOW.plusSeconds(62));
+        persistAndForget();
+
+        assertThat(stored(EmailType.ORDER_PAID_CUSTOMER, order)).hasValueSatisfying(stored -> {
+            assertThat(stored.status()).isEqualTo("BOUNCED");
+            assertThat(stored.providerMessageId()).contains("re_0123456789");
+        });
+    }
+
+    /** An email of the order sent at {@code NOW + 2 s} with the provider's id; answers its id. */
+    private UUID sentEmail(EmailType type, String providerMessageId) {
+        subject.enqueue(type, order, NOW);
+        OutboxEmail email = subject.lockNextDue(NOW).orElseThrow();
+        subject.sent(email.id(), providerMessageId, NOW.plusSeconds(2));
+        return email.id();
     }
 
     @Test

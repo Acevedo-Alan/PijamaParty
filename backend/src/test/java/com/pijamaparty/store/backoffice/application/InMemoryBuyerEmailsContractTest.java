@@ -15,6 +15,11 @@ class InMemoryBuyerEmailsContractTest extends BuyerEmailsContractTest<InMemoryBu
     }
 
     @Override
+    protected void givenBounced(UUID orderId) {
+        subject.bounced(orderId);
+    }
+
+    @Override
     protected void givenPending(UUID orderId) {
     }
 }

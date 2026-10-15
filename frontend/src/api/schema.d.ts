@@ -189,6 +189,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mail/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend notifies that an email bounced or was marked as spam
+         * @description Called by Resend only, signed through Svix (svix-id, svix-timestamp, svix-signature) over the raw body. A permanent bounce or a suppressed address marks the email as bounced, and the order shows an alert in the back office. Repeating a notification has no further effects.
+         */
+        post: operations["notifyEmailEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/checkout": {
         parameters: {
             query?: never;
@@ -1490,7 +1510,7 @@ export interface components {
             totalCents?: number;
             paymentProvider?: string;
             shipmentTrackingNumber?: string | null;
-            alerts?: ("PAID_AFTER_CLOSING" | "BUYER_EMAIL_FAILED")[];
+            alerts?: ("PAID_AFTER_CLOSING" | "BUYER_EMAIL_BOUNCED" | "BUYER_EMAIL_FAILED")[];
         };
         ProductPageResponse: {
             items?: components["schemas"]["ProductSummaryResponse"][];
@@ -2061,6 +2081,48 @@ export interface operations {
             };
             /** @description The payment provider could not be reached (problem PAYMENT_PROVIDER_UNAVAILABLE): try again after Retry-After */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    notifyEmailEvent: {
+        parameters: {
+            query?: never;
+            header?: {
+                "svix-id"?: string;
+                "svix-timestamp"?: string;
+                "svix-signature"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Processed, already processed, or ignored (an event type or body this store does not use) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description Missing, invalid or out-of-date signature */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description A body over 64 KiB */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };

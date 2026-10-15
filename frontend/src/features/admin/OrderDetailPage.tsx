@@ -276,9 +276,7 @@ function OrderView({ order, onChanged }: Props) {
       </p>
       {order.alerts.map((alert) => (
         <p key={alert} className="order-alert" role="alert">
-          {alert === 'BUYER_EMAIL_FAILED'
-            ? messages.alerts.BUYER_EMAIL_FAILED(buyer.phone)
-            : messages.alerts.PAID_AFTER_CLOSING}
+          {alert === 'PAID_AFTER_CLOSING' ? messages.alerts.PAID_AFTER_CLOSING : messages.alerts[alert](buyer.phone)}
         </p>
       ))}
       <section className="admin-section" aria-labelledby="order-status">

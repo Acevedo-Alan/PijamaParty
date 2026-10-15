@@ -11,10 +11,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Fake of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes} and {@link EmailStatuses} over
- * the same outbox.
+ * Fake of {@link EnqueueEmails}, {@link LockDueEmails}, {@link RecordEmailOutcomes}, {@link EmailStatuses} and
+ * {@link BounceEmails} over the same outbox.
  */
-public class InMemoryEmailOutbox implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses {
+public class InMemoryEmailOutbox
+    implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses, BounceEmails {
 
     /** An email of the outbox as the table keeps it. */
     public record Stored(UUID id, EmailType type, UUID reference, String status, int attempts, Instant nextAttemptAt,
@@ -81,6 +82,17 @@ public class InMemoryEmailOutbox implements EnqueueEmails, LockDueEmails, Record
             emails.put(email, stored.with("SENT", stored.attempts(), stored.nextAttemptAt(),
                 Optional.of(providerMessageId), Optional.of(at)));
         }
+    }
+
+    @Override
+    public synchronized Optional<Bounced> bounce(String providerMessageId, Instant at) {
+        Optional<Stored> sent = emails.values().stream()
+            .filter(stored -> stored.status().equals("SENT")
+                && stored.providerMessageId().filter(providerMessageId::equals).isPresent())
+            .findFirst();
+        sent.ifPresent(stored -> emails.put(stored.id(), stored.with("BOUNCED", stored.attempts(),
+            stored.nextAttemptAt(), stored.providerMessageId(), stored.sentAt())));
+        return sent.map(stored -> new Bounced(stored.type(), stored.reference()));
     }
 
     @Override

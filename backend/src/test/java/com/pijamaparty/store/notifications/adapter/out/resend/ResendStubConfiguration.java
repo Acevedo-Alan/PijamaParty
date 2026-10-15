@@ -1,5 +1,6 @@
 package com.pijamaparty.store.notifications.adapter.out.resend;
 
+import com.pijamaparty.store.notifications.adapter.in.webhook.ResendWebhooks;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.DynamicPropertyRegistrar;
@@ -23,6 +24,8 @@ public class ResendStubConfiguration {
         return registry -> {
             registry.add("store.notifications.resend.base-url", () -> stub.baseUrl().toString());
             registry.add("store.notifications.resend.api-key", () -> API_KEY);
+            // T-E3-22: tests sign the bounce notifications with it (ResendWebhooks)
+            registry.add("store.notifications.resend.webhook-secret", () -> ResendWebhooks.SECRET);
         };
     }
 }

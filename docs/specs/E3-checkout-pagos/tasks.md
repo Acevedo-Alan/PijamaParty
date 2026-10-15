@@ -21,7 +21,7 @@
 - [x] **T-E3-19** Activar la política de rate limiting del checkout (RNF-22).
 - [x] **T-E3-20** Eventos de analítica `begin_checkout`, `add_payment_info` y `purchase`, este último una sola vez por pedido y solo con el pedido PAGADO (RNF-25).
 - [x] **T-E3-21** Tests de las políticas de Row Level Security de las tablas de pedidos, pagos, idempotencia y correos con cliente A, cliente B, invitado, administrador y sistema (RNF-27). Las políticas nacen con cada tabla: T-E3-01, T-E3-09, T-E3-14, T-E3-15 y T-E3-22; los tests de `email_evento` llegan con su tabla en T-E3-22.
-- [ ] **T-E3-22** Webhook de rebotes y quejas del proveedor de correo, tabla `email_evento` y alerta en el pedido del backoffice (CU-17, CU-18).
+- [x] **T-E3-22** Webhook de rebotes y quejas del proveedor de correo, tabla `email_evento` y alerta en el pedido del backoffice (CU-17, CU-18).
 - [ ] **T-E3-23** Corrección del email desde la página de resultado y el enlace de seguimiento, con reenvío y rate limiting (CU-17).
 - [ ] **T-E3-24** Sugerencia de dominios de email mal escritos en el paso de envío (CU-13, *Propuesto*).
 - [ ] **T-E3-25** Botón de arrepentimiento: enlace en inicio y pie, formulario, código de trámite, correo y aviso al administrador (CU-29).

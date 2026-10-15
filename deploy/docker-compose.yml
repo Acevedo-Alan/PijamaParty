@@ -79,6 +79,7 @@ services:
       - MERCADOPAGO_ACCESS_TOKEN
       - MERCADOPAGO_WEBHOOK_SECRET
       - RESEND_API_KEY
+      - RESEND_WEBHOOK_SECRET
     volumes:
       - uploads:/srv/uploads
     networks: [edge, data]
@@ -183,3 +184,5 @@ secrets:
     file: ./secrets/MERCADOPAGO_WEBHOOK_SECRET
   RESEND_API_KEY:
     file: ./secrets/RESEND_API_KEY
+  RESEND_WEBHOOK_SECRET:
+    file: ./secrets/RESEND_WEBHOOK_SECRET

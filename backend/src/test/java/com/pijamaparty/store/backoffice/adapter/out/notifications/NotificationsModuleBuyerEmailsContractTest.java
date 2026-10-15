@@ -53,6 +53,15 @@ class NotificationsModuleBuyerEmailsContractTest extends BuyerEmailsContractTest
     }
 
     @Override
+    protected void givenBounced(UUID orderId) {
+        owner.update("""
+            insert into email_outbox (id, type, reference, status, attempts, next_attempt_at, provider_message_id,
+                                      created_at, sent_at, updated_at)
+            values (gen_random_uuid(), 'ORDER_PAID_CUSTOMER', ?, 'BOUNCED', 1, now(), 're_1', now(), now(), now())
+            """, orderId);
+    }
+
+    @Override
     protected void givenPending(UUID orderId) {
         owner.update(INSERT, orderId, "PENDING");
     }

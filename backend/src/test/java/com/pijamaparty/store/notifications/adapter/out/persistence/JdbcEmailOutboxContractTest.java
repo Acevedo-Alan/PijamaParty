@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
+import com.pijamaparty.store.notifications.application.BounceEmails;
 import com.pijamaparty.store.notifications.application.EmailOutboxContractTest;
 import com.pijamaparty.store.notifications.application.EmailStatuses;
 import com.pijamaparty.store.notifications.application.EnqueueEmails;
@@ -79,6 +80,12 @@ class JdbcEmailOutboxContractTest extends EmailOutboxContractTest<JdbcEmailOutbo
     }
 
     @Test
+    void givenNoTransaction_whenAnEmailBounces_thenItIsRefused() {
+        assertThatThrownBy(() -> CurrentActor.callAsSystem(() -> adapter.bounce("re_0123456789", NOW)))
+            .isInstanceOf(IllegalTransactionStateException.class);
+    }
+
+    @Test
     void givenNoTransaction_whenTheNextEmailDueIsLocked_thenItIsRefused() {
         assertThatThrownBy(() -> CurrentActor.callAsSystem(() -> adapter.lockNextDue(NOW)))
             .isInstanceOf(IllegalTransactionStateException.class);
@@ -89,7 +96,14 @@ class JdbcEmailOutboxContractTest extends EmailOutboxContractTest<JdbcEmailOutbo
      * is read as the back office reads it: the administrator, in a read transaction.
      */
     record AsSystem(JdbcEmailOutbox adapter, TransactionTemplate transactions)
-        implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses {
+        implements EnqueueEmails, LockDueEmails, RecordEmailOutcomes, EmailStatuses, BounceEmails {
+
+        /** As the bounce webhook runs it: the system, inside a transaction. */
+        @Override
+        public Optional<Bounced> bounce(String providerMessageId, Instant at) {
+            return CurrentActor.callAsSystem(
+                () -> transactions.execute(status -> adapter.bounce(providerMessageId, at)));
+        }
 
         @Override
         public Optional<EmailStatus> statusOf(EmailType type, UUID reference) {

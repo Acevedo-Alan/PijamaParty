@@ -20,6 +20,18 @@ class OrderAlertTest {
     }
 
     @Test
+    void givenOnlyABouncedEmail_whenItsAlertsAreAskedFor_thenTheAdministratorIsToldItBounced() {
+        assertThat(OrderAlert.of(false, Optional.of(BuyerEmailProblem.BOUNCED)))
+            .containsExactly(OrderAlert.BUYER_EMAIL_BOUNCED);
+    }
+
+    @Test
+    void givenAPaymentAfterClosingAndABouncedEmail_whenItsAlertsAreAskedFor_thenTheRefundComesFirst() {
+        assertThat(OrderAlert.of(true, Optional.of(BuyerEmailProblem.BOUNCED)))
+            .containsExactly(OrderAlert.PAID_AFTER_CLOSING, OrderAlert.BUYER_EMAIL_BOUNCED);
+    }
+
+    @Test
     void givenOnlyAFailedEmail_whenItsAlertsAreAskedFor_thenTheAdministratorIsToldToCallTheBuyer() {
         assertThat(OrderAlert.of(false, Optional.of(BuyerEmailProblem.FAILED)))
             .containsExactly(OrderAlert.BUYER_EMAIL_FAILED);

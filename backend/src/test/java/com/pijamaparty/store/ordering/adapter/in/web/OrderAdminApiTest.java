@@ -15,12 +15,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pijamaparty.store.TestcontainersConfiguration;
+import com.pijamaparty.store.notifications.adapter.in.webhook.ResendWebhooks;
 import com.pijamaparty.store.ordering.application.ConfirmOrderPayment;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -85,9 +88,9 @@ class OrderAdminApiTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate idempotency_key, payment_event, payment, email_outbox, order_tracking_token, "
-            + "order_item, orders, cart_item, cart, stock_movement, stock_level, product_image, variant, product, "
-            + "category, shipping_zone_rate");
+        owner.execute("truncate idempotency_key, payment_event, payment, email_event, email_outbox, "
+            + "order_tracking_token, order_item, orders, cart_item, cart, stock_movement, stock_level, product_image, "
+            + "variant, product, category, shipping_zone_rate");
     }
 
     @Test
@@ -316,6 +319,29 @@ class OrderAdminApiTest {
             .andExpect(jsonPath("$.lines[0].quantity").value(2))
             .andExpect(jsonPath("$.totalCents").value(4_450_000))
             .andExpect(jsonPath("$.paymentProvider").value("MERCADOPAGO"));
+    }
+
+    @Test
+    void givenAnOrderWhoseBuyersEmailBounced_whenTheAdministratorOpensTheDetail_thenAnAlertShowsTheBuyersPhone()
+        throws Exception {
+        Placed placed = placeOrder();
+        pay(placed);
+        owner.update("update email_outbox set status = 'SENT', provider_message_id = 're_bounced', sent_at = now() "
+            + "where type = 'ORDER_PAID_CUSTOMER'");
+        byte[] bounce = """
+            {"type":"email.bounced","created_at":"2026-10-14T15:00:00.000Z","data":{"email_id":"re_bounced",
+            "to":["ana@example.com"],"bounce":{"type":"Permanent","subType":"General"}}}
+            """.getBytes(StandardCharsets.UTF_8);
+        String timestamp = Long.toString(Instant.now().getEpochSecond());
+        mvc.perform(post("/api/mail/webhook").contentType(MediaType.APPLICATION_JSON).content(bounce)
+                .header("svix-id", "msg_bounce").header("svix-timestamp", timestamp)
+                .header("svix-signature", ResendWebhooks.sign("msg_bounce", timestamp, bounce)))
+            .andExpect(status().isOk());
+
+        mvc.perform(get(ORDERS + "/{id}", placed.id()).with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.alerts", contains("BUYER_EMAIL_BOUNCED")))
+            .andExpect(jsonPath("$.buyer.phone").value("3425551234"));
     }
 
     @Test

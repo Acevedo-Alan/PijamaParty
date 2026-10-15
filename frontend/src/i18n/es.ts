@@ -465,6 +465,9 @@ export const es = {
         /** The buyer's phone, to call about the email that did not arrive. */
         BUYER_EMAIL_FAILED: (phone: string) =>
           `No pudimos enviarle el correo de confirmación al comprador. Llamalo o escribile al ${phone}.`,
+        /** The buyer's phone, to confirm the address the email bounced from. */
+        BUYER_EMAIL_BOUNCED: (phone: string) =>
+          `El correo de confirmación rebotó: el email del comprador no existe o no recibe correos. Llamalo o escribile al ${phone} para confirmarlo.`,
       },
       buyer: 'Comprador',
       nationalId: (id: string) => `DNI ${id}`,

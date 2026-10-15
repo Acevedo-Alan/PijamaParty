@@ -61,8 +61,8 @@ class OrderDetailAdminController {
      *
      * @param nextStatuses what the administrator may move the order to
      * @param paymentProvider e.g. MERCADOPAGO
-     * @param alerts most urgent first: PAID_AFTER_CLOSING (refund it from the provider's panel), BUYER_EMAIL_FAILED
-     *     (call the buyer)
+     * @param alerts most urgent first: PAID_AFTER_CLOSING (refund it from the provider's panel), BUYER_EMAIL_BOUNCED
+     *     and BUYER_EMAIL_FAILED (call the buyer)
      */
     record AdminOrderResponse(UUID id, long number, Status status, List<Status> nextStatuses, Instant createdAt,
                               Instant updatedAt, @Schema(nullable = true) Instant deliveredAt,

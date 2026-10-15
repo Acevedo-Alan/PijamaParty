@@ -1,7 +1,6 @@
 package com.pijamaparty.store.notifications.application;
 
 import com.pijamaparty.store.notifications.api.BuyerEmailStatus;
-import com.pijamaparty.store.notifications.domain.EmailStatus;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,7 +21,10 @@ class FindBuyerEmailProblemService implements BuyerEmailStatus {
     @Transactional(readOnly = true)
     public Optional<Problem> problemOf(UUID orderId) {
         return statuses.statusOf(EmailType.ORDER_PAID_CUSTOMER, orderId)
-            .filter(status -> status == EmailStatus.FAILED)
-            .map(failed -> Problem.FAILED);
+            .flatMap(status -> switch (status) {
+                case PENDING, SENT -> Optional.empty();
+                case FAILED -> Optional.of(Problem.FAILED);
+                case BOUNCED -> Optional.of(Problem.BOUNCED);
+            });
     }
 }

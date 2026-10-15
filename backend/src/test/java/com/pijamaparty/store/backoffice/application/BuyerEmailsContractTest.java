@@ -13,6 +13,9 @@ public abstract class BuyerEmailsContractTest<T extends BuyerEmails> extends Con
     /** The payment-confirmed email to the buyer of the order failed. */
     protected abstract void givenFailed(UUID orderId);
 
+    /** The payment-confirmed email to the buyer of the order was sent and bounced (T-E3-22). */
+    protected abstract void givenBounced(UUID orderId);
+
     /** The payment-confirmed email to the buyer of the order is still pending. */
     protected abstract void givenPending(UUID orderId);
 
@@ -22,6 +25,14 @@ public abstract class BuyerEmailsContractTest<T extends BuyerEmails> extends Con
         givenFailed(order);
 
         assertThat(subject.problemOf(order)).contains(BuyerEmailProblem.FAILED);
+    }
+
+    @Test
+    void givenTheBuyersEmailBounced_whenAskedAbout_thenItBounced() {
+        UUID order = UUID.randomUUID();
+        givenBounced(order);
+
+        assertThat(subject.problemOf(order)).contains(BuyerEmailProblem.BOUNCED);
     }
 
     @Test

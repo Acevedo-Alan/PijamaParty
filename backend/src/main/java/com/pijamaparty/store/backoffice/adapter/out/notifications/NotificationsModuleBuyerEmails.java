@@ -21,6 +21,7 @@ class NotificationsModuleBuyerEmails implements BuyerEmails {
     public Optional<BuyerEmailProblem> problemOf(UUID orderId) {
         return status.problemOf(orderId).map(problem -> switch (problem) {
             case FAILED -> BuyerEmailProblem.FAILED;
+            case BOUNCED -> BuyerEmailProblem.BOUNCED;
         });
     }
 }

@@ -16,6 +16,11 @@ public class InMemoryBuyerEmails implements BuyerEmails {
         problems.put(orderId, BuyerEmailProblem.FAILED);
     }
 
+    /** Test arrangement: the buyer's email of the order bounced. */
+    public synchronized void bounced(UUID orderId) {
+        problems.put(orderId, BuyerEmailProblem.BOUNCED);
+    }
+
     @Override
     public synchronized Optional<BuyerEmailProblem> problemOf(UUID orderId) {
         return Optional.ofNullable(problems.get(orderId));
