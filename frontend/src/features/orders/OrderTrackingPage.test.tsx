@@ -22,7 +22,7 @@ function trackedOrder(overrides: Partial<TrackedOrderResponse> = {}): TrackedOrd
     createdAt: '2026-10-13T17:00:00Z',
     buyerFirstName: 'Ana',
     items: [
-      { productName: 'Pijama Luna', size: 'M', color: 'Rosa', quantity: 2, unitPriceCents: 2_000_000, lineTotalCents: 4_000_000 },
+      { sku: 'PP-MROSA', productName: 'Pijama Luna', size: 'M', color: 'Rosa', quantity: 2, unitPriceCents: 2_000_000, lineTotalCents: 4_000_000 },
     ],
     subtotalCents: 4_000_000,
     discountCents: 400_000,

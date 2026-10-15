@@ -8,6 +8,8 @@ export type OrderStatus = NonNullable<TrackedOrderResponse['status']>;
 export type Province = NonNullable<TrackedOrderResponse['province']>;
 
 export interface TrackedItem {
+  /** Identifies the item in analytics (RNF-25). */
+  sku: string;
   productName: string;
   size: string;
   color: string;
@@ -49,8 +51,17 @@ export type RetryAnswer =
   | { status: 'tooManyAttempts' }
   | { status: 'notFound' };
 
-function toItem({ productName, size, color, quantity, unitPriceCents, lineTotalCents }: TrackedItemResponse): TrackedItem {
+function toItem({
+  sku,
+  productName,
+  size,
+  color,
+  quantity,
+  unitPriceCents,
+  lineTotalCents,
+}: TrackedItemResponse): TrackedItem {
   if (
+    sku === undefined ||
     productName === undefined ||
     size === undefined ||
     color === undefined ||
@@ -60,7 +71,7 @@ function toItem({ productName, size, color, quantity, unitPriceCents, lineTotalC
   ) {
     throw new Error('Incomplete item in the tracked order');
   }
-  return { productName, size, color, quantity, unitPriceCents, lineTotalCents };
+  return { sku, productName, size, color, quantity, unitPriceCents, lineTotalCents };
 }
 
 function toOrder(data: TrackedOrderResponse): TrackedOrder {

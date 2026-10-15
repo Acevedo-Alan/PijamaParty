@@ -19,6 +19,7 @@ export function cartItem(overrides: Partial<CartItemBody> = {}): CartItemBody {
       slug: 'luna',
       size: 'M',
       color: 'Rosa',
+      sku: 'PP-MROSA',
       image: {
         placeholder: 'data:image/webp;base64,AAAA',
         files: [

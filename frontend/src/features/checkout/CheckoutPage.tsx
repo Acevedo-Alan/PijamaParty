@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { trackAddPaymentInfo, trackBeginCheckout, type CheckoutForAnalytics } from '../analytics/checkoutEvents.ts';
 import type { Cart, CartItem } from '../cart/cartApi.ts';
 import { useCartPanel } from '../cart/CartPanelContext.tsx';
 import { useCart, useRemoveCoupon } from '../cart/useCart.ts';
@@ -22,6 +23,19 @@ import { useEmptiedCart, usePlaceOrder, useShippingCost } from './useCheckout.ts
 import './checkout.css';
 
 type Step = 1 | 2 | 3;
+
+/** What the checkout events carry of the cart (RNF-25): its AVAILABLE items by SKU and the server's total. */
+function forAnalytics(cart: Cart): CheckoutForAnalytics {
+  return {
+    items: cart.items.flatMap(({ status, product, unitPriceCents, quantity }) =>
+      status === 'AVAILABLE' && product !== null
+        ? [{ sku: product.sku, name: product.name, size: product.size, color: product.color, unitPriceCents, quantity }]
+        : [],
+    ),
+    totalCents: cart.totalCents,
+    couponCode: cart.coupon?.status === 'APPLICABLE' ? cart.coupon.code : null,
+  };
+}
 
 /** Whether every item can be bought as it is (UC-09): in stock and with no unacknowledged price change. */
 function isReady(cart: Cart): boolean {
@@ -293,6 +307,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   const focusTarget = useRef<FocusTarget | null>(null);
   const [focusRequests, setFocusRequests] = useState(0);
   const attempt = useRef<Attempt | null>(null);
+  const paymentInfoSent = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const prefix = useId();
   const idOf = (field: FormField) => `${prefix}-${field}`;
@@ -352,6 +367,15 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
     if (ready && shipping.data?.status === 'quoted') {
       goTo(2);
     }
+  }
+
+  function toReview() {
+    // RNF-25: the first time in the visit only.
+    if (!paymentInfoSent.current) {
+      paymentInfoSent.current = true;
+      trackAddPaymentInfo(forAnalytics(cart), 'MercadoPago');
+    }
+    goTo(3);
   }
 
   function settle(answer: PlaceOrderAnswer) {
@@ -535,9 +559,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 type="button"
                 className="btn checkout-next"
                 disabled={!ready}
-                onClick={() => {
-                  goTo(3);
-                }}
+                onClick={toReview}
               >
                 {es.checkout.toReview}
               </button>
@@ -635,6 +657,19 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
 export function CheckoutPage() {
   const cart = useCart();
   const [leaving, setLeaving] = useState(false);
+  const checkoutBegun = useRef(false);
+
+  // RNF-25: once per visit, as soon as the cart has something to buy.
+  useEffect(() => {
+    if (checkoutBegun.current || cart.data === undefined) {
+      return;
+    }
+    const checkout = forAnalytics(cart.data);
+    if (checkout.items.length > 0) {
+      checkoutBegun.current = true;
+      trackBeginCheckout(checkout);
+    }
+  }, [cart.data]);
 
   // Back from the provider with the page restored as it was left (back-forward cache): it shows the cart again.
   useEffect(() => {

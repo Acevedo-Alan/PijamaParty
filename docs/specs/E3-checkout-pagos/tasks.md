@@ -19,7 +19,7 @@
 - [x] **T-E3-17** Cabecera de idempotencia hacia el proveedor de pagos derivada del número de pedido (RNF-20.8).
 - [ ] **T-E3-18** Registros SPF, DKIM y DMARC del subdominio de envío y alerta de volumen diario de correos (RNF-23). *Requiere el dominio registrado.*
 - [x] **T-E3-19** Activar la política de rate limiting del checkout (RNF-22).
-- [ ] **T-E3-20** Eventos de analítica `begin_checkout`, `add_payment_info` y `purchase`, este último una sola vez por pedido y solo con el pedido PAGADO (RNF-25).
+- [x] **T-E3-20** Eventos de analítica `begin_checkout`, `add_payment_info` y `purchase`, este último una sola vez por pedido y solo con el pedido PAGADO (RNF-25).
 - [ ] **T-E3-21** Tests de las políticas de Row Level Security de las tablas de pedidos, pagos, idempotencia y correos con cliente A, cliente B, invitado, administrador y sistema (RNF-27). Las políticas nacen con cada tabla: T-E3-01, T-E3-09, T-E3-14, T-E3-15 y T-E3-22.
 - [ ] **T-E3-22** Webhook de rebotes y quejas del proveedor de correo, tabla `email_evento` y alerta en el pedido del backoffice (CU-17, CU-18).
 - [ ] **T-E3-23** Corrección del email desde la página de resultado y el enlace de seguimiento, con reenvío y rate limiting (CU-17).

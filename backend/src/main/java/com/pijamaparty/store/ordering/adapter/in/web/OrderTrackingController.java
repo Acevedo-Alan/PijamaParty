@@ -162,11 +162,11 @@ class OrderTrackingController {
     }
 
     /** {@code lineTotalCents} = {@code unitPriceCents} × {@code quantity}. */
-    record TrackedItemResponse(String productName, String size, String color, int quantity, long unitPriceCents,
-                               long lineTotalCents) {
+    record TrackedItemResponse(String sku, String productName, String size, String color, int quantity,
+                               long unitPriceCents, long lineTotalCents) {
 
         static TrackedItemResponse of(OrderLine line) {
-            return new TrackedItemResponse(line.productName(), line.size(), line.color(), line.quantity(),
+            return new TrackedItemResponse(line.sku(), line.productName(), line.size(), line.color(), line.quantity(),
                 line.unitPrice().cents(), line.amount().cents());
         }
     }

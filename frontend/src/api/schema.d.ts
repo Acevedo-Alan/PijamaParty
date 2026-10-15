@@ -200,7 +200,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm the checkout: place the order, reserve its stock and open its payment
-         * @description Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for 30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the buyer to; null when the provider could not be reached, and then the client opens the tracking page. Requires the CSRF token.
+         * @description Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for 30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the buyer to; null when the provider could not be reached, and then the client opens the tracking page. The same Idempotency-Key repeated with the same content gets the same order, with a new trackingToken, and nothing is placed or reserved again. Requires the CSRF token.
          */
         post: operations["placeOrder"];
         delete?: never;
@@ -1185,6 +1185,7 @@ export interface components {
             slug?: string;
             size?: string;
             color?: string;
+            sku?: string;
             image?: components["schemas"]["ItemImageResponse"];
         };
         ItemResponse: {
@@ -1270,6 +1271,7 @@ export interface components {
             active?: boolean;
         };
         TrackedItemResponse: {
+            sku?: string;
             productName?: string;
             size?: string;
             color?: string;
@@ -2102,7 +2104,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description See problem: EMPTY_CART, CART_NOT_READY (read the cart again), COUPON_NOT_APPLICABLE (with couponStatus) or INSUFFICIENT_STOCK (with variantId and available) */
+            /** @description See problem: EMPTY_CART, CART_NOT_READY (read the cart again), COUPON_NOT_APPLICABLE (with couponStatus), INSUFFICIENT_STOCK (with variantId and available) or IDEMPOTENCY_KEY_IN_USE (a request with the same key is still being processed: repeat it with the same key after Retry-After seconds) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2111,7 +2113,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description See problem: INVALID_BUYER_DATA (with fields), TERMS_NOT_ACCEPTED or NO_SHIPPING (with province) */
+            /** @description See problem: INVALID_BUYER_DATA (with fields), TERMS_NOT_ACCEPTED, NO_SHIPPING (with province) or IDEMPOTENCY_KEY_REUSED (the key went with a different content) */
             422: {
                 headers: {
                     [name: string]: unknown;

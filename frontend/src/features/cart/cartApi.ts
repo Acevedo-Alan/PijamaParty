@@ -16,6 +16,8 @@ export interface CartProduct {
   slug: string;
   size: string;
   color: string;
+  /** The variant's SKU, which identifies it in analytics (RNF-25). */
+  sku: string;
   /** The first photo of its color, or else of the whole product; null without one. */
   image: ListingImage | null;
 }
@@ -64,11 +66,11 @@ function toProduct(product: ItemProductResponse | null | undefined): CartProduct
   if (product === null || product === undefined) {
     return null;
   }
-  const { name, slug, size, color } = product;
-  if (name === undefined || slug === undefined || size === undefined || color === undefined) {
+  const { name, slug, size, color, sku } = product;
+  if (name === undefined || slug === undefined || size === undefined || color === undefined || sku === undefined) {
     throw new Error('Incomplete product in a cart item');
   }
-  return { name, slug, size, color, image: toImage(product.image) };
+  return { name, slug, size, color, sku, image: toImage(product.image) };
 }
 
 function toItem(item: ItemResponse): CartItem {

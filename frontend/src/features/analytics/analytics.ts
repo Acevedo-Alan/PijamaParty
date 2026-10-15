@@ -122,17 +122,26 @@ export function pesos(cents: number): number {
   return cents / CENTS_PER_PESO;
 }
 
-/** A GA4 event and, when it has one, its Meta Pixel counterpart (RNF-25). */
+/**
+ * A GA4 event and, when it has one, its Meta Pixel counterpart (RNF-25). The Pixel's {@code eventId} lets Meta drop a
+ * repetition of the same event.
+ */
 export function trackEvent(ga4: { name: string; params: Record<string, unknown> }, pixel?: {
   name: string;
   params: Record<string, unknown>;
+  eventId?: string;
 }): void {
   if (loaded === null) {
     return;
   }
   window.gtag?.('event', ga4.name, ga4.params);
-  if (pixel !== undefined) {
+  if (pixel === undefined) {
+    return;
+  }
+  if (pixel.eventId === undefined) {
     window.fbq?.('track', pixel.name, pixel.params);
+  } else {
+    window.fbq?.('track', pixel.name, pixel.params, { eventID: pixel.eventId });
   }
 }
 

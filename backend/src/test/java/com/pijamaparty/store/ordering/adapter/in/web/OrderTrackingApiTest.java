@@ -97,6 +97,7 @@ class OrderTrackingApiTest {
             .andExpect(jsonPath("$.city").value("Santa Fe"))
             .andExpect(jsonPath("$.province").value("SANTA_FE"))
             .andExpect(jsonPath("$.items.length()").value(1))
+            .andExpect(jsonPath("$.items[0].sku").value(startsWith("PP-")))
             .andExpect(jsonPath("$.items[0].productName").value("Pijama"))
             .andExpect(jsonPath("$.items[0].size").value("M"))
             .andExpect(jsonPath("$.items[0].color").value("Rosa"))

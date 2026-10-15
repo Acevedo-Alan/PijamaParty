@@ -3,7 +3,8 @@ import { Link, useLocation, useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
-import type { RetryAnswer, TrackedOrder } from './orderTrackingApi.ts';
+import { trackPurchase } from '../analytics/checkoutEvents.ts';
+import type { OrderStatus, RetryAnswer, TrackedOrder } from './orderTrackingApi.ts';
 import { goToPayment } from './redirect.ts';
 import { useRetryPayment, useTrackedOrder } from './useTrackedOrder.ts';
 import './orders.css';
@@ -95,7 +96,36 @@ function PaymentPanel({ token, order, confirming }: { token: string; order: Trac
   );
 }
 
+/** The statuses of an order already paid (UC-14): its purchase counts from PAID on, never if it was not paid. */
+const PAID: ReadonlySet<OrderStatus> = new Set(['PAID', 'PREPARING', 'SHIPPED', 'DELIVERED']);
+
+/** RNF-25: purchase once the order is paid, also when it becomes paid while the page polls. */
+function usePurchaseEvent(order: TrackedOrder) {
+  const paid = PAID.has(order.status);
+  useEffect(() => {
+    if (paid) {
+      trackPurchase({
+        number: order.number,
+        items: order.items.map(({ sku, productName, size, color, unitPriceCents, quantity }) => ({
+          sku,
+          name: productName,
+          size,
+          color,
+          unitPriceCents,
+          quantity,
+        })),
+        totalCents: order.totalCents,
+        shippingCents: order.shippingCents,
+        couponCode: order.couponCode,
+      });
+    }
+    // Once per order: the mark in trackPurchase, not these dependencies, keeps it from repeating.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order.number, paid]);
+}
+
 function TrackedOrderView({ token, order, confirming }: { token: string; order: TrackedOrder; confirming: boolean }) {
+  usePurchaseEvent(order);
   return (
     <>
       <title>{`${es.tracking.title(order.number)} | ${es.store.name}`}</title>

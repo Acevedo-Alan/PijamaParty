@@ -371,12 +371,12 @@ class CartController {
      * What the panel shows of an item's variant (UC-08), also when the shop no longer sells it: {@code image} is the
      * first photo of its color, or else of the whole product, or null without one.
      */
-    record ItemProductResponse(String name, String slug, String size, String color,
+    record ItemProductResponse(String name, String slug, String size, String color, String sku,
                                @Schema(nullable = true) ItemImageResponse image) {
 
         static ItemProductResponse of(ItemDescription description) {
             return new ItemProductResponse(description.productName(), description.productSlug(), description.size(),
-                description.color(), description.photo().map(ItemImageResponse::of).orElse(null));
+                description.color(), description.sku(), description.photo().map(ItemImageResponse::of).orElse(null));
         }
     }
 

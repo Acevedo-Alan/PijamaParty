@@ -318,6 +318,7 @@ class CartApiTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items[0].product.name").value("Pijama"))
             .andExpect(jsonPath("$.items[0].product.slug").value(startsWith("pijama-")))
+            .andExpect(jsonPath("$.items[0].product.sku").value(startsWith("PP-")))
             .andExpect(jsonPath("$.items[0].product.size").value("M"))
             .andExpect(jsonPath("$.items[0].product.color").value("Rosa"))
             .andExpect(jsonPath("$.items[0].product.image.placeholder").value("data:image/webp;base64,UklGRg=="))
