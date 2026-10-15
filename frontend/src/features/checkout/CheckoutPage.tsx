@@ -19,6 +19,7 @@ import {
   type FormField,
   type ShippingForm,
 } from './checkoutForm.ts';
+import { suggestEmail } from './emailSuggestion.ts';
 import { useEmptiedCart, usePlaceOrder, useShippingCost } from './useCheckout.ts';
 import './checkout.css';
 
@@ -101,6 +102,11 @@ interface FieldProps {
   type?: 'text' | 'email' | 'tel';
   hint?: string;
   required?: boolean;
+  onBlur?: () => void;
+  /** The id of a note under the field that also describes it, when it shows one. */
+  describedBy?: string;
+  /** Shown under the field, after its error. */
+  children?: ReactNode;
 }
 
 function Field({
@@ -115,9 +121,13 @@ function Field({
   type = 'text',
   hint,
   required = true,
+  onBlur,
+  describedBy,
+  children,
 }: FieldProps) {
   const id = idOf(field);
   const isInvalid = invalid.includes(field);
+  const descriptions = [isInvalid ? `${id}-error` : null, describedBy ?? null].filter((each) => each !== null);
   return (
     <div className={isInvalid ? 'checkout-field error' : 'checkout-field'}>
       <label htmlFor={id}>
@@ -135,16 +145,18 @@ function Field({
         placeholder={hint}
         required={required}
         aria-invalid={isInvalid}
-        aria-describedby={isInvalid ? `${id}-error` : undefined}
+        aria-describedby={descriptions.length > 0 ? descriptions.join(' ') : undefined}
         onChange={(event: ChangeEvent<HTMLInputElement>) => {
           onChange(field, event.target.value);
         }}
+        onBlur={onBlur}
       />
       {isInvalid && (
         <p id={`${id}-error`} className="checkout-field-error">
           {es.checkout.errors[field]}
         </p>
       )}
+      {children}
     </div>
   );
 }
@@ -308,6 +320,9 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   const [focusRequests, setFocusRequests] = useState(0);
   const attempt = useRef<Attempt | null>(null);
   const paymentInfoSent = useRef(false);
+  // T-E3-24: the email suggested under the field, and the typed email whose suggestion already stopped going on.
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const suggestionStopped = useRef<string | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const prefix = useId();
   const idOf = (field: FormField) => `${prefix}-${field}`;
@@ -342,6 +357,14 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   function change(field: FormField, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
     setInvalid((current) => current.filter((each) => each !== field));
+    if (field === 'email') {
+      setSuggestion(null);
+    }
+  }
+
+  function applySuggestion(email: string) {
+    change('email', email);
+    setFocusTarget({ kind: 'field', field: 'email' });
   }
 
   function changeProvince(event: ChangeEvent<HTMLSelectElement>) {
@@ -358,6 +381,14 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
       if (first !== undefined) {
         setFocusTarget({ kind: 'field', field: first });
       }
+      return;
+    }
+    // Once per typed email: a second press goes on with it as typed.
+    const suggested = suggestEmail(form.email);
+    if (suggested !== null && suggestionStopped.current !== form.email) {
+      suggestionStopped.current = form.email;
+      setSuggestion(suggested);
+      setFocusTarget({ kind: 'field', field: 'email' });
       return;
     }
     if (shipping.data?.status === 'noShipping') {
@@ -444,6 +475,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   const provinceInvalid = invalid.includes('province');
   const noShipping = form.province !== '' && shipping.data?.status === 'noShipping';
   const provinceId = idOf('province');
+  const suggestionId = `${idOf('email')}-suggestion`;
 
   return (
     <div className="checkout-layout">
@@ -464,7 +496,36 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
               }}
             >
               <Field field="name" {...fieldProps} autoComplete="name" maxLength={100} />
-              <Field field="email" {...fieldProps} type="email" inputMode="email" autoComplete="email" maxLength={254} />
+              <Field
+                field="email"
+                {...fieldProps}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                maxLength={254}
+                onBlur={() => {
+                  setSuggestion(suggestEmail(form.email));
+                }}
+                {...(suggestion === null ? {} : { describedBy: suggestionId })}
+              >
+                <p id={suggestionId} className="checkout-note" aria-live="polite">
+                  {suggestion !== null && (
+                    <>
+                      {es.checkout.emailSuggestion}{' '}
+                      <button
+                        type="button"
+                        className="link-btn"
+                        onClick={() => {
+                          applySuggestion(suggestion);
+                        }}
+                      >
+                        {suggestion}
+                      </button>
+                      ?
+                    </>
+                  )}
+                </p>
+              </Field>
               <div className="checkout-row">
                 <Field
                   field="phone"

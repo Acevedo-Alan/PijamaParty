@@ -51,7 +51,7 @@
 - Dado un carrito con una variante sin stock, cuando se abre el checkout, entonces se avisa y se debe quitar el ítem para continuar.
 - Dado un cliente que vuelve al paso anterior, cuando cambia la provincia, entonces el costo de envío y el total se recalculan.
 - Dados más de 5 intentos de checkout por minuto desde el mismo carrito e IP, cuando llega otro, entonces recibe `429` con `Retry-After`.
-- Dado un email con un dominio comúnmente mal escrito (por ejemplo `gmial.com`), cuando el cliente avanza, entonces se le sugiere corregirlo sin bloquear el avance (*Propuesto*).
+- Dado un email con un dominio comúnmente mal escrito (por ejemplo `gmial.com`), cuando el cliente avanza, entonces se le sugiere corregirlo sin bloquear el avance.
 
 ## CU-14 Pagar con MercadoPago o MODO
 

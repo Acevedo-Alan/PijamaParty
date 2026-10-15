@@ -100,12 +100,15 @@ function within(value: string, min: number, max: number): boolean {
   return length >= min && length <= max;
 }
 
+/** The email rule of UC-13, over the email trimmed and in lower case. */
+export function isEmail(value: string): boolean {
+  const email = value.trim().toLowerCase();
+  return email.length <= 254 && EMAIL.test(email);
+}
+
 const RULES: Record<FormField, (value: string) => boolean> = {
   name: (value) => within(value, 1, 100),
-  email: (value) => {
-    const email = value.trim().toLowerCase();
-    return email.length <= 254 && EMAIL.test(email);
-  },
+  email: isEmail,
   phone: (value) => PHONE.test(value.replace(PHONE_SEPARATORS, '')),
   nationalId: (value) => NATIONAL_ID.test(value.replace(NATIONAL_ID_SEPARATORS, '')),
   street: (value) => within(value, 1, 100),

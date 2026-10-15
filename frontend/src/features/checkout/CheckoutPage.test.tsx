@@ -61,6 +61,10 @@ const placed = (paymentUrl: string | null) =>
 const field = (name: string) => screen.getByLabelText(name);
 const next = () => screen.getByRole('button', { name: es.checkout.toPayment });
 
+const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** "¿Quisiste decir {email}?", with or without a space before the "?" that follows the button. */
+const suggesting = (email: string) => new RegExp(`^${escaped(es.checkout.emailSuggestion)} ${escaped(email)} ?\\?$`);
+
 async function fillShipping(overrides: Partial<Record<string, string>> = {}) {
   const values: Record<string, string> = {
     [es.checkout.fields.name]: 'Ana Pérez',
@@ -145,6 +149,61 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
 
     expect(field(es.checkout.fields.nationalId)).toHaveAccessibleDescription(es.checkout.errors.nationalId);
     expect(screen.queryByRole('heading', { name: es.checkout.paymentTitle })).not.toBeInTheDocument();
+  });
+
+  it('given an email with a misspelled domain, when the field loses the focus, then a correction is suggested and can be applied', async () => {
+    stubGets();
+    renderRoute('/checkout');
+    await screen.findByRole('heading', { name: es.checkout.shippingTitle });
+
+    await userEvent.type(field(es.checkout.fields.email), 'ana@gmial.com');
+    await userEvent.tab();
+
+    const email = field(es.checkout.fields.email);
+    expect(email).toHaveAccessibleDescription(suggesting('ana@gmail.com'));
+    await userEvent.click(screen.getByRole('button', { name: 'ana@gmail.com' }));
+
+    expect(email).toHaveValue('ana@gmail.com');
+    expect(email).toHaveFocus();
+    expect(screen.queryByRole('button', { name: 'ana@gmail.com' })).not.toBeInTheDocument();
+  });
+
+  it('given an email with a misspelled domain, when the buyer goes on, then it stops once at the suggestion without blocking', async () => {
+    stubGets();
+    renderRoute('/checkout');
+    await screen.findByRole('heading', { name: es.checkout.shippingTitle });
+
+    await fillShipping({ [es.checkout.fields.email]: 'ana@hotmal.com' });
+    await chooseProvince('SANTA_FE');
+    await waitFor(() => {
+      expect(totalOfSummary()).toHaveTextContent(/^\$\s29\.500$/);
+    });
+    await userEvent.click(next());
+
+    const email = field(es.checkout.fields.email);
+    expect(email).toHaveFocus();
+    expect(email).toHaveAccessibleDescription(suggesting('ana@hotmail.com'));
+    expect(email).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.queryByRole('heading', { name: es.checkout.paymentTitle })).not.toBeInTheDocument();
+
+    await userEvent.click(next());
+
+    expect(await screen.findByRole('heading', { name: es.checkout.paymentTitle })).toBeInTheDocument();
+  });
+
+  it('given an email with a common domain, when the buyer goes on, then nothing is suggested', async () => {
+    stubGets();
+    renderRoute('/checkout');
+    await screen.findByRole('heading', { name: es.checkout.shippingTitle });
+
+    await fillShipping({ [es.checkout.fields.email]: 'ana@gmail.com' });
+    await chooseProvince('SANTA_FE');
+    await waitFor(() => {
+      expect(totalOfSummary()).toHaveTextContent(/^\$\s29\.500$/);
+    });
+    await userEvent.click(next());
+
+    expect(await screen.findByRole('heading', { name: es.checkout.paymentTitle })).toBeInTheDocument();
   });
 
   it('given a cart with a variant out of stock, when the checkout opens, then it is announced and the cart must be fixed to go on', async () => {

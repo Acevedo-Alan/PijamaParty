@@ -188,6 +188,8 @@ export const es = {
       postalCode: 'Ingresá un código postal de 4 números o un CPA como S3000ABC.',
     },
     noShipping: 'Por ahora no hacemos envíos a esta provincia.',
+    /** Before the suggested email, a button, and a closing "?" (T-E3-24). */
+    emailSuggestion: '¿Quisiste decir',
     shippingLoading: 'Calculando el envío…',
     shippingError: 'No pudimos calcular el envío.',
     toPayment: 'Continuar a pago',
