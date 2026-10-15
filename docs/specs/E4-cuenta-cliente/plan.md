@@ -2,7 +2,7 @@
 
 ## Modelo de datos nuevo
 
-`direccion`; se amplía `usuario` con `email_verificado`, `nombre`, `telefono` y `password_hash` pasa a ser opcional (cuentas creadas con Google o Facebook); tabla `identidad_externa` (`usuario_id`, `proveedor`, `sujeto`, `email`, `creado_en`, restricción única sobre `(proveedor, sujeto)`); tabla `token_usuario` para verificación de email y recuperación de contraseña (con tipo, vencimiento y uso; tipos: verificación, recuperación y confirmación de vinculación). Los tokens se guardan hasheados (RNF-29.6). `pedido.usuario_id` pasa a usarse.
+`direccion` (hasta 10 por cliente, una principal como máximo); se amplía `usuario` con `telefono` opcional (`email_verificado`, `nombre` y el `password_hash` opcional ya estaban desde E1); el DNI no se guarda en la cuenta; tabla `identidad_externa` (`usuario_id`, `proveedor`, `sujeto`, `email`, `creado_en`, restricción única sobre `(proveedor, sujeto)`); tabla `token_usuario` para verificación de email y recuperación de contraseña (con tipo, vencimiento y uso; tipos: verificación, 24 horas; recuperación, 30 minutos; y confirmación de vinculación, 24 horas, que llega con T-E4-13). Los tokens se guardan hasheados (RNF-29.6). En el código: `app_user.phone`, `address` y `user_token` (V29), con RLS activo y forzado y sus políticas; la verificación y la recuperación corren como SISTEMA atadas al hash del token que consumen (`app.account_token_hash`). Detalle en `docs/use-cases/E4-customer-account.md`. `pedido.usuario_id` pasa a usarse.
 
 ## API
 

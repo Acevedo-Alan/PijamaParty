@@ -10,12 +10,12 @@
 
 **Flujo principal**
 1. El visitante se registra con email, contraseña y nombre.
-2. El sistema envía un correo para verificar el email.
+2. El sistema envía un correo para verificar el email, con un enlace de un solo uso que vence a las 24 horas.
 3. Una vez verificado, puede iniciar sesión.
 4. Si tenía un carrito de invitado, se une al carrito de su cuenta.
 
 **Alternativos**
-- Olvidó su contraseña: recibe por correo un enlace de un solo uso y vencimiento corto.
+- Olvidó su contraseña: recibe por correo un enlace de un solo uso que vence a los 30 minutos.
 - Prefiere no crear una contraseña: se registra o inicia sesión con Google o Facebook (CU-27).
 
 **Reglas**
@@ -35,9 +35,15 @@
 
 **Flujo principal:** agregar, editar y eliminar direcciones (calle, número, piso, departamento, ciudad, provincia y código postal) y marcar una como principal.
 
+**Reglas**
+- Hasta 10 direcciones por cliente.
+- Como máximo una dirección principal.
+- Los campos tienen los formatos de la dirección del pedido (CU-13).
+
 **Criterios de aceptación**
 - Dada una dirección marcada como principal, cuando se marca otra, entonces la anterior deja de serlo.
 - Dada una dirección usada en pedidos anteriores, cuando se elimina, entonces los pedidos conservan su copia de la dirección.
+- Dado un cliente con 10 direcciones, cuando agrega otra, entonces se rechaza.
 
 ## CU-21 Comprar con datos precargados
 
@@ -49,7 +55,7 @@
 3. El resto del checkout es igual al CU-13.
 
 **Reglas**
-- El DNI: decisión pendiente. Propuesta: pedirlo en cada compra para guardar menos datos personales.
+- El DNI se pide en cada compra y no se guarda en la cuenta, para guardar menos datos personales (*Decidido*).
 
 **Criterios de aceptación**
 - Dado un cliente con una dirección principal, cuando abre el checkout, entonces esa dirección aparece seleccionada.
@@ -64,7 +70,7 @@
 2. Abre un pedido y ve ítems, dirección, estado, número de seguimiento y un enlace al seguimiento de Correo Argentino.
 
 **Reglas**
-- Los pedidos hechos como invitado con el mismo email se asocian a la cuenta una vez verificado el email.
+- Los pedidos hechos como invitado con el mismo email se asocian a la cuenta una vez verificado el email. Un pedido desvinculado al eliminar una cuenta (CU-28) no se vuelve a asociar.
 
 **Criterios de aceptación**
 - Dado un cliente con dos pedidos, cuando abre "Mis pedidos", entonces ve ambos, ordenados del más reciente al más antiguo.
@@ -84,7 +90,7 @@
 6. Si tenía un carrito de invitado, se une al carrito de su cuenta (igual que en CU-19).
 
 **Alternativos**
-- **Ya existe una cuenta con ese email:** si el proveedor confirma que el email está verificado (Google lo informa), la cuenta externa se vincula a la existente. Si no lo confirma (Facebook), el sistema envía un correo a ese email con un enlace de un solo uso para confirmar la vinculación; hasta entonces no inicia sesión.
+- **Ya existe una cuenta con ese email:** si el proveedor confirma que el email está verificado (Google lo informa), la cuenta externa se vincula a la existente. Si no lo confirma (Facebook), el sistema envía un correo a ese email con un enlace de un solo uso, que vence a las 24 horas, para confirmar la vinculación; hasta entonces no inicia sesión.
 - **El proveedor no devuelve email** (por ejemplo, una cuenta de Facebook registrada con teléfono): el sistema pide el email y lo verifica por correo antes de crear la cuenta.
 - **El visitante cancela o el proveedor falla:** vuelve a la pantalla de ingreso con un mensaje, sin crear nada.
 - **Desde "Mi cuenta"**, el cliente puede vincular o desvincular Google y Facebook, y crear una contraseña si no tenía.

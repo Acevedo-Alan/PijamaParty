@@ -115,7 +115,7 @@ Implementado en la aplicación con Bucket4j en memoria. Los contadores se reinic
 
 Es una defensa en profundidad: no reemplaza la autorización de la aplicación, sino que limita el daño ante un error de código (por ejemplo, acceso a pedidos ajenos).
 
-- **Alcance (*Recomendado*):** las tablas con datos de clientes o de uso interno: `pedido`, `pedido_item`, `pago`, `pago_evento`, `direccion`, `usuario`, `carrito`, `carrito_item`, `resena`, `idempotency_key`, `email_outbox`, `email_evento`, `identidad_externa` y `solicitud_arrepentimiento`. El catálogo no lleva RLS: es público y no contiene datos personales.
+- **Alcance (*Recomendado*):** las tablas con datos de clientes o de uso interno: `pedido`, `pedido_item`, `pago`, `pago_evento`, `direccion`, `usuario`, `carrito`, `carrito_item`, `resena`, `idempotency_key`, `email_outbox`, `email_evento`, `identidad_externa`, `token_usuario` y `solicitud_arrepentimiento`. El catálogo no lleva RLS: es público y no contiene datos personales.
 - **Roles de base de datos:** `tienda_owner` (dueño de las tablas, usado por Flyway), `tienda_app` (la aplicación, sin ser dueño y sin `BYPASSRLS`) y `tienda_backup` (para `pg_dump`). Los roles de migraciones y de backup tienen `BYPASSRLS`; el de la aplicación no. Las tablas protegidas usan `FORCE ROW LEVEL SECURITY`.
 - **Contexto por transacción:** al empezar cada transacción, la aplicación fija con `set_config(..., true)` el rol (`ANONIMO`, `CLIENTE`, `ADMIN` o `SISTEMA`), el `usuario_id`, el `token` del pedido y el `token` del carrito. Al ser local a la transacción, no se filtra entre requests del pool. Toda operación sobre tablas protegidas corre dentro de una transacción, lecturas incluidas. En el código los roles se llaman `ANONYMOUS`, `CUSTOMER`, `ADMIN` y `SYSTEM`, y las variables son `app.role`, `app.user_id`, `app.cart_token_hash` y `app.tracking_token_hash`: los tokens viajan como hash SHA-256, igual que se guardan (RNF-29.6), nunca en claro. Las políticas los leen con las funciones `app_role()`, `app_user_id()`, `app_cart_token_hash()` y `app_tracking_token_hash()`.
 - **Cierre por defecto:** sin contexto, ninguna consulta devuelve filas.
@@ -129,7 +129,8 @@ Es una defensa en profundidad: no reemplaza la autorización de la aplicación, 
 | `pedido`, `pedido_item` | Lee los propios y el de su token; crea el propio en el checkout; corrige su email | Lee el pedido de su token; crea el suyo en el checkout, atado a su token; corrige su email | Lee y actualiza el estado | Lee y actualiza el estado |
 | `pago`, `pago_evento` | – | – | Lee | Crea y actualiza |
 | `direccion` | Todo sobre las propias | – | Lee | – |
-| `usuario` | Lee y actualiza el propio | – | Lee el propio | Crea el administrador inicial, lee para autenticar y actualiza intentos fallidos y bloqueo |
+| `usuario` | Lee y actualiza el propio (solo nombre, teléfono y contraseña) | – | Lee el propio | Crea el administrador inicial y clientes sin verificar, lee para autenticar, actualiza intentos fallidos, bloqueo y segundo factor, y marca el email verificado o cambia la contraseña solo consumiendo un token de ese usuario |
+| `token_usuario` | – | – | – | Crea, lee, marca usado y limpia |
 | `identidad_externa` | Lee y desvincula las propias | – | – | Crea y lee para autenticar |
 | `solicitud_arrepentimiento` | Crea y lee las del pedido cuyo número y email acaba de verificar la base | Igual que el cliente | Lee y resuelve | Lee (para componer los correos) |
 | `carrito`, `carrito_item` | Los propios | Los de su token de carrito | – | Limpieza |

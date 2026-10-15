@@ -28,9 +28,10 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | Carrito / CarritoItem | id, hashToken? (SHA-256 del `cart_token`) o usuarioId? (uno de los dos), cuponId?, actualizadoEn, items(varianteId, cantidad, ultimoPrecioVisto) |
 | Cupon | id, codigo, tipo (PORCENTAJE / MONTO_FIJO), valor, vigenciaDesde?/Hasta? (fechas), usosMax?, minimoCompra?, automatico (E5), regla (E5), activo |
 | UsoCupon | cuponId, pedidoId, fecha (una fila por pedido confirmado; los usos del cupón se cuentan de acá) |
-| Usuario | id, email, emailVerificado, passwordHash?, nombre, rol (CLIENTE / ADMIN), intentosFallidos, bloqueadoHasta? |
+| Usuario | id, email, emailVerificado, passwordHash?, nombre, telefono?, rol (CLIENTE / ADMIN), intentosFallidos, bloqueadoHasta? (sin DNI: se pide en cada compra) |
+| TokenUsuario | id, usuarioId, proposito (VERIFICACION_EMAIL 24 h / RECUPERACION 30 min; CONFIRMACION_VINCULACION 24 h llega en T-E4-13), hashToken, creadoEn, venceEn, usadoEn? (un solo uso) |
 | IdentidadExterna | id, usuarioId, proveedor (GOOGLE / FACEBOOK), sujeto, email, creadoEn |
-| Direccion | id, usuarioId, calle, numero, piso, depto, ciudad, provincia, codigoPostal, principal |
+| Direccion | id, usuarioId, calle, numero, piso?, depto?, ciudad, provincia, codigoPostal, principal (como máximo una por cliente; hasta 10 direcciones) |
 | Pedido | id, numero (secuencia desde 1001, se muestra como #1001), usuarioId?, hashTokenSeguimiento, estado, nombre, email, telefono, dni, direccionEnvio (copia: calle, numero, piso?, depto?, ciudad, provincia, codigoPostal), subtotal, descuento, envio, total, cuponId?, cuponCodigo?, medioDePago, versionTerminos, reservaVenceEn, numeroSeguimientoEnvio?, creadoEn, actualizadoEn, entregadoEn? |
 | SolicitudArrepentimiento | id, pedidoId, codigo, estado (RECIBIDA / RESUELTA), fueraDeTermino, creadoEn, resueltoEn |
 | PedidoItem | pedidoId, posicion, varianteId, sku, nombre, talle, color, precioCentavos, cantidad (inmutable) |
@@ -91,7 +92,9 @@ PAGADO | PREPARANDO → CANCELADO
 | Devoluciones de MODO | Pendiente | MODO exige devolver por su API: botón en el backoffice o devolución desde el gateway (T-E3b-06) |
 | Reglas de reseñas | Pendiente | Documento de alcance, punto 12 |
 | Reglas de cupones automáticos | Pendiente | Documento de alcance, punto 12 |
-| Guardar DNI en la cuenta del cliente | Pendiente | Propuesta: pedirlo en cada compra |
+| Guardar DNI en la cuenta del cliente | Decidido | No se guarda: se pide en cada compra y queda solo en el pedido (CU-21, T-E4-01) |
+| Enlaces de un solo uso de la cuenta | Decidido | Verificación de email 24 horas, recuperación de contraseña 30 minutos, confirmación de vinculación 24 horas; tokens según RNF-29.6 (CU-19, CU-27) |
+| Libreta de direcciones | Decidido | Hasta 10 direcciones por cliente, con los formatos de la dirección del pedido (CU-20) |
 | Volumen esperado: menos de 20 pedidos por día | Decidido | Dimensiona pools y pruebas de carga |
 | Identificadores: UUID generados por la aplicación | Decidido | Ids tipados (`UserId`, `ProductId`...) sobre UUID; columnas `uuid` en PostgreSQL |
 | Claves foráneas entre módulos | Decidido | Solo dentro de un módulo. Entre módulos se guarda el uuid sin FK (por ejemplo `stock_level.variant_id`); la consistencia la dan los eventos, o una llamada a la `api` del otro módulo en la misma transacción cuando la dependencia ya va en ese sentido (el catálogo crea el `stock_level` de cada variante nueva con `inventory.api`) |
