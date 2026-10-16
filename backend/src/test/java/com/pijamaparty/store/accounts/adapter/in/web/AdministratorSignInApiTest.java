@@ -8,13 +8,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.accounts.application.ResetAdministratorSecondFactor;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
+import com.pijamaparty.store.platform.testing.Browser;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
 import dev.samstevens.totp.code.HashingAlgorithm;
 import dev.samstevens.totp.exceptions.CodeGenerationException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -89,7 +89,7 @@ class AdministratorSignInApiTest {
 
     @Test
     void givenNoSecondFactor_whenThePasswordIsRight_thenTheBackOfficeOnlyOpensAfterEnrollingWithCodesShownOnce() {
-        var browser = new Browser();
+        var browser = new Browser(http);
         browser.get("/api/health");
         String csrfBefore = browser.cookie("XSRF-TOKEN");
 
@@ -129,7 +129,7 @@ class AdministratorSignInApiTest {
     @Test
     void givenCorrectCredentialsAndAValidCodeOfTheApp_whenSigningIn_thenTheAdministratorReachesThePanel() {
         String secret = enrolled();
-        var browser = new Browser();
+        var browser = new Browser(http);
         browser.get("/api/health");
 
         ResponseEntity<String> login = browser.post(LOGIN, credentials("owner@example.com", PASSWORD));
@@ -145,8 +145,8 @@ class AdministratorSignInApiTest {
     void givenTheRightPasswordAndAWrongOrUsedCode_whenSigningIn_thenTheBackOfficeStaysClosedAndItCountsAsAFailure() {
         String secret = enrolled();
         String used = appCode(secret, 1);
-        signIn(new Browser(), used);
-        var browser = new Browser();
+        signIn(new Browser(http), used);
+        var browser = new Browser(http);
         browser.get("/api/health");
         browser.post(LOGIN, credentials("owner@example.com", PASSWORD));
 
@@ -166,9 +166,9 @@ class AdministratorSignInApiTest {
         enrolled();
         String recovery = recoveryCodes.getFirst();
 
-        var first = new Browser();
+        var first = new Browser(http);
         ResponseEntity<String> withCode = signIn(first, recovery.toLowerCase().replace("-", " "));
-        var second = new Browser();
+        var second = new Browser(http);
         ResponseEntity<String> again = signIn(second, recovery);
 
         assertThat(withCode.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -180,7 +180,7 @@ class AdministratorSignInApiTest {
 
     @Test
     void givenWrongCredentials_whenTryingToSignIn_thenAGenericMessageDoesNotRevealWhichFieldFailed() {
-        var browser = new Browser();
+        var browser = new Browser(http);
         browser.get("/api/health");
 
         ResponseEntity<String> wrongPassword = browser.post(LOGIN, credentials("owner@example.com", "wrong password!!"));
@@ -195,7 +195,7 @@ class AdministratorSignInApiTest {
 
     @Test
     void givenFiveConsecutiveFailures_whenSigningInAgainEvenWithTheRightPassword_thenTheAccountIsLockedWithItsUnlockTime() {
-        var browser = new Browser();
+        var browser = new Browser(http);
         browser.get("/api/health");
         ResponseEntity<String> last = null;
         for (int i = 0; i < 5; i++) {
@@ -225,40 +225,40 @@ class AdministratorSignInApiTest {
     @Test
     void givenAnExistingSession_whenSigningIn_thenTheSessionIdChangesAndTheOldOneIsWorthless() {
         String secret = enrolled();
-        var browser = new Browser();
+        var browser = new Browser(http);
         signIn(browser, appCode(secret, 1));
         String sessionBefore = browser.cookie("SESSION");
-        Map<String, String> cookiesBefore = Map.copyOf(browser.cookies);
+        Map<String, String> cookiesBefore = browser.cookies();
 
         ResponseEntity<String> again = signIn(browser, recoveryCodes.getFirst());
 
         assertThat(again.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(sessionBefore).isNotNull();
         assertThat(browser.cookie("SESSION")).isNotNull().isNotEqualTo(sessionBefore);
-        assertThat(new Browser(cookiesBefore).get(ME).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(new Browser(http, cookiesBefore).get(ME).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(browser.get(ME).getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void givenASignedInAdministrator_whenSigningOut_thenTheSessionNoLongerWorksAndTheCsrfTokenIsDropped() {
         String secret = enrolled();
-        var browser = new Browser();
+        var browser = new Browser(http);
         signIn(browser, appCode(secret, 1));
-        Map<String, String> signedInCookies = Map.copyOf(browser.cookies);
+        Map<String, String> signedInCookies = browser.cookies();
 
         ResponseEntity<String> logout = browser.post("/api/admin/auth/logout", "");
 
         assertThat(logout.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(logout.getHeaders().get(HttpHeaders.SET_COOKIE))
             .anySatisfy(cookie -> assertThat(cookie).startsWith("XSRF-TOKEN=;").contains("Max-Age=0"));
-        assertThat(new Browser(signedInCookies).get(ME).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(new Browser(http, signedInCookies).get(ME).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
     void givenASignedInAdministrator_whenItsSessionIsStored_thenItKeepsTheUserIdNotTheEmailAndExpiresAfter60Minutes() {
         String secret = enrolled();
         owner.update("delete from spring_session");
-        signIn(new Browser(), appCode(secret, 1));
+        signIn(new Browser(http), appCode(secret, 1));
 
         var session = owner.queryForMap("select principal_name, max_inactive_interval from spring_session "
             + "where principal_name is not null");
@@ -275,7 +275,7 @@ class AdministratorSignInApiTest {
         assertThat(CurrentActor.callAsSystem(reset::execute))
             .isEqualTo(new ResetAdministratorSecondFactor.Result.Reset());
 
-        var browser = new Browser();
+        var browser = new Browser(http);
         browser.get("/api/health");
         assertThat(json(browser.post(LOGIN, credentials("owner@example.com", PASSWORD))).get("nextStep").asText())
             .isEqualTo("ENROLLMENT");
@@ -284,7 +284,7 @@ class AdministratorSignInApiTest {
 
     /** Enrolls the administrator's authenticator app through the API; keeps the codes; returns the secret. */
     private String enrolled() {
-        var browser = new Browser();
+        var browser = new Browser(http);
         browser.get("/api/health");
         browser.post(LOGIN, credentials("owner@example.com", PASSWORD));
         String secret = json(browser.get(ENROLLMENT)).get("secret").asText();
@@ -328,54 +328,5 @@ class AdministratorSignInApiTest {
 
     private static String credentials(String email, String password) {
         return "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}";
-    }
-
-    /** Keeps cookies between requests and sends the CSRF token the way the SPA does (X-XSRF-TOKEN header). */
-    private final class Browser {
-
-        private final Map<String, String> cookies = new LinkedHashMap<>();
-
-        Browser() {
-        }
-
-        Browser(Map<String, String> cookies) {
-            this.cookies.putAll(cookies);
-        }
-
-        String cookie(String name) {
-            return cookies.get(name);
-        }
-
-        ResponseEntity<String> get(String path) {
-            return exchange(HttpMethod.GET, path, null);
-        }
-
-        ResponseEntity<String> post(String path, String json) {
-            return exchange(HttpMethod.POST, path, json);
-        }
-
-        private ResponseEntity<String> exchange(HttpMethod method, String path, String json) {
-            var headers = new HttpHeaders();
-            if (!cookies.isEmpty()) {
-                headers.add(HttpHeaders.COOKIE, String.join("; ",
-                    cookies.entrySet().stream().map(cookie -> cookie.getKey() + "=" + cookie.getValue()).toList()));
-            }
-            if (method != HttpMethod.GET && cookies.containsKey("XSRF-TOKEN")) {
-                headers.add("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"));
-            }
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            ResponseEntity<String> response = http.exchange(path, method, new HttpEntity<>(json, headers), String.class);
-            for (String setCookie : response.getHeaders().getOrDefault(HttpHeaders.SET_COOKIE, List.of())) {
-                String pair = setCookie.split(";", 2)[0];
-                String name = pair.substring(0, pair.indexOf('='));
-                String value = pair.substring(pair.indexOf('=') + 1);
-                if (value.isEmpty() || setCookie.contains("Max-Age=0")) {
-                    cookies.remove(name);
-                } else {
-                    cookies.put(name, value);
-                }
-            }
-            return response;
-        }
     }
 }

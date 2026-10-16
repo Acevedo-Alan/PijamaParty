@@ -44,11 +44,12 @@ class SendNextEmailServiceTest {
     private final InMemoryEmailComposer withdrawalBuyer =
         new InMemoryEmailComposer(EmailType.WITHDRAWAL_RECEIVED_CUSTOMER);
     private final InMemoryEmailComposer withdrawalAdmin = new InMemoryEmailComposer(EmailType.WITHDRAWAL_RECEIVED_ADMIN);
+    private final InMemoryEmailComposer emailVerification = new InMemoryEmailComposer(EmailType.EMAIL_VERIFICATION);
     private final InMemoryEmailSender sender = new InMemoryEmailSender();
     private final ClaimNextEmailService claims = new ClaimNextEmailService(outbox, outbox, clock);
     private final SendNextEmailService service =
-        new SendNextEmailService(claims, outbox, List.of(buyer, admin, withdrawalBuyer, withdrawalAdmin), sender,
-            clock);
+        new SendNextEmailService(claims, outbox,
+            List.of(buyer, admin, withdrawalBuyer, withdrawalAdmin, emailVerification), sender, clock);
     private final UUID order = UUID.randomUUID();
 
     @Test

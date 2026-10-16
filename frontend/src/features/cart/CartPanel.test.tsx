@@ -4,13 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
-import { answer, NO_CART, productDetail } from '../../test/catalogApi.ts';
+import { answer, NO_CART, productDetail, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 /** The product page of the pink M pijama (3 in stock), with this cart in the header. */
 function stubStore(currentCart: unknown = NO_CART) {
-  return vi.spyOn(api, 'GET').mockImplementation(((path: string) =>
-    Promise.resolve(path === '/api/cart' ? currentCart : answer(200, productDetail()))) as never);
+  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
+    Promise.resolve(path === '/api/cart' ? currentCart : answer(200, productDetail()))));
 }
 
 function stubAdd(next: never) {
@@ -153,12 +153,12 @@ describe('cart side panel (UC-08)', () => {
 /** Opens the panel from the header; GET /api/cart answers these carts in order, and the last one repeats. */
 async function openWith(...carts: unknown[]) {
   const queue = [...carts];
-  const get = vi.spyOn(api, 'GET').mockImplementation(((path: string) => {
+  const get = vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
     if (path !== '/api/cart') {
       return Promise.resolve(answer(200, productDetail()));
     }
     return Promise.resolve(queue.length > 1 ? queue.shift() : queue[0]);
-  }) as never);
+  }));
   renderRoute('/producto/luna');
   await userEvent.click(await screen.findByRole('button', { name: /^Carrito/ }));
   return get;

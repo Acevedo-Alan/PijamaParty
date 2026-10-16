@@ -5,7 +5,7 @@ import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
 import { es } from '../../i18n/es.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
-import { answer, NO_CART } from '../../test/catalogApi.ts';
+import { answer, NO_CART, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { keepTrackingToken } from '../checkout/trackingTokenStore.ts';
 import { CONFIRMING_EVERY_MS } from '../orders/useTrackedOrder.ts';
@@ -49,7 +49,7 @@ function cartWithCoupon() {
 
 /** GET answers: this cart and ARS 4,500 of shipping to any province. */
 function stubCheckout(currentCart: unknown = cart([cartItem({ quantity: 2 })]), providers = ['MERCADOPAGO']) {
-  vi.spyOn(api, 'GET').mockImplementation(((path: string) => {
+  vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
     if (path === '/api/checkout/payment-providers') {
       return Promise.resolve(answer(200, { providers }));
     }
@@ -65,7 +65,7 @@ function stubCheckout(currentCart: unknown = cart([cartItem({ quantity: 2 })]), 
       );
     }
     return Promise.resolve(path === '/api/cart' ? currentCart : NO_CART);
-  }) as never);
+  }));
 }
 
 async function goToPaymentStep() {
@@ -122,8 +122,8 @@ function trackedOrder(status: OrderStatus, number = 1001): TrackedOrderResponse 
 /** The tracked order answers in call order (the last one repeats); the header's cart is empty. */
 function stubOrder(...answers: unknown[]) {
   const queue = [...answers];
-  vi.spyOn(api, 'GET').mockImplementation(((path: string) =>
-    Promise.resolve(path === '/api/cart' ? NO_CART : queue.length > 1 ? queue.shift() : queue[0])) as never);
+  vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
+    Promise.resolve(path === '/api/cart' ? NO_CART : queue.length > 1 ? queue.shift() : queue[0])));
 }
 
 async function openTracking(status: OrderStatus) {

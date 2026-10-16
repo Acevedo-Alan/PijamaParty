@@ -7,10 +7,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * A customer or the administrator. Owns the sign-in lock rule of UC-04: 5 consecutive failures lock the account for
- * 15 minutes. Only consecutive failures count (a successful sign-in resets them), and the failure that locks also
- * resets the counter, so after the lock there are 5 attempts again. A wrong second-factor code is a failure too.
- * The administrator's second factor (T-E1-16) accepts each code once.
+ * A customer or the administrator. Owns the sign-in lock rule of UC-04, which UC-19 applies to customers too: 5
+ * consecutive failures lock the account for 15 minutes. Only consecutive failures count (a successful sign-in resets
+ * them), and the failure that locks also resets the counter, so after the lock there are 5 attempts again. A wrong
+ * second-factor code is a failure too. The administrator's second factor (T-E1-16) accepts each code once.
  */
 public final class User {
 
@@ -21,7 +21,7 @@ public final class User {
 
     private final UserId id;
     private final Email email;
-    private final boolean emailVerified;
+    private boolean emailVerified;
     private final PasswordHash passwordHash;
     private final String name;
     private final UserRole role;
@@ -65,6 +65,12 @@ public final class User {
         return new User(id, email, true, passwordHash, name, UserRole.ADMIN, 0, null, null, now, now);
     }
 
+    /** UC-19: a customer who registers with a password; it signs in once its email is verified. */
+    public static User newCustomer(UserId id, Email email, String name, PasswordHash passwordHash, Instant now) {
+        Objects.requireNonNull(passwordHash, "passwordHash");
+        return new User(id, email, false, passwordHash, name, UserRole.CUSTOMER, 0, null, null, now, now);
+    }
+
     /** Rebuilds a stored user; only persistence adapters call it. */
     public static User restore(UserId id, Email email, boolean emailVerified, PasswordHash passwordHash, String name,
                                UserRole role, int failedSignInAttempts, Instant lockedUntil, Instant createdAt,
@@ -88,6 +94,14 @@ public final class User {
 
     public boolean isLockedAt(Instant now) {
         return lockedUntil != null && now.isBefore(lockedUntil);
+    }
+
+    /** UC-19: the link of the verification email was opened. Verifying twice changes nothing. */
+    public void verifyEmail(Instant now) {
+        if (!emailVerified) {
+            emailVerified = true;
+            updatedAt = now;
+        }
     }
 
     /** Records a wrong password. Returns the end of the lock when this failure locks the account. */

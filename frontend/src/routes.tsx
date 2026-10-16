@@ -1,4 +1,8 @@
 import { Navigate, type RouteObject } from 'react-router';
+import { REGISTER_PATH, SIGN_IN_PATH } from './features/account/AccountLink.tsx';
+import { RegisterPage } from './features/account/RegisterPage.tsx';
+import { SignInPage as CustomerSignInPage } from './features/account/SignInPage.tsx';
+import { VERIFY_PATH, VerifyEmailPage } from './features/account/VerifyEmailPage.tsx';
 import { CatalogPage } from './features/catalog/CatalogPage.tsx';
 import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
 import { CheckoutPage } from './features/checkout/CheckoutPage.tsx';
@@ -26,6 +30,9 @@ export const routes: RouteObject[] = [
       { path: '/checkout/result', element: <CheckoutResultPage /> },
       { path: '/pedido/:token', element: <OrderTrackingPage /> },
       { path: WITHDRAWAL_PATH, element: <WithdrawalPage /> },
+      { path: REGISTER_PATH, element: <RegisterPage /> },
+      { path: SIGN_IN_PATH, element: <CustomerSignInPage /> },
+      { path: VERIFY_PATH, element: <VerifyEmailPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

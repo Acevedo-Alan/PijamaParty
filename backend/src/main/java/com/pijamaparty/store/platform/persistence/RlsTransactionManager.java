@@ -19,8 +19,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 /**
  * Sets the Row Level Security context at the start of every physical transaction, read-only and programmatic ones
- * included (RNF-27): {@code app.role}, {@code app.user_id} and the SHA-256 of the cart and tracking tokens, with
- * {@code set_config(..., true)} so the values die with the transaction and never leak to the next user of the pooled
+ * included (RNF-27): {@code app.role}, {@code app.user_id} and the SHA-256 of the cart, tracking and account
+ * tokens, with {@code set_config(..., true)} so the values die with the transaction and never leak to the next user of the pooled
  * connection. Without a bound actor every value is empty and the policies return no rows. If the context cannot be
  * set, the transaction is rolled back and every resource released before failing, so the pool never loses the
  * connection and the thread is not left inside a dead transaction.
@@ -34,7 +34,8 @@ class RlsTransactionManager extends JpaTransactionManager {
         select set_config('app.role', ?, true),
                set_config('app.user_id', ?, true),
                set_config('app.cart_token_hash', ?, true),
-               set_config('app.tracking_token_hash', ?, true)
+               set_config('app.tracking_token_hash', ?, true),
+               set_config('app.account_token_hash', ?, true)
         """;
 
     RlsTransactionManager(EntityManagerFactory entityManagerFactory) {
@@ -65,6 +66,7 @@ class RlsTransactionManager extends JpaTransactionManager {
             statement.setString(2, actor.flatMap(Actor::userId).map(UserId::toString).orElse(""));
             statement.setString(3, actor.flatMap(Actor::cartToken).map(AccessToken::hash).orElse(""));
             statement.setString(4, actor.flatMap(Actor::trackingToken).map(AccessToken::hash).orElse(""));
+            statement.setString(5, actor.flatMap(Actor::accountToken).map(AccessToken::hash).orElse(""));
             statement.execute();
         }
     }

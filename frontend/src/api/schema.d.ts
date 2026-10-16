@@ -703,6 +703,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify the email with the token of its link
+         * @description Uses the token, once. Does not sign in: the customer signs in afterwards. Requires the CSRF token.
+         */
+        post: operations["verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register with email, password and name
+         * @description Creates the account unverified and sends the email with the verification link, which lasts 24 hours from the sending. Does not sign in. Requires the CSRF token.
+         */
+        post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign out
+         * @description Invalidates the session. Requires the CSRF token.
+         */
+        post: operations["signOut_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in with email and password
+         * @description Opens the customer's session (new session id and CSRF token). Requires the CSRF token.
+         */
+        post: operations["signIn_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{token}/email": {
         parameters: {
             query?: never;
@@ -1079,6 +1159,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in customer */
+        get: operations["me_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/products/{id}/images/{imageId}": {
         parameters: {
             query?: never;
@@ -1413,6 +1510,24 @@ export interface components {
         EnrolledResponse: {
             administrator?: components["schemas"]["AdministratorResponse"];
             recoveryCodes?: string[];
+        };
+        VerifyEmailRequest: {
+            token: string;
+        };
+        RegisterRequest: {
+            email: string;
+            password: string;
+            name: string;
+        };
+        CustomerSignInRequest: {
+            email: string;
+            password: string;
+        };
+        CustomerResponse: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            name?: string;
         };
         EmailCorrectionRequest: {
             email: string;
@@ -3744,6 +3859,150 @@ export interface operations {
             };
         };
     };
+    verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Verified */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description INVALID_LINK: unknown, used or expired; does not say which */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Registered; the verification email is on its way */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description EMAIL_ALREADY_REGISTERED; says nothing else about that account */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description INVALID_EMAIL, INVALID_NAME (1 to 100 characters), PASSWORD_TOO_SHORT (under 8 characters) or PASSWORD_TOO_LONG (over 72 bytes) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    signOut_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed out */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    signIn_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerSignInRequest"];
+            };
+        };
+        responses: {
+            /** @description Signed in */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Invalid credentials; does not say which field failed */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED: right password, email not verified yet; a new verification email is on its way, unless one is waiting to be sent */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Locked after 5 consecutive failures; lockedUntil says until when */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     correctEmail: {
         parameters: {
             query?: never;
@@ -4680,6 +4939,35 @@ export interface operations {
             };
             /** @description Over 5 attempts per minute from this IP (RNF-22); Retry-After says when to retry */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    me_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The customer of this session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Not signed in as a customer */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -9,7 +9,8 @@ import java.util.HexFormat;
  * An access token sent by the client without an account (RNF-29.6). It grants access, so it is a secret:
  * {@code toString()} never reveals it, and the database only ever sees its {@link #hash()}.
  */
-public sealed interface AccessToken permits AccessToken.CartToken, AccessToken.TrackingToken {
+public sealed interface AccessToken
+    permits AccessToken.CartToken, AccessToken.TrackingToken, AccessToken.AccountToken {
 
     String value();
 
@@ -48,6 +49,23 @@ public sealed interface AccessToken permits AccessToken.CartToken, AccessToken.T
         @Override
         public String toString() {
             return "TrackingToken[***]";
+        }
+    }
+
+    /**
+     * The single-use token of an account email link: the email verification and the password reset (UC-19). Only
+     * the system carries it, while it consumes the token (V29, {@code app.account_token_hash}).
+     */
+    record AccountToken(String value) implements AccessToken {
+        public AccountToken {
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException("Account token cannot be blank");
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "AccountToken[***]";
         }
     }
 }

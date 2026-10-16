@@ -1,5 +1,6 @@
 package com.pijamaparty.store.platform.persistence;
 
+import com.pijamaparty.store.platform.domain.AccessToken.AccountToken;
 import com.pijamaparty.store.platform.domain.Actor;
 import java.util.Objects;
 import java.util.Optional;
@@ -62,6 +63,14 @@ public final class CurrentActor {
 
     public static void runAsSystem(Runnable block) {
         runAs(Actor.system(), block);
+    }
+
+    /**
+     * As {@link #callAsSystem(Supplier)}, while the block consumes the token of an email link (UC-19): its hash goes
+     * into the Row Level Security context, so the database lets the block change only the user of that token.
+     */
+    public static <T> T callAsSystemConsuming(AccountToken token, Supplier<T> block) {
+        return callAs(Actor.systemConsuming(token), block);
     }
 
     /** Restores the previous actor (or none) when closed. */

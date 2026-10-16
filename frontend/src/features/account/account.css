@@ -1,0 +1,122 @@
+/* UC-19 (T-E4-02): the header's account entry and the registration, sign-in and verification pages. */
+
+.account-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--accent-text);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+a.account-link {
+  text-decoration: none;
+}
+
+.account-greeting {
+  display: none;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.account-sign-out {
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+@media (min-width: 640px) {
+  .account-greeting {
+    display: inline;
+  }
+}
+
+.account-page {
+  max-width: 480px;
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+
+.account-page h1 {
+  font-family: var(--ff-display);
+  font-weight: 500;
+  font-size: 26px;
+  margin-bottom: 16px;
+}
+
+.account-intro {
+  margin-bottom: 24px;
+  color: var(--ink-soft);
+}
+
+.account-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.account-form input {
+  width: 100%;
+  min-height: 46px;
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 16px; /* 16px keeps iOS from zooming into the field */
+}
+
+.account-form input:focus {
+  border-color: var(--accent);
+}
+
+.account-form input[aria-describedby] {
+  margin-bottom: 6px;
+}
+
+.account-hint {
+  margin-bottom: 16px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.account-form .btn {
+  width: 100%;
+}
+
+.account-error {
+  min-height: 1.5em;
+  margin-top: 8px;
+  color: var(--danger);
+}
+
+.account-error a,
+.account-switch a {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.account-switch {
+  margin-top: 16px;
+  color: var(--ink-soft);
+}
+
+.account-done {
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+}
+
+.account-done .btn {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 16px;
+  text-decoration: none;
+}

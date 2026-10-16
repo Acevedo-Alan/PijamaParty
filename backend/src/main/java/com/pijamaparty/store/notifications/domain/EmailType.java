@@ -1,6 +1,6 @@
 package com.pijamaparty.store.notifications.domain;
 
-/** The emails the store sends (UC-17, UC-29). Each one at most once per reference (RNF-20.7). */
+/** The emails the store sends (UC-17, UC-19, UC-29). Each one at most once per reference and version (RNF-20.7). */
 public enum EmailType {
 
     /** To the buyer, when its order is paid: the only email of a purchase in v1 (RNF-23). The reference is the order. */
@@ -16,5 +16,11 @@ public enum EmailType {
     WITHDRAWAL_RECEIVED_CUSTOMER,
 
     /** To the administrator, for every withdrawal request (UC-29). The reference is the request. */
-    WITHDRAWAL_RECEIVED_ADMIN
+    WITHDRAWAL_RECEIVED_ADMIN,
+
+    /**
+     * To a customer who registered, the link to verify its email (UC-19, T-E4-02). The reference is the user; each new
+     * link asked for is a new version.
+     */
+    EMAIL_VERIFICATION
 }

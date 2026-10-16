@@ -22,4 +22,17 @@ class AccountsWebConfiguration {
             registry.requestMatchers("/api/admin/**").hasRole(Role.ADMIN.name());
         };
     }
+
+    /**
+     * UC-19: registering, verifying the email and signing in are public; the rest of the account is the signed-in
+     * customer's own.
+     */
+    @Bean
+    HttpAuthorizationRules customerAccountAuthorizationRules() {
+        return registry -> {
+            registry.requestMatchers(HttpMethod.POST, "/api/account/register", "/api/account/verify-email",
+                "/api/account/login").permitAll();
+            registry.requestMatchers("/api/account/**").hasRole(Role.CUSTOMER.name());
+        };
+    }
 }

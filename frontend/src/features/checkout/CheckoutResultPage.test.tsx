@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
 import { es } from '../../i18n/es.ts';
-import { answer, NO_CART } from '../../test/catalogApi.ts';
+import { answer, NO_CART, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { CONFIRMING_FOR_MS } from '../orders/OrderTrackingPage.tsx';
 import { CONFIRMING_EVERY_MS } from '../orders/useTrackedOrder.ts';
@@ -36,8 +36,8 @@ function trackedOrder(status: NonNullable<TrackedOrderResponse['status']>): Trac
 /** The tracked order answers in call order (the last one repeats); the header's cart is empty. */
 function stubOrder(...answers: unknown[]) {
   const queue = [...answers];
-  return vi.spyOn(api, 'GET').mockImplementation(((path: string) =>
-    Promise.resolve(path === '/api/cart' ? NO_CART : queue.length > 1 ? queue.shift() : queue[0])) as never);
+  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
+    Promise.resolve(path === '/api/cart' ? NO_CART : queue.length > 1 ? queue.shift() : queue[0])));
 }
 
 const orderCalls = (get: ReturnType<typeof stubOrder>) =>

@@ -38,4 +38,13 @@ class EmailAndPasswordRulesTest {
         // 24 characters of 4 bytes each: 96 bytes
         assertThat(PasswordRules.check("😀".repeat(24))).contains(PasswordRules.Violation.TOO_LONG);
     }
+
+    @Test
+    void givenCustomerPasswords_whenChecked_thenTheyNeed8CharactersAndAtMost72Bytes() {
+        assertThat(PasswordRules.checkCustomer("siete77")).contains(PasswordRules.Violation.TOO_SHORT);
+        assertThat(PasswordRules.checkCustomer(null)).contains(PasswordRules.Violation.TOO_SHORT);
+        assertThat(PasswordRules.checkCustomer("ocho1234")).isEmpty();
+        assertThat(PasswordRules.checkCustomer("x".repeat(72))).isEmpty();
+        assertThat(PasswordRules.checkCustomer("x".repeat(73))).contains(PasswordRules.Violation.TOO_LONG);
+    }
 }

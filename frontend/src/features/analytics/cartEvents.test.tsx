@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
-import { answer, NO_CART, productDetail } from '../../test/catalogApi.ts';
+import { answer, NO_CART, productDetail, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { resetAnalyticsForTests } from './analytics.ts';
 import { saveConsent } from './consent.ts';
@@ -22,8 +22,8 @@ function pixelEvents(name: string): unknown[] {
 
 /** The product page of the pink M pijama (3 in stock, ARS 25,000), with an empty cart in the header. */
 function stubStore() {
-  vi.spyOn(api, 'GET').mockImplementation(((path: string) =>
-    Promise.resolve(path === '/api/cart' ? NO_CART : answer(200, productDetail()))) as never);
+  vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
+    Promise.resolve(path === '/api/cart' ? NO_CART : answer(200, productDetail()))));
 }
 
 async function addPinkM() {
@@ -87,8 +87,8 @@ describe('cart analytics events (RNF-25, T-E2-12)', () => {
   });
 
   it('given an item in the cart, when "+" raises its quantity in the panel, then it is not an add and nothing is sent', async () => {
-    vi.spyOn(api, 'GET').mockImplementation(((path: string) =>
-      Promise.resolve(path === '/api/cart' ? cart([cartItem()]) : answer(200, productDetail()))) as never);
+    vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
+      Promise.resolve(path === '/api/cart' ? cart([cartItem()]) : answer(200, productDetail()))));
     const patch = vi.spyOn(api, 'PATCH').mockResolvedValue(cart([cartItem({ quantity: 2 })]));
     renderRoute('/producto/luna');
 

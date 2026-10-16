@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
-import { answer, NO_CART } from '../../test/catalogApi.ts';
+import { answer, NO_CART, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { goToPayment } from '../orders/redirect.ts';
 import { keptTrackingToken } from './trackingTokenStore.ts';
@@ -37,7 +37,7 @@ const MODO_ON = answer(200, { providers: ['MERCADOPAGO', 'MODO'] });
 
 /** GET answers: this cart (the same for every read), the shipping costs above and these payment providers. */
 function stubGets(currentCart: unknown = cart([cartItem()]), providers: unknown = MODO_OFF) {
-  return vi.spyOn(api, 'GET').mockImplementation(((path: string, options?: { params?: { query?: { province?: string } } }) => {
+  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string, options?: { params?: { query?: { province?: string } } }) => {
     if (path === '/api/checkout/shipping-cost') {
       return Promise.resolve(SHIPPING[options?.params?.query?.province ?? '']);
     }
@@ -45,7 +45,7 @@ function stubGets(currentCart: unknown = cart([cartItem()]), providers: unknown 
       return Promise.resolve(providers);
     }
     return Promise.resolve(path === '/api/cart' ? currentCart : NO_CART);
-  }) as never);
+  }));
 }
 
 function stubPost(...answers: unknown[]) {

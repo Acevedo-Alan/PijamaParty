@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
+import com.pijamaparty.store.platform.domain.AccessToken.AccountToken;
 import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import com.pijamaparty.store.platform.testing.RlsPolicyTester;
@@ -120,6 +121,18 @@ class RlsContextTest {
         String seen = rls.as(GUEST, sql -> sql.queryForObject("select app_tracking_token_hash()", String.class));
 
         assertThat(seen).isEqualTo(GUEST_TRACKING.hash()).doesNotContain(GUEST_TRACKING.value());
+    }
+
+    @Test
+    void givenTheSystemConsumingAnAccountToken_whenTheContextIsSet_thenTheDatabaseSeesOnlyItsHash() {
+        var token = new AccountToken("account-token-of-an-email-link");
+
+        String seen = rls.as(Actor.systemConsuming(token),
+            sql -> sql.queryForObject("select app_account_token_hash()", String.class));
+        String afterwards = rls.as(SYSTEM, sql -> sql.queryForObject("select app_account_token_hash()", String.class));
+
+        assertThat(seen).isEqualTo(token.hash()).doesNotContain(token.value());
+        assertThat(afterwards).isNull();
     }
 
     @Test

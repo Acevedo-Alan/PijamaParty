@@ -82,6 +82,30 @@ class UserTest {
     }
 
     @Test
+    void givenANewCustomer_whenCreated_thenItIsUnverifiedWithItsPassword() {
+        User customer = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+
+        assertThat(customer.role()).isEqualTo(UserRole.CUSTOMER);
+        assertThat(customer.emailVerified()).isFalse();
+        assertThat(customer.passwordHash()).contains(hash());
+        assertThat(customer.secondFactor()).isEmpty();
+        assertThatThrownBy(() -> User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", null, NOW))
+            .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void givenAnUnverifiedCustomer_whenItsEmailIsVerifiedTwice_thenItIsVerifiedOnceAtTheFirstTime() {
+        User customer = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+
+        customer.verifyEmail(NOW.plusSeconds(60));
+        customer.verifyEmail(NOW.plusSeconds(120));
+
+        assertThat(customer.emailVerified()).isTrue();
+        assertThat(customer.updatedAt()).isEqualTo(NOW.plusSeconds(60));
+        assertThat(customer.copy().emailVerified()).isTrue();
+    }
+
+    @Test
     void givenAUser_whenCopied_thenChangesToTheCopyDoNotAffectTheOriginal() {
         User user = administrator();
         User copy = user.copy();

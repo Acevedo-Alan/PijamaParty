@@ -84,7 +84,7 @@ class ArchitectureTest {
         noClasses().that().resideInAnyPackage("..domain..", "..application..", "..adapter.in.web..")
             .should().callMethodWhere(DescribedPredicate.describe("run as SYSTEM", call ->
                 call.getTarget().getOwner().isEquivalentTo(CurrentActor.class)
-                    && call.getTarget().getName().matches("(call|run)AsSystem")))
+                    && call.getTarget().getName().matches("(call|run)AsSystem.*")))
             .allowEmptyShould(true);
 
     /** Events are stored serialized without RLS: ids only (ARCHITECTURE.md section 6, RNF-27). */

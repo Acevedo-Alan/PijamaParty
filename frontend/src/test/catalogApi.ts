@@ -56,6 +56,18 @@ export function filterOptions(overrides: Partial<FilterOptionsBody> = {}) {
 /** The cart of a visitor without one, which the header of every public page reads (UC-08). */
 export const NO_CART = answer(200, { items: [], subtotalCents: 0, discountCents: 0, totalCents: 0 });
 
+/** Nobody signed in: what the header of every public page reads from GET /api/account/me (UC-19). */
+export const SIGNED_OUT = answer(401);
+
+/**
+ * A GET stub that also answers the header's question of who is signed in (signed out, unless told otherwise), so
+ * the stub's own answers are left for the page.
+ */
+export function withHeader(get: (path: string, init?: never) => Promise<unknown>, account: unknown = SIGNED_OUT): never {
+  return ((path: string, init?: never) =>
+    path === '/api/account/me' ? Promise.resolve(account) : get(path, init)) as never;
+}
+
 interface CatalogAnswers {
   /** Answers of GET /api/catalog/products in call order; the last one repeats. */
   listings: unknown[];
@@ -78,7 +90,7 @@ export function stubCatalogApi({
   cart = NO_CART,
 }: CatalogAnswers): MockInstance {
   const queue = [...listings];
-  return vi.spyOn(api, 'GET').mockImplementation(((path: string, init?: { params?: { query?: { q?: string } } }) => {
+  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string, init?: { params?: { query?: { q?: string } } }) => {
     if (path === '/api/catalog/filters') {
       return Promise.resolve(filters);
     }
@@ -95,7 +107,7 @@ export function stubCatalogApi({
     }
     const next = queue.length > 1 ? queue.shift() : queue[0];
     return Promise.resolve(next);
-  }) as never);
+  }));
 }
 
 export function suggested(items: ListItem[]) {
