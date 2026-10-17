@@ -2,16 +2,19 @@ package com.pijamaparty.store.promotions.domain;
 
 import com.pijamaparty.store.platform.domain.Money;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 /**
- * A code coupon (UC-10, UC-11). It holds the rules of its data: a whole percent from 1 to 100 or an amount of at most
- * {@link #MAX_AMOUNT}, a validity whose start is not after its end, at most {@link #MAX_USES} uses and a minimum
- * purchase of at most {@link #MAX_AMOUNT}, both above 0 when present. It decides whether it applies to a subtotal and
- * how much it discounts. Its uses are counted from the confirmed orders (E3).
+ * A code coupon (UC-10, UC-11) or an automatic one (UC-23), fixed when it is created. It holds the rules of its data:
+ * a whole percent from 1 to 100 or an amount of at most {@link #MAX_AMOUNT}, a validity whose start is not after its
+ * end, at most {@link #MAX_USES} uses and a minimum purchase of at most {@link #MAX_AMOUNT}, both above 0 when present.
+ * Only an automatic coupon may have a scope. It decides whether it applies to a cart and how much it discounts. Its
+ * uses are counted from the confirmed orders (E3).
  */
 public final class Coupon {
 
@@ -28,11 +31,14 @@ public final class Coupon {
     private final Optional<LocalDate> validUntil;
     private final Optional<Integer> maxUses;
     private final Optional<Money> minimumPurchase;
+    private final boolean automatic;
+    private final CouponScope scope;
     private final boolean active;
+    private final List<DiscountRule> rules;
 
     private Coupon(CouponId id, CouponCode code, CouponType type, long discountValue, Optional<LocalDate> validFrom,
                    Optional<LocalDate> validUntil, Optional<Integer> maxUses, Optional<Money> minimumPurchase,
-                   boolean active) {
+                   boolean automatic, CouponScope scope, boolean active) {
         this.id = Objects.requireNonNull(id, "id");
         this.code = Objects.requireNonNull(code, "code");
         this.type = Objects.requireNonNull(type, "type");
@@ -40,12 +46,18 @@ public final class Coupon {
         this.validUntil = Objects.requireNonNull(validUntil, "validUntil");
         this.maxUses = Objects.requireNonNull(maxUses, "maxUses");
         this.minimumPurchase = Objects.requireNonNull(minimumPurchase, "minimumPurchase");
+        this.scope = Objects.requireNonNull(scope, "scope");
+        if (!automatic && !scope.isWholeCart()) {
+            throw new IllegalArgumentException("only an automatic coupon has a scope");
+        }
         Set<Field> invalid = invalidFields(type, discountValue, validFrom, validUntil, maxUses, minimumPurchase);
         if (!invalid.isEmpty()) {
             throw new IllegalArgumentException("invalid coupon fields: " + invalid);
         }
         this.discountValue = discountValue;
+        this.automatic = automatic;
         this.active = active;
+        this.rules = rulesOf(validFrom, validUntil, maxUses, scope, minimumPurchase);
     }
 
     /**
@@ -59,7 +71,41 @@ public final class Coupon {
     public static Coupon of(CouponId id, CouponCode code, CouponType type, long discountValue,
                             Optional<LocalDate> validFrom, Optional<LocalDate> validUntil, Optional<Integer> maxUses,
                             Optional<Money> minimumPurchase, boolean active) {
-        return new Coupon(id, code, type, discountValue, validFrom, validUntil, maxUses, minimumPurchase, active);
+        return new Coupon(id, code, type, discountValue, validFrom, validUntil, maxUses, minimumPurchase, false,
+            CouponScope.WHOLE_CART, active);
+    }
+
+    /**
+     * UC-23: a coupon that applies on its own when a cart meets its rules; its code is only its label. The other
+     * parameters are those of {@link #of}.
+     *
+     * @param scope the products and categories it discounts, or {@link CouponScope#WHOLE_CART}
+     */
+    public static Coupon automatic(CouponId id, CouponCode code, CouponType type, long discountValue,
+                                   Optional<LocalDate> validFrom, Optional<LocalDate> validUntil,
+                                   Optional<Integer> maxUses, Optional<Money> minimumPurchase, CouponScope scope,
+                                   boolean active) {
+        return new Coupon(id, code, type, discountValue, validFrom, validUntil, maxUses, minimumPurchase, true, scope,
+            active);
+    }
+
+    /**
+     * UC-23: its rules in the order they are checked. The scope comes before the minimum purchase, which is compared
+     * with the matching subtotal.
+     */
+    private static List<DiscountRule> rulesOf(Optional<LocalDate> validFrom, Optional<LocalDate> validUntil,
+                                              Optional<Integer> maxUses, CouponScope scope,
+                                              Optional<Money> minimumPurchase) {
+        List<DiscountRule> rules = new ArrayList<>();
+        if (validFrom.isPresent() || validUntil.isPresent()) {
+            rules.add(new ValidityRule(validFrom, validUntil));
+        }
+        maxUses.ifPresent(max -> rules.add(new MaxUsesRule(max)));
+        if (!scope.isWholeCart()) {
+            rules.add(new ScopeRule(scope));
+        }
+        minimumPurchase.ifPresent(minimum -> rules.add(new MinimumPurchaseRule(minimum)));
+        return List.copyOf(rules);
     }
 
     /** UC-11: every rule these terms break, as in {@link #of}; empty when they make a valid coupon. */
@@ -95,32 +141,40 @@ public final class Coupon {
     }
 
     private Coupon withActive(boolean newActive) {
-        return new Coupon(id, code, type, discountValue, validFrom, validUntil, maxUses, minimumPurchase, newActive);
+        return new Coupon(id, code, type, discountValue, validFrom, validUntil, maxUses, minimumPurchase, automatic,
+            scope, newActive);
     }
 
     /**
-     * UC-10: whether the coupon applies to {@code subtotal} on {@code today}, the store date, after {@code uses}
-     * confirmed orders. The checks run in a fixed order and the first that fails is the answer.
+     * UC-10: whether a coupon without a scope applies to {@code subtotal} on {@code today}, the store date, after
+     * {@code uses} confirmed orders. As {@link #evaluate(DiscountContext)}.
+     *
+     * @throws IllegalStateException when the coupon has a scope, which needs the cart's lines
      */
     public Evaluation evaluate(Money subtotal, LocalDate today, long uses) {
-        Objects.requireNonNull(subtotal, "subtotal");
-        Objects.requireNonNull(today, "today");
+        return evaluate(DiscountContext.ofSubtotal(subtotal, today, uses));
+    }
+
+    /**
+     * UC-10, UC-23: whether the coupon applies in {@code context}. It must be active, then its rules are checked in
+     * order and the first that fails is the answer. When all pass, it discounts the subtotal they leave: for a scoped
+     * coupon, the matching lines'.
+     */
+    public Evaluation evaluate(DiscountContext context) {
+        Objects.requireNonNull(context, "context");
         if (!active) {
             return new Evaluation.Inactive();
         }
-        if (validFrom.filter(today::isBefore).isPresent()) {
-            return new Evaluation.NotStarted();
+        DiscountContext checked = context;
+        for (DiscountRule rule : rules) {
+            switch (rule.check(checked)) {
+                case DiscountRule.Outcome.Failed failed -> {
+                    return failed.reason();
+                }
+                case DiscountRule.Outcome.Passed passed -> checked = passed.context();
+            }
         }
-        if (validUntil.filter(today::isAfter).isPresent()) {
-            return new Evaluation.Expired();
-        }
-        if (maxUses.filter(max -> uses >= max).isPresent()) {
-            return new Evaluation.UsedUp();
-        }
-        if (minimumPurchase.filter(subtotal::isLessThan).isPresent()) {
-            return new Evaluation.BelowMinimum(minimumPurchase.get().minus(subtotal));
-        }
-        return new Evaluation.Applicable(discountOn(subtotal));
+        return new Evaluation.Applicable(discountOn(checked.subtotal()));
     }
 
     /** A percentage rounded down to the cent, so never more than the stated percent; a fixed amount at most all. */
@@ -161,6 +215,14 @@ public final class Coupon {
 
     public Optional<Money> minimumPurchase() {
         return minimumPurchase;
+    }
+
+    public boolean automatic() {
+        return automatic;
+    }
+
+    public CouponScope scope() {
+        return scope;
     }
 
     public boolean active() {
