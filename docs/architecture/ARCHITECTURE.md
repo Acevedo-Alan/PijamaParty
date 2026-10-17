@@ -34,7 +34,7 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 | `payments` | Provider gateways, payment attempts, webhooks | `Payment`, `PaymentEvent` | – |
 | `notifications` | Email outbox, sending, bounces | `OutboxEmail` | `ordering` (events), `accounts` (events and the links of the account emails) |
 | `accounts` | Users, authentication (password, Google and Facebook through OAuth2), 2FA, address book, account deletion and data export | `User`, `Address` | – |
-| `reviews` | Reviews and moderation | `Review` | `ordering`, `catalog` |
+| `reviews` | Reviews and moderation | `Review` | `ordering`, `catalog`, `accounts` (the author's name, its reviews in the data download and their deletion with the account, UC-24, UC-28) |
 | `backoffice` | Composition of admin screens that need data from several modules | read models only | `ordering`, `notifications`, `catalog`, `inventory` |
 | `platform` | Shared kernel: `Money`, `Clock`, ids, `Actor`, idempotency, rate limiting, problem+json, security context for RLS | – | – |
 

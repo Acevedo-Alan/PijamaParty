@@ -136,7 +136,7 @@ Es una defensa en profundidad: no reemplaza la autorización de la aplicación, 
 | `identidad_externa` | Lee y desvincula las propias | – | – | Crea y lee para autenticar |
 | `solicitud_arrepentimiento` | Crea y lee las del pedido cuyo número y email acaba de verificar la base | Igual que el cliente | Lee y resuelve | Lee (para componer los correos) |
 | `carrito`, `carrito_item` | Los propios | Los de su token de carrito | – | Limpieza |
-| `resena` | Crea y edita las propias; lee las aprobadas | Lee las aprobadas | Modera | – |
+| `resena` | Crea y edita las propias; lee las aprobadas y las propias; borra las propias al borrar su cuenta (CU-28) | Lee las aprobadas | Lee todas, modera y borra | – |
 | `idempotency_key` | Las propias (por usuario) | Las de su token de carrito | – | Limpieza |
 | `email_outbox`, `email_evento` | Encola los correos de su solicitud de arrepentimiento y reenvía la confirmación de su pedido | Igual que el cliente | Lee | Todo |
 

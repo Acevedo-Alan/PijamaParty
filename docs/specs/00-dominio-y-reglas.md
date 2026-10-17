@@ -90,8 +90,8 @@ PAGADO | PREPARANDO → CANCELADO
 | Versión de los términos en el pedido | Decidido | Se guarda al comprar (RNF-30.6); la marca de facturado espera la decisión de facturación (RNF-30.7) |
 | Integración con MODO | Decidido | Plan en E3, sección "MODO (E3b)" (T-E3b-01): botón de pago con redirección, sobre un gateway de tarjetas todavía sin elegir; las tarjetas siguen por MercadoPago |
 | Devoluciones de MODO | Pendiente | MODO exige devolver por su API: botón en el backoffice o devolución desde el gateway (T-E3b-06) |
-| Reglas de reseñas | Decidido | Opina el cliente con un pedido PAGADO o posterior que incluya el producto; una reseña por cliente y producto; editarla la vuelve a PENDIENTE (CU-24, T-E5-01) |
-| Reglas de cupones automáticos | Decidido | Monto mínimo y vigencia del cupón, más un alcance opcional de productos o categorías que descuenta solo sobre esos ítems; nunca se acumulan: entre los automáticos y el código se usa el de mayor descuento (CU-23, T-E5-01) |
+| Reglas de reseñas | Decidido | Opina el cliente con un pedido PAGADO o posterior que incluya el producto; una reseña por cliente y producto; editarla la vuelve a PENDIENTE; texto opcional de hasta 1.000 caracteres; la ficha muestra el nombre de pila; se eliminan con la cuenta (CU-24, CU-28, T-E5-01) |
+| Reglas de cupones automáticos | Decidido | Monto mínimo y vigencia del cupón, más un alcance opcional de productos o categorías que descuenta solo sobre esos ítems; nunca se acumulan: entre los automáticos y el código se usa el de mayor descuento, y el código si empatan; el automático tiene un código que funciona como nombre y no se puede escribir (CU-23, T-E5-01) |
 | Guardar DNI en la cuenta del cliente | Decidido | No se guarda: se pide en cada compra y queda solo en el pedido (CU-21, T-E4-01) |
 | Enlaces de un solo uso de la cuenta | Decidido | Verificación de email 24 horas, recuperación de contraseña 30 minutos, confirmación de vinculación 24 horas; tokens según RNF-29.6 (CU-19, CU-27) |
 | Libreta de direcciones | Decidido | Hasta 10 direcciones por cliente, con los formatos de la dirección del pedido (CU-20) |

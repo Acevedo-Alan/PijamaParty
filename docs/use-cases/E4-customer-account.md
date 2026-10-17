@@ -294,7 +294,7 @@ Registering is optional: buying as a guest stays the main flow. An account saves
 **Business rules**
 - It answers the rights of access and deletion of Law 25,326 on personal data protection.
 - Orders are kept because the shop must keep them for accounting and tax duties: they are unlinked from the account, but keep their copy of name, national ID and address for the legal term (*confirm the term with the accountant*).
-- Reviews stay published without a name (*Proposed*).
+- Reviews are deleted with the account (decided in T-E5-01; it replaces the proposed anonymization).
 - The data deletion instructions page that Meta requires for Facebook Login points to this use case.
 
 **Acceptance criteria**
@@ -303,7 +303,7 @@ Registering is optional: buying as a guest stays the main flow. An account saves
 - Given a customer who deletes its account and registers again with the same email, when it signs in, then it does not see the previous orders.
 
 **Design notes**
-- `accounts` publishes `CustomerAccountDeleted` (the user id only); `ordering` unlinks the orders (`user_id` to null) and `reviews` anonymizes the reviews, each with an idempotent handler.
+- `accounts` publishes `CustomerAccountDeleted` (the user id only); `ordering` unlinks the orders (`user_id` to null) and `reviews` deletes the reviews (E5), each with an idempotent handler.
 - Endpoints: `GET /api/account/data`, `POST /api/account/oauth2/reauthenticate/{provider}`, `DELETE /api/account` (T-E4-16).
 - Only the signed-in customer, on its own account (`CUSTOMER` role, as the rest of `/api/account/**`); the writes require the CSRF token. The administrator's account is never deleted or exported this way.
 - **Data download (T-E4-16):**
@@ -321,7 +321,7 @@ Registering is optional: buying as a guest stays the main flow. An account saves
   - **Listeners in the same transaction (decided):** the exception of rule 5 of ARCHITECTURE.md, as every listener of the codebase: deleting the account, unlinking the orders and deleting the cart commit together or not at all. Each is idempotent: a second run finds nothing to change.
     - `ordering` unlinks every order of the customer: `user_id` to null and `unlinked_at` to now (the `Clock`), whatever its status. An unlinked order is never linked again (T-E4-08), so a new account with the same email does not see it (acceptance criterion 3). The back office still shows it, with its copy of the buyer's data.
     - `cart` deletes the customer's cart with its items.
-    - `reviews` anonymizes the reviews when it arrives in E5 (decided).
+    - `reviews` deletes the customer's reviews when it arrives in E5 (decided in T-E5-01, UC-24).
   - `204` with no body: the response signs out (as `POST /api/account/logout`) and, after the commit, every other session of the account ends (Spring Session, by principal name, as the password reset). The emails still waiting in the outbox for the account are not sent (the rule of UC-19 for an account deleted).
   - Row Level Security (V36):
     - `app_user`: the customer deletes its own row, only a customer's (`role = 'CUSTOMER'`).

@@ -33,7 +33,7 @@
 - **Respuestas de recuperación:** siempre iguales exista o no el email, para no revelar cuentas.
 - **Ingreso social:** Spring Security OAuth2 Client (`oauth2Login`), flujo Authorization Code con `state` y PKCE; para Google se valida el ID token de OpenID Connect (firma, `aud`, `iss`, `nonce`) y se usa el claim `email_verified`. Facebook Login no informa si el email está verificado: se confirma por correo antes de vincular. Al terminar, se crea la misma sesión con cookie que en el login con contraseña. Las claves de cliente de cada proveedor van en variables de entorno (RNF-29.10).
 - **Vinculación por email:** la búsqueda de la cuenta existente usa el email normalizado (recorte y minúsculas).
-- **Eliminación de cuenta:** `accounts` publica `CustomerAccountDeleted`; `ordering` desvincula los pedidos (`usuario_id` en nulo) y `reviews` anonimiza las reseñas, cada uno con un handler idempotente.
+- **Eliminación de cuenta:** `accounts` publica `CustomerAccountDeleted`; `ordering` desvincula los pedidos (`usuario_id` en nulo) y `reviews` elimina las reseñas (E5), cada uno con un handler idempotente.
 - **Requisitos de los proveedores:** pantalla de consentimiento de Google y app de Meta en modo "en vivo", ambas con URL de política de privacidad y términos; Meta exige además una URL con instrucciones de eliminación de datos (CU-28). Los dominios de los proveedores se suman a la CSP (RNF-29.9).
 
 ## Riesgos

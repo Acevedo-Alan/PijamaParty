@@ -40,5 +40,6 @@ Every use case has the same sections:
 | `E2-cart-and-coupons.md` | E2 | UC-08 to UC-11 |
 | `E3-checkout-and-payments.md` | E3 | UC-12 to UC-18 and UC-29 |
 | `E4-customer-account.md` | E4 | UC-19 to UC-22, UC-27 and UC-28 |
+| `E5-promotions-and-reviews.md` | E5 | UC-23 to UC-25 (and changes to UC-11 and UC-28) |
 
-Stages E5 and E6 follow the same format and are written next.
+Stage E6 follows the same format and is written next.

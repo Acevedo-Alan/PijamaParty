@@ -129,7 +129,7 @@
 **Reglas**
 - Responde a los derechos de acceso y supresión de la Ley 25.326 de protección de datos personales.
 - Los pedidos se conservan porque el negocio debe guardarlos por obligaciones contables y fiscales: se desvinculan de la cuenta, pero conservan la copia de nombre, DNI y dirección durante el plazo legal (*confirmar el plazo con el contador*).
-- Las reseñas quedan publicadas sin nombre (*Propuesto*).
+- Las reseñas se eliminan con la cuenta (decidido en T-E5-01).
 - La página de instrucciones de eliminación de datos que exige Meta para el ingreso con Facebook apunta a este caso de uso.
 
 **Criterios de aceptación**
