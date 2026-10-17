@@ -27,12 +27,13 @@ import java.util.UUID;
  * {@link OrdersToPay}, {@link ConfirmableOrders}, {@link TrackedOrders}, {@link PaidOrderDetails},
  * {@link SaveTrackingLinks}, {@link OrderStatuses}, {@link OrderPages}, {@link AdminOrderViews}, {@link StatusChanges},
  * {@link ShipmentTrackingNumbers}, {@link LatePayments}, {@link CorrectableOrders}, {@link BuyerEmails},
- * {@link CustomerOrderPages} and {@link CustomerOrderViews} over the same orders. Locks are not modeled.
+ * {@link CustomerOrderPages}, {@link CustomerOrderViews} and {@link GuestOrderLinks} over the same orders. Locks are
+ * not modeled.
  */
 public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay,
     ConfirmableOrders, TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews,
     StatusChanges, ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails, CustomerOrderPages,
-    CustomerOrderViews {
+    CustomerOrderViews, GuestOrderLinks {
 
     /** Oldest expiry first; the id breaks ties as PostgreSQL orders uuids (as the canonical text does). */
     private static final Comparator<Map.Entry<OrderId, Row>> OLDEST_EXPIRY_FIRST =
@@ -49,6 +50,8 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     private final Map<OrderId, Instant> deliveredAt = new HashMap<>();
     private final Set<OrderId> paidAfterClosing = new HashSet<>();
     private final Map<OrderId, String> correctedEmails = new HashMap<>();
+    private final Map<OrderId, UserId> linkedUsers = new HashMap<>();
+    private final Set<OrderId> unlinked = new HashSet<>();
     private long lastNumber = 1000;
 
     /** Test arrangement: an order in any status, without its details nor a coupon; answers its number. */
@@ -109,6 +112,19 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     /** Test inspection: when the order was last updated; empty when it never was. */
     public synchronized Optional<Instant> updatedAtOf(OrderId order) {
         return Optional.ofNullable(updatedAt.get(order));
+    }
+
+    /** Test arrangement: an account deletion (UC-28) unlinked this guest order of the checkout. */
+    public synchronized void unlink(OrderId order) {
+        if (!placed.containsKey(order) || userOf(placed.get(order)).isPresent()) {
+            throw new IllegalStateException("only a guest order of the checkout is unlinked here");
+        }
+        unlinked.add(order);
+    }
+
+    /** Test inspection: the customer of an order the checkout placed, as placed or linked. */
+    public synchronized Optional<UserId> userOf(OrderId order) {
+        return Optional.ofNullable(placed.get(order)).flatMap(this::userOf);
     }
 
     /** Test inspection: how many orders the checkout placed. */
@@ -306,7 +322,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     @Override
     public synchronized List<CustomerOrderSummary> page(UserId customer, int offset, int limit) {
         return placed.values().stream()
-            .filter(order -> order.userId().equals(Optional.of(customer)))
+            .filter(order -> userOf(order).equals(Optional.of(customer)))
             .sorted(Comparator.comparing(NewOrder::createdAt).thenComparing(NewOrder::number).reversed())
             .skip(offset)
             .limit(limit)
@@ -319,11 +335,29 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     @Override
     public synchronized Optional<CustomerOrder> find(UserId customer, OrderId order) {
         return Optional.ofNullable(placed.get(order))
-            .filter(placedOrder -> placedOrder.userId().equals(Optional.of(customer)))
+            .filter(placedOrder -> userOf(placedOrder).equals(Optional.of(customer)))
             .map(placedOrder -> new CustomerOrder(order, placedOrder.number(), orders.get(order).status(),
                 placedOrder.createdAt(), placedOrder.lines(), placedOrder.amounts(),
                 placedOrder.coupon().map(AppliedCoupon::code), placedOrder.address(), placedOrder.province(),
                 Optional.ofNullable(shipmentTrackingNumbers.get(order))));
+    }
+
+    /** Only the orders the checkout placed carry a buyer email. */
+    @Override
+    public synchronized int link(UserId customer, String email, Instant at) {
+        List<NewOrder> guests = placed.values().stream()
+            .filter(order -> userOf(order).isEmpty() && !unlinked.contains(order.id())
+                && buyerEmailOf(order).equals(email))
+            .toList();
+        for (NewOrder order : guests) {
+            linkedUsers.put(order.id(), customer);
+            updatedAt.put(order.id(), at);
+        }
+        return guests.size();
+    }
+
+    private Optional<UserId> userOf(NewOrder order) {
+        return order.userId().or(() -> Optional.ofNullable(linkedUsers.get(order.id())));
     }
 
     private String buyerEmailOf(NewOrder order) {

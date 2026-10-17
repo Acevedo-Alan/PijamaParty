@@ -13,6 +13,7 @@ import com.pijamaparty.store.ordering.application.CorrectableOrders;
 import com.pijamaparty.store.ordering.application.CustomerOrderPages;
 import com.pijamaparty.store.ordering.application.CustomerOrderSummary;
 import com.pijamaparty.store.ordering.application.CustomerOrderViews;
+import com.pijamaparty.store.ordering.application.GuestOrderLinks;
 import com.pijamaparty.store.ordering.application.LatePayments;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderPages;
@@ -65,7 +66,8 @@ import org.springframework.transaction.annotation.Transactional;
 class JdbcOrderStore
     implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders,
     TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews, StatusChanges,
-    ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails, CustomerOrderPages, CustomerOrderViews {
+    ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails, CustomerOrderPages, CustomerOrderViews,
+    GuestOrderLinks {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -183,6 +185,12 @@ class JdbcOrderStore
     private static final String REPLACE_EMAIL = """
         UPDATE orders SET customer_email = :email, updated_at = :at
         WHERE id = :id
+        """;
+
+    // UC-22 (T-E4-08): over orders_guest_email_idx; orders_status_update_guard (V33) checks the customer again.
+    private static final String LINK_GUEST_ORDERS = """
+        UPDATE orders SET user_id = :customer, updated_at = :at
+        WHERE user_id IS NULL AND unlinked_at IS NULL AND customer_email = :email
         """;
 
     // UC-15: set once, and only on a closed order (orders_paid_after_closing_ck).
@@ -418,6 +426,13 @@ class JdbcOrderStore
         return jdbc.update(REPLACE_EMAIL, new MapSqlParameterSource("id", order.value())
             .addValue("email", email)
             .addValue("at", at.atOffset(ZoneOffset.UTC))) == 1;
+    }
+
+    @Override
+    public int link(UserId customer, String email, Instant at) {
+        return jdbc.update(LINK_GUEST_ORDERS, new MapSqlParameterSource("customer", customer.value())
+            .addValue("email", email)
+            .addValue("at", at.atOffset(ZoneOffset.UTC)));
     }
 
     @Override

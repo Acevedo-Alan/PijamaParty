@@ -140,7 +140,8 @@ class CustomerOrdersApiTest {
         guest.get("/api/health");
         long guests = buy(guest);
 
-        ResponseEntity<String> opened = signedIn("ana@example.com").get(ORDERS + "/" + idOf(guests));
+        // Bruno: the guest bought with Ana's email, so Ana's sign-in would link the order (T-E4-08).
+        ResponseEntity<String> opened = signedIn("bruno@example.com").get(ORDERS + "/" + idOf(guests));
 
         assertThat(opened.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }

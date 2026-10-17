@@ -72,7 +72,7 @@
 2. Abre un pedido y ve ítems, dirección, estado, número de seguimiento y un enlace al seguimiento de Correo Argentino.
 
 **Reglas**
-- Los pedidos hechos como invitado con el mismo email se asocian a la cuenta una vez verificado el email. Un pedido desvinculado al eliminar una cuenta (CU-28) no se vuelve a asociar.
+- Los pedidos hechos como invitado con el mismo email se asocian a la cuenta una vez verificado el email: en cada ingreso del cliente con el email verificado, así que también se suman los que haga después como invitado (*Decidido*). Un pedido desvinculado al eliminar una cuenta (CU-28) no se vuelve a asociar.
 
 **Criterios de aceptación**
 - Dado un cliente con dos pedidos, cuando abre "Mis pedidos", entonces ve ambos, ordenados del más reciente al más antiguo.
