@@ -1,18 +1,14 @@
 package com.pijamaparty.store.accounts.adapter.out.persistence;
 
-import static com.pijamaparty.store.platform.testing.RlsPolicyTester.ADMIN;
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.ADMIN_ID;
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.CUSTOMER_A;
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.CUSTOMER_A_ID;
-import static com.pijamaparty.store.platform.testing.RlsPolicyTester.CUSTOMER_B;
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.CUSTOMER_B_ID;
-import static com.pijamaparty.store.platform.testing.RlsPolicyTester.GUEST;
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.SYSTEM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
-import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import com.pijamaparty.store.platform.testing.RlsPolicyTester;
 import java.util.List;
@@ -30,8 +26,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
  * T-E4-01: the customer account schema (V29): the phone of app_user, the address book, the single-use tokens of the
- * email links and the widened app_user policies (RNF-27), as committed transactions of the application role. The
- * full policy matrix with the five actors is T-E4-11.
+ * email links and the column guards of app_user and user_token (RNF-27), as committed transactions of the application
+ * role. Which rows each actor reaches, with the five actors, is {@link AccountRowLevelSecurityTest} (T-E4-11).
  */
 @ApiTest
 class AccountSchemaTest {
@@ -54,7 +50,6 @@ class AccountSchemaTest {
         """;
     private static final String VERIFICATION_HASH = "a".repeat(64);
     private static final String RESET_HASH = "b".repeat(64);
-    private static final List<Actor> ALL_ACTORS = List.of(CUSTOMER_A, CUSTOMER_B, GUEST, ADMIN, SYSTEM);
 
     private final RlsPolicyTester rls;
     private final JdbcTemplate owner;
@@ -78,17 +73,6 @@ class AccountSchemaTest {
         owner.execute("truncate address, user_token, admin_recovery_code, app_user");
     }
 
-    @Test
-    void givenTheNewTables_whenCheckingTheirProtection_thenRowLevelSecurityIsEnabledAndForced() {
-        for (String table : List.of("address", "user_token")) {
-            var flags = owner.queryForMap(
-                "select relrowsecurity, relforcerowsecurity from pg_class where oid = ?::regclass", table);
-
-            assertThat(flags).as(table).containsEntry("relrowsecurity", true)
-                .containsEntry("relforcerowsecurity", true);
-        }
-    }
-
     // --- app_user.phone ---
 
     @Test
@@ -104,66 +88,6 @@ class AccountSchemaTest {
     }
 
     // --- address ---
-
-    @Test
-    void givenTwoCustomers_whenEachReadsAddresses_thenEachSeesOnlyItsOwnAndTheAdministratorSeesAll() {
-        UUID ofA = address(CUSTOMER_A_ID.value(), true);
-        UUID ofB = address(CUSTOMER_B_ID.value(), true);
-
-        assertThat(rls.as(CUSTOMER_A, this::addressIds)).containsExactly(ofA);
-        assertThat(rls.as(CUSTOMER_B, this::addressIds)).containsExactly(ofB);
-        assertThat(rls.as(ADMIN, this::addressIds)).containsExactlyInAnyOrder(ofA, ofB);
-        assertThat(rls.as(GUEST, this::addressIds)).isEmpty();
-        assertThat(rls.as(SYSTEM, this::addressIds)).isEmpty();
-        assertThat(rls.withoutContext(this::addressIds)).isEmpty();
-    }
-
-    @Test
-    void givenACustomer_whenManagingItsOwnAddresses_thenItAddsEditsAndDeletesThem() {
-        UUID id = UUID.randomUUID();
-
-        int added = rls.as(CUSTOMER_A, sql -> sql.update(INSERT_ADDRESS, id, CUSTOMER_A_ID.value(), true));
-        int edited = rls.as(CUSTOMER_A, sql -> sql.update("update address set city = 'Rosario' where id = ?", id));
-        int deleted = rls.as(CUSTOMER_A, sql -> sql.update("delete from address where id = ?", id));
-
-        assertThat(List.of(added, edited, deleted)).containsOnly(1);
-    }
-
-    @Test
-    void givenACustomer_whenTouchingAnotherCustomersAddresses_thenNothingChangesAndItCannotCreateOrMoveOne() {
-        UUID ofB = address(CUSTOMER_B_ID.value(), true);
-        UUID ofA = address(CUSTOMER_A_ID.value(), true);
-
-        int edited = rls.as(CUSTOMER_A, sql -> sql.update("update address set city = 'Rosario' where id = ?", ofB));
-        int deleted = rls.as(CUSTOMER_A, sql -> sql.update("delete from address where id = ?", ofB));
-        assertThat(edited).isZero();
-        assertThat(deleted).isZero();
-
-        assertThatThrownBy(() -> rls.as(CUSTOMER_A, sql -> sql.update(INSERT_ADDRESS, UUID.randomUUID(),
-                CUSTOMER_B_ID.value(), false)))
-            .as("creating one for B").isInstanceOf(DataAccessException.class)
-            .hasStackTraceContaining("row-level security");
-        assertThatThrownBy(() -> rls.as(CUSTOMER_A, sql -> sql.update("update address set user_id = ? where id = ?",
-                CUSTOMER_B_ID.value(), ofA)))
-            .as("moving one to B").isInstanceOf(DataAccessException.class)
-            .hasStackTraceContaining("row-level security");
-    }
-
-    @Test
-    void givenAnyActorButTheCustomer_whenWritingAddresses_thenNothingIsWritten() {
-        UUID ofA = address(CUSTOMER_A_ID.value(), true);
-
-        for (Actor actor : List.of(GUEST, ADMIN, SYSTEM)) {
-            int edited = rls.as(actor, sql -> sql.update("update address set city = 'Rosario' where id = ?", ofA));
-            int deleted = rls.as(actor, sql -> sql.update("delete from address"));
-            assertThat(edited).as(actor.role().name()).isZero();
-            assertThat(deleted).as(actor.role().name()).isZero();
-            assertThatThrownBy(() -> rls.as(actor, sql -> sql.update(INSERT_ADDRESS, UUID.randomUUID(),
-                    CUSTOMER_A_ID.value(), false)))
-                .as(actor.role().name()).isInstanceOf(DataAccessException.class)
-                .hasStackTraceContaining("row-level security");
-        }
-    }
 
     @Test
     void givenAPrimaryAddress_whenAnotherOneIsMarkedPrimary_thenItIsRejectedUntilTheFirstIsUnmarked() {
@@ -214,33 +138,6 @@ class AccountSchemaTest {
     }
 
     // --- user_token ---
-
-    @Test
-    void givenTokens_whenEachActorReadsAndWritesThem_thenOnlyTheSystemReachesThem() {
-        token(CUSTOMER_A_ID.value(), "EMAIL_VERIFICATION", VERIFICATION_HASH, "24 hours");
-
-        for (Actor actor : List.of(CUSTOMER_A, CUSTOMER_B, GUEST, ADMIN)) {
-            assertThat(rls.as(actor, this::tokenHashes)).as(actor.role().name()).isEmpty();
-            int used = rls.as(actor, sql -> sql.update("update user_token set used_at = now()"));
-            int deleted = rls.as(actor, sql -> sql.update("delete from user_token"));
-            assertThat(used + deleted).as(actor.role().name()).isZero();
-            assertThatThrownBy(() -> rls.as(actor, sql -> sql.update(INSERT_TOKEN, UUID.randomUUID(),
-                    CUSTOMER_A_ID.value(), "PASSWORD_RESET", RESET_HASH, "30 minutes")))
-                .as(actor.role().name()).isInstanceOf(DataAccessException.class)
-                .hasStackTraceContaining("row-level security");
-        }
-        assertThat(rls.withoutContext(this::tokenHashes)).isEmpty();
-
-        int created = rls.as(SYSTEM, sql -> sql.update(INSERT_TOKEN, UUID.randomUUID(), CUSTOMER_A_ID.value(),
-            "PASSWORD_RESET", RESET_HASH, "30 minutes"));
-        assertThat(created).isOne();
-        assertThat(rls.as(SYSTEM, this::tokenHashes)).containsExactlyInAnyOrder(VERIFICATION_HASH, RESET_HASH);
-        int used = rls.as(SYSTEM, sql -> sql.update("update user_token set used_at = now() where token_hash = ?",
-            RESET_HASH));
-        int deleted = rls.as(SYSTEM, sql -> sql.update("delete from user_token"));
-        assertThat(used).isOne();
-        assertThat(deleted).isEqualTo(2);
-    }
 
     @Test
     void givenATokenPurpose_whenStoredWithAnotherLifetime_thenItIsRejected() {
@@ -416,19 +313,6 @@ class AccountSchemaTest {
         }
     }
 
-    @Test
-    void givenAnyActor_whenReadingUsers_thenTheNewPoliciesKeepThePreviousVisibility() {
-        for (Actor actor : ALL_ACTORS) {
-            List<UUID> visible = rls.as(actor, sql -> sql.queryForList("select id from app_user", UUID.class));
-            switch (actor.role()) {
-                case CUSTOMER -> assertThat(visible).containsExactly(actor.userId().orElseThrow().value());
-                case ADMIN -> assertThat(visible).containsExactly(ADMIN_ID.value());
-                case SYSTEM -> assertThat(visible).hasSize(3);
-                default -> assertThat(visible).isEmpty();
-            }
-        }
-    }
-
     private UUID address(UUID userId, boolean primary) {
         UUID id = UUID.randomUUID();
         owner.update(INSERT_ADDRESS, id, userId, primary);
@@ -441,13 +325,5 @@ class AccountSchemaTest {
 
     private static void bindAccountToken(JdbcTemplate sql, String hash) {
         sql.queryForObject("select set_config('app.account_token_hash', ?, true)", String.class, hash);
-    }
-
-    private List<UUID> addressIds(JdbcTemplate sql) {
-        return sql.queryForList("select id from address", UUID.class);
-    }
-
-    private List<String> tokenHashes(JdbcTemplate sql) {
-        return sql.queryForList("select token_hash from user_token", String.class);
     }
 }
