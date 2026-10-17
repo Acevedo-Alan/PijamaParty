@@ -35,6 +35,10 @@ public class InMemoryExternalIdentities implements FindExternalIdentities, LinkE
         return true;
     }
 
+    void unlink(UUID id) {
+        identities.delete(id);
+    }
+
     public List<ExternalIdentity> all() {
         return identities.findAll();
     }

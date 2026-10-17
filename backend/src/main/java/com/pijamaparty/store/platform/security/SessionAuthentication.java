@@ -5,7 +5,10 @@ import com.pijamaparty.store.platform.domain.UserId;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
@@ -60,6 +63,24 @@ public final class SessionAuthentication {
         context.setAuthentication(authentication);
         holder.setContext(context);
         contexts.saveContext(context, request, response);
+    }
+
+    /**
+     * The user signed in to this request's session with {@code role}, as stored by {@link #signIn}, whatever
+     * authentication the request itself carries (a provider's return, UC-27). Never creates a session.
+     */
+    public Optional<UserId> signedIn(Role role, HttpServletRequest request) {
+        Authentication authentication = contexts.loadDeferredContext(request).get().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getAuthorities().stream()
+            .noneMatch(authority ->
+                (SessionActorResolver.AUTHORITY_PREFIX + role.name()).equals(authority.getAuthority()))) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(UserId.of(UUID.fromString(authentication.getName())));
+        } catch (IllegalArgumentException notAUserId) {
+            return Optional.empty();
+        }
     }
 
     /** Invalidates the session, forgets the authentication and drops the CSRF token. */

@@ -236,6 +236,35 @@ class UserTest {
             .isInstanceOf(IllegalStateException.class);
     }
 
+    @Test
+    void givenACustomerWithoutAPassword_whenCreatingOne_thenItHasItAndStaysAsVerifiedAsItWas() {
+        User customer = User.newExternalCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", false, NOW);
+        Instant later = NOW.plusSeconds(60);
+
+        assertThat(customer.createPassword(hash(), later)).isTrue();
+
+        assertThat(customer.passwordHash()).contains(hash());
+        assertThat(customer.emailVerified()).isFalse();
+        assertThat(customer.updatedAt()).isEqualTo(later);
+    }
+
+    @Test
+    void givenACustomerWithAPassword_whenCreatingAnother_thenNothingChanges() {
+        User customer = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+        var other = new PasswordHash("{test}other");
+
+        assertThat(customer.createPassword(other, NOW.plusSeconds(60))).isFalse();
+
+        assertThat(customer.passwordHash()).contains(hash());
+        assertThat(customer.updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void givenTheAdministrator_whenCreatingAPassword_thenItIsRefused() {
+        assertThatThrownBy(() -> administrator().createPassword(hash(), NOW))
+            .isInstanceOf(IllegalStateException.class);
+    }
+
     private static User administrator() {
         return User.newAdministrator(UserId.of(UUID.randomUUID()), email(), "Owner", hash(), NOW);
     }

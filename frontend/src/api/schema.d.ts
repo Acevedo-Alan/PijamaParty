@@ -149,6 +149,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Create the password of an account without one
+         * @description Only creates: an existing password is changed through the password recovery. Does not verify the email. Requires the CSRF token.
+         */
+        put: operations["createPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/addresses/{id}": {
         parameters: {
             query?: never;
@@ -807,6 +827,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/oauth2/link/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask to link an account of a provider (google or facebook)
+         * @description For 15 minutes this session links, instead of signing in, when it comes back from that provider; the storefront then navigates to /api/account/oauth2/authorization/{provider}. The provider comes back to /cuenta?social=linked, already-linked, cancelled or failed. Requires the CSRF token.
+         */
+        post: operations["requestLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/oauth2/email": {
         parameters: {
             query?: never;
@@ -1364,6 +1404,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How the customer signs in
+         * @description Whether it has a password, and its linked external accounts, Google first, with the email each one was linked with.
+         */
+        get: operations["signInMethods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/products/{id}/images/{imageId}": {
         parameters: {
             query?: never;
@@ -1379,6 +1439,26 @@ export interface paths {
          * @description The other photos close the gap and its files are removed. Requires the CSRF token.
          */
         delete: operations["delete_2"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/identities/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unlink the customer's account of a provider (google or facebook)
+         * @description Refused when it is the last way in: no password and no other provider. Requires the CSRF token.
+         */
+        delete: operations["unlink"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1532,6 +1612,9 @@ export interface components {
             /** Format: int32 */
             position?: number;
             active?: boolean;
+        };
+        CreatePasswordRequest: {
+            password: string;
         };
         SavedAddressRequest: {
             street: string;
@@ -2111,6 +2194,17 @@ export interface components {
         SignInProvidersResponse: {
             providers?: ("GOOGLE" | "FACEBOOK")[];
         };
+        IdentityResponse: {
+            /** @enum {string} */
+            provider?: "GOOGLE" | "FACEBOOK";
+            email?: string;
+            /** Format: date-time */
+            linkedAt?: string;
+        };
+        SignInMethodsResponse: {
+            hasPassword?: boolean;
+            identities?: components["schemas"]["IdentityResponse"][];
+        };
     };
     responses: never;
     parameters: never;
@@ -2564,6 +2658,48 @@ export interface operations {
                 };
             };
             /** @description The order does not name every category exactly once */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    createPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description PASSWORD_ALREADY_SET */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description PASSWORD_TOO_SHORT (under 8 characters) or PASSWORD_TOO_LONG (over 72 bytes) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4381,6 +4517,37 @@ export interface operations {
             };
         };
     };
+    requestLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session waits for the provider's return */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description PROVIDER_NOT_ENABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     giveEmail: {
         parameters: {
             query?: never;
@@ -5688,6 +5855,35 @@ export interface operations {
             };
         };
     };
+    signInMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sign-in methods */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInMethodsResponse"];
+                };
+            };
+            /** @description Not signed in as a customer */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     delete_2: {
         parameters: {
             query?: never;
@@ -5720,6 +5916,46 @@ export interface operations {
             };
             /** @description No such product or photo */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    unlink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unlinked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description IDENTITY_NOT_FOUND: no account of that provider is linked */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description LAST_SIGN_IN_METHOD: create a password or link another provider first */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

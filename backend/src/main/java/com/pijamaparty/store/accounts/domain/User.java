@@ -194,6 +194,25 @@ public final class User {
         updatedAt = now;
     }
 
+    /**
+     * UC-27 (T-E4-15): a signed-in customer without a password creates one from "Mi cuenta". Changing a password stays
+     * with the recovery of UC-19. It does not verify the email.
+     *
+     * @return false, changing nothing, when the customer already has a password
+     */
+    public boolean createPassword(PasswordHash newPasswordHash, Instant now) {
+        Objects.requireNonNull(newPasswordHash, "newPasswordHash");
+        if (role != UserRole.CUSTOMER) {
+            throw new IllegalStateException("only a customer creates its password");
+        }
+        if (passwordHash != null) {
+            return false;
+        }
+        passwordHash = newPasswordHash;
+        updatedAt = now;
+        return true;
+    }
+
     /** Records a wrong password. Returns the end of the lock when this failure locks the account. */
     public Optional<Instant> registerFailedSignIn(Instant now) {
         if (isLockedAt(now)) {

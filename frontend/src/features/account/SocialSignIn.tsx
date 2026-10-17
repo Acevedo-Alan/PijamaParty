@@ -9,7 +9,7 @@ const messages = es.account.social;
 export const SIGN_IN_PROVIDERS_KEY = ['account', 'sign-in-providers'] as const;
 
 /** The providers' brands, as people write them. */
-const PROVIDER_NAMES: Record<SignInProvider, string> = { GOOGLE: 'Google', FACEBOOK: 'Facebook' };
+export const PROVIDER_NAMES: Record<SignInProvider, string> = { GOOGLE: 'Google', FACEBOOK: 'Facebook' };
 
 /** The enabled providers; empty while they load or when none is enabled. */
 export function useSignInProviders(): SignInProvider[] {
