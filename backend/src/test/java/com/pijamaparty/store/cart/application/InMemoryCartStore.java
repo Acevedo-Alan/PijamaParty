@@ -8,10 +8,10 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Fake of {@link LoadCart}, {@link SaveCart} and {@link DeleteIdleCarts}: one cart per owner, as the unique keys of
- * V12. Locks are not modeled.
+ * Fake of {@link LoadCart}, {@link SaveCart}, {@link DeleteCart} and {@link DeleteIdleCarts}: one cart per owner, as
+ * the unique keys of V12. Locks and Row Level Security are not modeled.
  */
-public class InMemoryCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
+public class InMemoryCartStore implements LoadCart, SaveCart, DeleteCart, DeleteIdleCarts {
 
     private final InMemoryStore<CartId, Cart> carts = InMemoryStore.copying(Cart::id, Cart::copy);
 
@@ -31,6 +31,11 @@ public class InMemoryCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
             throw new IllegalStateException("the owner already has another cart");
         }
         carts.save(cart);
+    }
+
+    @Override
+    public synchronized boolean delete(CartId cartId) {
+        return carts.delete(cartId);
     }
 
     @Override

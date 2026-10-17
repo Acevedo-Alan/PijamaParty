@@ -72,17 +72,22 @@ class CartRowLevelSecurityTest {
     }
 
     /**
-     * Who runs the transaction ({@code actor} empty: no security context), the carts it owns and whether it is the
-     * cleanup, which reads and deletes every cart but never touches items directly.
+     * Who runs the transaction ({@code actor} empty: no security context), the carts it owns, those it only reads and
+     * deletes when signing in (T-E4-04) and whether it is the cleanup, which reads and deletes every cart but never
+     * touches items directly.
      */
-    record Caller(String name, Optional<Actor> actor, Set<Owner> owns, boolean cleansUp) {
+    record Caller(String name, Optional<Actor> actor, Set<Owner> owns, Set<Owner> merges, boolean cleansUp) {
 
         <T> T run(RlsPolicyTester rls, Function<JdbcTemplate, T> work) {
             return actor.map(a -> rls.as(a, work)).orElseGet(() -> rls.withoutContext(work));
         }
 
         Set<Owner> reachableCarts() {
-            return cleansUp ? EnumSet.allOf(Owner.class) : owns;
+            return cleansUp ? EnumSet.allOf(Owner.class) : union(owns, merges);
+        }
+
+        Set<Owner> readableItems() {
+            return union(owns, merges);
         }
 
         @Override
@@ -92,18 +97,27 @@ class CartRowLevelSecurityTest {
     }
 
     static Stream<Caller> callers() {
+        Set<Owner> none = EnumSet.noneOf(Owner.class);
         return Stream.of(
-            new Caller("customer A", Optional.of(CUSTOMER_A), EnumSet.of(Owner.CUSTOMER_A), false),
-            new Caller("customer B", Optional.of(CUSTOMER_B), EnumSet.of(Owner.CUSTOMER_B), false),
-            new Caller("guest", Optional.of(GUEST), EnumSet.of(Owner.GUEST), false),
-            new Caller("administrator", Optional.of(ADMIN), EnumSet.noneOf(Owner.class), false),
-            new Caller("system", Optional.of(SYSTEM), EnumSet.noneOf(Owner.class), true),
-            new Caller("no context", Optional.empty(), EnumSet.noneOf(Owner.class), false),
+            new Caller("customer A", Optional.of(CUSTOMER_A), EnumSet.of(Owner.CUSTOMER_A), none, false),
+            new Caller("customer B", Optional.of(CUSTOMER_B), EnumSet.of(Owner.CUSTOMER_B), none, false),
+            new Caller("guest", Optional.of(GUEST), EnumSet.of(Owner.GUEST), none, false),
+            new Caller("administrator", Optional.of(ADMIN), none, none, false),
+            new Caller("system", Optional.of(SYSTEM), none, none, true),
+            new Caller("no context", Optional.empty(), none, none, false),
             new Caller("guest without token", Optional.of(Actor.anonymous(Optional.empty(), Optional.empty())),
-                EnumSet.noneOf(Owner.class), false),
+                none, none, false),
+            // T-E4-04 (V32): signing in, it reads and deletes the guest cart of its token, but never changes it.
             new Caller("customer A holding the guest's token",
                 Optional.of(Actor.customer(CUSTOMER_A_ID, Optional.of(GUEST_CART), Optional.empty())),
-                EnumSet.of(Owner.CUSTOMER_A), false));
+                EnumSet.of(Owner.CUSTOMER_A), EnumSet.of(Owner.GUEST), false));
+    }
+
+    private static Set<Owner> union(Set<Owner> first, Set<Owner> second) {
+        Set<Owner> union = EnumSet.noneOf(Owner.class);
+        union.addAll(first);
+        union.addAll(second);
+        return union;
     }
 
     private final RlsPolicyTester rls;
@@ -140,7 +154,7 @@ class CartRowLevelSecurityTest {
         var visibleItems = caller.run(rls, sql -> sql.queryForList("select cart_id from cart_item", UUID.class));
 
         assertThat(owners(visibleCarts)).as("carts").isEqualTo(caller.reachableCarts());
-        assertThat(owners(visibleItems)).as("items").isEqualTo(caller.owns());
+        assertThat(owners(visibleItems)).as("items").isEqualTo(caller.readableItems());
     }
 
     @ParameterizedTest(name = "{0}")

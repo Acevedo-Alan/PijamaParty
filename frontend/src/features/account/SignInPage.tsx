@@ -51,7 +51,7 @@ export function SignInPage() {
       setPassword('');
       if (answer.status === 'signedIn') {
         queryClient.setQueryData(CUSTOMER_KEY, answer.customer);
-        // Signed in, the header shows the account's cart.
+        // Signed in, the header shows the account's cart, which the guest cart joined (T-E4-04).
         void queryClient.invalidateQueries({ queryKey: CART_KEY });
         void navigate('/', { replace: true });
       }

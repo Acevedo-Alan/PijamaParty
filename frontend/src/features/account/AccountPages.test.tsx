@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
+import { cart, cartItem } from '../../test/cartApi.ts';
 import { answer, NO_CART, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
@@ -134,6 +135,22 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
     });
     expect(await screen.findByText(es.account.greeting('Ana'))).toBeInTheDocument();
     expect(screen.getByRole('button', { name: es.account.signOut })).toBeInTheDocument();
+  });
+
+  it('given a guest cart, when the customer signs in, then the header shows the account cart it joined (T-E4-04)', async () => {
+    let signedIn = false;
+    vi.spyOn(api, 'GET').mockImplementation(withHeader((path) =>
+      Promise.resolve(path === '/api/cart' ? cart([cartItem({ quantity: signedIn ? 3 : 1 })]) : NO_CART)));
+    vi.spyOn(api, 'POST').mockImplementation((() => {
+      signedIn = true;
+      return Promise.resolve(answer(200, ANA));
+    }) as never);
+    renderRoute('/cuenta/ingresar');
+    expect(await screen.findByRole('button', { name: es.cart.open(1) })).toBeInTheDocument();
+
+    await fillSignIn();
+
+    expect(await screen.findByRole('button', { name: es.cart.open(3) })).toBeInTheDocument();
   });
 
   it.each([

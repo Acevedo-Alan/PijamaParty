@@ -21,7 +21,8 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 /**
  * Opens and closes the session of a user whose credentials a use case already checked (RNF-29.1). Signing in
  * changes the session id (no session fixation) and the CSRF token. The session stores only the user id and the
- * role: the principal name is the id, never the email (RNF-27, {@code spring_session.principal_name}).
+ * role: the principal name is the id, never the email (RNF-27, {@code spring_session.principal_name}). Every
+ * {@link SignInListener} runs first, so a failing one leaves the visitor as it was.
  */
 public final class SessionAuthentication {
 
@@ -30,8 +31,10 @@ public final class SessionAuthentication {
     private final SecurityContextHolderStrategy holder = SecurityContextHolder.getContextHolderStrategy();
     private final SecurityContextLogoutHandler logout = new SecurityContextLogoutHandler();
     private final CsrfLogoutHandler forgetCsrfToken;
+    private final List<SignInListener> listeners;
 
-    SessionAuthentication(SecurityContextRepository contexts, CsrfTokenRepository csrfTokens) {
+    SessionAuthentication(SecurityContextRepository contexts, CsrfTokenRepository csrfTokens,
+                          List<SignInListener> listeners) {
         this.contexts = contexts;
         var newCsrfToken = new CsrfAuthenticationStrategy(csrfTokens);
         // The SPA handler writes the new token right away, so the sign-in response already carries it.
@@ -40,11 +43,15 @@ public final class SessionAuthentication {
             new ChangeSessionIdAuthenticationStrategy(), newCsrfToken));
         this.logout.setSecurityContextRepository(contexts);
         this.forgetCsrfToken = new CsrfLogoutHandler(csrfTokens);
+        this.listeners = List.copyOf(listeners);
     }
 
     public void signIn(UserId userId, Role role, HttpServletRequest request, HttpServletResponse response) {
         if (role != Role.ADMIN && role != Role.CUSTOMER) {
             throw new IllegalArgumentException("only users sign in, not " + role);
+        }
+        for (SignInListener listener : listeners) {
+            listener.signingIn(userId, role, request, response);
         }
         var authentication = UsernamePasswordAuthenticationToken.authenticated(userId.toString(), null,
             List.of(new SimpleGrantedAuthority(SessionActorResolver.AUTHORITY_PREFIX + role.name())));

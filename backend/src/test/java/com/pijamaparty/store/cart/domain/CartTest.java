@@ -2,6 +2,7 @@ package com.pijamaparty.store.cart.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
 import com.pijamaparty.store.platform.domain.Actor;
@@ -250,6 +251,95 @@ class CartTest {
         assertThat(CartOwner.of(Actor.anonymous(Optional.empty(), Optional.empty()))).isEmpty();
         assertThat(CartOwner.of(Actor.admin(UserId.of(UUID.randomUUID())))).isEmpty();
         assertThat(CartOwner.of(Actor.system())).isEmpty();
+    }
+
+    // --- UC-19 (T-E4-04): the guest cart joins the customer's at sign-in ---
+
+    private static final CartOwner CUSTOMER = new CartOwner.Customer(UserId.of(UUID.randomUUID()));
+    private static final VariantId BATA = VariantId.of(UUID.randomUUID());
+
+    @Test
+    void givenAVariantInBothCarts_whenMerging_thenTheQuantitiesAddUpOnTheCustomersLineWithItsPrice() {
+        Cart own = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
+        CartItemId ownLine = CartItemId.of(UUID.randomUUID());
+        own.add(ownLine, PIJAMA, 2, 10, PRICE, OPENED);
+        cart.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 3, 10, Money.of(1_400_000), LATER);
+
+        boolean changed = own.merge(cart, Map.of(PIJAMA, new SellableVariant(Money.of(1_400_000), 10)),
+            LATER.plusSeconds(1));
+
+        assertThat(changed).isTrue();
+        assertThat(own.items()).containsExactly(new CartItem(ownLine, PIJAMA, 5, PRICE, OPENED));
+        assertThat(own.updatedAt()).isEqualTo(LATER.plusSeconds(1));
+    }
+
+    @Test
+    void givenAVariantInBothCartsAboveTheStock_whenMerging_thenTheLineIsCappedButNeverLowered() {
+        Cart own = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
+        own.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 2, 10, PRICE, OPENED);
+        own.add(CartItemId.of(UUID.randomUUID()), CAMISON, 4, 10, PRICE, OPENED);
+        cart.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 3, 10, PRICE, LATER);
+        cart.add(CartItemId.of(UUID.randomUUID()), CAMISON, 1, 10, PRICE, LATER);
+
+        own.merge(cart, Map.of(PIJAMA, new SellableVariant(PRICE, 4), CAMISON, new SellableVariant(PRICE, 3)), LATER);
+
+        assertThat(own.items()).extracting(CartItem::variantId, CartItem::quantity)
+            .containsExactly(tuple(PIJAMA, 4), tuple(CAMISON, 4));
+    }
+
+    @Test
+    void givenAVariantOnlyInTheGuestCart_whenMerging_thenItsLineComesCappedAtTheStockInTheOrderItWasAdded() {
+        Cart own = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
+        own.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 1, 10, PRICE, OPENED.plusSeconds(120));
+        CartItemId guestLine = CartItemId.of(UUID.randomUUID());
+        cart.add(guestLine, CAMISON, 5, 10, Money.of(990_000), OPENED.plusSeconds(60));
+
+        own.merge(cart, Map.of(CAMISON, new SellableVariant(PRICE, 3)), LATER);
+
+        assertThat(own.items()).extracting(CartItem::variantId).containsExactly(CAMISON, PIJAMA);
+        assertThat(own.item(guestLine))
+            .contains(new CartItem(guestLine, CAMISON, 3, Money.of(990_000), OPENED.plusSeconds(60)));
+    }
+
+    @Test
+    void givenGuestLinesTheShopNoLongerSellsOrWithoutStock_whenMerging_thenTheyAreLeftOutAndTheCustomersStay() {
+        Cart own = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
+        own.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 2, 10, PRICE, OPENED);
+        CartItem ownLine = own.items().getFirst();
+        cart.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 1, 10, PRICE, LATER);
+        cart.add(CartItemId.of(UUID.randomUUID()), CAMISON, 1, 10, PRICE, LATER);
+        cart.add(CartItemId.of(UUID.randomUUID()), BATA, 1, 10, PRICE, LATER);
+
+        boolean changed = own.merge(cart, Map.of(PIJAMA, new SellableVariant(PRICE, 0)), LATER);
+
+        assertThat(changed).isFalse();
+        assertThat(own.items()).containsExactly(ownLine);
+        assertThat(own.updatedAt()).isEqualTo(OPENED);
+    }
+
+    @Test
+    void givenCoupons_whenMerging_thenTheCustomersStaysAndTheGuestsIsTakenOnlyWhenItHasNone() {
+        CouponId guestCoupon = CouponId.of(UUID.randomUUID());
+        CouponId ownCoupon = CouponId.of(UUID.randomUUID());
+        cart.applyCoupon(guestCoupon, OPENED);
+        Cart withCoupon = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
+        withCoupon.applyCoupon(ownCoupon, OPENED);
+        Cart withoutCoupon = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
+
+        assertThat(withCoupon.merge(cart, Map.of(), LATER)).isFalse();
+        assertThat(withoutCoupon.merge(cart, Map.of(), LATER)).isTrue();
+
+        assertThat(withCoupon.coupon()).contains(ownCoupon);
+        assertThat(withoutCoupon.coupon()).contains(guestCoupon);
+    }
+
+    @Test
+    void givenCartsOfTheWrongOwners_whenMerging_thenItFails() {
+        Cart own = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
+        Cart otherGuest = Cart.open(CartId.of(UUID.randomUUID()), GUEST, OPENED);
+
+        assertThatThrownBy(() -> cart.merge(otherGuest, Map.of(), LATER)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> own.merge(own.copy(), Map.of(), LATER)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

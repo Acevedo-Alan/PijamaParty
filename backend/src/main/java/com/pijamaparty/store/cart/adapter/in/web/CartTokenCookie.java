@@ -55,4 +55,16 @@ final class CartTokenCookie implements ActorResolver {
             .build()
             .toString();
     }
+
+    /** {@code Set-Cookie} value that makes the browser drop the token: its cart joined the customer's (T-E4-04). */
+    static String expiredCookie() {
+        return ResponseCookie.from(NAME, "")
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("Lax")
+            .path("/")
+            .maxAge(0)
+            .build()
+            .toString();
+    }
 }

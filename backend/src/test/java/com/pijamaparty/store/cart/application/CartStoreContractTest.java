@@ -8,22 +8,26 @@ import com.pijamaparty.store.cart.domain.CartItem;
 import com.pijamaparty.store.cart.domain.CartItemId;
 import com.pijamaparty.store.cart.domain.CartOwner;
 import com.pijamaparty.store.cart.domain.CouponId;
+import com.pijamaparty.store.cart.domain.SellableVariant;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
 import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.testing.ContractTest;
 import com.pijamaparty.store.platform.testing.RlsPolicyTester;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Contract of {@link LoadCart}, {@link SaveCart} and {@link DeleteIdleCarts} over the same storage. Owners are the
- * customer and the guests below, so a real adapter can act as each of them (Row Level Security, RNF-27); it deletes
- * as the system, like the daily cleanup.
+ * Contract of {@link LoadCart}, {@link SaveCart}, {@link DeleteCart} and {@link DeleteIdleCarts} over the same storage.
+ * Owners are the customer and the guests below, so a real adapter can act as each of them (Row Level Security,
+ * RNF-27); it deletes idle carts as the system, like the daily cleanup, and a cart as the customer signing in with
+ * {@link #GUEST_TOKEN}, like the merge of UC-19.
  */
-public abstract class CartStoreContractTest<T extends LoadCart & SaveCart & DeleteIdleCarts> extends ContractTest<T> {
+public abstract class CartStoreContractTest<T extends LoadCart & SaveCart & DeleteCart & DeleteIdleCarts>
+    extends ContractTest<T> {
 
     public static final CartToken GUEST_TOKEN = RlsPolicyTester.GUEST_CART;
     public static final CartToken OTHER_GUEST_TOKEN = new CartToken("another-guest-cart-token");
@@ -180,6 +184,53 @@ public abstract class CartStoreContractTest<T extends LoadCart & SaveCart & Dele
         persistAndForget();
 
         assertSameState(subject.findByOwner(GUEST), fresh);
+    }
+
+    @Test
+    void givenTheGuestCartWithItems_whenDeleted_thenItGoesWithItsItemsAndTheOtherCartsStay() {
+        Cart guestCart = Cart.open(CartId.of(UUID.randomUUID()), GUEST, OPENED);
+        guestCart.add(CartItemId.of(UUID.randomUUID()), VariantId.of(UUID.randomUUID()), 2, 5, PRICE, OPENED);
+        Cart customerCart = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
+        customerCart.add(CartItemId.of(UUID.randomUUID()), VariantId.of(UUID.randomUUID()), 1, 5, PRICE, OPENED);
+        subject.save(guestCart);
+        subject.save(customerCart);
+        persistAndForget();
+
+        assertThat(subject.delete(guestCart.id())).isTrue();
+        persistAndForget();
+
+        assertThat(subject.findByOwner(GUEST)).isEmpty();
+        assertSameState(subject.findByOwner(CUSTOMER), customerCart);
+    }
+
+    @Test
+    void givenADeletedGuestCart_whenItsLinesAreSavedInTheCustomersCart_thenTheyKeepTheirIds() {
+        CartItemId line = CartItemId.of(UUID.randomUUID());
+        Cart guestCart = Cart.open(CartId.of(UUID.randomUUID()), GUEST, OPENED);
+        guestCart.add(line, VariantId.of(UUID.randomUUID()), 2, 5, PRICE, OPENED);
+        subject.save(guestCart);
+        persistAndForget();
+
+        assertThat(subject.delete(guestCart.id())).isTrue();
+        Cart customerCart = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
+        customerCart.merge(guestCart, Map.of(guestCart.items().getFirst().variantId(),
+            new SellableVariant(PRICE, 5)), OPENED.plusSeconds(60));
+        subject.save(customerCart);
+        persistAndForget();
+
+        assertSameState(subject.findByOwner(CUSTOMER), customerCart);
+        assertThat(subject.findByOwner(CUSTOMER).orElseThrow().item(line)).isPresent();
+    }
+
+    @Test
+    void givenNoCart_whenDeletingOne_thenNothingHappens() {
+        subject.save(Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED));
+        persistAndForget();
+
+        assertThat(subject.delete(CartId.of(UUID.randomUUID()))).isFalse();
+        persistAndForget();
+
+        assertThat(subject.findByOwner(CUSTOMER)).isPresent();
     }
 
     private static void assertSameState(Optional<Cart> loaded, Cart expected) {

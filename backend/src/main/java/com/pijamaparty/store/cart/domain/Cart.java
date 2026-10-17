@@ -3,6 +3,7 @@ package com.pijamaparty.store.cart.domain;
 import com.pijamaparty.store.platform.domain.Money;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -141,6 +142,54 @@ public final class Cart {
             }
         }
         if (changed) {
+            updatedAt = at;
+        }
+        return changed;
+    }
+
+    /**
+     * UC-19 (T-E4-04): the guest's cart joins this customer's cart at sign-in. A variant in both adds the quantities,
+     * capped at {@code available}, and keeps this cart's line and last seen price; a line already above the stock is
+     * never lowered. A variant only in the guest's comes with its line (id, last seen price and when it was added),
+     * capped at {@code available}. A guest line of a variant the shop no longer sells, or with nothing available, is
+     * left out. This cart keeps its coupon; it takes the guest's only when it has none. Lines stay in the order they
+     * were added. Returns whether this cart changed.
+     *
+     * @param sellable what the shop sells now of the guest's variants
+     */
+    public boolean merge(Cart guest, Map<VariantId, SellableVariant> sellable, Instant at) {
+        if (!(owner instanceof CartOwner.Customer) || !(guest.owner instanceof CartOwner.Guest)) {
+            throw new IllegalArgumentException("a guest's cart joins a customer's");
+        }
+        boolean changed = false;
+        for (CartItem line : guest.items) {
+            SellableVariant variant = sellable.get(line.variantId());
+            if (variant == null || variant.available() == 0) {
+                continue;
+            }
+            Optional<CartItem> own = itemOf(line.variantId());
+            if (own.isPresent()) {
+                long sum = (long) own.get().quantity() + line.quantity();
+                int merged = (int) Math.max(own.get().quantity(), Math.min(sum, variant.available()));
+                if (merged != own.get().quantity()) {
+                    items.set(items.indexOf(own.get()), own.get().withQuantity(merged));
+                    changed = true;
+                }
+            } else {
+                if (item(line.id()).isPresent()) {
+                    throw new IllegalArgumentException("each line has its own id");
+                }
+                items.add(new CartItem(line.id(), line.variantId(), Math.min(line.quantity(), variant.available()),
+                    line.lastSeenPrice(), line.createdAt()));
+                changed = true;
+            }
+        }
+        if (coupon.isEmpty() && guest.coupon.isPresent()) {
+            coupon = guest.coupon;
+            changed = true;
+        }
+        if (changed) {
+            items.sort(Comparator.comparing(CartItem::createdAt));
             updatedAt = at;
         }
         return changed;

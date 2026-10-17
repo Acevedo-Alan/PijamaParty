@@ -1,5 +1,6 @@
 package com.pijamaparty.store.cart.adapter.out.persistence;
 
+import com.pijamaparty.store.cart.application.DeleteCart;
 import com.pijamaparty.store.cart.application.DeleteIdleCarts;
 import com.pijamaparty.store.cart.application.LoadCart;
 import com.pijamaparty.store.cart.application.SaveCart;
@@ -32,7 +33,7 @@ import org.springframework.stereotype.Repository;
  * {@code WHERE} says which cart that is.
  */
 @Repository
-class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
+class JdbcCartStore implements LoadCart, SaveCart, DeleteCart, DeleteIdleCarts {
 
     // One of :tokenHash and :userId is null, and a comparison with null matches nothing.
     private static final String SELECT_CART = """
@@ -69,6 +70,13 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
         VALUES (:id, :cartId, :variantId, :quantity, :lastSeenPriceCents, :createdAt)
         ON CONFLICT (id) DO UPDATE
         SET quantity = excluded.quantity, last_seen_price_cents = excluded.last_seen_price_cents
+        """;
+
+    // T-E4-04: the customer signing in reaches the guest cart of its cart token (V32); the foreign key of cart_item
+    // deletes its items.
+    private static final String DELETE_CART = """
+        DELETE FROM cart
+        WHERE id = :id
         """;
 
     // T-E2-04: only SYSTEM reaches every cart (RNF-27). cart_updated_at_idx finds them, and the foreign key of
@@ -113,6 +121,11 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteIdleCarts {
                 .addValue("createdAt", item.createdAt().atOffset(ZoneOffset.UTC)))
             .toArray(SqlParameterSource[]::new);
         jdbc.batchUpdate(UPSERT_ITEM, rows);
+    }
+
+    @Override
+    public boolean delete(CartId cartId) {
+        return jdbc.update(DELETE_CART, new MapSqlParameterSource("id", cartId.value())) == 1;
     }
 
     @Override

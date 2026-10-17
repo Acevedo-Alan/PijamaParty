@@ -3,6 +3,7 @@ package com.pijamaparty.store.platform.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pijamaparty.store.platform.web.ratelimit.RateLimitKeyResolver;
 import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -70,8 +71,9 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    SessionAuthentication sessionAuthentication(SecurityContextRepository contexts, CsrfTokenRepository csrfTokens) {
-        return new SessionAuthentication(contexts, csrfTokens);
+    SessionAuthentication sessionAuthentication(SecurityContextRepository contexts, CsrfTokenRepository csrfTokens,
+                                                ObjectProvider<SignInListener> listeners) {
+        return new SessionAuthentication(contexts, csrfTokens, listeners.orderedStream().toList());
     }
 
     @Bean
