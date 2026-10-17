@@ -110,7 +110,8 @@ class CheckoutController {
             + "tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the "
             + "buyer to; null when the provider could not be reached, and then the client opens the tracking page. "
             + "The same Idempotency-Key repeated with the same content gets the same order, with a new "
-            + "trackingToken, and nothing is placed or reserved again. Requires the CSRF token.")
+            + "trackingToken, and nothing is placed or reserved again. A signed-in customer's phone becomes its "
+            + "account's, and with saveAddress the address joins its address book (UC-21). Requires the CSRF token.")
     @ApiResponse(responseCode = "201", description = "The order, awaiting payment",
         content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlacedResponse.class)))
     @ApiResponse(responseCode = "400", description = "Missing or invalid Idempotency-Key, or a body that is not of "
@@ -138,7 +139,7 @@ class CheckoutController {
         // UC-14: the new order belongs to a tracking token the buyer gets back; staff buy nothing.
         Actor actor = TrackingActors.withTrackingToken(CurrentActor.get().orElseThrow(), trackingToken);
         var command = new PlaceOrder.Command(actor, UUID.fromString(idempotencyKey), body.toForm(),
-            body.address().province(), body.paymentProvider(), body.acceptedTerms());
+            body.address().province(), body.paymentProvider(), body.acceptedTerms(), body.savesAddress());
         // The RLS context is set when the use case's transaction begins, so it must already carry the new token.
         return switch (CurrentActor.callAs(actor, () -> placeOrder.execute(command))) {
             case PlaceOrder.Result.Placed placed -> ResponseEntity.status(HttpStatus.CREATED)
@@ -256,9 +257,17 @@ class CheckoutController {
     /** In the order to show them, MERCADOPAGO first (T-E3b-04). */
     record PaymentProvidersResponse(List<PaymentProvider> providers) {}
 
-    /** {@code paymentProvider}: MERCADOPAGO, or MODO while it is switched on (T-E3b-02). */
+    /**
+     * {@code paymentProvider}: MERCADOPAGO, or MODO while it is switched on (T-E3b-02). {@code saveAddress}: a
+     * signed-in customer adds the address to its address book (UC-21); false when absent, ignored for a guest.
+     */
     record PlaceOrderRequest(@NotNull @Valid BuyerRequest buyer, @NotNull @Valid AddressRequest address,
-                             @NotNull PaymentProvider paymentProvider, @NotNull Boolean acceptedTerms) {
+                             @NotNull PaymentProvider paymentProvider, @NotNull Boolean acceptedTerms,
+                             Boolean saveAddress) {
+
+        boolean savesAddress() {
+            return Boolean.TRUE.equals(saveAddress);
+        }
 
         CheckoutForm toForm() {
             return new CheckoutForm(buyer.name(), buyer.email(), buyer.phone(), buyer.nationalId(), address.street(),

@@ -26,7 +26,7 @@ class GetCurrentCustomerServiceTest {
         users.save(customer);
 
         assertThat(service.execute(Actor.customer(customer.id(), Optional.empty(), Optional.empty())))
-            .isEqualTo(new Result.Found(new CustomerView(customer.id(), "ana@example.com", "Ana")));
+            .isEqualTo(new Result.Found(new CustomerView(customer.id(), "ana@example.com", "Ana", Optional.empty())));
     }
 
     @Test

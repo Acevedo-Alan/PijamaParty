@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,7 @@ class SignInCustomerServiceTest {
 
         Result result = signInAt(NOW, " ANA@example.com ", PASSWORD);
 
-        assertThat(result).isEqualTo(new Result.SignedIn(new CustomerView(customer.id(), "ana@example.com", "Ana")));
+        assertThat(result).isEqualTo(new Result.SignedIn(new CustomerView(customer.id(), "ana@example.com", "Ana", Optional.empty())));
         assertThat(users.findById(customer.id()).orElseThrow().failedSignInAttempts()).isZero();
         assertThat(events.published()).isEmpty();
     }

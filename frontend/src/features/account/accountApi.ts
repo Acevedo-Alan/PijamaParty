@@ -6,6 +6,8 @@ export interface Customer {
   id: string;
   email: string;
   name: string;
+  /** Left by its last purchase, for the next checkout (UC-21); null until then. */
+  phone: string | null;
 }
 
 /** POST /api/account/register (UC-19, T-E4-02): the account waits for its email to be verified. */
@@ -43,11 +45,13 @@ function failed(action: string, response: Response): Error {
   return new Error(`${action} failed with status ${String(response.status)}`);
 }
 
-function toCustomer(data: { id?: string; email?: string; name?: string } | undefined): Customer | null {
+function toCustomer(
+  data: { id?: string; email?: string; name?: string; phone?: string | null } | undefined,
+): Customer | null {
   if (data?.id === undefined || data.email === undefined || data.name === undefined) {
     return null;
   }
-  return { id: data.id, email: data.email, name: data.name };
+  return { id: data.id, email: data.email, name: data.name, phone: data.phone ?? null };
 }
 
 const REGISTRATION_PROBLEMS: Record<string, RegisterAnswer> = {

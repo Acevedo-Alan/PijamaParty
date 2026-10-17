@@ -50,10 +50,11 @@ class PlaceOrderServiceTest {
     private final InMemoryShippingQuotes shipping = new InMemoryShippingQuotes();
     private final InMemoryReserveOrderStock stock = new InMemoryReserveOrderStock();
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
+    private final InMemoryRememberCheckoutDetails checkoutDetails = new InMemoryRememberCheckoutDetails();
     private final UUID orderId = UUID.randomUUID();
     private final PlaceOrderService placeOrder = new PlaceOrderService(carts, shipping, stock, orders, orders, carts,
         new InMemoryCurrentTerms("2026-10"), new InMemoryEnabledPaymentProviders(Set.of(PaymentProvider.MERCADOPAGO)),
-        () -> orderId, Clock.fixed(NOW, ZoneOffset.UTC));
+        checkoutDetails, () -> orderId, Clock.fixed(NOW, ZoneOffset.UTC));
 
     /** 2 pijamas at ARS 20,000 and 1 camisón at ARS 10,000, 5 of each in stock; shipping to Santa Fe ARS 3,000. */
     @BeforeEach
@@ -99,7 +100,7 @@ class PlaceOrderServiceTest {
     @Test
     void givenMODOSwitchedOff_whenTheBuyerChoosesIt_thenItIsRefusedAndNothingHappens() {
         var command = new PlaceOrder.Command(GUEST, UUID.randomUUID(), FORM, Province.SANTA_FE, PaymentProvider.MODO,
-            true);
+            true, false);
 
         assertThat(placeOrder.execute(command))
             .isEqualTo(new PlaceOrder.Result.PaymentProviderNotEnabled(PaymentProvider.MODO));
@@ -111,10 +112,10 @@ class PlaceOrderServiceTest {
         var withModo = new PlaceOrderService(carts, shipping, stock, orders, orders, carts,
             new InMemoryCurrentTerms("2026-10"),
             new InMemoryEnabledPaymentProviders(Set.of(PaymentProvider.MERCADOPAGO, PaymentProvider.MODO)),
-            () -> orderId, Clock.fixed(NOW, ZoneOffset.UTC));
+            checkoutDetails, () -> orderId, Clock.fixed(NOW, ZoneOffset.UTC));
 
         var result = withModo.execute(new PlaceOrder.Command(GUEST, UUID.randomUUID(), FORM, Province.SANTA_FE,
-            PaymentProvider.MODO, true));
+            PaymentProvider.MODO, true, false));
 
         assertThat(result).isInstanceOf(PlaceOrder.Result.Placed.class);
         assertThat(orders.placed(OrderId.of(orderId)).orElseThrow().paymentProvider())
@@ -153,6 +154,54 @@ class PlaceOrderServiceTest {
         placeOrder.execute(command(customer, FORM, true));
 
         assertThat(orders.placed(OrderId.of(orderId)).orElseThrow().userId()).contains(user);
+    }
+
+    @Test
+    void givenACustomer_whenTheyConfirmWithoutSavingTheAddress_thenOnlyTheNormalizedPhoneIsLeftOnTheAccount() {
+        UserId user = UserId.of(UUID.randomUUID());
+        Actor customer = Actor.customer(user, Optional.empty(), Optional.of(TRACKING));
+        carts.put(customer, ready(Money.zero(), Optional.empty()));
+        checkoutDetails.customer(user);
+
+        placeOrder.execute(command(customer, FORM, true));
+
+        assertThat(checkoutDetails.phoneOf(user)).contains("3425551234");
+        assertThat(checkoutDetails.addressesOf(user)).isEmpty();
+    }
+
+    @Test
+    void givenACustomer_whenTheyConfirmSavingTheAddress_thenTheOrdersAddressJoinsTheirBook() {
+        UserId user = UserId.of(UUID.randomUUID());
+        Actor customer = Actor.customer(user, Optional.empty(), Optional.of(TRACKING));
+        carts.put(customer, ready(Money.zero(), Optional.empty()));
+        checkoutDetails.customer(user);
+
+        placeOrder.execute(command(customer, FORM, true, true));
+
+        assertThat(checkoutDetails.addressesOf(user)).containsExactly(new RememberCheckoutDetails.AddressToSave(
+            new ShippingAddress("San Martín", "1234", Optional.of("3"), Optional.empty(), "Santa Fe", "S3000ABC"),
+            Province.SANTA_FE));
+    }
+
+    @Test
+    void givenAGuestThatAsksToSaveTheAddress_whenTheyConfirm_thenNoAccountIsTouched() {
+        placeOrder.execute(command(GUEST, FORM, true, true));
+
+        assertThat(orders.placedCount()).isEqualTo(1);
+        assertThat(checkoutDetails.calls()).isZero();
+    }
+
+    @Test
+    void givenACustomerWhoseOrderIsRefused_whenTheyConfirm_thenNothingIsLeftOnTheAccount() {
+        UserId user = UserId.of(UUID.randomUUID());
+        Actor customer = Actor.customer(user, Optional.empty(), Optional.of(TRACKING));
+        carts.put(customer, ready(Money.zero(), Optional.empty()));
+        checkoutDetails.customer(user);
+        stock.stock(CAMISON, 0);
+
+        placeOrder.execute(command(customer, FORM, true, true));
+
+        assertThat(checkoutDetails.calls()).isZero();
     }
 
     @Test
@@ -201,7 +250,7 @@ class PlaceOrderServiceTest {
     @Test
     void givenAProvinceWithoutShipping_whenConfirming_thenThereIsNoShippingAndNothingHappens() {
         assertThat(placeOrder.execute(new PlaceOrder.Command(GUEST, UUID.randomUUID(), FORM, Province.JUJUY,
-            PaymentProvider.MERCADOPAGO, true))).isEqualTo(new PlaceOrder.Result.NoShipping(Province.JUJUY));
+            PaymentProvider.MERCADOPAGO, true, false))).isEqualTo(new PlaceOrder.Result.NoShipping(Province.JUJUY));
         assertNothingHappened();
     }
 
@@ -237,7 +286,12 @@ class PlaceOrderServiceTest {
     }
 
     private static PlaceOrder.Command command(Actor actor, CheckoutForm form, boolean acceptedTerms) {
+        return command(actor, form, acceptedTerms, false);
+    }
+
+    private static PlaceOrder.Command command(Actor actor, CheckoutForm form, boolean acceptedTerms,
+                                              boolean saveAddress) {
         return new PlaceOrder.Command(actor, UUID.randomUUID(), form, Province.SANTA_FE, PaymentProvider.MERCADOPAGO,
-            acceptedTerms);
+            acceptedTerms, saveAddress);
     }
 }

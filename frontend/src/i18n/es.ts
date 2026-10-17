@@ -157,6 +157,10 @@ export const es = {
     cartNotReady: 'Algunos productos de tu carrito no se pueden comprar así: no hay stock suficiente o cambió su precio.',
     reviewCart: 'Revisar carrito',
     shippingTitle: 'Datos de envío',
+    /** UC-21: the saved addresses of a signed-in customer, and the choice of a new one. */
+    savedAddresses: 'Dirección de envío',
+    otherAddress: 'Otra dirección',
+    saveAddress: 'Guardar en mis direcciones',
     fields: {
       name: 'Nombre y apellido',
       email: 'Email',

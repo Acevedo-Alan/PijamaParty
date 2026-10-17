@@ -14,7 +14,8 @@ import java.util.UUID;
 
 /**
  * UC-13, UC-14: the buyer confirms the checkout. The cart becomes an order awaiting payment, with its stock reserved
- * for 30 minutes (UC-16), all in one transaction as the buyer (RNF-27). The amounts are the server's (R-02). The same
+ * for 30 minutes (UC-16), all in one transaction as the buyer (RNF-27). A customer's order also leaves its phone, and
+ * its address if asked, on the account (UC-21). The amounts are the server's (R-02). The same
  * {@code Idempotency-Key} repeated with the same content gets the first order again, and nothing is repeated (T-E3-14,
  * RNF-20.2).
  */
@@ -25,9 +26,10 @@ public interface PlaceOrder {
     /**
      * @param actor          a guest or a customer bound to the new order's tracking token; any other actor has no cart
      * @param idempotencyKey the request's {@code Idempotency-Key}: a repetition gets the first order (T-E3-14)
+     * @param saveAddress    a customer adds the order's address to its address book (UC-21); ignored for a guest
      */
     record Command(Actor actor, UUID idempotencyKey, CheckoutForm form, Province province,
-                   PaymentProvider paymentProvider, boolean acceptedTerms) {
+                   PaymentProvider paymentProvider, boolean acceptedTerms, boolean saveAddress) {
 
         public Command {
             Objects.requireNonNull(actor, "actor");

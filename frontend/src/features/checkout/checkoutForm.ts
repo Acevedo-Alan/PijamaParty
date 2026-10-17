@@ -1,4 +1,6 @@
 import type { components } from '../../api/schema.d.ts';
+import type { Customer } from '../account/accountApi.ts';
+import type { SavedAddress } from '../account/addressBookApi.ts';
 
 type PlaceOrderRequest = components['schemas']['PlaceOrderRequest'];
 export type Province = PlaceOrderRequest['address']['province'];
@@ -82,6 +84,47 @@ export const FORM_FIELDS: readonly FormField[] = [
   'postalCode',
 ];
 
+/** The fields of the address, which a saved address fills (UC-21). */
+export const ADDRESS_FIELDS: readonly FormField[] = [
+  'street',
+  'number',
+  'floor',
+  'apartment',
+  'city',
+  'province',
+  'postalCode',
+];
+
+/** UC-21: the customer's name, email and phone, only into the fields still empty. */
+export function withContactOf(form: ShippingForm, customer: Customer): ShippingForm {
+  return {
+    ...form,
+    name: form.name === '' ? customer.name : form.name,
+    email: form.email === '' ? customer.email : form.email,
+    phone: form.phone === '' ? (customer.phone ?? '') : form.phone,
+  };
+}
+
+/** UC-21: a saved address fills every field of the address. */
+export function withAddress(form: ShippingForm, address: SavedAddress): ShippingForm {
+  return {
+    ...form,
+    street: address.street,
+    number: address.number,
+    floor: address.floor ?? '',
+    apartment: address.apartment ?? '',
+    city: address.city,
+    province: address.province,
+    postalCode: address.postalCode,
+  };
+}
+
+/** UC-21: "Otra dirección" starts from empty address fields. */
+export function withoutAddress(form: ShippingForm): ShippingForm {
+  const { street, number, floor, apartment, city, province, postalCode } = EMPTY_FORM;
+  return { ...form, street, number, floor, apartment, city, province, postalCode };
+}
+
 // The rules of UC-13, as ordering.domain.CheckoutForm applies them.
 const EMAIL = /^[\x21-\x3F\x41-\x7E]+@[\x21-\x3F\x41-\x7E]+$/;
 const PHONE_SEPARATORS = /[\s+\-()]/g;
@@ -132,12 +175,16 @@ export function toFormFields(names: readonly unknown[]): FormField[] {
 
 export type PaymentProvider = PlaceOrderRequest['paymentProvider'];
 
-/** The body of POST /api/checkout; optional floor and apartment are left out when blank. */
+/**
+ * The body of POST /api/checkout; optional floor and apartment are left out when blank, and saveAddress (UC-21) when
+ * false.
+ */
 export function toPlaceOrderRequest(
   form: ShippingForm,
   province: Province,
   paymentProvider: PaymentProvider,
   acceptedTerms: boolean,
+  saveAddress: boolean,
 ): PlaceOrderRequest {
   const { name, email, phone, nationalId, street, number, floor, apartment, city, postalCode } = form;
   return {
@@ -153,5 +200,6 @@ export function toPlaceOrderRequest(
     },
     paymentProvider,
     acceptedTerms,
+    ...(saveAddress ? { saveAddress } : {}),
   };
 }

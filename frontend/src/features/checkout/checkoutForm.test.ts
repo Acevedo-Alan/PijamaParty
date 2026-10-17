@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_FORM, invalidFields, toFormFields, toPlaceOrderRequest, type ShippingForm } from './checkoutForm.ts';
+import {
+  EMPTY_FORM,
+  invalidFields,
+  toFormFields,
+  toPlaceOrderRequest,
+  withAddress,
+  withContactOf,
+  withoutAddress,
+  type ShippingForm,
+} from './checkoutForm.ts';
 
 const VALID: ShippingForm = {
   name: 'Ana Pérez',
@@ -88,7 +97,7 @@ describe('checkout form rules (UC-13)', () => {
 
 describe('checkout request (UC-14)', () => {
   it('given a form without floor or apartment, when sent, then it goes as typed and without them', () => {
-    expect(toPlaceOrderRequest({ ...VALID, floor: '  ' }, 'SANTA_FE', 'MERCADOPAGO', true)).toEqual({
+    expect(toPlaceOrderRequest({ ...VALID, floor: '  ' }, 'SANTA_FE', 'MERCADOPAGO', true, false)).toEqual({
       buyer: { name: 'Ana Pérez', email: 'ana@example.com', phone: '+54 (342) 456-7890', nationalId: '30.123.456' },
       address: { street: 'San Martín', number: '1234', city: 'Santa Fe', province: 'SANTA_FE', postalCode: 's3000abc' },
       paymentProvider: 'MERCADOPAGO',
@@ -97,8 +106,60 @@ describe('checkout request (UC-14)', () => {
   });
 
   it('given a floor and an apartment, when sent, then both go', () => {
-    const request = toPlaceOrderRequest({ ...VALID, floor: '2', apartment: 'B' }, 'SANTA_FE', 'MERCADOPAGO', true);
+    const request = toPlaceOrderRequest({ ...VALID, floor: '2', apartment: 'B' }, 'SANTA_FE', 'MERCADOPAGO', true, false);
 
     expect(request.address).toEqual(expect.objectContaining({ floor: '2', apartment: 'B' }));
+  });
+});
+
+describe('prefilled checkout (UC-21)', () => {
+  const customer = { id: 'ana', email: 'ana@example.com', name: 'Ana Pérez', phone: '3424567890' };
+  const address = {
+    id: 'home',
+    street: 'Rivadavia',
+    number: '550',
+    floor: null,
+    apartment: 'B',
+    city: 'Rosario',
+    province: 'SANTA_FE' as const,
+    postalCode: 'S2000ABC',
+    primary: true,
+  };
+
+  it('given fields already typed, when the customer prefills them, then only the empty ones take its data', () => {
+    expect(withContactOf({ ...EMPTY_FORM, email: 'otra@example.com' }, customer)).toEqual({
+      ...EMPTY_FORM,
+      name: 'Ana Pérez',
+      email: 'otra@example.com',
+      phone: '3424567890',
+    });
+    expect(withContactOf(EMPTY_FORM, { ...customer, phone: null }).phone).toBe('');
+  });
+
+  it('given a saved address, when chosen and then left for another, then it fills the address and empties it again', () => {
+    const chosen = withAddress(VALID, address);
+
+    expect(chosen).toEqual({
+      ...VALID,
+      street: 'Rivadavia',
+      number: '550',
+      floor: '',
+      apartment: 'B',
+      city: 'Rosario',
+      postalCode: 'S2000ABC',
+    });
+    expect(withoutAddress(chosen)).toEqual({
+      ...EMPTY_FORM,
+      name: VALID.name,
+      email: VALID.email,
+      phone: VALID.phone,
+      nationalId: VALID.nationalId,
+    });
+  });
+
+  it('given the address to save, when sent, then the request asks for it', () => {
+    expect(toPlaceOrderRequest(VALID, 'SANTA_FE', 'MERCADOPAGO', true, true)).toEqual(
+      expect.objectContaining({ saveAddress: true }),
+    );
   });
 });

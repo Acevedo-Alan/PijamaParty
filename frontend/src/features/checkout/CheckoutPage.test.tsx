@@ -479,3 +479,182 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     expect(await screen.findByRole('button', { name: es.cart.startCheckout })).toBeDisabled();
   });
 });
+
+const ANA = { id: '00000000-0000-0000-0000-000000000001', email: 'ana@example.com', name: 'Ana Pérez', phone: '3424567890' };
+
+function savedAddress(id: number, street: string, primary: boolean) {
+  return {
+    id: `00000000-0000-0000-0000-0000000001${String(id).padStart(2, '0')}`,
+    street,
+    number: '1234',
+    floor: '3',
+    apartment: null,
+    city: 'Santa Fe',
+    province: 'SANTA_FE',
+    postalCode: 'S3000ABC',
+    primary,
+  };
+}
+
+/** GET answers for a signed-in customer with this address book; the rest as stubGets. */
+function stubCustomerGets(addresses: unknown[], customer: unknown = ANA) {
+  return vi.spyOn(api, 'GET').mockImplementation(
+    withHeader(
+      (path: string, options?: { params?: { query?: { province?: string } } }) => {
+        if (path === '/api/account/addresses') {
+          return Promise.resolve(answer(200, addresses));
+        }
+        if (path === '/api/checkout/shipping-cost') {
+          return Promise.resolve(SHIPPING[options?.params?.query?.province ?? '']);
+        }
+        if (path === '/api/checkout/payment-providers') {
+          return Promise.resolve(MODO_OFF);
+        }
+        return Promise.resolve(path === '/api/cart' ? cart([cartItem()]) : NO_CART);
+      },
+      answer(200, customer),
+    ),
+  );
+}
+
+const addressChoice = (name: string | RegExp) => screen.getByRole('radio', { name });
+
+/** Goes from step 1 as it is to the confirmation, accepting the terms. */
+async function confirmFromShipping() {
+  await waitFor(() => {
+    expect(totalOfSummary()).toHaveTextContent(/^\$\s29\.500$/);
+  });
+  await userEvent.click(next());
+  await userEvent.click(await screen.findByRole('button', { name: es.checkout.toReview }));
+  await screen.findByRole('heading', { name: es.checkout.reviewTitle });
+  await acceptAndConfirm();
+}
+
+describe('checkout with prefilled data (UC-21, T-E4-06)', { timeout: 30_000 }, () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('given a customer with a primary address, when it opens the checkout, then that address is selected and its data prefilled', async () => {
+    stubCustomerGets([savedAddress(1, 'Rivadavia', false), savedAddress(2, 'San Martín', true)]);
+    renderRoute('/checkout');
+
+    await waitFor(() => {
+      expect(addressChoice(/^San Martín 1234, piso 3/)).toBeChecked();
+    });
+    expect(addressChoice(/^Rivadavia 1234/)).not.toBeChecked();
+    expect(addressChoice(es.checkout.otherAddress)).not.toBeChecked();
+    expect(field(es.checkout.fields.name)).toHaveValue('Ana Pérez');
+    expect(field(es.checkout.fields.email)).toHaveValue('ana@example.com');
+    expect(field(es.checkout.fields.phone)).toHaveValue('3424567890');
+    expect(field(es.checkout.fields.nationalId)).toHaveValue('');
+    expect(screen.queryByLabelText(es.checkout.fields.street)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(es.checkout.saveAddress)).not.toBeInTheDocument();
+  });
+
+  it('given a saved address chosen, when the customer confirms, then the order carries that address and saves nothing', async () => {
+    stubCustomerGets([savedAddress(1, 'San Martín', true)]);
+    const post = stubPost(placed(PAYMENT_URL));
+    renderRoute('/checkout');
+    await waitFor(() => {
+      expect(addressChoice(/^San Martín 1234/)).toBeChecked();
+    });
+    await userEvent.type(field(es.checkout.fields.nationalId), '30123456');
+
+    await confirmFromShipping();
+
+    await waitFor(() => {
+      expect(post).toHaveBeenCalledWith('/api/checkout', {
+        params: { header: { 'Idempotency-Key': expect.stringMatching(UUID) as unknown } },
+        body: {
+          buyer: { name: 'Ana Pérez', email: 'ana@example.com', phone: '3424567890', nationalId: '30123456' },
+          address: {
+            street: 'San Martín',
+            number: '1234',
+            floor: '3',
+            city: 'Santa Fe',
+            province: 'SANTA_FE',
+            postalCode: 'S3000ABC',
+          },
+          paymentProvider: 'MERCADOPAGO',
+          acceptedTerms: true,
+        },
+      });
+    });
+  });
+
+  it('given another address, when the customer types one and asks to save it, then the order saves it to the book', async () => {
+    stubCustomerGets([savedAddress(1, 'San Martín', true)]);
+    const post = stubPost(placed(PAYMENT_URL));
+    renderRoute('/checkout');
+    await waitFor(() => {
+      expect(addressChoice(/^San Martín 1234/)).toBeChecked();
+    });
+
+    await userEvent.click(addressChoice(es.checkout.otherAddress));
+
+    expect(field(es.checkout.fields.street)).toHaveValue('');
+    expect(field(es.checkout.fields.province)).toHaveValue('');
+    expect(screen.getByLabelText(es.checkout.saveAddress)).not.toBeChecked();
+    await userEvent.type(field(es.checkout.fields.nationalId), '30123456');
+    await userEvent.type(field(es.checkout.fields.street), 'Rivadavia');
+    await userEvent.type(field(es.checkout.fields.number), '550');
+    await userEvent.type(field(es.checkout.fields.city), 'Rosario');
+    await userEvent.type(field(es.checkout.fields.postalCode), '2000');
+    await chooseProvince('SANTA_FE');
+    await userEvent.click(screen.getByLabelText(es.checkout.saveAddress));
+    await confirmFromShipping();
+
+    await waitFor(() => {
+      expect(post).toHaveBeenCalledWith('/api/checkout', {
+        params: { header: { 'Idempotency-Key': expect.stringMatching(UUID) as unknown } },
+        body: {
+          buyer: { name: 'Ana Pérez', email: 'ana@example.com', phone: '3424567890', nationalId: '30123456' },
+          address: { street: 'Rivadavia', number: '550', city: 'Rosario', province: 'SANTA_FE', postalCode: '2000' },
+          paymentProvider: 'MERCADOPAGO',
+          acceptedTerms: true,
+          saveAddress: true,
+        },
+      });
+    });
+  });
+
+  it('given a customer without addresses or a phone, when it opens the checkout, then it types the address and may save it', async () => {
+    stubCustomerGets([], { ...ANA, phone: null });
+    renderRoute('/checkout');
+
+    expect(await screen.findByLabelText(es.checkout.saveAddress)).not.toBeChecked();
+    expect(field(es.checkout.fields.name)).toHaveValue('Ana Pérez');
+    expect(field(es.checkout.fields.phone)).toHaveValue('');
+    expect(screen.queryByRole('group', { name: es.checkout.savedAddresses })).not.toBeInTheDocument();
+    expect(field(es.checkout.fields.street)).toHaveValue('');
+  });
+
+  it('given a full address book, when the customer types another address, then it is not offered to save it', async () => {
+    stubCustomerGets(Array.from({ length: 10 }, (_, i) => savedAddress(i, `Calle ${String(i)}`, i === 0)));
+    renderRoute('/checkout');
+    await waitFor(() => {
+      expect(addressChoice(/^Calle 0 1234/)).toBeChecked();
+    });
+
+    await userEvent.click(addressChoice(es.checkout.otherAddress));
+
+    expect(field(es.checkout.fields.street)).toBeInTheDocument();
+    expect(screen.queryByLabelText(es.checkout.saveAddress)).not.toBeInTheDocument();
+  });
+
+  it('given a guest, when it opens the checkout, then nothing is prefilled and no address is offered', async () => {
+    stubGets();
+    renderRoute('/checkout');
+
+    await screen.findByRole('heading', { name: es.checkout.shippingTitle });
+
+    expect(field(es.checkout.fields.name)).toHaveValue('');
+    expect(screen.queryByRole('group', { name: es.checkout.savedAddresses })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(es.checkout.saveAddress)).not.toBeInTheDocument();
+  });
+});

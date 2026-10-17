@@ -56,6 +56,8 @@
 
 **Reglas**
 - El DNI se pide en cada compra y no se guarda en la cuenta, para guardar menos datos personales (*Decidido*).
+- El nombre y el email precargados se pueden cambiar para un pedido; el pedido queda asociado a la cuenta igual (*Decidido*).
+- Cada compra guarda su teléfono en la cuenta; una dirección nueva se guarda en la libreta solo si el cliente marca "Guardar en mis direcciones" (*Decidido*).
 
 **Criterios de aceptación**
 - Dado un cliente con una dirección principal, cuando abre el checkout, entonces esa dirección aparece seleccionada.

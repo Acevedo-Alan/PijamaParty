@@ -156,6 +156,35 @@ class UserTest {
         assertThat(user.failedSignInAttempts()).isZero();
     }
 
+    @Test
+    void givenACustomer_whenItRemembersAPhone_thenItKeepsItAndTheSamePhoneChangesNothing() {
+        User user = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+        Instant later = NOW.plus(Duration.ofDays(1));
+
+        user.rememberPhone("3425551234", later);
+        user.rememberPhone("3425551234", later.plus(Duration.ofDays(1)));
+
+        assertThat(user.phone()).contains("3425551234");
+        assertThat(user.updatedAt()).isEqualTo(later);
+        assertThat(user.copy().phone()).contains("3425551234");
+    }
+
+    @Test
+    void givenAPhoneThatIsNot8To15Digits_whenRemembered_thenItIsRefused() {
+        User user = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+
+        for (String phone : new String[] {"1234567", "1234567890123456", "342 555-1234", ""}) {
+            assertThatThrownBy(() -> user.rememberPhone(phone, NOW)).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThat(user.phone()).isEmpty();
+    }
+
+    @Test
+    void givenTheAdministrator_whenItRemembersAPhone_thenItIsRefused() {
+        assertThatThrownBy(() -> administrator().rememberPhone("3425551234", NOW))
+            .isInstanceOf(IllegalStateException.class);
+    }
+
     private static User administrator() {
         return User.newAdministrator(UserId.of(UUID.randomUUID()), email(), "Owner", hash(), NOW);
     }

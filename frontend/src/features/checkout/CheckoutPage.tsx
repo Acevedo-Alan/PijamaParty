@@ -1,8 +1,11 @@
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { ADDRESSES_KEY, fetchAddresses, type SavedAddress } from '../account/addressBookApi.ts';
+import { useCustomer } from '../account/useCustomer.ts';
 import { trackAddPaymentInfo, trackBeginCheckout, type CheckoutForAnalytics } from '../analytics/checkoutEvents.ts';
 import type { Cart, CartItem } from '../cart/cartApi.ts';
 import { useCartPanel } from '../cart/CartPanelContext.tsx';
@@ -10,12 +13,16 @@ import { useCart, useRemoveCoupon } from '../cart/useCart.ts';
 import { goToPayment } from '../orders/redirect.ts';
 import type { PlaceOrderAnswer } from './checkoutApi.ts';
 import {
+  ADDRESS_FIELDS,
   EMPTY_FORM,
   invalidFields,
   isProvince,
   PROVINCES,
   toFormFields,
   toPlaceOrderRequest,
+  withAddress,
+  withContactOf,
+  withoutAddress,
   type FormField,
   type PaymentProvider,
   type ShippingForm,
@@ -66,6 +73,9 @@ function refusalMessage(answer: PlaceOrderAnswer): string | null {
 
 /** MercadoPago is always enabled: it is the only option while the providers are being read or could not be. */
 const DEFAULT_PROVIDERS: readonly PaymentProvider[] = ['MERCADOPAGO'];
+
+/** The most addresses a book holds (UC-20): a full one offers no "Guardar en mis direcciones". */
+const MAX_ADDRESSES = 10;
 
 /** The analytics name of a provider (RNF-25), as `payment_type`. */
 const PAYMENT_TYPES: Record<PaymentProvider, string> = { MERCADOPAGO: 'MercadoPago', MODO: 'MODO' };
@@ -342,6 +352,39 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   // A provider no longer offered falls back to MercadoPago.
   const provider = providers.includes(chosenProvider) ? chosenProvider : 'MERCADOPAGO';
   const ready = isReady(cart);
+  // UC-21 (T-E4-06): a signed-in customer starts from its account and its address book.
+  const customer = useCustomer();
+  const signedIn = customer !== undefined && customer !== null;
+  const book = useQuery({
+    queryKey: ADDRESSES_KEY,
+    queryFn: ({ signal }) => fetchAddresses(signal),
+    enabled: signedIn,
+  });
+  const savedAddresses = signedIn ? (book.data ?? []) : [];
+  // The saved address the order goes to; null while the address is typed in the fields.
+  const [chosenAddress, setChosenAddress] = useState<string | null>(null);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [contactPrefilled, setContactPrefilled] = useState(false);
+  const [addressPrefilled, setAddressPrefilled] = useState(false);
+  const typingAddress = !savedAddresses.some((each) => each.id === chosenAddress);
+  const canSaveAddress =
+    signedIn && Array.isArray(book.data) && book.data.length < MAX_ADDRESSES && typingAddress;
+  const saveAddressId = `${prefix}-save-address`;
+
+  // Once each, as soon as they are known, and only into fields still empty: set while rendering, since they follow
+  // the queries' data.
+  if (signedIn && !contactPrefilled) {
+    setContactPrefilled(true);
+    setForm((current) => withContactOf(current, customer));
+  }
+  if (signedIn && Array.isArray(book.data) && !addressPrefilled) {
+    setAddressPrefilled(true);
+    const primary = book.data.find((each) => each.primary);
+    if (primary !== undefined && ADDRESS_FIELDS.every((each) => form[each] === '')) {
+      setChosenAddress(primary.id);
+      setForm((current) => withAddress(current, primary));
+    }
+  }
 
   useEffect(() => {
     const target = focusTarget.current;
@@ -357,8 +400,18 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   }, [focusRequests, prefix]);
 
   function setFocusTarget(target: FocusTarget) {
+    // A field of a saved address to fix is shown again, with the address as it was.
+    if (target.kind === 'field' && ADDRESS_FIELDS.includes(target.field)) {
+      setChosenAddress(null);
+    }
     focusTarget.current = target;
     setFocusRequests((count) => count + 1);
+  }
+
+  function chooseAddress(address: SavedAddress | null) {
+    setChosenAddress(address?.id ?? null);
+    setForm((current) => (address === null ? withoutAddress(current) : withAddress(current, address)));
+    setInvalid((current) => current.filter((each) => !ADDRESS_FIELDS.includes(each)));
   }
 
   function goTo(next: Step) {
@@ -475,7 +528,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
       goTo(1);
       return;
     }
-    const body = toPlaceOrderRequest(form, form.province, provider, true);
+    const body = toPlaceOrderRequest(form, form.province, provider, true, canSaveAddress && saveAddress);
     const json = JSON.stringify(body);
     const current = attempt.current?.body === json ? attempt.current : { body: json, key: crypto.randomUUID() };
     attempt.current = current;
@@ -495,6 +548,19 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   const noShipping = form.province !== '' && shipping.data?.status === 'noShipping';
   const provinceId = idOf('province');
   const suggestionId = `${idOf('email')}-suggestion`;
+  const shippingNotes = (
+    <>
+      {form.province !== '' && shipping.isFetching && <p className="checkout-note">{es.checkout.shippingLoading}</p>}
+      {shipping.isError && (
+        <p className="checkout-error" role="alert">
+          {es.checkout.shippingError}{' '}
+          <button type="button" className="link-btn" onClick={() => void shipping.refetch()}>
+            {es.checkout.retry}
+          </button>
+        </p>
+      )}
+    </>
+  );
 
   return (
     <div className="checkout-layout">
@@ -557,52 +623,104 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 />
                 <Field field="nationalId" {...fieldProps} inputMode="numeric" autoComplete="off" maxLength={12} />
               </div>
-              <div className="checkout-row checkout-row-street">
-                <Field field="street" {...fieldProps} autoComplete="address-line1" maxLength={100} />
-                <Field field="number" {...fieldProps} autoComplete="off" maxLength={10} />
-              </div>
-              <div className="checkout-row">
-                <Field field="floor" {...fieldProps} autoComplete="off" maxLength={10} required={false} />
-                <Field field="apartment" {...fieldProps} autoComplete="off" maxLength={10} required={false} />
-              </div>
-              <div className="checkout-row">
-                <Field field="city" {...fieldProps} autoComplete="address-level2" maxLength={80} />
-                <Field field="postalCode" {...fieldProps} autoComplete="postal-code" maxLength={8} />
-              </div>
-              <div className={provinceInvalid || noShipping ? 'checkout-field error' : 'checkout-field'}>
-                <label htmlFor={provinceId}>{es.checkout.fields.province}</label>
-                <select
-                  id={provinceId}
-                  name="province"
-                  value={form.province}
-                  autoComplete="address-level1"
-                  required
-                  aria-invalid={provinceInvalid || noShipping}
-                  aria-describedby={`${provinceId}-status`}
-                  onChange={changeProvince}
-                >
-                  <option value="">{es.checkout.chooseProvince}</option>
-                  {PROVINCES.map((province) => (
-                    <option key={province} value={province}>
-                      {es.provinces[province]}
-                    </option>
+              {savedAddresses.length > 0 && (
+                <fieldset className="checkout-addresses">
+                  <legend>{es.checkout.savedAddresses}</legend>
+                  {savedAddresses.map((address) => (
+                    <label
+                      key={address.id}
+                      className={address.id === chosenAddress ? 'checkout-pay-option active' : 'checkout-pay-option'}
+                    >
+                      <input
+                        type="radio"
+                        name="savedAddress"
+                        value={address.id}
+                        checked={address.id === chosenAddress}
+                        onChange={() => {
+                          chooseAddress(address);
+                        }}
+                      />
+                      <span>
+                        <span className="checkout-pay-name">{addressLine(withAddress(EMPTY_FORM, address))}</span>
+                        <span className="checkout-pay-hint">
+                          {es.checkout.place(address.city, es.provinces[address.province], address.postalCode)}
+                        </span>
+                      </span>
+                    </label>
                   ))}
-                </select>
-                <p id={`${provinceId}-status`} className="checkout-field-error" aria-live="polite">
-                  {provinceInvalid ? es.checkout.errors.province : noShipping ? es.checkout.noShipping : null}
-                </p>
-                {form.province !== '' && shipping.isFetching && (
-                  <p className="checkout-note">{es.checkout.shippingLoading}</p>
-                )}
-                {shipping.isError && (
-                  <p className="checkout-error" role="alert">
-                    {es.checkout.shippingError}{' '}
-                    <button type="button" className="link-btn" onClick={() => void shipping.refetch()}>
-                      {es.checkout.retry}
-                    </button>
-                  </p>
-                )}
-              </div>
+                  <label className={typingAddress ? 'checkout-pay-option active' : 'checkout-pay-option'}>
+                    <input
+                      type="radio"
+                      name="savedAddress"
+                      value=""
+                      checked={typingAddress}
+                      onChange={() => {
+                        chooseAddress(null);
+                      }}
+                    />
+                    <span className="checkout-pay-name">{es.checkout.otherAddress}</span>
+                  </label>
+                </fieldset>
+              )}
+              {!typingAddress && (
+                <div aria-live="polite">
+                  {noShipping && <p className="checkout-field-error">{es.checkout.noShipping}</p>}
+                  {shippingNotes}
+                </div>
+              )}
+              {typingAddress && (
+                <>
+                  <div className="checkout-row checkout-row-street">
+                    <Field field="street" {...fieldProps} autoComplete="address-line1" maxLength={100} />
+                    <Field field="number" {...fieldProps} autoComplete="off" maxLength={10} />
+                  </div>
+                  <div className="checkout-row">
+                    <Field field="floor" {...fieldProps} autoComplete="off" maxLength={10} required={false} />
+                    <Field field="apartment" {...fieldProps} autoComplete="off" maxLength={10} required={false} />
+                  </div>
+                  <div className="checkout-row">
+                    <Field field="city" {...fieldProps} autoComplete="address-level2" maxLength={80} />
+                    <Field field="postalCode" {...fieldProps} autoComplete="postal-code" maxLength={8} />
+                  </div>
+                  <div className={provinceInvalid || noShipping ? 'checkout-field error' : 'checkout-field'}>
+                    <label htmlFor={provinceId}>{es.checkout.fields.province}</label>
+                    <select
+                      id={provinceId}
+                      name="province"
+                      value={form.province}
+                      autoComplete="address-level1"
+                      required
+                      aria-invalid={provinceInvalid || noShipping}
+                      aria-describedby={`${provinceId}-status`}
+                      onChange={changeProvince}
+                    >
+                      <option value="">{es.checkout.chooseProvince}</option>
+                      {PROVINCES.map((province) => (
+                        <option key={province} value={province}>
+                          {es.provinces[province]}
+                        </option>
+                      ))}
+                    </select>
+                    <p id={`${provinceId}-status`} className="checkout-field-error" aria-live="polite">
+                      {provinceInvalid ? es.checkout.errors.province : noShipping ? es.checkout.noShipping : null}
+                    </p>
+                    {shippingNotes}
+                  </div>
+                </>
+              )}
+              {canSaveAddress && (
+                <div className="checkout-save">
+                  <input
+                    id={saveAddressId}
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(event) => {
+                      setSaveAddress(event.target.checked);
+                    }}
+                  />
+                  <label htmlFor={saveAddressId}>{es.checkout.saveAddress}</label>
+                </div>
+              )}
               <button type="submit" className="btn checkout-next" disabled={!ready}>
                 {es.checkout.toPayment}
               </button>

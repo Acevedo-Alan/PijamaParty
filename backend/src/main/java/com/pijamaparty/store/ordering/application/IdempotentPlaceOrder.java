@@ -108,7 +108,8 @@ class IdempotentPlaceOrder implements PlaceOrder {
     /**
      * SHA-256 of the command's content in a canonical encoding: every field in a fixed order, as its length and its
      * text, or a mark for none. Neither JSON formatting nor field order changes it; the cart is not part of it, since
-     * the scope already ties the key to the cart, and placing the order empties it.
+     * the scope already ties the key to the cart, and placing the order empties it. {@code saveAddress}
+     * counts only when true.
      */
     static String requestHashOf(Command command) {
         CheckoutForm form = command.form();
@@ -121,6 +122,10 @@ class IdempotentPlaceOrder implements PlaceOrder {
             } else {
                 canonical.append(field.length()).append(':').append(field).append(';');
             }
+        }
+        // T-E4-06: only when true, so every request without it keeps the hash it had before (keys live 24 hours).
+        if (command.saveAddress()) {
+            canonical.append("saveAddress;");
         }
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")

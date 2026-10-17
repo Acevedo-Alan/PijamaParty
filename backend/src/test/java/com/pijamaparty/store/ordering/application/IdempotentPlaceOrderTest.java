@@ -15,10 +15,13 @@ import com.pijamaparty.store.platform.domain.IdempotencyScope;
 import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.shipping.api.Province;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -51,11 +54,13 @@ class IdempotentPlaceOrderTest {
     private final InMemoryReserveOrderStock stock = new InMemoryReserveOrderStock();
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
     private final InMemoryIdempotencyKeys keys = new InMemoryIdempotencyKeys();
+    private final InMemoryRememberCheckoutDetails checkoutDetails = new InMemoryRememberCheckoutDetails();
     private final UUID orderId = UUID.randomUUID();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private final IdempotentPlaceOrder placeOrder = new IdempotentPlaceOrder(
         new PlaceOrderService(carts, shipping, stock, orders, orders, carts, new InMemoryCurrentTerms("2026-10"),
-            new InMemoryEnabledPaymentProviders(Set.of(PaymentProvider.MERCADOPAGO)), () -> orderId, clock),
+            new InMemoryEnabledPaymentProviders(Set.of(PaymentProvider.MERCADOPAGO)), checkoutDetails, () -> orderId,
+            clock),
         keys, orders, clock);
     private final UUID key = UUID.randomUUID();
 
@@ -117,9 +122,12 @@ class IdempotentPlaceOrderTest {
             new Object[] {"text moved from one field to the next", (UnaryOperator<PlaceOrder.Command>) c ->
                 withForm(c, shiftedText)},
             new Object[] {"another province", (UnaryOperator<PlaceOrder.Command>) c -> new PlaceOrder.Command(
-                c.actor(), c.idempotencyKey(), c.form(), Province.CORDOBA, c.paymentProvider(), c.acceptedTerms())},
+                c.actor(), c.idempotencyKey(), c.form(), Province.CORDOBA, c.paymentProvider(), c.acceptedTerms(),
+                c.saveAddress())},
             new Object[] {"the terms not accepted", (UnaryOperator<PlaceOrder.Command>) c -> new PlaceOrder.Command(
-                c.actor(), c.idempotencyKey(), c.form(), c.province(), c.paymentProvider(), false)});
+                c.actor(), c.idempotencyKey(), c.form(), c.province(), c.paymentProvider(), false, c.saveAddress())},
+            new Object[] {"the address saved to the book", (UnaryOperator<PlaceOrder.Command>) c -> new PlaceOrder.Command(
+                c.actor(), c.idempotencyKey(), c.form(), c.province(), c.paymentProvider(), c.acceptedTerms(), true)});
     }
 
     @Test
@@ -135,7 +143,7 @@ class IdempotentPlaceOrderTest {
     @Test
     void givenARefusedCheckout_whenTheSameKeyArrivesAgain_thenItRunsAgainSinceNothingWasStored() {
         assertThat(placeOrder.execute(new PlaceOrder.Command(FIRST, key, FORM, Province.SANTA_FE,
-            PaymentProvider.MERCADOPAGO, false))).isEqualTo(new PlaceOrder.Result.TermsNotAccepted());
+            PaymentProvider.MERCADOPAGO, false, false))).isEqualTo(new PlaceOrder.Result.TermsNotAccepted());
         assertThat(keys.size()).isZero();
 
         assertThat(placeOrder.execute(command(FIRST, FORM))).isInstanceOf(PlaceOrder.Result.Placed.class);
@@ -177,12 +185,41 @@ class IdempotentPlaceOrderTest {
         assertThat(IdempotentPlaceOrder.requestHashOf(command(SECOND, FORM))).isEqualTo(hash).matches("[0-9a-f]{64}");
     }
 
+    @Test
+    void givenARequestWithoutSaveAddress_whenHashed_thenItKeepsTheHashOfTheEncodingBeforeTE406() throws Exception {
+        // Keys stored before T-E4-06 live 24 hours: a retry of one must not become IDEMPOTENCY_KEY_REUSED.
+        String before = "9:Ana Pérez;15:ana@example.com;10:3425551234;8:12345678;10:San Martín;4:1234;-;-;8:Santa Fe;"
+            + "8:S3000ABC;8:SANTA_FE;11:MERCADOPAGO;4:true;";
+        String expected = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+            .digest(before.getBytes(StandardCharsets.UTF_8)));
+
+        assertThat(IdempotentPlaceOrder.requestHashOf(command(FIRST, FORM))).isEqualTo(expected);
+    }
+
+    @Test
+    void givenACustomersFirstOrder_whenTheSameKeyArrivesAgain_thenItsCheckoutIsNotRememberedAgain() {
+        UserId user = UserId.of(UUID.randomUUID());
+        Actor customer = Actor.customer(user, Optional.of(CART), Optional.of(FIRST_TOKEN));
+        carts.put(customer, new CartState.Ready(List.of(PIJAMAS), Money.of(4_000_000), Money.zero(),
+            Optional.empty()));
+        checkoutDetails.customer(user);
+        var saving = new PlaceOrder.Command(customer, key, FORM, Province.SANTA_FE, PaymentProvider.MERCADOPAGO, true,
+            true);
+        placeOrder.execute(saving);
+
+        placeOrder.execute(new PlaceOrder.Command(Actor.customer(user, Optional.of(CART), Optional.of(SECOND_TOKEN)),
+            key, FORM, Province.SANTA_FE, PaymentProvider.MERCADOPAGO, true, true));
+
+        assertThat(checkoutDetails.calls()).isOne();
+        assertThat(checkoutDetails.addressesOf(user)).hasSize(1);
+    }
+
     private PlaceOrder.Command command(Actor actor, CheckoutForm form) {
-        return new PlaceOrder.Command(actor, key, form, Province.SANTA_FE, PaymentProvider.MERCADOPAGO, true);
+        return new PlaceOrder.Command(actor, key, form, Province.SANTA_FE, PaymentProvider.MERCADOPAGO, true, false);
     }
 
     private static PlaceOrder.Command withForm(PlaceOrder.Command command, CheckoutForm form) {
         return new PlaceOrder.Command(command.actor(), command.idempotencyKey(), form, command.province(),
-            command.paymentProvider(), command.acceptedTerms());
+            command.paymentProvider(), command.acceptedTerms(), command.saveAddress());
     }
 }

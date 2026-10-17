@@ -38,23 +38,30 @@ public final class Browser {
     }
 
     public ResponseEntity<String> get(String path) {
-        return exchange(HttpMethod.GET, path, null);
+        return exchange(HttpMethod.GET, path, null, Map.of());
     }
 
     public ResponseEntity<String> post(String path, String json) {
-        return exchange(HttpMethod.POST, path, json);
+        return exchange(HttpMethod.POST, path, json, Map.of());
+    }
+
+    /** A POST with more headers, such as the checkout's {@code Idempotency-Key}. */
+    public ResponseEntity<String> post(String path, String json, Map<String, String> extraHeaders) {
+        return exchange(HttpMethod.POST, path, json, extraHeaders);
     }
 
     public ResponseEntity<String> put(String path, String json) {
-        return exchange(HttpMethod.PUT, path, json);
+        return exchange(HttpMethod.PUT, path, json, Map.of());
     }
 
     public ResponseEntity<String> delete(String path) {
-        return exchange(HttpMethod.DELETE, path, null);
+        return exchange(HttpMethod.DELETE, path, null, Map.of());
     }
 
-    private ResponseEntity<String> exchange(HttpMethod method, String path, String json) {
+    private ResponseEntity<String> exchange(HttpMethod method, String path, String json,
+                                            Map<String, String> extraHeaders) {
         var headers = new HttpHeaders();
+        extraHeaders.forEach(headers::add);
         if (!cookies.isEmpty()) {
             headers.add(HttpHeaders.COOKIE, String.join("; ",
                 cookies.entrySet().stream().map(cookie -> cookie.getKey() + "=" + cookie.getValue()).toList()));

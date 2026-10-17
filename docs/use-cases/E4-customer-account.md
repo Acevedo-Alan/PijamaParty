@@ -10,7 +10,7 @@ Registering is optional: buying as a guest stays the main flow. An account saves
 - The national ID is **not** stored on the account: the checkout asks for it on every purchase and it lives only on the order (UC-21, R-05). The account and its address book hold less personal data.
 - Single-use email links: the email verification link lasts 24 hours, the password reset link 30 minutes and the Facebook link confirmation (UC-27) 24 hours. Their tokens follow RNF-29.6: 32 random bytes from `SecureRandom`, stored only as SHA-256.
 - The address book holds at most 10 addresses per customer; an 11th is refused with `422`.
-- The customer's phone is an optional column of the account (8 to 15 digits, as on the order). How it gets filled for the prefilled checkout is settled in T-E4-06.
+- The customer's phone is an optional column of the account (8 to 15 digits, as on the order). Each purchase of the customer leaves the order's phone on the account, for the next prefilled checkout (decided in T-E4-06).
 
 **Schema (T-E4-01, V29):**
 - `app_user` (V5, `accounts` module) already has `email_verified`, the optional `password_hash` (accounts that only sign in with Google or Facebook, UC-27) and `name`. V29 adds `phone` (null, or 8 to 15 digits).
@@ -128,13 +128,21 @@ Registering is optional: buying as a guest stays the main flow. An account saves
 
 **Business rules**
 - The national ID is asked on every purchase and is not stored on the account (decided, T-E4-01).
+- The prefilled name and email can be changed for one order; the order is linked to the account anyway (decided, T-E4-06).
+- Each purchase leaves its phone on the account; a new address is saved in the book only if the customer asks (decided, T-E4-06).
 
 **Acceptance criteria**
 - Given a customer with a primary address, when it opens the checkout, then that address is selected.
 - Given a customer who completes a purchase, when it finishes, then the order is linked to its account.
 
 **Design notes**
-- The order already has `user_id` and the customer insert policy (T-E3-01). Details in T-E4-06.
+- The order already has `user_id` and the customer insert policy (T-E3-01).
+- **Prefilled checkout (T-E4-06):**
+  - `GET /api/account/me` (and the sign-in answer, which share the format) also answers `phone`, the account's, or null when it has none.
+  - Storefront: for a signed-in customer, `/checkout` prefills name, email and phone from `/api/account/me`, once, only into fields still empty; every field stays editable. The national ID always starts empty (R-05). A visitor who is not signed in sees the checkout of UC-13 unchanged.
+  - With saved addresses (`GET /api/account/addresses`), the shipping step offers them as choices plus "Otra dirección", with the primary selected. A saved address fills the address fields, which stay hidden while it is chosen; the request still carries the whole address, as typed, and the order keeps its own copy (R-04), with no reference to the book. "Otra dirección", or a book without addresses, shows the address fields of UC-13 and a "Guardar en mis direcciones" checkbox, unchecked, which is not shown when the book already has 10.
+  - `POST /api/checkout` gains an optional `saveAddress` (false when absent), ignored for a guest. It counts in the request hash of the `Idempotency-Key` only when true, so the hash of every request without it stays as before T-E4-06.
+  - In the checkout transaction, as the customer (RNF-27), once the order is inserted, `PlaceOrderService` calls its port `RememberCheckoutDetails` (`ordering.adapter.out.accounts`, over `accounts.api.CheckoutDetails`, so `ordering → accounts.api`, which keeps the graph acyclic). It locks the customer's `app_user` row, as the address book does (UC-20), sets the account's phone to the order's normalized phone when it differs, and, with `saveAddress`, adds the address to the book with the rules of UC-20: never primary unless it is the first, and a full book skips it without failing the order. A customer whose account no longer exists keeps its order and nothing is remembered. A repeated `Idempotency-Key` answers the first order and remembers nothing again.
 
 ---
 

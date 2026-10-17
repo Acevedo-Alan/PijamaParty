@@ -17,7 +17,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Row of {@code app_user} (V5, V11). Translated to and from the {@link User} aggregate; never leaves this package. */
+/** Row of {@code app_user} (V5, V11, V29). Translated to and from the {@link User} aggregate; never leaves this package. */
 @Entity
 @Table(name = "app_user")
 class UserEntity {
@@ -36,6 +36,8 @@ class UserEntity {
 
     @Column(nullable = false)
     private String name;
+
+    private String phone;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -72,6 +74,7 @@ class UserEntity {
         entity.emailVerified = user.emailVerified();
         entity.passwordHash = user.passwordHash().map(PasswordHash::value).orElse(null);
         entity.name = user.name();
+        entity.phone = user.phone().orElse(null);
         entity.role = user.role();
         entity.createdAt = user.createdAt();
         entity.copySignInStateFrom(user);
@@ -91,8 +94,8 @@ class UserEntity {
 
     User toDomain() {
         return User.restore(UserId.of(id), new Email(email), emailVerified,
-            passwordHash == null ? null : new PasswordHash(passwordHash), name, role, failedLoginAttempts, lockedUntil,
-            totpSecret == null ? null
+            passwordHash == null ? null : new PasswordHash(passwordHash), name, phone, role, failedLoginAttempts,
+            lockedUntil, totpSecret == null ? null
                 : new SecondFactor(new EncryptedSecret(totpSecret), totpEnabledAt, totpLastStep),
             createdAt, updatedAt);
     }

@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * A customer or the administrator. Owns the sign-in lock rule of UC-04, which UC-19 applies to customers too: 5
@@ -18,12 +19,15 @@ public final class User {
     public static final Duration LOCK_DURATION = Duration.ofMinutes(15);
     /** 00-dominio-y-reglas.md, maximum lengths. */
     public static final int MAX_NAME_LENGTH = 100;
+    /** UC-21: digits only, as the order's phone (UC-13) and the check of {@code app_user.phone} (V29). */
+    private static final Pattern PHONE = Pattern.compile("[0-9]{8,15}");
 
     private final UserId id;
     private final Email email;
     private boolean emailVerified;
     private PasswordHash passwordHash;
     private final String name;
+    private String phone;
     private final UserRole role;
     private int failedSignInAttempts;
     private Instant lockedUntil;
@@ -31,14 +35,15 @@ public final class User {
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private User(UserId id, Email email, boolean emailVerified, PasswordHash passwordHash, String name, UserRole role,
-                 int failedSignInAttempts, Instant lockedUntil, SecondFactor secondFactor, Instant createdAt,
-                 Instant updatedAt) {
+    private User(UserId id, Email email, boolean emailVerified, PasswordHash passwordHash, String name, String phone,
+                 UserRole role, int failedSignInAttempts, Instant lockedUntil, SecondFactor secondFactor,
+                 Instant createdAt, Instant updatedAt) {
         this.id = Objects.requireNonNull(id, "id");
         this.email = Objects.requireNonNull(email, "email");
         this.emailVerified = emailVerified;
         this.passwordHash = passwordHash;
         this.name = Objects.requireNonNull(name, "name");
+        this.phone = phone;
         this.role = Objects.requireNonNull(role, "role");
         this.failedSignInAttempts = failedSignInAttempts;
         this.lockedUntil = lockedUntil;
@@ -47,6 +52,9 @@ public final class User {
         this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt");
         if (!isValidName(name)) {
             throw new IllegalArgumentException("name must be trimmed and 1 to " + MAX_NAME_LENGTH + " characters");
+        }
+        if (phone != null && !isValidPhone(phone)) {
+            throw new IllegalArgumentException("phone must be 8 to 15 digits");
         }
         if (failedSignInAttempts < 0 || failedSignInAttempts >= MAX_CONSECUTIVE_FAILURES) {
             throw new IllegalArgumentException("failed sign-in attempts out of range");
@@ -62,34 +70,59 @@ public final class User {
     /** UC-04: the single administrator, created from the deployment settings. */
     public static User newAdministrator(UserId id, Email email, String name, PasswordHash passwordHash, Instant now) {
         Objects.requireNonNull(passwordHash, "passwordHash");
-        return new User(id, email, true, passwordHash, name, UserRole.ADMIN, 0, null, null, now, now);
+        return new User(id, email, true, passwordHash, name, null, UserRole.ADMIN, 0, null, null, now, now);
     }
 
     /** UC-19: a customer who registers with a password; it signs in once its email is verified. */
     public static User newCustomer(UserId id, Email email, String name, PasswordHash passwordHash, Instant now) {
         Objects.requireNonNull(passwordHash, "passwordHash");
-        return new User(id, email, false, passwordHash, name, UserRole.CUSTOMER, 0, null, null, now, now);
+        return new User(id, email, false, passwordHash, name, null, UserRole.CUSTOMER, 0, null, null, now, now);
     }
 
-    /** Rebuilds a stored user; only persistence adapters call it. */
+    /** Rebuilds a stored user without a phone or a second factor; only persistence adapters call it. */
     public static User restore(UserId id, Email email, boolean emailVerified, PasswordHash passwordHash, String name,
                                UserRole role, int failedSignInAttempts, Instant lockedUntil, Instant createdAt,
                                Instant updatedAt) {
-        return new User(id, email, emailVerified, passwordHash, name, role, failedSignInAttempts, lockedUntil,
+        return new User(id, email, emailVerified, passwordHash, name, null, role, failedSignInAttempts, lockedUntil,
             null, createdAt, updatedAt);
     }
 
-    /** Rebuilds a stored user with its second factor, if any; only persistence adapters call it. */
+    /**
+     * Rebuilds a stored user with its phone and its second factor, if any; only persistence adapters call it.
+     *
+     * @param phone null for none
+     */
     public static User restore(UserId id, Email email, boolean emailVerified, PasswordHash passwordHash, String name,
-                               UserRole role, int failedSignInAttempts, Instant lockedUntil,
+                               String phone, UserRole role, int failedSignInAttempts, Instant lockedUntil,
                                SecondFactor secondFactor, Instant createdAt, Instant updatedAt) {
-        return new User(id, email, emailVerified, passwordHash, name, role, failedSignInAttempts, lockedUntil,
+        return new User(id, email, emailVerified, passwordHash, name, phone, role, failedSignInAttempts, lockedUntil,
             secondFactor, createdAt, updatedAt);
     }
 
     public static boolean isValidName(String name) {
         return name != null && name.equals(name.strip()) && !name.isEmpty()
             && name.codePointCount(0, name.length()) <= MAX_NAME_LENGTH;
+    }
+
+    public static boolean isValidPhone(String phone) {
+        return phone != null && PHONE.matcher(phone).matches();
+    }
+
+    /**
+     * UC-21 (T-E4-06): a purchase of the customer leaves its phone, already normalized, for the next checkout. The
+     * same phone changes nothing.
+     */
+    public void rememberPhone(String newPhone, Instant now) {
+        if (!isValidPhone(newPhone)) {
+            throw new IllegalArgumentException("phone must be 8 to 15 digits");
+        }
+        if (role != UserRole.CUSTOMER) {
+            throw new IllegalStateException("only a customer buys");
+        }
+        if (!newPhone.equals(phone)) {
+            phone = newPhone;
+            updatedAt = now;
+        }
     }
 
     public boolean isLockedAt(Instant now) {
@@ -200,7 +233,7 @@ public final class User {
     }
 
     public User copy() {
-        return new User(id, email, emailVerified, passwordHash, name, role, failedSignInAttempts, lockedUntil,
+        return new User(id, email, emailVerified, passwordHash, name, phone, role, failedSignInAttempts, lockedUntil,
             secondFactor, createdAt, updatedAt);
     }
 
@@ -222,6 +255,10 @@ public final class User {
 
     public String name() {
         return name;
+    }
+
+    public Optional<String> phone() {
+        return Optional.ofNullable(phone);
     }
 
     public UserRole role() {

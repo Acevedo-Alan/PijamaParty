@@ -284,7 +284,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm the checkout: place the order, reserve its stock and open its payment
-         * @description Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for 30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the buyer to; null when the provider could not be reached, and then the client opens the tracking page. The same Idempotency-Key repeated with the same content gets the same order, with a new trackingToken, and nothing is placed or reserved again. Requires the CSRF token.
+         * @description Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for 30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the buyer to; null when the provider could not be reached, and then the client opens the tracking page. The same Idempotency-Key repeated with the same content gets the same order, with a new trackingToken, and nothing is placed or reserved again. A signed-in customer's phone becomes its account's, and with saveAddress the address joins its address book (UC-21). Requires the CSRF token.
          */
         post: operations["placeOrder"];
         delete?: never;
@@ -1490,6 +1490,7 @@ export interface components {
             /** @enum {string} */
             paymentProvider: "MERCADOPAGO" | "MODO";
             acceptedTerms: boolean;
+            saveAddress?: boolean;
         };
         PlacedResponse: {
             /** Format: int64 */
@@ -1647,6 +1648,7 @@ export interface components {
             id?: string;
             email?: string;
             name?: string;
+            phone: string | null;
         };
         EmailCorrectionRequest: {
             email: string;

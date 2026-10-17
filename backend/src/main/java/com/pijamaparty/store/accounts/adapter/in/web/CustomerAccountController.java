@@ -253,10 +253,12 @@ class CustomerAccountController {
         }
     }
 
-    record CustomerResponse(UUID id, String email, String name) {
+    /** {@code phone}: the account's, left by its last purchase (UC-21), or null when it has none. */
+    record CustomerResponse(UUID id, String email, String name,
+                            @Schema(nullable = true, requiredMode = Schema.RequiredMode.REQUIRED) String phone) {
 
         static CustomerResponse of(CustomerView view) {
-            return new CustomerResponse(view.id().value(), view.email(), view.name());
+            return new CustomerResponse(view.id().value(), view.email(), view.name(), view.phone().orElse(null));
         }
 
         @Override

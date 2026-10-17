@@ -30,7 +30,7 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 | `cart` | Carts and items | `Cart` | `catalog`, `inventory`, `promotions` |
 | `promotions` | Coupons and automatic discount rules | `Coupon`, `DiscountRule` | – |
 | `shipping` | Cost per zone, free-shipping threshold | `ShippingZoneRate`, `ShippingSettings` | – |
-| `ordering` | Checkout orchestration, orders, state machine, tracking link, withdrawal requests ("botón de arrepentimiento") | `Order`, `OrderItem` | `cart`, `inventory`, `promotions`, `shipping`, `payments` |
+| `ordering` | Checkout orchestration, orders, state machine, tracking link, withdrawal requests ("botón de arrepentimiento") | `Order`, `OrderItem` | `cart`, `inventory`, `promotions`, `shipping`, `payments`, `accounts` (what a customer's checkout leaves on its account, UC-21) |
 | `payments` | Provider gateways, payment attempts, webhooks | `Payment`, `PaymentEvent` | – |
 | `notifications` | Email outbox, sending, bounces | `OutboxEmail` | `ordering` (events), `accounts` (events and the links of the account emails) |
 | `accounts` | Users, authentication (password, Google and Facebook through OAuth2), 2FA, address book, account deletion and data export | `User`, `Address` | – |
@@ -39,7 +39,7 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 | `platform` | Shared kernel: `Money`, `Clock`, ids, `Actor`, idempotency, rate limiting, problem+json, security context for RLS | – | – |
 
 **Rules**
-1. The module dependency graph must be acyclic. `ordering → payments`, `notifications → ordering`, `notifications → accounts` and `reviews → ordering` all point one way.
+1. The module dependency graph must be acyclic. `ordering → payments`, `ordering → accounts`, `notifications → ordering`, `notifications → accounts` and `reviews → ordering` all point one way.
 2. A module may use another module only through that module's `api` package (public interfaces, DTO records and events).
 3. **Avoiding cycles:** when two modules need data from each other (for example the admin order screen needs the email-bounce alert from `notifications`), the composition happens in `backoffice`, which depends on both and which nobody depends on. Events flow in one direction only.
 4. Writes touch only the tables of the owning module. Read-side queries may read another module's data only through a database view published by the owner (for example `inventory.v_variant_availability`).

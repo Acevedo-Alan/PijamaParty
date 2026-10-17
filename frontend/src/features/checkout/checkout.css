@@ -211,6 +211,35 @@
   font-size: 13px;
 }
 
+/* UC-21: the saved addresses of a signed-in customer, as options like the payment's. */
+.checkout-addresses {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: none;
+}
+
+.checkout-addresses legend {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.checkout-save {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 4px 0 16px;
+  font-size: 14px;
+}
+
+.checkout-save input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
 .checkout-review-block {
   margin-bottom: 14px;
   padding: 16px 18px;
