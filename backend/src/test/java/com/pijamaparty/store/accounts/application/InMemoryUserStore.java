@@ -7,8 +7,11 @@ import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.testing.InMemoryStore;
 import java.util.Optional;
 
-/** Fake of the read/write pair {@link LoadUser} and {@link SaveUser}. */
-public class InMemoryUserStore implements LoadUser, SaveUser {
+/**
+ * Fake of the read/write pair {@link LoadUser} and {@link SaveUser}, of {@link FindUserByEmail} and of
+ * {@link AddExternalCustomers}, over the same users.
+ */
+public class InMemoryUserStore implements LoadUser, SaveUser, FindUserByEmail, AddExternalCustomers {
 
     private final InMemoryStore<UserId, User> users = InMemoryStore.copying(User::id, User::copy);
 
@@ -32,8 +35,21 @@ public class InMemoryUserStore implements LoadUser, SaveUser {
         users.save(user);
     }
 
-    /** For {@link InMemoryUserSignInStore}, which shares these users. */
-    Optional<User> findByEmail(Email email) {
+    @Override
+    public Optional<User> findByEmail(Email email) {
         return users.findAll(user -> user.email().equals(email)).stream().findFirst();
+    }
+
+    /** Synchronized: the real adapter lets the email's unique constraint pick one of two inserts. */
+    @Override
+    public synchronized boolean add(User customer) {
+        if (customer.role() != UserRole.CUSTOMER || customer.passwordHash().isPresent()) {
+            throw new IllegalArgumentException("a provider creates customers without a password");
+        }
+        if (findByEmail(customer.email()).isPresent()) {
+            return false;
+        }
+        users.save(customer);
+        return true;
     }
 }

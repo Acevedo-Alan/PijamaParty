@@ -1,6 +1,8 @@
 import { Navigate, type RouteObject } from 'react-router';
 import { ADDRESSES_PATH, ORDERS_PATH, RECOVER_PATH, REGISTER_PATH, SIGN_IN_PATH } from './features/account/AccountLink.tsx';
 import { AddressBookPage } from './features/account/AddressBookPage.tsx';
+import { COMPLETE_EMAIL_PATH, CompleteEmailPage } from './features/account/CompleteEmailPage.tsx';
+import { ConfirmLinkPage, LINK_PATH } from './features/account/ConfirmLinkPage.tsx';
 import { MyOrderPage } from './features/account/MyOrderPage.tsx';
 import { MyOrdersPage } from './features/account/MyOrdersPage.tsx';
 import { RecoverPasswordPage } from './features/account/RecoverPasswordPage.tsx';
@@ -40,6 +42,8 @@ export const routes: RouteObject[] = [
       { path: VERIFY_PATH, element: <VerifyEmailPage /> },
       { path: RECOVER_PATH, element: <RecoverPasswordPage /> },
       { path: RESET_PATH, element: <ResetPasswordPage /> },
+      { path: COMPLETE_EMAIL_PATH, element: <CompleteEmailPage /> },
+      { path: LINK_PATH, element: <ConfirmLinkPage /> },
       { path: ADDRESSES_PATH, element: <AddressBookPage /> },
       { path: ORDERS_PATH, element: <MyOrdersPage /> },
       { path: `${ORDERS_PATH}/:orderId`, element: <MyOrderPage /> },

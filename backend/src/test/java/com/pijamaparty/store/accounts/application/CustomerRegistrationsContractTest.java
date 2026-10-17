@@ -69,6 +69,6 @@ public abstract class CustomerRegistrationsContractTest<T extends CustomerRegist
         verified.verifyEmail(UserStoreContractTest.NOW);
 
         assertThatThrownBy(() -> subject.register(verified, () -> { }))
-            .hasMessageContaining("only unverified customers register");
+            .hasMessageContaining("only unverified customers with a password register");
     }
 }

@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SyntheticEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
 import { CART_KEY } from '../cart/useCart.ts';
 import { RECOVER_PATH, REGISTER_PATH } from './AccountLink.tsx';
 import { signIn, type SignInAnswer } from './accountApi.ts';
+import { SocialSignIn, socialMessage } from './SocialSignIn.tsx';
 import { CUSTOMER_KEY } from './useCustomer.ts';
 import './account.css';
 
@@ -42,6 +43,9 @@ export function SignInPage() {
   const state = useLocation().state as SignInState | null;
   const verified = state?.verified === true;
   const passwordReset = state?.passwordReset === true;
+  // UC-27 (T-E4-14): where the return from Google or Facebook left the visitor.
+  const [searchParams] = useSearchParams();
+  const social = socialMessage(searchParams.get('social'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const id = useId();
@@ -78,6 +82,15 @@ export function SignInPage() {
           {messages.passwordReset}
         </p>
       )}
+      {social !== null && (
+        <p
+          className={social.problem ? 'account-done account-error' : 'account-done'}
+          role={social.problem ? 'alert' : 'status'}
+        >
+          {social.text}
+        </p>
+      )}
+      <SocialSignIn />
       <form className="account-form" onSubmit={send} noValidate>
         <label htmlFor={`${id}-email`}>{es.account.email}</label>
         <input

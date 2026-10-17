@@ -185,6 +185,57 @@ class UserTest {
             .isInstanceOf(IllegalStateException.class);
     }
 
+    @Test
+    void givenAProvider_whenItCreatesACustomer_thenItHasNoPasswordAndIsVerifiedOnlyIfTheProviderVouched() {
+        User google = User.newExternalCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", true, NOW);
+        User facebook = User.newExternalCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", false, NOW);
+
+        assertThat(google.passwordHash()).isEmpty();
+        assertThat(google.emailVerified()).isTrue();
+        assertThat(google.role()).isEqualTo(UserRole.CUSTOMER);
+        assertThat(facebook.emailVerified()).isFalse();
+    }
+
+    @Test
+    void givenTheNameAProviderGave_whenNamingTheCustomer_thenItIsTrimmedCutTo100OrTakenFromTheEmail() {
+        Email ana = Email.parse("ana.perez@example.com").orElseThrow();
+
+        assertThat(User.nameFromProvider("  Ana Pérez  ", ana)).isEqualTo("Ana Pérez");
+        assertThat(User.nameFromProvider("   ", ana)).isEqualTo("ana.perez");
+        assertThat(User.nameFromProvider(null, ana)).isEqualTo("ana.perez");
+        assertThat(User.nameFromProvider("ñ".repeat(150), ana)).hasSize(100);
+        assertThat(User.isValidName(User.nameFromProvider("a".repeat(99) + " b", ana))).isTrue();
+    }
+
+    @Test
+    void givenAnUnverifiedCustomerWithAPassword_whenVerifiedThroughAnExternalAccount_thenItLosesThePassword() {
+        User customer = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+        Instant later = NOW.plusSeconds(60);
+
+        customer.verifyEmailThroughExternalAccount(later);
+
+        assertThat(customer.emailVerified()).isTrue();
+        assertThat(customer.passwordHash()).isEmpty();
+        assertThat(customer.updatedAt()).isEqualTo(later);
+    }
+
+    @Test
+    void givenAVerifiedCustomer_whenVerifiedThroughAnExternalAccount_thenNothingChanges() {
+        User customer = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+        customer.verifyEmail(NOW);
+
+        customer.verifyEmailThroughExternalAccount(NOW.plusSeconds(60));
+
+        assertThat(customer.passwordHash()).contains(hash());
+        assertThat(customer.updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void givenTheAdministrator_whenVerifiedThroughAnExternalAccount_thenItIsRefused() {
+        assertThatThrownBy(() -> administrator().verifyEmailThroughExternalAccount(NOW))
+            .isInstanceOf(IllegalStateException.class);
+    }
+
     private static User administrator() {
         return User.newAdministrator(UserId.of(UUID.randomUUID()), email(), "Owner", hash(), NOW);
     }

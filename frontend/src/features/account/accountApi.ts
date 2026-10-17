@@ -181,3 +181,62 @@ export async function resetPassword(token: string, password: string): Promise<Re
       throw failed('Password reset', response);
   }
 }
+
+/** UC-27 (T-E4-14): a provider a customer can sign in with. */
+export type SignInProvider = 'GOOGLE' | 'FACEBOOK';
+
+const SIGN_IN_PROVIDERS: readonly SignInProvider[] = ['GOOGLE', 'FACEBOOK'];
+
+/** The enabled providers, so only their buttons show; none when the answer is not the expected one. */
+export async function fetchSignInProviders(signal?: AbortSignal): Promise<SignInProvider[]> {
+  const { data, response } = await api.GET('/api/account/oauth2/providers', { signal: signal ?? null });
+  if (response.status !== 200 || !Array.isArray(data?.providers)) {
+    return [];
+  }
+  return SIGN_IN_PROVIDERS.filter((provider) => data.providers?.includes(provider));
+}
+
+/** Where the browser goes to sign in with a provider: a whole-page navigation, which comes back to the storefront. */
+export function signInWithProviderUrl(provider: SignInProvider): string {
+  return `/api/account/oauth2/authorization/${provider.toLowerCase()}`;
+}
+
+/** POST /api/account/oauth2/email (UC-27, T-E4-14): the same answer whether the email has an account or not. */
+export type ExternalEmailAnswer =
+  | { status: 'requested' }
+  | { status: 'invalidEmail' }
+  | { status: 'expired' }
+  | { status: 'tooManyAttempts' };
+
+export async function giveExternalAccountEmail(email: string): Promise<ExternalEmailAnswer> {
+  const { response } = await api.POST('/api/account/oauth2/email', { body: { email } });
+  switch (response.status) {
+    case 204:
+      return { status: 'requested' };
+    case 410:
+      return { status: 'expired' };
+    case 422:
+      return { status: 'invalidEmail' };
+    case 429:
+      return { status: 'tooManyAttempts' };
+    default:
+      throw failed('External account email', response);
+  }
+}
+
+/** POST /api/account/link/confirm (UC-27, T-E4-14). */
+export type ConfirmLinkAnswer = { status: 'linked' } | { status: 'invalidLink' } | { status: 'alreadyLinked' };
+
+export async function confirmLink(token: string): Promise<ConfirmLinkAnswer> {
+  const { response } = await api.POST('/api/account/link/confirm', { body: { token } });
+  switch (response.status) {
+    case 204:
+      return { status: 'linked' };
+    case 409:
+      return { status: 'alreadyLinked' };
+    case 410:
+      return { status: 'invalidLink' };
+    default:
+      throw failed('Link confirmation', response);
+  }
+}

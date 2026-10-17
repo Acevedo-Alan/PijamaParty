@@ -3,6 +3,8 @@ package com.pijamaparty.store.accounts.adapter.out.persistence;
 import com.pijamaparty.store.accounts.application.ConsumeUserTokens;
 import com.pijamaparty.store.accounts.application.InvalidateUserTokens;
 import com.pijamaparty.store.accounts.application.IssueUserTokens;
+import com.pijamaparty.store.accounts.domain.ExternalAccount;
+import com.pijamaparty.store.accounts.domain.ExternalProvider;
 import com.pijamaparty.store.accounts.domain.UserToken;
 import com.pijamaparty.store.accounts.domain.UserTokenPurpose;
 import com.pijamaparty.store.platform.domain.AccessToken.AccountToken;
@@ -22,8 +24,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * {@code user_token} (V29), which only {@code SYSTEM} reads and writes. Issuing joins the caller's transaction (the
- * email sending's). Consuming runs its own, as {@code SYSTEM} bound to the token's hash, so the database lets the
+ * {@code user_token} (V29; the external account a link confirmation names, V34), which only {@code SYSTEM} reads and
+ * writes. Issuing joins the caller's transaction (the email sending's). Consuming runs its own, as {@code SYSTEM} bound to the token's hash, so the database lets the
  * consumer change only that token's user (RNF-27); the token row is locked, so two openings of one link are taken
  * one after the other and only the first uses it.
  */
@@ -31,12 +33,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 class JdbcUserTokenStore implements IssueUserTokens, ConsumeUserTokens, InvalidateUserTokens {
 
     private static final String INSERT = """
-        INSERT INTO user_token (id, user_id, purpose, token_hash, created_at, expires_at)
-        VALUES (:id, :userId, :purpose, :tokenHash, :createdAt, :expiresAt)
+        INSERT INTO user_token (id, user_id, purpose, token_hash, provider, subject, created_at, expires_at)
+        VALUES (:id, :userId, :purpose, :tokenHash, :provider, :subject, :createdAt, :expiresAt)
         """;
 
     private static final String LOCK_BY_HASH = """
-        SELECT id, user_id, purpose, token_hash, created_at, expires_at, used_at FROM user_token
+        SELECT id, user_id, purpose, token_hash, provider, subject, created_at, expires_at, used_at FROM user_token
         WHERE token_hash = :tokenHash
         FOR UPDATE
         """;
@@ -67,6 +69,8 @@ class JdbcUserTokenStore implements IssueUserTokens, ConsumeUserTokens, Invalida
             .addValue("userId", token.userId().value())
             .addValue("purpose", token.purpose().name())
             .addValue("tokenHash", token.tokenHash())
+            .addValue("provider", token.externalAccount().map(account -> account.provider().name()).orElse(null))
+            .addValue("subject", token.externalAccount().map(ExternalAccount::subject).orElse(null))
             .addValue("createdAt", token.createdAt().atOffset(ZoneOffset.UTC))
             .addValue("expiresAt", token.expiresAt().atOffset(ZoneOffset.UTC)));
     }
@@ -80,6 +84,8 @@ class JdbcUserTokenStore implements IssueUserTokens, ConsumeUserTokens, Invalida
                         UserId.of(row.getObject("user_id", UUID.class)),
                         UserTokenPurpose.valueOf(row.getString("purpose")),
                         row.getString("token_hash"),
+                        row.getString("provider") == null ? null : new ExternalAccount(
+                            ExternalProvider.valueOf(row.getString("provider")), row.getString("subject")),
                         row.getObject("created_at", OffsetDateTime.class).toInstant(),
                         row.getObject("expires_at", OffsetDateTime.class).toInstant(),
                         Optional.ofNullable(row.getObject("used_at", OffsetDateTime.class))

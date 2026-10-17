@@ -61,7 +61,7 @@ public class InMemoryUserTokens implements IssueUserTokens, ConsumeUserTokens, I
     }
 
     private static UserToken copy(UserToken token) {
-        return UserToken.restore(token.id(), token.userId(), token.purpose(), token.tokenHash(), token.createdAt(),
-            token.expiresAt(), token.usedAt().orElse(null));
+        return UserToken.restore(token.id(), token.userId(), token.purpose(), token.tokenHash(),
+            token.externalAccount().orElse(null), token.createdAt(), token.expiresAt(), token.usedAt().orElse(null));
     }
 }

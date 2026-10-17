@@ -79,6 +79,29 @@ public final class User {
         return new User(id, email, false, passwordHash, name, null, UserRole.CUSTOMER, 0, null, null, now, now);
     }
 
+    /**
+     * UC-27: a customer who signs in with a provider, without a password. Verified only when the provider vouched for
+     * its email (Google); otherwise it waits for an email link, as a customer who registered.
+     */
+    public static User newExternalCustomer(UserId id, Email email, String name, boolean emailVerified, Instant now) {
+        return new User(id, email, emailVerified, null, name, null, UserRole.CUSTOMER, 0, null, null, now, now);
+    }
+
+    /**
+     * UC-27 (T-E4-14): the name of a customer created by a provider: the provider's, trimmed and cut to
+     * {@value #MAX_NAME_LENGTH} characters, or the part of the email before {@code @} when the provider gave none.
+     */
+    public static String nameFromProvider(String providerName, Email email) {
+        String name = providerName == null ? "" : providerName.strip();
+        if (name.isEmpty()) {
+            name = email.value().substring(0, email.value().indexOf('@'));
+        }
+        if (name.codePointCount(0, name.length()) > MAX_NAME_LENGTH) {
+            name = name.substring(0, name.offsetByCodePoints(0, MAX_NAME_LENGTH)).strip();
+        }
+        return name;
+    }
+
     /** Rebuilds a stored user without a phone or a second factor; only persistence adapters call it. */
     public static User restore(UserId id, Email email, boolean emailVerified, PasswordHash passwordHash, String name,
                                UserRole role, int failedSignInAttempts, Instant lockedUntil, Instant createdAt,
@@ -133,6 +156,23 @@ public final class User {
     public void verifyEmail(Instant now) {
         if (!emailVerified) {
             emailVerified = true;
+            updatedAt = now;
+        }
+    }
+
+    /**
+     * UC-27 (T-E4-13): a linked Google account vouched for the email, or the link of a link confirmation email was
+     * opened. Only a customer. An unverified account is verified and loses its password: whoever set it never proved
+     * it owned the inbox, so an account pre-registered with someone else's email cannot be taken over. A verified
+     * account changes nothing.
+     */
+    public void verifyEmailThroughExternalAccount(Instant now) {
+        if (role != UserRole.CUSTOMER) {
+            throw new IllegalStateException("only a customer links external accounts (R-14)");
+        }
+        if (!emailVerified) {
+            emailVerified = true;
+            passwordHash = null;
             updatedAt = now;
         }
     }

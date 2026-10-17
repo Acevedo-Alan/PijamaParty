@@ -93,7 +93,8 @@
 
 **Alternativos**
 - **Ya existe una cuenta con ese email:** si el proveedor confirma que el email está verificado (Google lo informa), la cuenta externa se vincula a la existente. Si no lo confirma (Facebook), el sistema envía un correo a ese email con un enlace de un solo uso, que vence a las 24 horas, para confirmar la vinculación; hasta entonces no inicia sesión.
-- **El proveedor no devuelve email** (por ejemplo, una cuenta de Facebook registrada con teléfono): el sistema pide el email y lo verifica por correo antes de crear la cuenta.
+- **El proveedor no devuelve email** (por ejemplo, una cuenta de Facebook registrada con teléfono): el sistema pide el email y lo verifica por correo antes de crear la cuenta. Si ya hay una cuenta con ese email, no se vincula nada: el dueño recibe un correo que avisa que alguien lo intentó y que, si fue él, puede vincular la cuenta desde "Mi cuenta" (*Decidido*: un email escrito por el visitante no prueba nada).
+- **El enlace de confirmación se abre:** abrir el enlace no vincula nada. La página explica que se va a conectar una cuenta de Facebook y avisa que, si no fue el cliente, no continúe; solo el botón "Vincular mi cuenta de Facebook" la vincula (*Decidido*). Mientras una confirmación pedida tenga menos de 24 horas, otro pedido para otra cuenta de Facebook no la reemplaza.
 - **El visitante cancela o el proveedor falla:** vuelve a la pantalla de ingreso con un mensaje, sin crear nada.
 - **Desde "Mi cuenta"**, el cliente puede vincular o desvincular Google y Facebook, y crear una contraseña si no tenía.
 
@@ -110,6 +111,8 @@
 - Dado un visitante sin cuenta, cuando continúa con Google, entonces se crea una cuenta con su nombre y email marcado como verificado, y queda con sesión iniciada.
 - Dado un cliente con cuenta y contraseña, cuando continúa con Google usando el mismo email verificado, entonces la cuenta externa se vincula a la existente y no se crea otra.
 - Dado un cliente con cuenta, cuando continúa con Facebook usando el mismo email, entonces no inicia sesión hasta confirmar la vinculación con el enlace enviado por correo.
+- Dada una cuenta de Facebook sin email, cuando el visitante escribe el email de una cuenta existente, entonces no se vincula nada y el dueño de esa cuenta recibe un correo de aviso.
+- Dado un correo de confirmación de vinculación, cuando se abre su enlace, entonces no se vincula nada hasta tocar el botón de la página.
 - Dado un cliente cuyo único medio de ingreso es Google, cuando intenta desvincularlo, entonces se rechaza y se le ofrece crear una contraseña.
 - Dada una respuesta del proveedor con un `state` que no coincide, cuando llega al sistema, entonces se rechaza sin crear ni vincular cuentas.
 - Dada la cuenta del administrador, cuando se intenta ingresar con Google o Facebook usando su email, entonces no se da acceso al backoffice.

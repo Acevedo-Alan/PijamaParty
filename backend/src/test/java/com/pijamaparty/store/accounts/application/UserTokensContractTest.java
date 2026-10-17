@@ -3,6 +3,8 @@ package com.pijamaparty.store.accounts.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.pijamaparty.store.accounts.domain.ExternalAccount;
+import com.pijamaparty.store.accounts.domain.ExternalProvider;
 import com.pijamaparty.store.accounts.domain.User;
 import com.pijamaparty.store.accounts.domain.UserToken;
 import com.pijamaparty.store.accounts.domain.UserTokenPurpose;
@@ -55,6 +57,21 @@ public abstract class UserTokensContractTest<T extends IssueUserTokens & Consume
         Optional<UserToken> found = subject.consuming(link, token -> token);
 
         assertThat(found).get().usingRecursiveComparison().isEqualTo(issued);
+        assertThat(found.orElseThrow().expiresAt()).isEqualTo(NOW.plus(Duration.ofHours(24)));
+    }
+
+    @Test
+    void givenAnIssuedLinkConfirmation_whenConsumingItsToken_thenItNamesTheExternalAccountItLinks() {
+        var link = new AccountToken("a".repeat(43));
+        var facebook = new ExternalAccount(ExternalProvider.FACEBOOK, "10229876543210");
+        UserToken issued = UserToken.issueLinkConfirmation(UUID.randomUUID(), customer.id(), facebook, link.hash(),
+            NOW);
+        issue(issued);
+
+        Optional<UserToken> found = subject.consuming(link, token -> token);
+
+        assertThat(found).get().usingRecursiveComparison().isEqualTo(issued);
+        assertThat(found.orElseThrow().externalAccount()).contains(facebook);
         assertThat(found.orElseThrow().expiresAt()).isEqualTo(NOW.plus(Duration.ofHours(24)));
     }
 

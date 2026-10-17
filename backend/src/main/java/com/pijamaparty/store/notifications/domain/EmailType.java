@@ -28,5 +28,18 @@ public enum EmailType {
      * To a customer who forgot its password, the link to set a new one (UC-19, T-E4-03). The reference is the user;
      * each new link asked for is a new version.
      */
-    PASSWORD_RESET
+    PASSWORD_RESET,
+
+    /**
+     * To a customer whose email a provider does not vouch for (Facebook), the link that confirms linking that external
+     * account (UC-27, T-E4-14). The reference is the user; each new request is a new version.
+     */
+    LINK_CONFIRMATION,
+
+    /**
+     * To a customer whose email someone typed to connect an external account without email, the notice that nothing
+     * was linked and how to link it from "Mi cuenta" (UC-27, T-E4-14). No token. The reference is the user; each new
+     * attempt is a new version.
+     */
+    LINK_ATTEMPT_NOTICE
 }

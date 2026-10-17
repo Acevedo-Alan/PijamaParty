@@ -807,6 +807,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/oauth2/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give the email of an external account that came without one
+         * @description For the external account waiting in this session (15 minutes): an account with that email gets the email that confirms linking it, whose link lasts 24 hours from the sending; without one, an account is created that nobody can sign in to until the link is confirmed. The answer is the same whether the email belongs to an account or not. Requires the CSRF token.
+         */
+        post: operations["giveEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/logout": {
         parameters: {
             query?: never;
@@ -841,6 +861,26 @@ export interface paths {
          * @description Opens the customer's session (new session id and CSRF token). Requires the CSRF token.
          */
         post: operations["signIn_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/link/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm linking an external account with the token of its link
+         * @description Uses the token, once, links the external account and verifies the email; an unverified account loses its password. Does not sign in: the customer signs in with the provider afterwards. Requires the CSRF token.
+         */
+        post: operations["confirmLink"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1287,6 +1327,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/oauth2/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The providers a customer can sign in with
+         * @description Each one is enabled by its credentials. Its sign-in starts at /api/account/oauth2/authorization/{provider} (google or facebook, a browser navigation) and comes back to the storefront.
+         */
+        get: operations["providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/me": {
         parameters: {
             query?: never;
@@ -1679,6 +1739,9 @@ export interface components {
         PasswordRecoveryRequest: {
             email: string;
         };
+        ExternalAccountEmailRequest: {
+            email: string;
+        };
         CustomerSignInRequest: {
             email: string;
             password: string;
@@ -1689,6 +1752,9 @@ export interface components {
             email?: string;
             name?: string;
             phone: string | null;
+        };
+        ConfirmLinkRequest: {
+            token: string;
         };
         EmailCorrectionRequest: {
             email: string;
@@ -2041,6 +2107,9 @@ export interface components {
             totalCents?: number;
             address?: components["schemas"]["MyOrderAddressResponse"];
             shipmentTrackingNumber: string | null;
+        };
+        SignInProvidersResponse: {
+            providers?: ("GOOGLE" | "FACEBOOK")[];
         };
     };
     responses: never;
@@ -4312,6 +4381,57 @@ export interface operations {
             };
         };
     };
+    giveEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExternalAccountEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Always for a valid email; the session forgets the external account */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description EXTERNAL_SIGN_IN_EXPIRED: no external account waits in this session; sign in with the provider again */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description INVALID_EMAIL */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over 3 registrations, password recoveries and these emails per hour from this IP (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     signOut_1: {
         parameters: {
             query?: never;
@@ -4381,6 +4501,48 @@ export interface operations {
             };
             /** @description Over 5 attempts per minute from this IP or for this email (RNF-22, RNF-29.5); Retry-After says when to retry. Does not say whether the account exists */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    confirmLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Linked, now or by an earlier confirmation */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description EXTERNAL_ACCOUNT_ALREADY_LINKED: the external account belongs to someone else, or this account already has another one of that provider */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description INVALID_LINK: unknown, used or expired; does not say which */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5473,6 +5635,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    providers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The enabled providers, possibly none */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SignInProvidersResponse"];
                 };
             };
         };

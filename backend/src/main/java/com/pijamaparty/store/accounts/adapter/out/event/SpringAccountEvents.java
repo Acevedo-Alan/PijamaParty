@@ -1,6 +1,8 @@
 package com.pijamaparty.store.accounts.adapter.out.event;
 
 import com.pijamaparty.store.accounts.api.EmailVerificationRequested;
+import com.pijamaparty.store.accounts.api.LinkAttemptNoticeRequested;
+import com.pijamaparty.store.accounts.api.LinkConfirmationRequested;
 import com.pijamaparty.store.accounts.api.PasswordResetRequested;
 import com.pijamaparty.store.accounts.application.AccountEvents;
 import com.pijamaparty.store.platform.domain.UserId;
@@ -25,5 +27,15 @@ class SpringAccountEvents implements AccountEvents {
     @Override
     public void passwordResetRequested(UserId customer) {
         publisher.publishEvent(new PasswordResetRequested(customer.value()));
+    }
+
+    @Override
+    public void linkConfirmationRequested(UserId customer) {
+        publisher.publishEvent(new LinkConfirmationRequested(customer.value()));
+    }
+
+    @Override
+    public void linkAttemptNoticeRequested(UserId customer) {
+        publisher.publishEvent(new LinkAttemptNoticeRequested(customer.value()));
     }
 }

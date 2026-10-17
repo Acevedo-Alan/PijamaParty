@@ -20,9 +20,9 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 
 /**
  * Security baseline (RNF-29.1): no form or basic login (use cases check credentials and then call
- * {@link SessionAuthentication}), session-based authentication, CSRF for the SPA, 401/403 as problem+json, and deny
- * by default: routes are public only when an {@link HttpAuthorizationRules} bean says so. HSTS and CSP are set in
- * Caddy (RNF-29.9).
+ * {@link SessionAuthentication}; modules add the sign-ins Spring Security drives as {@link SignInFlows}),
+ * session-based authentication, CSRF for the SPA, 401/403 as problem+json, and deny by default: routes are public
+ * only when an {@link HttpAuthorizationRules} bean says so. HSTS and CSP are set in Caddy (RNF-29.9).
  */
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfiguration {
@@ -33,7 +33,8 @@ public class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, List<HttpAuthorizationRules> rules,
                                             ObjectMapper objectMapper, CsrfTokenRepository csrfTokens,
-                                            SecurityContextRepository contexts) throws Exception {
+                                            SecurityContextRepository contexts, ObjectProvider<SignInFlows> signInFlows)
+        throws Exception {
         var problemJson = new ProblemJsonSecurityHandler(objectMapper);
         http
             .formLogin(AbstractHttpConfigurer::disable)
@@ -54,6 +55,9 @@ public class SecurityConfiguration {
                 rules.forEach(rule -> rule.configure(authorize));
                 authorize.anyRequest().authenticated();
             });
+        for (SignInFlows flow : signInFlows.orderedStream().toList()) {
+            flow.configure(http);
+        }
         return http.build();
     }
 

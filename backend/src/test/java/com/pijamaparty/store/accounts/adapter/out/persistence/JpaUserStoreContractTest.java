@@ -46,7 +46,7 @@ class JpaUserStoreContractTest extends UserStoreContractTest<JpaUserStoreContrac
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate address, user_token, external_identity, admin_recovery_code, app_user");
+        owner.execute("truncate address, user_token, external_identity, pending_link, admin_recovery_code, app_user");
     }
 
     @Test

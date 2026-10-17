@@ -84,6 +84,25 @@ store:
     second-factor-key: ${SECOND_FACTOR_KEY:}
     # T-E1-16: true for one start after losing the phone and the recovery codes: deletes the second factor.
     reset-second-factor: ${ADMIN_RESET_SECOND_FACTOR:false}
+  accounts:
+    oauth2:
+      # T-E4-14 (UC-27): sign-in with Google and Facebook. A provider is off while its client id is empty (its button is
+      # not shown); the client secrets are Docker secrets in production. RNF-21: 3 s to connect, 10 s to read.
+      google:
+        client-id: ${GOOGLE_CLIENT_ID:}
+        client-secret: ${GOOGLE_CLIENT_SECRET:}
+        # Google's endpoints (tests point them at a stub)
+        token-uri: https://oauth2.googleapis.com/token
+        jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+      facebook:
+        client-id: ${FACEBOOK_CLIENT_ID:}
+        client-secret: ${FACEBOOK_CLIENT_SECRET:}
+        # The Graph API version of the dialog, the token and the profile (check it is still supported, T-E4-12)
+        graph-version: v23.0
+        # Where the Graph API answers (tests point it at a stub); the dialog is always www.facebook.com
+        graph-url: https://graph.facebook.com
+      connect-timeout: 3s
+      read-timeout: 10s
   images:
     # UC-06: the uploads volume, which Caddy serves under /uploads (deploy/docker-compose.yml)
     uploads-dir: ${UPLOADS_DIR:/srv/uploads}
@@ -203,13 +222,21 @@ store:
         keys: [sign-in-email]
         capacity: 5
         period: 1m
-      # UC-19 (T-E4-10): registrations and password recoveries per IP, in one bucket; each one may send an email
+      # UC-19 (T-E4-10): registrations and password recoveries per IP, in one bucket; each one may send an email. The
+      # email given for a provider account without one (UC-27, T-E4-14) may send one too
       - name: account-email
-        paths: [/api/account/register, /api/account/password-recovery]
+        paths: [/api/account/register, /api/account/password-recovery, /api/account/oauth2/email]
         methods: [POST]
         keys: [ip]
         capacity: 3
         period: 1h
+      # UC-27 (T-E4-14, RNF-22): returns from Google and Facebook per IP
+      - name: social-sign-in
+        paths: [/api/account/oauth2/code/*]
+        methods: [GET]
+        keys: [ip]
+        capacity: 10
+        period: 1m
       # UC-01 to UC-03 and UC-26: generous, many shoppers share a mobile-data IP
       - name: catalog
         paths: [/api/catalog/**]

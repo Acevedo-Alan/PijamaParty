@@ -46,12 +46,15 @@ class SendNextEmailServiceTest {
     private final InMemoryEmailComposer withdrawalAdmin = new InMemoryEmailComposer(EmailType.WITHDRAWAL_RECEIVED_ADMIN);
     private final InMemoryEmailComposer emailVerification = new InMemoryEmailComposer(EmailType.EMAIL_VERIFICATION);
     private final InMemoryEmailComposer passwordReset = new InMemoryEmailComposer(EmailType.PASSWORD_RESET);
+    private final InMemoryEmailComposer linkConfirmation = new InMemoryEmailComposer(EmailType.LINK_CONFIRMATION);
+    private final InMemoryEmailComposer linkAttemptNotice = new InMemoryEmailComposer(EmailType.LINK_ATTEMPT_NOTICE);
     private final InMemoryEmailSender sender = new InMemoryEmailSender();
     private final ClaimNextEmailService claims = new ClaimNextEmailService(outbox, outbox, clock);
     private final SendNextEmailService service =
         new SendNextEmailService(claims, outbox,
-            List.of(buyer, admin, withdrawalBuyer, withdrawalAdmin, emailVerification, passwordReset), sender,
-            clock);
+            List.of(buyer, admin, withdrawalBuyer, withdrawalAdmin, emailVerification, passwordReset,
+                linkConfirmation, linkAttemptNotice),
+            sender, clock);
     private final UUID order = UUID.randomUUID();
 
     @Test

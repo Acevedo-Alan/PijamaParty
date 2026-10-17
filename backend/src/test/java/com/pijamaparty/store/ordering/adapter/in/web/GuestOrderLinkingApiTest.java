@@ -75,7 +75,7 @@ class GuestOrderLinkingApiTest {
     void cleanUp() {
         resend.reset();
         owner.execute("truncate withdrawal_request, order_tracking_token, order_item, orders, email_outbox, address, "
-            + "user_token, external_identity, admin_recovery_code, app_user");
+            + "user_token, external_identity, pending_link, admin_recovery_code, app_user");
         owner.update("delete from spring_session");
     }
 

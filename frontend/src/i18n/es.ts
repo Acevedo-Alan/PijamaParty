@@ -918,6 +918,43 @@ export const es = {
       error: 'No pudimos guardar la dirección. Probá de nuevo.',
       removeError: 'No pudimos eliminar la dirección. Probá de nuevo.',
     },
+    /** UC-27 (T-E4-14): sign-in and registration with Google and Facebook. */
+    social: {
+      continueWith: (provider: string) => `Continuar con ${provider}`,
+      or: 'o con tu email',
+      confirmLink:
+        'Ya hay una cuenta con ese email. Te enviamos un correo para confirmar que es tuyo: abrilo y después continuá de nuevo con el mismo botón.',
+      cancelled: 'Cancelaste el ingreso. Podés probar de nuevo o ingresar con tu email.',
+      alreadyLinked:
+        'Tu cuenta ya está vinculada con otra cuenta de ese servicio. Ingresá con esa o con tu email y contraseña.',
+      failed: 'No pudimos ingresar con ese servicio. Probá de nuevo o ingresá con tu email.',
+    },
+    completeEmail: {
+      title: 'Completá tu email',
+      intro: 'Tu cuenta de Facebook no nos dio un email. Escribilo y te enviamos un enlace para confirmar que es tuyo.',
+      send: 'Enviar enlace',
+      sending: 'Enviando…',
+      done: (email: string) =>
+        `Te enviamos un email a ${email} con los pasos a seguir. Si no lo ves, revisá la carpeta de spam.`,
+      invalidEmail: 'Revisá el email: no parece válido.',
+      expired: 'Pasó demasiado tiempo. Volvé a continuar con Facebook para empezar de nuevo.',
+      backToSignIn: 'Volver a ingresar',
+      error: 'No pudimos enviar el enlace. Probá de nuevo.',
+    },
+    link: {
+      title: 'Vincular cuenta',
+      intro: 'Vas a conectar una cuenta de Facebook a tu cuenta de Pijama Party. Después vas a poder ingresar con ella.',
+      notYou:
+        'Si no pediste esta vinculación, no continúes: cerrá esta página y tu cuenta sigue igual. Quien tenga esa cuenta de Facebook podría ingresar a la tuya.',
+      confirm: 'Vincular mi cuenta de Facebook',
+      linking: 'Vinculando tu cuenta…',
+      linked: '¡Listo! Vinculamos tu cuenta. Ya podés ingresar con el mismo botón que usaste.',
+      invalidLink: 'Este enlace ya se usó o venció. Continuá de nuevo con el mismo botón y te enviamos uno nuevo.',
+      alreadyLinked:
+        'No pudimos vincularla: esa cuenta ya está vinculada con otra, o la tuya ya tiene otra cuenta de ese servicio.',
+      error: 'No pudimos vincular tu cuenta. Probá abrir el enlace de nuevo.',
+      signIn: 'Ir a ingresar',
+    },
     verify: {
       title: 'Verificar email',
       verifying: 'Verificando tu email…',

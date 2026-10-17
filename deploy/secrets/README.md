@@ -16,6 +16,7 @@ per secret, containing only the value (no newline is needed):
 | `MODO_USERNAME`, `MODO_PASSWORD` | `api`: the store's MODO credentials (T-E3b-02), from the email MODO sends after the sign-up, with the processor code that goes in `.env` as `MODO_PROCESSOR_CODE`. MODO is off unless `MODO_ENABLED=true` in `.env`; while it is off, create both files empty. Enabled without them, the API does not start |
 | `RESEND_API_KEY` | `api`: Resend's API key for the payment-confirmed emails (T-E3-09), from the Resend dashboard, "API Keys", with "Sending access" only. `MAIL_FROM` (an address of a domain verified at Resend) and `NOTIFICATIONS_ADMIN_EMAIL` go in `.env`. Without it the API does not start |
 | `RESEND_WEBHOOK_SECRET` | `api`: the secret that signs Resend's bounce and complaint notifications (T-E3-22), from the Resend dashboard, "Webhooks" > the webhook > "Signing secret" (`whsec_...`). Create the webhook with the production URL `https://DOMAIN/api/mail/webhook` and the events `email.bounced`, `email.suppressed` and `email.complained` only. Without it the API does not start |
+| `GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_SECRET` | `api`: the client secrets of the sign-in with Google and Facebook (T-E4-14, UC-27), from Google Cloud ("APIs y servicios" > "Credenciales" > the OAuth client) and Meta for Developers (the app > "Configuración de la app" > "Básica" > "Clave secreta de la app"), with the client ids in `.env` as `GOOGLE_CLIENT_ID` and `FACEBOOK_CLIENT_ID`. Register `https://DOMAIN/api/account/oauth2/code/google` and `.../facebook` as the redirect URIs (T-E4-12). A provider is off while its client id is empty; then create its file empty |
 
 Generate each one with a password manager or `openssl rand -base64 32`. The role passwords are set when the database
 volume is created; changing a file later does not change the role password (use `ALTER ROLE`).
@@ -37,4 +38,6 @@ chmod 444 deploy/secrets/MODO_USERNAME
 chmod 444 deploy/secrets/MODO_PASSWORD
 chmod 444 deploy/secrets/RESEND_API_KEY
 chmod 444 deploy/secrets/RESEND_WEBHOOK_SECRET
+chmod 444 deploy/secrets/GOOGLE_CLIENT_SECRET
+chmod 444 deploy/secrets/FACEBOOK_CLIENT_SECRET
 ```

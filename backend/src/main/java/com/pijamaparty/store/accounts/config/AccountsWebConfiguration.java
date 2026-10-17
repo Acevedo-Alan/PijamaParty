@@ -25,13 +25,17 @@ class AccountsWebConfiguration {
 
     /**
      * UC-19: registering, verifying the email, signing in and recovering the password are public; the rest of the
-     * account is the signed-in customer's own.
+     * account is the signed-in customer's own. UC-27 (T-E4-14): so is signing in with a provider, giving the email of
+     * an external account that came without one and confirming a link.
      */
     @Bean
     HttpAuthorizationRules customerAccountAuthorizationRules() {
         return registry -> {
             registry.requestMatchers(HttpMethod.POST, "/api/account/register", "/api/account/verify-email",
-                "/api/account/login", "/api/account/password-recovery", "/api/account/password-reset").permitAll();
+                "/api/account/login", "/api/account/password-recovery", "/api/account/password-reset",
+                "/api/account/oauth2/email", "/api/account/link/confirm").permitAll();
+            registry.requestMatchers(HttpMethod.GET, "/api/account/oauth2/providers",
+                "/api/account/oauth2/authorization/*", "/api/account/oauth2/code/*").permitAll();
             registry.requestMatchers("/api/account/**").hasRole(Role.CUSTOMER.name());
         };
     }

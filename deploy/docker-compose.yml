@@ -73,6 +73,10 @@ services:
       # T-E3b-02: MODO, off unless MODO_ENABLED=true; then MODO_PROCESSOR_CODE and the two MODO secrets are required
       MODO_ENABLED: ${MODO_ENABLED:-false}
       MODO_PROCESSOR_CODE: ${MODO_PROCESSOR_CODE:-}
+      # T-E4-14: sign-in with Google and Facebook (UC-27), each one off without its client id; the client secrets are
+      # Docker secrets below
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      FACEBOOK_CLIENT_ID: ${FACEBOOK_CLIENT_ID:-}
       # Docker secrets, mounted as files, become properties (e.g. ${DB_APP_PASSWORD}).
       SPRING_CONFIG_IMPORT: configtree:/run/secrets/
     secrets:
@@ -85,6 +89,8 @@ services:
       - MODO_PASSWORD
       - RESEND_API_KEY
       - RESEND_WEBHOOK_SECRET
+      - GOOGLE_CLIENT_SECRET
+      - FACEBOOK_CLIENT_SECRET
     volumes:
       - uploads:/srv/uploads
     networks: [edge, data]
@@ -195,3 +201,7 @@ secrets:
     file: ./secrets/RESEND_API_KEY
   RESEND_WEBHOOK_SECRET:
     file: ./secrets/RESEND_WEBHOOK_SECRET
+  GOOGLE_CLIENT_SECRET:
+    file: ./secrets/GOOGLE_CLIENT_SECRET
+  FACEBOOK_CLIENT_SECRET:
+    file: ./secrets/FACEBOOK_CLIENT_SECRET

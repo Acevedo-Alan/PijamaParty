@@ -15,8 +15,8 @@ public class InMemoryCustomerRegistrations implements CustomerRegistrations {
     /** Synchronized: the real adapter lets the email's unique constraint pick one of two registrations. */
     @Override
     public synchronized boolean register(User customer, Runnable whenRegistered) {
-        if (customer.role() != UserRole.CUSTOMER || customer.emailVerified()) {
-            throw new IllegalArgumentException("only unverified customers register");
+        if (customer.role() != UserRole.CUSTOMER || customer.emailVerified() || customer.passwordHash().isEmpty()) {
+            throw new IllegalArgumentException("only unverified customers with a password register");
         }
         if (users.findByEmail(customer.email()).isPresent()) {
             return false;

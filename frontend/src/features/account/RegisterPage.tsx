@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { SIGN_IN_PATH } from './AccountLink.tsx';
 import { register, type RegisterAnswer } from './accountApi.ts';
+import { SocialSignIn } from './SocialSignIn.tsx';
 import './account.css';
 
 const messages = es.account.register;
@@ -74,6 +75,7 @@ export function RegisterPage() {
       ) : (
         <>
           <p className="account-intro">{messages.intro}</p>
+          <SocialSignIn />
           <form className="account-form" onSubmit={send} noValidate>
             <label htmlFor={`${id}-name`}>{messages.name}</label>
             <input

@@ -68,7 +68,7 @@ class GuestOrderLinkRowLevelSecurityTest {
     @AfterEach
     void cleanUp() {
         owner.execute("truncate withdrawal_request, order_tracking_token, order_item, orders, address, user_token, "
-            + "external_identity, admin_recovery_code, app_user");
+            + "external_identity, pending_link, admin_recovery_code, app_user");
     }
 
     @Test

@@ -14,8 +14,10 @@
 | POST | `/api/cuenta/recuperar` y `/restablecer` | CU-19 |
 | GET/POST/PUT/DELETE | `/api/cuenta/direcciones` | CU-20 |
 | GET | `/api/cuenta/pedidos` y `/pedidos/{id}` | CU-22 |
-| GET | `/oauth2/authorization/{proveedor}` | Inicio del ingreso social; `proveedor` es `google` o `facebook` (CU-27) |
-| GET | `/login/oauth2/code/{proveedor}` | Vuelta desde el proveedor (CU-27) |
+| GET | `/api/cuenta/oauth2/authorization/{proveedor}` | Inicio del ingreso social; `proveedor` es `google` o `facebook` (CU-27). Bajo `/api`, así Caddy y el proxy de Vite lo alcanzan sin cambios |
+| GET | `/api/cuenta/oauth2/code/{proveedor}` | Vuelta desde el proveedor (CU-27) |
+| GET | `/api/cuenta/oauth2/proveedores` | Proveedores habilitados, para mostrar solo sus botones (CU-27) |
+| POST | `/api/cuenta/oauth2/email` | Email de una cuenta de Facebook que no lo informa (CU-27) |
 | POST | `/api/cuenta/vincular/confirmar` | Confirmar la vinculación por correo (CU-27) |
 | GET/DELETE | `/api/cuenta/identidades` | Ver y desvincular cuentas externas (CU-27) |
 | PUT | `/api/cuenta/password` | Crear o cambiar la contraseña (CU-27) |

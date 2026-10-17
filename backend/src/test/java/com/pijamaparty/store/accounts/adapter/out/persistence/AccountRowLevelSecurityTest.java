@@ -47,8 +47,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * own addresses; the administrator reads its own user and every address; the system reads and updates every user,
  * registers customers and is the only one to reach the tokens; nobody deletes a user. T-E4-13 adds
  * {@code external_identity} (V34): a customer reads and unlinks its own external accounts, and only the system reads
- * all of them and links them. Customer B also reaches for
- * customer A's orders and addresses by their ids, as a query that forgot to filter by customer would. Which columns
+ * all of them and links them. T-E4-14 adds {@code pending_link} (V35), which only the system reaches, and only for
+ * customers. Customer B also reaches for customer A's orders and addresses by their ids, as a query that forgot to filter by customer would. Which columns
  * each actor may change is {@link AccountSchemaTest} and {@link UserSchemaTest}. Every transaction is committed by
  * the application role.
  */
@@ -83,11 +83,14 @@ class AccountRowLevelSecurityTest {
         insert into external_identity (id, user_id, provider, subject, email, created_at)
         values (?, ?, ?, ?, ?, now())
         """;
+    private static final String INSERT_PENDING_LINK = """
+        insert into pending_link (user_id, provider, subject, requested_at) values (?, 'FACEBOOK', ?, now())
+        """;
     private static final String RLS_VIOLATION = "row-level security";
 
     /**
-     * The seeded accounts: both customers have an address, an unused verification token and a linked Google account;
-     * the owner has none.
+     * The seeded accounts: both customers have an address, an unused verification token, a linked Google account and a
+     * Facebook account waiting for its link confirmation; the owner has none.
      */
     enum Account {
         CUSTOMER_A(CUSTOMER_A_ID, "a@example.com", "CUSTOMER"),
@@ -173,6 +176,7 @@ class AccountRowLevelSecurityTest {
                     new AccountToken("verification-of-" + account.name()).hash());
                 owner.update(INSERT_IDENTITY, UUID.randomUUID(), account.id.value(), "GOOGLE",
                     "google-" + account.name(), account.email);
+                owner.update(INSERT_PENDING_LINK, account.id.value(), "facebook-" + account.name());
             }
         }
     }
@@ -180,12 +184,12 @@ class AccountRowLevelSecurityTest {
     @AfterEach
     void cleanUp() {
         owner.execute("truncate withdrawal_request, order_tracking_token, order_item, orders");
-        owner.execute("truncate address, user_token, external_identity, admin_recovery_code, app_user");
+        owner.execute("truncate address, user_token, external_identity, pending_link, admin_recovery_code, app_user");
     }
 
     @Test
     void givenTheAccountTables_whenCheckingTheirProtection_thenRowLevelSecurityIsEnabledAndForced() {
-        for (String table : List.of("app_user", "address", "user_token", "external_identity")) {
+        for (String table : List.of("app_user", "address", "user_token", "external_identity", "pending_link")) {
             var flags = owner.queryForMap(
                 "select relrowsecurity, relforcerowsecurity from pg_class where oid = ?::regclass", table);
             assertThat(flags).as(table).containsEntry("relrowsecurity", true).containsEntry("relforcerowsecurity", true);
@@ -379,6 +383,54 @@ class AccountRowLevelSecurityTest {
         kept.removeAll(caller.unlinksIdentities());
         assertThat(accounts(owner.queryForList("select user_id from external_identity", UUID.class)))
             .as("stored").isEqualTo(kept);
+    }
+
+    // --- pending_link ---
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callers")
+    void givenAPendingLinkOfEachCustomer_whenReadingUpdatingAndForgettingAll_thenOnlyTheSystemReachesThem(
+        Caller caller) {
+        Set<Account> reached = caller.isSystem() ? CUSTOMERS : NONE;
+
+        var read = caller.run(rls, sql -> sql.queryForList("select user_id from pending_link", UUID.class));
+        var replaced = caller.run(rls, sql -> sql.queryForList(
+            "update pending_link set subject = 'facebook-other', requested_at = now() returning user_id", UUID.class));
+        var forgotten = caller.run(rls, sql -> sql.queryForList(
+            "delete from pending_link returning user_id", UUID.class));
+
+        assertThat(accounts(read)).as("read").isEqualTo(reached);
+        assertThat(accounts(replaced)).as("replaced").isEqualTo(reached);
+        assertThat(accounts(forgotten)).as("forgotten").isEqualTo(reached);
+        assertThat(owner.queryForObject("select count(*) from pending_link", Integer.class)).as("stored")
+            .isEqualTo(caller.isSystem() ? 0 : CUSTOMERS.size());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callers")
+    void givenNoPendingLink_whenRequestingOneForEveryAccount_thenOnlyTheSystemIsAcceptedAndOnlyForCustomers(
+        Caller caller) {
+        owner.update("delete from pending_link");
+        for (Account account : Account.values()) {
+            var request = (Function<JdbcTemplate, Integer>) sql -> sql.update(INSERT_PENDING_LINK, account.id.value(),
+                "facebook-" + account.name());
+            if (caller.isSystem() && account.isCustomer()) {
+                assertThat(caller.run(rls, request)).as(account.name()).isOne();
+            } else {
+                assertThatThrownBy(() -> caller.run(rls, request)).as(account.name())
+                    .isInstanceOf(DataAccessException.class).hasStackTraceContaining(RLS_VIOLATION);
+            }
+        }
+    }
+
+    @Test
+    void givenAPendingLink_whenTheSystemMovesItToAnotherCustomer_thenTheGuardRefusesIt() {
+        owner.update("delete from pending_link where user_id = ?", CUSTOMER_B_ID.value());
+
+        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(
+                "update pending_link set user_id = ? where user_id = ?", CUSTOMER_B_ID.value(),
+                CUSTOMER_A_ID.value())))
+            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("a pending link belongs to one customer");
     }
 
     // --- another customer's orders and addresses ---

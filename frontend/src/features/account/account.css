@@ -374,3 +374,56 @@ a.account-link {
   color: var(--ink-soft);
   font-size: 14px;
 }
+
+/* UC-27 (T-E4-14): "Continuar con Google" and "Continuar con Facebook", above the email form. */
+
+.social-sign-in {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.account-done .social-sign-in {
+  margin: 16px 0 0;
+}
+
+.social-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.social-button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .social-button:hover {
+    border-color: var(--accent);
+  }
+}
+
+.social-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.social-or::before,
+.social-or::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--line);
+}

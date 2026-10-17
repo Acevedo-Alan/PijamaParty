@@ -59,4 +59,30 @@ class UserTokenTest {
         assertThatThrownBy(() -> UserToken.restore(UUID.randomUUID(), USER, UserTokenPurpose.EMAIL_VERIFICATION,
             HASH, created, expires, expires)).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void givenALinkConfirmation_whenIssued_thenItLasts24HoursAndNamesTheExternalAccountItLinks() {
+        var facebook = new ExternalAccount(ExternalProvider.FACEBOOK, "10229876543210");
+
+        UserToken token = UserToken.issueLinkConfirmation(UUID.randomUUID(), USER, facebook, HASH, NOW);
+
+        assertThat(token.purpose()).isEqualTo(UserTokenPurpose.LINK_CONFIRMATION);
+        assertThat(token.expiresAt()).isEqualTo(token.createdAt().plus(Duration.ofHours(24)));
+        assertThat(token.externalAccount()).contains(facebook);
+        assertThat(token.use(UserTokenPurpose.LINK_CONFIRMATION, NOW.plus(Duration.ofHours(23)))).isTrue();
+    }
+
+    @Test
+    void givenAnExternalAccountOnlyWhereALinkConfirmationIsNot_whenRestored_thenItIsRejected() {
+        Instant created = Instant.parse("2026-10-16T15:00:00Z");
+        Instant expires = created.plus(Duration.ofHours(24));
+        var facebook = new ExternalAccount(ExternalProvider.FACEBOOK, "10229876543210");
+
+        assertThatThrownBy(() -> UserToken.restore(UUID.randomUUID(), USER, UserTokenPurpose.LINK_CONFIRMATION, HASH,
+            null, created, expires, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> UserToken.restore(UUID.randomUUID(), USER, UserTokenPurpose.EMAIL_VERIFICATION, HASH,
+            facebook, created, expires, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> UserToken.issue(UUID.randomUUID(), USER, UserTokenPurpose.LINK_CONFIRMATION, HASH,
+            NOW)).isInstanceOf(IllegalArgumentException.class);
+    }
 }

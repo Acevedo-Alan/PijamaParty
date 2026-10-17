@@ -27,7 +27,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 /**
  * T-E4-01: the customer account schema (V29): the phone of app_user, the address book, the single-use tokens of the
  * email links and the column guards of app_user and user_token (RNF-27), as committed transactions of the application
- * role. T-E4-13 (V34): the linked external accounts, the link confirmation and the social sign-in changes of app_user. Which rows each actor reaches, with the five actors, is {@link AccountRowLevelSecurityTest} (T-E4-11).
+ * role. T-E4-13 (V34): the linked external accounts, the link confirmation and the social sign-in changes of
+ * app_user. T-E4-14 (V35): the external account waiting for its link confirmation email, and that email's type. Which
+ * rows each actor reaches, with the five actors, is {@link AccountRowLevelSecurityTest} (T-E4-11).
  */
 @ApiTest
 class AccountSchemaTest {
@@ -82,7 +84,8 @@ class AccountSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate address, user_token, external_identity, admin_recovery_code, app_user");
+        owner.execute("truncate email_outbox, address, user_token, external_identity, pending_link, admin_recovery_code, "
+            + "app_user");
     }
 
     // --- app_user.phone ---
@@ -149,6 +152,44 @@ class AccountSchemaTest {
         assertThat(owner.queryForObject("select count(*) from address", Integer.class)).isZero();
         assertThat(owner.queryForObject("select count(*) from user_token", Integer.class)).isZero();
         assertThat(owner.queryForObject("select count(*) from external_identity", Integer.class)).isZero();
+    }
+
+    // --- pending_link (T-E4-14, V35) ---
+
+    @Test
+    void givenACustomerWithAPendingLink_whenAnotherIsStoredOrItsUserDeleted_thenThereIsOneAtMostAndItGoesWithIt() {
+        pendingLink(CUSTOMER_A_ID.value(), "FACEBOOK", "facebook-a");
+
+        assertThatThrownBy(() -> pendingLink(CUSTOMER_A_ID.value(), "FACEBOOK", "facebook-a2"))
+            .isInstanceOf(DuplicateKeyException.class).hasMessageContaining("pending_link_pk");
+
+        owner.update("delete from app_user where id = ?", CUSTOMER_A_ID.value());
+        assertThat(owner.queryForObject("select count(*) from pending_link", Integer.class)).isZero();
+    }
+
+    @Test
+    void givenAPendingLinkWithFieldsOutOfFormat_whenStored_thenTheChecksRejectIt() {
+        for (var link : List.of(
+                List.of("APPLE", "123", "pending_link_provider_ck"),
+                List.of("facebook", "123", "pending_link_provider_ck"),
+                List.of("FACEBOOK", "", "pending_link_subject_ck"),
+                List.of("FACEBOOK", "12 3", "pending_link_subject_ck"),
+                List.of("FACEBOOK", "1".repeat(256), "pending_link_subject_ck"))) {
+            assertThatThrownBy(() -> pendingLink(CUSTOMER_A_ID.value(), link.get(0), link.get(1)))
+                .as(link.toString()).isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining(link.get(2));
+        }
+    }
+
+    @Test
+    void givenTheLinkConfirmationEmail_whenEnqueued_thenTheOutboxAcceptsItsType() {
+        owner.update("""
+            insert into email_outbox (id, type, reference, version, status, attempts, next_attempt_at, created_at,
+                                      updated_at)
+            values (?, 'LINK_CONFIRMATION', ?, 1, 'PENDING', 0, now(), now(), now())
+            """, UUID.randomUUID(), CUSTOMER_A_ID.value());
+
+        assertThat(owner.queryForObject("select count(*) from email_outbox", Integer.class)).isOne();
     }
 
     // --- external_identity ---
@@ -500,6 +541,11 @@ class AccountSchemaTest {
 
     private void linkToken(UUID userId, String hash, String lifetime, String provider, String subject) {
         owner.update(INSERT_LINK_TOKEN, UUID.randomUUID(), userId, hash, lifetime, provider, subject);
+    }
+
+    private void pendingLink(UUID userId, String provider, String subject) {
+        owner.update("insert into pending_link (user_id, provider, subject, requested_at) values (?, ?, ?, now())",
+            userId, provider, subject);
     }
 
     private void identity(UUID userId, String provider, String subject, String email) {
