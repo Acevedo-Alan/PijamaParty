@@ -187,20 +187,29 @@ store:
       - /api/payments/*/webhook
       - /api/mail/webhook
     policies:
-      # UC-04: sign-in attempts per IP and, separately, per account (normalized email, RNF-29.5)
+      # UC-04 and UC-19 (T-E4-10): sign-in attempts per IP and, separately, per account (normalized email,
+      # RNF-29.5). The administrator's and the customers' sign-ins share both buckets: one IP gets 5 attempts a minute
+      # in all, and an email 5 whichever sign-in it goes through.
       # T-E1-16: the second-factor steps count for the same per-IP limit as the password
       - name: login-ip
-        paths: [/api/admin/auth/login, /api/admin/auth/second-factor, /api/admin/auth/enrollment]
+        paths: [/api/admin/auth/login, /api/admin/auth/second-factor, /api/admin/auth/enrollment, /api/account/login]
         methods: [POST]
         keys: [ip]
         capacity: 5
         period: 1m
       - name: login-account
-        paths: [/api/admin/auth/login]
+        paths: [/api/admin/auth/login, /api/account/login]
         methods: [POST]
         keys: [sign-in-email]
         capacity: 5
         period: 1m
+      # UC-19 (T-E4-10): registrations and password recoveries per IP, in one bucket; each one may send an email
+      - name: account-email
+        paths: [/api/account/register, /api/account/password-recovery]
+        methods: [POST]
+        keys: [ip]
+        capacity: 3
+        period: 1h
       # UC-01 to UC-03 and UC-26: generous, many shoppers share a mobile-data IP
       - name: catalog
         paths: [/api/catalog/**]

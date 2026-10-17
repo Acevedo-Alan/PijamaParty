@@ -23,8 +23,9 @@ import org.springframework.test.context.TestConstructor;
  * The RNF-22 policies as configured in application.yml: login per IP (UC-04) and per account (RNF-29.5), catalog and
  * search (UC-26) of T-E1-15, cart changes (UC-08, UC-09) of T-E2-04, coupon attempts (UC-10) of T-E2-11, the
  * tracking link and its payment retry (UC-14) of T-E3-08, checkout confirmations (UC-13) of T-E3-19, email
- * corrections (UC-17) of T-E3-23 and withdrawal requests (UC-29) of T-E3-27. The test client (127.0.0.1) plays Caddy, so {@code X-Forwarded-For} is the client
- * IP and each test uses its own addresses.
+ * corrections (UC-17) of T-E3-23, withdrawal requests (UC-29) of T-E3-27, and the customers' sign-in,
+ * registration and password recovery (UC-19) of T-E4-10. The test client (127.0.0.1) plays Caddy, so
+ * {@code X-Forwarded-For} is the client IP and each test uses its own addresses.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = "store.rate-limit.enabled=true")
@@ -33,6 +34,7 @@ import org.springframework.test.context.TestConstructor;
 class RateLimitPoliciesTest {
 
     private static final String LOGIN = "/api/admin/auth/login";
+    private static final String CUSTOMER_LOGIN = "/api/account/login";
 
     private final TestRestTemplate http;
     private String csrfToken;
@@ -71,6 +73,52 @@ class RateLimitPoliciesTest {
         assertThat(signIn("192.0.2.30", "another@example.com").getStatusCode())
             .as("the limit is per account, so another account from that IP is served")
             .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void givenFiveSignInAttemptsInAMinuteFromOneIpOnBothSignIns_whenACustomerTriesAgain_thenItGets429WithRetryAfter() {
+        for (int i = 1; i <= 5; i++) {
+            String path = i <= 2 ? LOGIN : CUSTOMER_LOGIN;
+            assertThat(signIn(path, "192.0.2.40", "nobody" + i + "@example.com").getStatusCode())
+                .as("attempt %d on %s reaches the sign-in", i, path).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        assertLimited(signIn(CUSTOMER_LOGIN, "192.0.2.40", "someone-else@example.com"));
+        assertLimited(signIn(LOGIN, "192.0.2.40", "someone-else@example.com"));
+        assertThat(signIn(CUSTOMER_LOGIN, "192.0.2.41", "someone-else@example.com").getStatusCode())
+            .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void givenFiveCustomerSignInAttemptsInAMinuteForOneAccountFromManyIps_whenAnotherArrives_thenItGets429() {
+        for (int i = 1; i <= 5; i++) {
+            String sameAccount = i % 2 == 0 ? "Victim@Example.com" : " victim@example.com ";
+            assertThat(signIn(CUSTOMER_LOGIN, "192.0.2." + (50 + i), sameAccount).getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        assertLimited(signIn(CUSTOMER_LOGIN, "192.0.2.60", "VICTIM@example.com"));
+        assertThat(signIn(CUSTOMER_LOGIN, "192.0.2.60", "another-one@example.com").getStatusCode())
+            .as("the limit is per account, so another account from that IP is served")
+            .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void givenThreeRegistrationsAndRecoveriesInAnHourFromOneIp_whenAnotherArrives_thenItGets429WithRetryAfter() {
+        assertThat(register("192.0.2.70").getStatusCode())
+            .as("an invalid email reaches the registration, which creates nothing")
+            .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(recoverPassword("192.0.2.70").getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(register("192.0.2.70").getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+
+        for (ResponseEntity<String> limited : List.of(recoverPassword("192.0.2.70"), register("192.0.2.70"))) {
+            assertThat(limited.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+            assertThat(limited.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+            assertThat(Long.parseLong(limited.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)))
+                .as("3 per hour: one more every 20 minutes").isBetween(60L, 1200L);
+        }
+        assertThat(register("192.0.2.71").getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(recoverPassword("192.0.2.71").getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
 
     @Test
@@ -231,13 +279,30 @@ class RateLimitPoliciesTest {
     }
 
     private ResponseEntity<String> signIn(String clientIp, String email) {
+        return signIn(LOGIN, clientIp, email);
+    }
+
+    private ResponseEntity<String> signIn(String path, String clientIp, String email) {
+        return post(path, clientIp, "{\"email\":\"" + email + "\",\"password\":\"not the password\"}");
+    }
+
+    private ResponseEntity<String> register(String clientIp) {
+        return post("/api/account/register", clientIp,
+            "{\"email\":\"not-an-email\",\"password\":\"ocho1234\",\"name\":\"Ana\"}");
+    }
+
+    /** An email nobody registered: the answer is the same and no email is queued. */
+    private ResponseEntity<String> recoverPassword(String clientIp) {
+        return post("/api/account/password-recovery", clientIp, "{\"email\":\"nobody@example.com\"}");
+    }
+
+    private ResponseEntity<String> post(String path, String clientIp, String body) {
         var headers = new HttpHeaders();
         headers.add("X-Forwarded-For", clientIp);
         headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + csrfToken);
         headers.add("X-XSRF-TOKEN", csrfToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
-        String body = "{\"email\":\"" + email + "\",\"password\":\"not the password\"}";
-        return http.exchange(LOGIN, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+        return http.exchange(path, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
     }
 
     private ResponseEntity<String> addToCart(String clientIp) {

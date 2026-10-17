@@ -89,6 +89,19 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
     expect(screen.getByRole('button', { name: es.account.register.send })).toBeEnabled();
   });
 
+  it('given too many registrations from this IP, when registering, then it asks to wait (T-E4-10)', async () => {
+    stubStore();
+    stubPost(answer(429));
+    renderRoute('/cuenta/registro');
+
+    await fillRegistration();
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(es.account.tooManyAttempts);
+    });
+    expect(screen.getByRole('button', { name: es.account.register.send })).toBeEnabled();
+  });
+
   it('given a verification link, when it opens, then the token is used once and the sign-in says the email is verified', async () => {
     stubStore();
     const post = stubPost(answer(204));

@@ -72,6 +72,9 @@ class CustomerAccountController {
     @ApiResponse(responseCode = "422", description = "INVALID_EMAIL, INVALID_NAME (1 to 100 characters), "
         + "PASSWORD_TOO_SHORT (under 8 characters) or PASSWORD_TOO_LONG (over 72 bytes)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "429", description = "Over 3 registrations and password recoveries per hour from this "
+        + "IP (RNF-22); Retry-After says when to retry",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> register(@Valid @RequestBody RegisterRequest body) {
         var command = new RegisterCustomer.Command(body.email(), body.password(), body.name());
         return switch (register.execute(command)) {
@@ -110,6 +113,9 @@ class CustomerAccountController {
         + "verification email is on its way, unless one is waiting to be sent",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "423", description = "Locked after 5 consecutive failures; lockedUntil says until when",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "429", description = "Over 5 attempts per minute from this IP or for this email "
+        + "(RNF-22, RNF-29.5); Retry-After says when to retry. Does not say whether the account exists",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> signIn(@Valid @RequestBody CustomerSignInRequest body, HttpServletRequest request,
                              HttpServletResponse response) {
@@ -158,6 +164,9 @@ class CustomerAccountController {
             + "sending. The answer is the same whether the email belongs to an account or not. Requires the CSRF "
             + "token.")
     @ApiResponse(responseCode = "204", description = "Always, whatever the email")
+    @ApiResponse(responseCode = "429", description = "Over 3 registrations and password recoveries per hour from this "
+        + "IP (RNF-22); Retry-After says when to retry",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody PasswordRecoveryRequest body) {
         return switch (requestPasswordReset.execute(new RequestPasswordReset.Command(body.email()))) {
             case RequestPasswordReset.Result.Requested requested -> ResponseEntity.noContent().build();

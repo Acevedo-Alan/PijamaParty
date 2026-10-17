@@ -82,6 +82,9 @@ Registering is optional: buying as a guest stays the main flow. An account saves
   - The guest cart is deleted, and the sign-in response expires the cookie (`Max-Age=0`): signing out starts a new, empty guest cart. A failed sign-in touches neither the cart nor the cookie. The merge never fails the sign-in for a line it cannot bring and answers nothing about it: the storefront reads the cart again after signing in.
   - Row Level Security (V32): the customer carrying the browser's cart token reads the guest cart of that token with its items and deletes it, and never changes it. V32 splits the item policy of V12: reads follow every cart the actor reads, writes only its own cart (`app_owns_cart`).
 - Rate limits (T-E4-10, RNF-22): customer sign-in 5 per minute per IP and per account (RNF-29.5); registration and recovery 3 per hour per IP.
+  - The customer sign-in shares the administrator's buckets (`login-ip` and `login-account`), as the single "Login (cliente y administrador)" row of RNF-22: one IP gets 5 sign-in attempts a minute in all, and an email 5 whichever sign-in it goes through. The `429` comes before the sign-in, so it never says whether the account exists.
+  - Registration and password recovery share one bucket per IP (`account-email`): the fourth of either in an hour gets `429`. Each may send an email.
+  - Verifying the email and resetting the password have no policy of their own: they only use a 128-bit token and send nothing.
 
 ---
 

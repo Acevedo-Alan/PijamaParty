@@ -4228,6 +4228,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
+            /** @description Over 3 registrations and password recoveries per hour from this IP (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     resetPassword: {
@@ -4292,6 +4301,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Over 3 registrations and password recoveries per hour from this IP (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     signOut_1: {
@@ -4354,6 +4372,15 @@ export interface operations {
             };
             /** @description Locked after 5 consecutive failures; lockedUntil says until when */
             423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over 5 attempts per minute from this IP or for this email (RNF-22, RNF-29.5); Retry-After says when to retry. Does not say whether the account exists */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
