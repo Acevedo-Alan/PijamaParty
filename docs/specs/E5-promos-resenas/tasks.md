@@ -1,7 +1,7 @@
 # E5 – Tareas
 
 - [x] **T-E5-01** Cerrar con el dueño las reglas de cupones automáticos y de reseñas (decisiones pendientes). Cerradas el 2026-10-17: ver CU-23, CU-24, la tabla de decisiones de `00-dominio-y-reglas.md` y los casos de uso en inglés (`docs/use-cases/E5-promotions-and-reviews.md`).
-- [ ] **T-E5-02** Migraciones: `resena`, ampliación de `cupon` y `cupon_alcance` (el promedio se calcula al leer, ver el plan).
+- [x] **T-E5-02** Migraciones: `resena`, ampliación de `cupon` y `cupon_alcance` (el promedio se calcula al leer, ver el plan).
 - [ ] **T-E5-03** Motor de reglas de descuento y tipos de regla acordados (CU-23).
 - [ ] **T-E5-04** Integrar el motor en el cálculo de totales del carrito y el checkout (CU-23).
 - [ ] **T-E5-05** Backoffice: crear cupones automáticos con su regla (CU-11, CU-23).

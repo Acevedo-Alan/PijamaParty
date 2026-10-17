@@ -44,7 +44,7 @@ class PromotionsCouponsContractTest extends CouponsContractTest<PromotionsCoupon
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate coupon_redemption, coupon");
+        owner.execute("truncate coupon_scope, coupon_redemption, coupon");
     }
 
     /** {@code validUntil} null: no last day. */

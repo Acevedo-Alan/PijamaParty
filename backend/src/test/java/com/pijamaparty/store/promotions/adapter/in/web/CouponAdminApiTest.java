@@ -46,7 +46,7 @@ class CouponAdminApiTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate coupon_redemption, coupon");
+        owner.execute("truncate coupon_scope, coupon_redemption, coupon");
     }
 
     @Test

@@ -15,7 +15,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-/** T-E2-01: the promotions schema (V13) enforces the UC-10 and UC-11 rules, connected as the application role. */
+/**
+ * T-E2-01: the promotions schema (V13) enforces the UC-10 and UC-11 rules, connected as the application role. T-E5-02
+ * (V37): automatic coupons and their scope (UC-23).
+ */
 @ApiTest
 class PromotionsSchemaTest {
 
@@ -23,6 +26,13 @@ class PromotionsSchemaTest {
         insert into coupon (id, code, type, discount_value, valid_from, valid_until, max_uses, minimum_purchase_cents,
                             active, created_at, updated_at)
         values (?, ?, ?, ?, ?, ?, ?, ?, true, now(), now())
+        """;
+    private static final String INSERT_AUTOMATIC_COUPON = """
+        insert into coupon (id, code, type, discount_value, active, automatic, created_at, updated_at)
+        values (?, ?, 'PERCENTAGE', 10, true, true, now(), now())
+        """;
+    private static final String SCOPE = """
+        insert into coupon_scope (coupon_id, target_type, target_id) values (?, ?, ?)
         """;
     private static final String REDEEM = """
         insert into coupon_redemption (coupon_id, order_id, redeemed_at) values (?, ?, now()) on conflict do nothing
@@ -39,7 +49,7 @@ class PromotionsSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate coupon_redemption, coupon");
+        owner.execute("truncate coupon_scope, coupon_redemption, coupon");
     }
 
     @Test
@@ -122,6 +132,62 @@ class PromotionsSchemaTest {
         var coupon = coupon("VERANO10", "PERCENTAGE", 10);
 
         assertThat(app.update("delete from coupon where id = ?", coupon)).isOne();
+    }
+
+    @Test
+    void givenACouponCreatedWithoutItsKind_whenStored_thenItIsACodeCoupon() {
+        var coupon = coupon("VERANO10", "PERCENTAGE", 10);
+
+        assertThat(app.queryForObject("select automatic from coupon where id = ?", Boolean.class, coupon)).isFalse();
+    }
+
+    @Test
+    void givenAnAutomaticCoupon_whenItsScopeIsStored_thenProductsAndCategoriesAreAccepted() {
+        var coupon = automaticCoupon("INVIERNO");
+
+        app.update(SCOPE, coupon, "PRODUCT", UUID.randomUUID());
+        app.update(SCOPE, coupon, "CATEGORY", UUID.randomUUID());
+
+        assertThat(app.queryForObject("select count(*) from coupon_scope where coupon_id = ?", Integer.class, coupon))
+            .isEqualTo(2);
+        assertThatThrownBy(() -> app.update(SCOPE, coupon, "VARIANT", UUID.randomUUID()))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("coupon_scope_target_type_ck");
+    }
+
+    @Test
+    void givenACodeCoupon_whenAScopeIsStoredForIt_thenItIsRejected() {
+        var coupon = coupon("VERANO10", "PERCENTAGE", 10);
+
+        assertThatThrownBy(() -> app.update(SCOPE, coupon, "CATEGORY", UUID.randomUUID()))
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("only an automatic coupon has a scope");
+    }
+
+    @Test
+    void givenACoupon_whenItsKindIsChanged_thenItIsRejected() {
+        var automatic = automaticCoupon("INVIERNO");
+        var code = coupon("VERANO10", "PERCENTAGE", 10);
+
+        for (UUID coupon : new UUID[] {automatic, code}) {
+            assertThatThrownBy(() -> app.update("update coupon set automatic = not automatic where id = ?", coupon))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("whether a coupon is automatic is fixed when it is created");
+        }
+    }
+
+    @Test
+    void givenAnAutomaticCouponWithAScope_whenDeleted_thenItsScopeGoesWithIt() {
+        var coupon = automaticCoupon("INVIERNO");
+        app.update(SCOPE, coupon, "PRODUCT", UUID.randomUUID());
+
+        assertThat(app.update("delete from coupon where id = ?", coupon)).isOne();
+        assertThat(app.queryForObject("select count(*) from coupon_scope", Integer.class)).isZero();
+    }
+
+    private UUID automaticCoupon(String code) {
+        var id = UUID.randomUUID();
+        app.update(INSERT_AUTOMATIC_COUPON, id, code);
+        return id;
     }
 
     private UUID coupon(String code, String type, long value) {
