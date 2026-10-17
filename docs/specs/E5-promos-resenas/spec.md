@@ -2,7 +2,7 @@
 
 **Estado:** Borrador · **Casos de uso:** CU-23 a CU-25
 
-> Esta etapa depende de dos decisiones pendientes del documento de alcance: las reglas de cupones automáticos y las de reseñas. Lo marcado como *Propuesto* debe confirmarse antes de empezar.
+> Las reglas de cupones automáticos y de reseñas (documento de alcance, punto 12) se cerraron con el dueño en T-E5-01 (2026-10-17).
 
 ## CU-23 Aplicar cupón automático por reglas
 
@@ -13,11 +13,12 @@
 2. Cuando el carrito cumple la regla, el sistema aplica el descuento sin que el cliente escriba un código.
 3. El carrito y el checkout muestran el descuento y su motivo.
 
-**Tipos de regla (*Propuesto*):** monto mínimo de compra, productos o categorías específicos, rango de fechas.
+**Tipos de regla:** monto mínimo de compra y rango de fechas (los campos que ya tiene todo cupón, CU-11), más un alcance opcional de productos o categorías específicos.
 
 **Reglas**
-- Si varias reglas aplican, se usa la de mayor descuento; no se acumulan (*Propuesto*).
-- Un cupón automático y uno por código no se acumulan (*Propuesto*).
+- Un cupón con alcance de productos o categorías descuenta solo sobre los ítems alcanzados, y su monto mínimo se compara con el subtotal de esos ítems.
+- Si varias reglas aplican, se usa la de mayor descuento; no se acumulan.
+- Un cupón automático y uno por código no se acumulan: entre los automáticos aplicables y el código ingresado se usa el que más descuenta, y el carrito muestra cuál y por qué.
 
 **Criterios de aceptación**
 - Dada una regla "10% desde $30.000", cuando el carrito supera $30.000, entonces el descuento aparece sin ingresar código.
@@ -34,8 +35,8 @@
 2. El sistema guarda la reseña como PENDIENTE hasta que se modere (CU-25).
 3. Una vez aprobada, aparece en la ficha del producto y suma al promedio.
 
-**Reglas (*Propuesto*)**
-- Solo pueden opinar clientes con un pedido PAGADO o ENTREGADO que incluya el producto.
+**Reglas**
+- Solo pueden opinar clientes con un pedido PAGADO o posterior (PREPARANDO, ENVIADO o ENTREGADO) que incluya el producto.
 - Una reseña por cliente y por producto; se puede editar, y vuelve a moderación.
 
 **Criterios de aceptación**
