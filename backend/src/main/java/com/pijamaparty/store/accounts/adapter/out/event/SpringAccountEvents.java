@@ -1,6 +1,7 @@
 package com.pijamaparty.store.accounts.adapter.out.event;
 
 import com.pijamaparty.store.accounts.api.EmailVerificationRequested;
+import com.pijamaparty.store.accounts.api.PasswordResetRequested;
 import com.pijamaparty.store.accounts.application.AccountEvents;
 import com.pijamaparty.store.platform.domain.UserId;
 import org.springframework.context.ApplicationEventPublisher;
@@ -19,5 +20,10 @@ class SpringAccountEvents implements AccountEvents {
     @Override
     public void emailVerificationRequested(UserId customer) {
         publisher.publishEvent(new EmailVerificationRequested(customer.value()));
+    }
+
+    @Override
+    public void passwordResetRequested(UserId customer) {
+        publisher.publishEvent(new PasswordResetRequested(customer.value()));
     }
 }

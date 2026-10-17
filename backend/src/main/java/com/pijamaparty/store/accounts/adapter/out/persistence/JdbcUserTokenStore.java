@@ -1,14 +1,17 @@
 package com.pijamaparty.store.accounts.adapter.out.persistence;
 
 import com.pijamaparty.store.accounts.application.ConsumeUserTokens;
+import com.pijamaparty.store.accounts.application.InvalidateUserTokens;
 import com.pijamaparty.store.accounts.application.IssueUserTokens;
 import com.pijamaparty.store.accounts.domain.UserToken;
 import com.pijamaparty.store.accounts.domain.UserTokenPurpose;
 import com.pijamaparty.store.platform.domain.AccessToken.AccountToken;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -25,7 +28,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * one after the other and only the first uses it.
  */
 @Repository
-class JdbcUserTokenStore implements IssueUserTokens, ConsumeUserTokens {
+class JdbcUserTokenStore implements IssueUserTokens, ConsumeUserTokens, InvalidateUserTokens {
 
     private static final String INSERT = """
         INSERT INTO user_token (id, user_id, purpose, token_hash, created_at, expires_at)
@@ -41,6 +44,13 @@ class JdbcUserTokenStore implements IssueUserTokens, ConsumeUserTokens {
     // A token only changes from unused to used (user_token_update_guard).
     private static final String MARK_USED = """
         UPDATE user_token SET used_at = :usedAt WHERE id = :id AND used_at IS NULL
+        """;
+
+    // Only unexpired tokens can be marked used (user_token_used_ck); expired ones already stopped working.
+    private static final String INVALIDATE_UNUSED = """
+        UPDATE user_token SET used_at = :now
+        WHERE user_id = :userId AND purpose = :purpose AND used_at IS NULL
+          AND created_at <= :now AND expires_at > :now
         """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -88,5 +98,12 @@ class JdbcUserTokenStore implements IssueUserTokens, ConsumeUserTokens {
         if (jdbc.update(MARK_USED, parameters) != 1) {
             throw new IllegalStateException("the token was not unused");
         }
+    }
+
+    @Override
+    public void invalidateUnused(UserId user, UserTokenPurpose purpose, Instant now) {
+        jdbc.update(INVALIDATE_UNUSED, new MapSqlParameterSource("userId", user.value())
+            .addValue("purpose", purpose.name())
+            .addValue("now", now.truncatedTo(ChronoUnit.MICROS).atOffset(ZoneOffset.UTC)));
     }
 }

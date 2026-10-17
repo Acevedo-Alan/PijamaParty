@@ -22,5 +22,11 @@ public enum EmailType {
      * To a customer who registered, the link to verify its email (UC-19, T-E4-02). The reference is the user; each new
      * link asked for is a new version.
      */
-    EMAIL_VERIFICATION
+    EMAIL_VERIFICATION,
+
+    /**
+     * To a customer who forgot its password, the link to set a new one (UC-19, T-E4-03). The reference is the user;
+     * each new link asked for is a new version.
+     */
+    PASSWORD_RESET
 }

@@ -1,16 +1,19 @@
 package com.pijamaparty.store.accounts.application;
 
 import com.pijamaparty.store.accounts.domain.UserToken;
+import com.pijamaparty.store.accounts.domain.UserTokenPurpose;
 import com.pijamaparty.store.platform.domain.AccessToken.AccountToken;
+import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.testing.InMemoryStore;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-/** Fake of the pair {@link IssueUserTokens} and {@link ConsumeUserTokens}. */
-public class InMemoryUserTokens implements IssueUserTokens, ConsumeUserTokens {
+/** Fake of {@link IssueUserTokens}, {@link ConsumeUserTokens} and {@link InvalidateUserTokens}. */
+public class InMemoryUserTokens implements IssueUserTokens, ConsumeUserTokens, InvalidateUserTokens {
 
     private final InMemoryStore<UUID, UserToken> tokens = InMemoryStore.copying(UserToken::id, InMemoryUserTokens::copy);
     private final AtomicInteger lookups = new AtomicInteger();
@@ -37,6 +40,15 @@ public class InMemoryUserTokens implements IssueUserTokens, ConsumeUserTokens {
             throw new IllegalStateException("the token was not unused");
         }
         tokens.save(token);
+    }
+
+    @Override
+    public void invalidateUnused(UserId user, UserTokenPurpose purpose, Instant now) {
+        for (UserToken token : tokens.findAll(stored -> stored.userId().equals(user))) {
+            if (token.use(purpose, now)) {
+                tokens.save(token);
+            }
+        }
     }
 
     public List<UserToken> all() {

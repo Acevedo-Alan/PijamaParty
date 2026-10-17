@@ -1,4 +1,5 @@
-/* UC-19 (T-E4-02): the header's account entry and the registration, sign-in and verification pages. */
+/* UC-19 (T-E4-02, T-E4-03): the header's account entry and the registration, sign-in, verification and password
+   recovery pages. */
 
 .account-link {
   display: flex;

@@ -743,6 +743,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set a new password with the token of a reset link
+         * @description Uses the token, once, and makes the older reset links stop working. Clears the lock, verifies the email and ends every session of the account. Does not sign in. Requires the CSRF token.
+         */
+        post: operations["resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/password-recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a password reset link
+         * @description A customer with that email gets the reset email, whose link lasts 30 minutes from the sending. The answer is the same whether the email belongs to an account or not. Requires the CSRF token.
+         */
+        post: operations["requestPasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/logout": {
         parameters: {
             query?: never;
@@ -1518,6 +1558,13 @@ export interface components {
             email: string;
             password: string;
             name: string;
+        };
+        PasswordResetRequest: {
+            token: string;
+            password: string;
+        };
+        PasswordRecoveryRequest: {
+            email: string;
         };
         CustomerSignInRequest: {
             email: string;
@@ -3931,6 +3978,70 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
+            };
+        };
+    };
+    resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description The password was replaced */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description INVALID_LINK: unknown, used or expired; does not say which */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description PASSWORD_TOO_SHORT (under 8 characters) or PASSWORD_TOO_LONG (over 72 bytes); the link stays unused */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    requestPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordRecoveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Always, whatever the email */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

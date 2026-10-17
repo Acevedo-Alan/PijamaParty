@@ -4,12 +4,10 @@ import com.pijamaparty.store.accounts.domain.User;
 import com.pijamaparty.store.accounts.domain.UserRole;
 import com.pijamaparty.store.accounts.domain.UserToken;
 import com.pijamaparty.store.accounts.domain.UserTokenPurpose;
-import com.pijamaparty.store.platform.application.TokenGenerator;
 import com.pijamaparty.store.platform.domain.AccessToken.AccountToken;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
 /**
@@ -19,8 +17,6 @@ import org.springframework.stereotype.Service;
  */
 @Service
 class VerifyCustomerEmailService implements VerifyCustomerEmail {
-
-    private static final Pattern WELL_FORMED = Pattern.compile("[A-Za-z0-9_-]{" + TokenGenerator.LENGTH + "}");
 
     private final ConsumeUserTokens tokens;
     private final LoadUser loadUser;
@@ -37,7 +33,7 @@ class VerifyCustomerEmailService implements VerifyCustomerEmail {
     @Override
     public Result execute(Command command) {
         // A token that could never have been issued is not looked up.
-        if (command.token() == null || !WELL_FORMED.matcher(command.token()).matches()) {
+        if (!LinkTokens.isWellFormed(command.token())) {
             return new Result.InvalidLink();
         }
         return tokens.consuming(new AccountToken(command.token()), this::verify);

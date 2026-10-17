@@ -16,10 +16,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Contract of {@link IssueUserTokens} and {@link ConsumeUserTokens} (UC-19). Implementations provide the user the
+ * Contract of {@link IssueUserTokens}, {@link ConsumeUserTokens} and {@link InvalidateUserTokens} (UC-19). Implementations provide the user the
  * tokens belong to and how a token is issued (the real adapter joins the transaction of the email being sent).
  */
-public abstract class UserTokensContractTest<T extends IssueUserTokens & ConsumeUserTokens> extends ContractTest<T> {
+public abstract class UserTokensContractTest<T extends IssueUserTokens & ConsumeUserTokens & InvalidateUserTokens>
+    extends ContractTest<T> {
 
     protected static final Instant NOW = UserStoreContractTest.NOW;
 
@@ -38,7 +39,11 @@ public abstract class UserTokensContractTest<T extends IssueUserTokens & Consume
     }
 
     protected UserToken token(AccountToken token, UserTokenPurpose purpose) {
-        return UserToken.issue(UUID.randomUUID(), customer.id(), purpose, token.hash(), NOW);
+        return token(token, purpose, NOW);
+    }
+
+    protected UserToken token(AccountToken token, UserTokenPurpose purpose, Instant createdAt) {
+        return UserToken.issue(UUID.randomUUID(), customer.id(), purpose, token.hash(), createdAt);
     }
 
     @Test
@@ -94,5 +99,30 @@ public abstract class UserTokensContractTest<T extends IssueUserTokens & Consume
             subject.markUsed(stale);
             return null;
         })).hasMessageContaining("the token was not unused");
+    }
+
+    @Test
+    void givenOlderLinks_whenInvalidatingTheUnusedResetsOfACustomer_thenOnlyItsLiveResetTokensAreUsed() {
+        User other = CustomerRegistrationsContractTest.customer("beto@example.com");
+        arrange(other);
+        var live = new AccountToken("a".repeat(43));
+        var expired = new AccountToken("b".repeat(43));
+        var verification = new AccountToken("c".repeat(43));
+        var othersReset = new AccountToken("d".repeat(43));
+        issue(token(live, UserTokenPurpose.PASSWORD_RESET));
+        issue(token(expired, UserTokenPurpose.PASSWORD_RESET, NOW.minus(Duration.ofMinutes(31))));
+        issue(token(verification, UserTokenPurpose.EMAIL_VERIFICATION));
+        issue(UserToken.issue(UUID.randomUUID(), other.id(), UserTokenPurpose.PASSWORD_RESET, othersReset.hash(), NOW));
+        Instant now = NOW.plus(Duration.ofMinutes(1));
+
+        subject.consuming(new AccountToken("z".repeat(43)), token -> {
+            subject.invalidateUnused(customer.id(), UserTokenPurpose.PASSWORD_RESET, now);
+            return null;
+        });
+
+        assertThat(subject.consuming(live, token -> token).orElseThrow().usedAt()).contains(now);
+        assertThat(subject.consuming(expired, token -> token).orElseThrow().usedAt()).isEmpty();
+        assertThat(subject.consuming(verification, token -> token).orElseThrow().usedAt()).isEmpty();
+        assertThat(subject.consuming(othersReset, token -> token).orElseThrow().usedAt()).isEmpty();
     }
 }

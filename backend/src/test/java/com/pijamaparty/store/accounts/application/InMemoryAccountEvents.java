@@ -1,6 +1,7 @@
 package com.pijamaparty.store.accounts.application;
 
 import com.pijamaparty.store.accounts.api.EmailVerificationRequested;
+import com.pijamaparty.store.accounts.api.PasswordResetRequested;
 import com.pijamaparty.store.platform.domain.UserId;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -13,6 +14,11 @@ public class InMemoryAccountEvents implements AccountEvents {
     @Override
     public void emailVerificationRequested(UserId customer) {
         published.add(new EmailVerificationRequested(customer.value()));
+    }
+
+    @Override
+    public void passwordResetRequested(UserId customer) {
+        published.add(new PasswordResetRequested(customer.value()));
     }
 
     public List<Object> published() {

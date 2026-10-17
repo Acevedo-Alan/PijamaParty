@@ -22,7 +22,7 @@ public final class User {
     private final UserId id;
     private final Email email;
     private boolean emailVerified;
-    private final PasswordHash passwordHash;
+    private PasswordHash passwordHash;
     private final String name;
     private final UserRole role;
     private int failedSignInAttempts;
@@ -102,6 +102,23 @@ public final class User {
             emailVerified = true;
             updatedAt = now;
         }
+    }
+
+    /**
+     * UC-19 (T-E4-03): the link of the reset email was opened with a new password. Only a customer: the old password,
+     * if any, is replaced, the failed attempts and the lock are cleared, and the email is verified, because the link
+     * reached its inbox.
+     */
+    public void resetPassword(PasswordHash newPasswordHash, Instant now) {
+        Objects.requireNonNull(newPasswordHash, "newPasswordHash");
+        if (role != UserRole.CUSTOMER) {
+            throw new IllegalStateException("only a customer resets its password by email");
+        }
+        passwordHash = newPasswordHash;
+        failedSignInAttempts = 0;
+        lockedUntil = null;
+        emailVerified = true;
+        updatedAt = now;
     }
 
     /** Records a wrong password. Returns the end of the lock when this failure locks the account. */

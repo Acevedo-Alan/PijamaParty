@@ -29,6 +29,16 @@ export type SignInAnswer =
 /** POST /api/account/verify-email (UC-19). */
 export type VerifyAnswer = { status: 'verified' } | { status: 'invalidLink' };
 
+/** POST /api/account/password-recovery (UC-19, T-E4-03): the same answer whether the email has an account or not. */
+export type RecoveryAnswer = { status: 'requested' } | { status: 'tooManyAttempts' };
+
+/** POST /api/account/password-reset (UC-19, T-E4-03). */
+export type ResetAnswer =
+  | { status: 'reset' }
+  | { status: 'invalidLink' }
+  | { status: 'passwordTooShort' }
+  | { status: 'passwordTooLong' };
+
 function failed(action: string, response: Response): Error {
   return new Error(`${action} failed with status ${String(response.status)}`);
 }
@@ -129,4 +139,41 @@ export async function fetchCustomer(signal?: AbortSignal): Promise<Customer | nu
     throw failed('Account check', response);
   }
   return customer;
+}
+
+export async function requestPasswordReset(email: string): Promise<RecoveryAnswer> {
+  const { response } = await api.POST('/api/account/password-recovery', { body: { email } });
+  switch (response.status) {
+    case 204:
+      return { status: 'requested' };
+    case 429:
+      return { status: 'tooManyAttempts' };
+    default:
+      throw failed('Password recovery', response);
+  }
+}
+
+const RESET_PROBLEMS: Record<string, ResetAnswer> = {
+  PASSWORD_TOO_SHORT: { status: 'passwordTooShort' },
+  PASSWORD_TOO_LONG: { status: 'passwordTooLong' },
+};
+
+export async function resetPassword(token: string, password: string): Promise<ResetAnswer> {
+  const { error, response } = await api.POST('/api/account/password-reset', { body: { token, password } });
+  switch (response.status) {
+    case 204:
+      return { status: 'reset' };
+    case 410:
+      return { status: 'invalidLink' };
+    case 422: {
+      const problem = problemProperty(error, 'problem');
+      const answer = typeof problem === 'string' ? RESET_PROBLEMS[problem] : undefined;
+      if (answer === undefined) {
+        throw failed('Password reset', response);
+      }
+      return answer;
+    }
+    default:
+      throw failed('Password reset', response);
+  }
 }

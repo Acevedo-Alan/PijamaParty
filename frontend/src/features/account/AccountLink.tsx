@@ -8,6 +8,7 @@ import './account.css';
 
 export const SIGN_IN_PATH = '/cuenta/ingresar';
 export const REGISTER_PATH = '/cuenta/registro';
+export const RECOVER_PATH = '/cuenta/recuperar';
 
 /** The header's account entry (UC-19): "Ingresar" when signed out, the greeting and "Salir" when signed in. */
 export function AccountLink() {

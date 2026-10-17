@@ -3,6 +3,8 @@ package com.pijamaparty.store.accounts.adapter.in.web;
 import com.pijamaparty.store.accounts.application.CustomerView;
 import com.pijamaparty.store.accounts.application.GetCurrentCustomer;
 import com.pijamaparty.store.accounts.application.RegisterCustomer;
+import com.pijamaparty.store.accounts.application.RequestPasswordReset;
+import com.pijamaparty.store.accounts.application.ResetPassword;
 import com.pijamaparty.store.accounts.application.SignInCustomer;
 import com.pijamaparty.store.accounts.application.VerifyCustomerEmail;
 import com.pijamaparty.store.accounts.domain.PasswordRules;
@@ -32,8 +34,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * UC-19 (T-E4-02): registration, email verification, sign-in, sign-out and current customer of the storefront. Only
- * translates between HTTP, the session and the use cases.
+ * UC-19 (T-E4-02, T-E4-03): registration, email verification, sign-in, sign-out, current customer and password
+ * recovery of the storefront. Only translates between HTTP, the session and the use cases.
  */
 @RestController
 @RequestMapping("/api/account")
@@ -44,14 +46,19 @@ class CustomerAccountController {
     private final VerifyCustomerEmail verifyEmail;
     private final SignInCustomer signIn;
     private final GetCurrentCustomer currentCustomer;
+    private final RequestPasswordReset requestPasswordReset;
+    private final ResetPassword resetPassword;
     private final SessionAuthentication sessions;
 
     CustomerAccountController(RegisterCustomer register, VerifyCustomerEmail verifyEmail, SignInCustomer signIn,
-                              GetCurrentCustomer currentCustomer, SessionAuthentication sessions) {
+                              GetCurrentCustomer currentCustomer, RequestPasswordReset requestPasswordReset,
+                              ResetPassword resetPassword, SessionAuthentication sessions) {
         this.register = register;
         this.verifyEmail = verifyEmail;
         this.signIn = signIn;
         this.currentCustomer = currentCustomer;
+        this.requestPasswordReset = requestPasswordReset;
+        this.resetPassword = resetPassword;
         this.sessions = sessions;
     }
 
@@ -73,10 +80,7 @@ class CustomerAccountController {
                 "Email already registered", "EMAIL_ALREADY_REGISTERED");
             case RegisterCustomer.Result.InvalidEmail invalid -> invalid("INVALID_EMAIL");
             case RegisterCustomer.Result.InvalidName invalid -> invalid("INVALID_NAME");
-            case RegisterCustomer.Result.InvalidPassword invalid ->
-                invalid(invalid.violation() == PasswordRules.Violation.TOO_SHORT
-                    ? "PASSWORD_TOO_SHORT"
-                    : "PASSWORD_TOO_LONG");
+            case RegisterCustomer.Result.InvalidPassword invalid -> invalid(passwordProblem(invalid.violation()));
         };
     }
 
@@ -148,6 +152,42 @@ class CustomerAccountController {
         };
     }
 
+    @PostMapping("/password-recovery")
+    @Operation(summary = "Ask for a password reset link",
+        description = "A customer with that email gets the reset email, whose link lasts 30 minutes from the "
+            + "sending. The answer is the same whether the email belongs to an account or not. Requires the CSRF "
+            + "token.")
+    @ApiResponse(responseCode = "204", description = "Always, whatever the email")
+    ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody PasswordRecoveryRequest body) {
+        return switch (requestPasswordReset.execute(new RequestPasswordReset.Command(body.email()))) {
+            case RequestPasswordReset.Result.Requested requested -> ResponseEntity.noContent().build();
+        };
+    }
+
+    @PostMapping("/password-reset")
+    @Operation(summary = "Set a new password with the token of a reset link",
+        description = "Uses the token, once, and makes the older reset links stop working. Clears the lock, verifies "
+            + "the email and ends every session of the account. Does not sign in. Requires the CSRF token.")
+    @ApiResponse(responseCode = "204", description = "The password was replaced")
+    @ApiResponse(responseCode = "410", description = "INVALID_LINK: unknown, used or expired; does not say which",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "422", description = "PASSWORD_TOO_SHORT (under 8 characters) or PASSWORD_TOO_LONG "
+        + "(over 72 bytes); the link stays unused",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<?> resetPassword(@Valid @RequestBody PasswordResetRequest body) {
+        return switch (resetPassword.execute(new ResetPassword.Command(body.token(), body.password()))) {
+            case ResetPassword.Result.Reset reset -> ResponseEntity.noContent().build();
+            case ResetPassword.Result.InvalidLink invalid ->
+                problem(HttpStatus.GONE, "Invalid or expired link", "INVALID_LINK");
+            case ResetPassword.Result.InvalidPassword invalid -> problem(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Invalid password", passwordProblem(invalid.violation()));
+        };
+    }
+
+    private static String passwordProblem(PasswordRules.Violation violation) {
+        return violation == PasswordRules.Violation.TOO_SHORT ? "PASSWORD_TOO_SHORT" : "PASSWORD_TOO_LONG";
+    }
+
     private static ResponseEntity<ProblemDetail> invalid(String code) {
         return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid registration", code);
     }
@@ -192,6 +232,24 @@ class CustomerAccountController {
         @Override
         public String toString() {
             return "CustomerSignInRequest[***]";
+        }
+    }
+
+    /** Any value gets the same answer, so a malformed email is not refused either. */
+    record PasswordRecoveryRequest(@NotNull @Size(max = 320) String email) {
+
+        @Override
+        public String toString() {
+            return "PasswordRecoveryRequest[***]";
+        }
+    }
+
+    /** As the verification's: any value that is not a token of a link is simply an invalid link. */
+    record PasswordResetRequest(@NotNull @Size(max = 256) String token, @NotNull @Size(max = 1024) String password) {
+
+        @Override
+        public String toString() {
+            return "PasswordResetRequest[***]";
         }
     }
 

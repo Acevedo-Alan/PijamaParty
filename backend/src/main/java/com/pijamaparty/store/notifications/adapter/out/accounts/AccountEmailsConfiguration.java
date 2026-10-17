@@ -1,6 +1,7 @@
 package com.pijamaparty.store.notifications.adapter.out.accounts;
 
 import com.pijamaparty.store.accounts.api.EmailVerificationLinks;
+import com.pijamaparty.store.accounts.api.PasswordResetLinks;
 import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -18,5 +19,11 @@ class AccountEmailsConfiguration {
     EmailVerificationComposer emailVerificationComposer(EmailVerificationLinks links, MessageSource messages,
                                                         @Value("${store.public-url}") URI publicUrl) {
         return new EmailVerificationComposer(links, messages, publicUrl);
+    }
+
+    @Bean
+    PasswordResetComposer passwordResetComposer(PasswordResetLinks links, MessageSource messages,
+                                                @Value("${store.public-url}") URI publicUrl) {
+        return new PasswordResetComposer(links, messages, publicUrl);
     }
 }

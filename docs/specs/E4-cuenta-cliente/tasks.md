@@ -2,8 +2,8 @@
 
 - [x] **T-E4-01** Migraciones: `direccion`, ampliación de `usuario` y `token_usuario`. En el código: `address`, `app_user.phone` y `user_token` (V29); `address` y `user_token` nacen con Row Level Security activo y forzado, con sus políticas, y se amplían las de `app_user` (RNF-27).
 - [x] **T-E4-02** Registro, verificación de email y login de clientes (CU-19). En el código: `POST /api/account/register`, `/verify-email`, `/login`, `/logout` y `GET /api/account/me`; el correo de verificación (`EMAIL_VERIFICATION`, V30) lleva el token en el fragmento del enlace (`/cuenta/verificar#token`); un login con la contraseña correcta y el email sin verificar se rechaza y envía un enlace nuevo. Pantallas `/cuenta/registro`, `/cuenta/ingresar` y `/cuenta/verificar`, y el acceso en el encabezado.
-- [ ] **T-E4-03** Recuperación y restablecimiento de contraseña (CU-19).
 - [ ] **T-E4-04** Unión del carrito de invitado con el de la cuenta al iniciar sesión (CU-19).
+- [x] **T-E4-03** Recuperación y restablecimiento de contraseña (CU-19). En el código: `POST /api/account/password-recovery`, que responde siempre `204` y solo envía el correo (`PASSWORD_RESET`, V31) a una cuenta de cliente, y `POST /api/account/password-reset`, que usa el enlace una vez, invalida los enlaces anteriores, quita el bloqueo, verifica el email (V31 amplía la guarda de V29) y cierra todas las sesiones de la cuenta. El token va en el fragmento (`/cuenta/restablecer#token`). Pantallas `/cuenta/recuperar` y `/cuenta/restablecer`, y el enlace "¿Olvidaste tu contraseña?" en el ingreso.
 - [ ] **T-E4-05** Libreta de direcciones: API y pantallas (CU-20).
 - [ ] **T-E4-06** Checkout con datos y direcciones precargados (CU-21).
 - [ ] **T-E4-07** "Mis pedidos" y detalle con seguimiento (CU-22).

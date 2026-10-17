@@ -106,6 +106,47 @@ class UserTest {
     }
 
     @Test
+    void givenALockedUnverifiedCustomer_whenItResetsItsPassword_thenThePasswordIsReplacedTheLockClearedAndTheEmailVerified() {
+        User customer = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+        for (int i = 0; i < User.MAX_CONSECUTIVE_FAILURES; i++) {
+            customer.registerFailedSignIn(NOW);
+        }
+        customer.registerFailedSignIn(NOW.plus(User.LOCK_DURATION));
+        var newHash = new PasswordHash("{test}new");
+        Instant resetAt = NOW.plus(User.LOCK_DURATION).plusSeconds(60);
+
+        customer.resetPassword(newHash, resetAt);
+
+        assertThat(customer.passwordHash()).contains(newHash);
+        assertThat(customer.failedSignInAttempts()).isZero();
+        assertThat(customer.lockedUntil()).isEmpty();
+        assertThat(customer.emailVerified()).isTrue();
+        assertThat(customer.updatedAt()).isEqualTo(resetAt);
+        assertThat(customer.copy().passwordHash()).contains(newHash);
+    }
+
+    @Test
+    void givenACustomerLockedRightNow_whenItResetsItsPassword_thenItCanSignInAtOnce() {
+        User customer = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+        for (int i = 0; i < User.MAX_CONSECUTIVE_FAILURES; i++) {
+            customer.registerFailedSignIn(NOW);
+        }
+
+        customer.resetPassword(new PasswordHash("{test}new"), NOW.plusSeconds(60));
+
+        assertThat(customer.isLockedAt(NOW.plusSeconds(60))).isFalse();
+    }
+
+    @Test
+    void givenTheAdministrator_whenItResetsItsPasswordByEmail_thenItIsRefused() {
+        User administrator = administrator();
+
+        assertThatThrownBy(() -> administrator.resetPassword(new PasswordHash("{test}new"), NOW))
+            .isInstanceOf(IllegalStateException.class);
+        assertThat(administrator.passwordHash()).contains(hash());
+    }
+
+    @Test
     void givenAUser_whenCopied_thenChangesToTheCopyDoNotAffectTheOriginal() {
         User user = administrator();
         User copy = user.copy();

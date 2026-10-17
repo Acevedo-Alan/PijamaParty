@@ -179,3 +179,96 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
     expect(screen.queryByText(es.account.greeting('Ana'))).not.toBeInTheDocument();
   });
 });
+
+describe('password recovery and reset (UC-19, T-E4-03)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('given the sign-in page, when the customer forgot its password, then it reaches the recovery page', async () => {
+    stubStore();
+    const { router } = renderRoute('/cuenta/ingresar');
+
+    await userEvent.click(await screen.findByRole('link', { name: es.account.signIn.forgotPassword }));
+
+    expect(router.state.location.pathname).toBe('/cuenta/recuperar');
+  });
+
+  it('given any email, when a link is asked for, then the page answers the same and does not say whether it has an account', async () => {
+    stubStore();
+    const post = stubPost(answer(204));
+    renderRoute('/cuenta/recuperar');
+
+    await userEvent.type(await screen.findByLabelText(es.account.email), 'ana@example.com');
+    await userEvent.click(screen.getByRole('button', { name: es.account.recover.send }));
+
+    const done = await screen.findByRole('status');
+    expect(done).toHaveTextContent(es.account.recover.done('ana@example.com'));
+    expect(done).toHaveFocus();
+    expect(post).toHaveBeenCalledWith('/api/account/password-recovery', { body: { email: 'ana@example.com' } });
+  });
+
+  it('given too many requests, when a link is asked for, then it asks to wait', async () => {
+    stubStore();
+    stubPost(answer(429));
+    renderRoute('/cuenta/recuperar');
+
+    await userEvent.type(await screen.findByLabelText(es.account.email), 'ana@example.com');
+    await userEvent.click(screen.getByRole('button', { name: es.account.recover.send }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(es.account.tooManyAttempts);
+    });
+  });
+
+  it('given a reset link, when a new password is saved, then the sign-in says the password changed', async () => {
+    stubStore();
+    const post = stubPost(answer(204));
+    const { router } = renderRoute(`/cuenta/restablecer#${TOKEN}`);
+
+    await userEvent.type(await screen.findByLabelText(es.account.reset.newPassword), 'nueva-clave');
+    await userEvent.click(screen.getByRole('button', { name: es.account.reset.send }));
+
+    expect(await screen.findByText(es.account.signIn.passwordReset)).toHaveAttribute('role', 'status');
+    expect(router.state.location.pathname).toBe('/cuenta/ingresar');
+    expect(router.state.location.hash).toBe('');
+    expect(post).toHaveBeenCalledWith('/api/account/password-reset', {
+      body: { token: TOKEN, password: 'nueva-clave' },
+    });
+  });
+
+  it('given a too short password, when it is saved, then the form says why and stays', async () => {
+    stubStore();
+    stubPost(answer(422, { problem: 'PASSWORD_TOO_SHORT' }));
+    renderRoute(`/cuenta/restablecer#${TOKEN}`);
+
+    await userEvent.type(await screen.findByLabelText(es.account.reset.newPassword), 'siete77');
+    await userEvent.click(screen.getByRole('button', { name: es.account.reset.send }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(es.account.reset.passwordTooShort);
+    });
+    expect(screen.getByLabelText(es.account.reset.newPassword)).toBeInTheDocument();
+  });
+
+  it('given a used or expired link, when the password is saved, then it is refused and offered a new link', async () => {
+    stubStore();
+    stubPost(answer(410, { problem: 'INVALID_LINK' }));
+    renderRoute(`/cuenta/restablecer#${TOKEN}`);
+
+    await userEvent.type(await screen.findByLabelText(es.account.reset.newPassword), 'nueva-clave');
+    await userEvent.click(screen.getByRole('button', { name: es.account.reset.send }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.account.reset.invalidLink);
+    expect(screen.getByRole('link', { name: es.account.reset.newLink })).toHaveAttribute('href', '/cuenta/recuperar');
+  });
+
+  it('given a link without its token, when it opens, then it offers a new link without asking the server', async () => {
+    stubStore();
+    const post = stubPost(answer(204));
+    renderRoute('/cuenta/restablecer');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.account.reset.invalidLink);
+    expect(post).not.toHaveBeenCalled();
+  });
+});

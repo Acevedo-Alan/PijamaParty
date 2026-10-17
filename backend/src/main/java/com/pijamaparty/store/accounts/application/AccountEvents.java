@@ -7,4 +7,7 @@ public interface AccountEvents {
 
     /** UC-19 (T-E4-02): the customer needs a verification email. */
     void emailVerificationRequested(UserId customer);
+
+    /** UC-19 (T-E4-03): the customer needs a password reset email. */
+    void passwordResetRequested(UserId customer);
 }

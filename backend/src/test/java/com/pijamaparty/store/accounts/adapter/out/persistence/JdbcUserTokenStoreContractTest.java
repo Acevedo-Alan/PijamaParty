@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.accounts.application.CustomerRegistrationsContractTest;
 import com.pijamaparty.store.accounts.application.UserTokensContractTest;
+import com.pijamaparty.store.accounts.domain.PasswordHash;
 import com.pijamaparty.store.accounts.domain.User;
 import com.pijamaparty.store.accounts.domain.UserToken;
 import com.pijamaparty.store.accounts.domain.UserTokenPurpose;
@@ -22,10 +23,13 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
  * Issuing joins the caller's transaction, so the contract issues as {@code SYSTEM} in a committed one; consuming
- * commits its own. The last tests check that the database binds the verification to the consumed token (V29).
+ * commits its own. The last tests check that the database binds the verification and the reset to the consumed token
+ * (V29, V31).
  */
 @ApiTest
 class JdbcUserTokenStoreContractTest extends UserTokensContractTest<JdbcUserTokenStore> {
+
+    private static final PasswordHash NEW_HASH = new PasswordHash("{bcrypt}$2a$12$" + "n".repeat(53));
 
     private final JdbcUserTokenStore adapter;
     private final JpaUserStore users;
@@ -109,18 +113,72 @@ class JdbcUserTokenStoreContractTest extends UserTokensContractTest<JdbcUserToke
     }
 
     @Test
-    void givenAPasswordResetToken_whenItVerifiesTheEmail_thenTheDatabaseRefusesIt() {
+    void givenAResetTokenUsedFirst_whenThePasswordIsReplacedAndTheEmailVerified_thenTheDatabaseAcceptsIt() {
+        var link = new AccountToken("a".repeat(43));
+        issue(token(link, UserTokenPurpose.PASSWORD_RESET));
+
+        subject.consuming(link, token -> {
+            token.orElseThrow().use(UserTokenPurpose.PASSWORD_RESET, NOW);
+            subject.markUsed(token.orElseThrow());
+            resetPassword(customer);
+            return null;
+        });
+
+        User reset = storedCustomer(customer);
+        assertThat(reset.passwordHash()).contains(NEW_HASH);
+        assertThat(reset.emailVerified()).as("V31: the reset link proves the inbox too").isTrue();
+    }
+
+    @Test
+    void givenTheResetTokenNotUsed_whenThePasswordIsReplaced_thenTheDatabaseRefusesIt() {
+        var link = new AccountToken("a".repeat(43));
+        issue(token(link, UserTokenPurpose.PASSWORD_RESET));
+
+        assertThatThrownBy(() -> subject.consuming(link, token -> {
+            resetPassword(customer);
+            return null;
+        })).isInstanceOf(RuntimeException.class);
+
+        assertThat(storedCustomer(customer).passwordHash()).contains(customer.passwordHash().orElseThrow());
+    }
+
+    @Test
+    void givenAVerificationToken_whenItReplacesThePassword_thenTheDatabaseRefusesIt() {
+        var link = new AccountToken("a".repeat(43));
+        issue(token(link, UserTokenPurpose.EMAIL_VERIFICATION));
+
+        assertThatThrownBy(() -> subject.consuming(link, token -> {
+            token.orElseThrow().use(UserTokenPurpose.EMAIL_VERIFICATION, NOW);
+            subject.markUsed(token.orElseThrow());
+            resetPassword(customer);
+            return null;
+        })).isInstanceOf(RuntimeException.class);
+
+        assertThat(storedCustomer(customer).passwordHash()).contains(customer.passwordHash().orElseThrow());
+    }
+
+    @Test
+    void givenAResetTokenOfAnotherCustomer_whenItReplacesThisOnesPassword_thenTheDatabaseRefusesIt() {
+        User other = CustomerRegistrationsContractTest.customer("beto@example.com");
+        arrange(other);
         var link = new AccountToken("a".repeat(43));
         issue(token(link, UserTokenPurpose.PASSWORD_RESET));
 
         assertThatThrownBy(() -> subject.consuming(link, token -> {
             token.orElseThrow().use(UserTokenPurpose.PASSWORD_RESET, NOW);
             subject.markUsed(token.orElseThrow());
-            verifyCustomer(customer);
+            resetPassword(other);
             return null;
         })).isInstanceOf(RuntimeException.class);
 
-        assertThat(storedCustomer(customer).emailVerified()).isFalse();
+        assertThat(storedCustomer(other).passwordHash()).contains(other.passwordHash().orElseThrow());
+    }
+
+    private void resetPassword(User target) {
+        User loaded = users.findById(target.id()).orElseThrow();
+        loaded.resetPassword(NEW_HASH, NOW);
+        users.save(loaded);
+        rows.flush();
     }
 
     /** Flushed at once, so the database's refusal surfaces inside the consumption. */

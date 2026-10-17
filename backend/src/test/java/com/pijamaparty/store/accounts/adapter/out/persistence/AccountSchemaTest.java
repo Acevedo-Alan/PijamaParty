@@ -347,10 +347,24 @@ class AccountSchemaTest {
         assertThatThrownBy(() -> rls.as(SYSTEM, sql -> {
                 bindAccountToken(sql, RESET_HASH);
                 sql.update("update user_token set used_at = now() where token_hash = ?", RESET_HASH);
-                return sql.update(verify, CUSTOMER_B_ID.value());
+                return sql.update(verify, CUSTOMER_A_ID.value());
             }))
-            .as("with a token of another purpose").isInstanceOf(DataAccessException.class)
+            .as("with another user's reset token").isInstanceOf(DataAccessException.class)
             .hasStackTraceContaining("verify an email or reset a password with its token");
+    }
+
+    @Test
+    void givenAConsumedResetTokenOfTheUser_whenTheSystemVerifiesItsEmail_thenItIsAllowed() {
+        token(CUSTOMER_A_ID.value(), "PASSWORD_RESET", RESET_HASH, "30 minutes");
+
+        int verified = rls.as(SYSTEM, sql -> {
+            bindAccountToken(sql, RESET_HASH);
+            sql.update("update user_token set used_at = now() where token_hash = ?", RESET_HASH);
+            return sql.update("update app_user set email_verified = true, updated_at = now() where id = ?",
+                CUSTOMER_A_ID.value());
+        });
+
+        assertThat(verified).as("V31: opening the reset link proves the inbox").isOne();
     }
 
     @Test
