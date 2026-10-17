@@ -45,6 +45,14 @@ public final class Browser {
         return exchange(HttpMethod.POST, path, json);
     }
 
+    public ResponseEntity<String> put(String path, String json) {
+        return exchange(HttpMethod.PUT, path, json);
+    }
+
+    public ResponseEntity<String> delete(String path) {
+        return exchange(HttpMethod.DELETE, path, null);
+    }
+
     private ResponseEntity<String> exchange(HttpMethod method, String path, String json) {
         var headers = new HttpHeaders();
         if (!cookies.isEmpty()) {

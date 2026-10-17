@@ -104,6 +104,16 @@ Registering is optional: buying as a guest stays the main flow. An account saves
 **Design notes**
 - `Address` in `accounts.domain`; the address book rules (limit, single primary) belong to the domain (T-E4-05).
 - Endpoints: `GET`, `POST /api/account/addresses`, `PUT`, `DELETE /api/account/addresses/{id}`. Details in T-E4-05.
+- **Address book (T-E4-05):**
+  - Only the signed-in customer, on its own addresses (`CUSTOMER` role, as the rest of `/api/account/**`); the writes require the CSRF token. Row Level Security (V29) shows a customer only its own addresses, so another customer's address is simply not found.
+  - An address has `street` (1 to 100 characters), `number` (1 to 10), optional `floor` and `apartment` (1 to 10; blank is none), `city` (1 to 80), `province` (one of the 24 jurisdictions of UC-12) and `postalCode` (4 digits or a CPA, normalized to upper case). The texts are trimmed. These are the rules of the order's address (UC-13, `CheckoutForm`), applied by `accounts.domain`, which keeps its own `Province` with the same constants, because `accounts` depends only on `platform`.
+  - A book that is not empty always has exactly one primary address. The first address becomes primary whatever the request says. Marking another one primary unmarks the previous one; the primary cannot be unmarked by itself, only replaced. Deleting the primary makes the oldest remaining address primary.
+  - `GET /api/account/addresses`: `200` with the addresses (`id`, `street`, `number`, `floor`, `apartment`, `city`, `province`, `postalCode`, `primary`), the primary first and then from the oldest to the newest; an empty list when there are none.
+  - `POST /api/account/addresses` (the fields, and an optional `primary`, false when absent): `201` with the new address and its `Location`. An 11th address gets `422` `ADDRESS_BOOK_FULL`. Fields that break a rule get `422` `INVALID_ADDRESS` with `fields`, the names of the invalid fields in the request's own names (an unknown province is a `400`, as in the checkout).
+  - `PUT /api/account/addresses/{id}` (the same body): `200` with the address. It replaces every field; `primary: true` marks it primary, and false or absent leaves it as it was. An unknown address, or another customer's, gets `404` `ADDRESS_NOT_FOUND`; invalid fields get `422` `INVALID_ADDRESS`.
+  - `DELETE /api/account/addresses/{id}`: `204`, or `404` `ADDRESS_NOT_FOUND`. Orders are not touched: they keep their own copy of the address (R-04) and have no foreign key to `address`.
+  - The address book is the aggregate: a change locks the customer's `app_user` row (`SELECT ... FOR UPDATE`) before reading the addresses, so two concurrent changes of one book run one after the other and can neither pass 10 addresses nor leave two primaries (the partial unique index of V29 backs the second).
+  - Storefront: `/cuenta/direcciones` lists the addresses, adds, edits, deletes (after a confirmation) and marks one as primary. The header shows a "Mis direcciones" link to it while signed in. A visitor who is not signed in is sent to `/cuenta/ingresar`.
 
 ---
 

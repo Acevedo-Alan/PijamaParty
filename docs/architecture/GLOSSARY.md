@@ -17,6 +17,8 @@ The code, database and API use the English names. Spanish appears only in user-f
 | Pago | `Payment` | |
 | Envío | `Shipping` | Cost by province or zone |
 | DNI | `NationalId` | Sensitive personal data |
+| Libreta de direcciones | `AddressBook` | A customer's saved addresses, at most 10 (UC-20) |
+| Dirección principal | primary address (`is_primary`) | Exactly one when the book has addresses; preselected at checkout (UC-21) |
 | Reseña | `Review` | |
 | Administrador | `Administrator` | Single admin: the shop owner |
 | Visitante | `Visitor` | Not signed in |

@@ -1,5 +1,5 @@
 /* UC-19 (T-E4-02, T-E4-03): the header's account entry and the registration, sign-in, verification and password
-   recovery pages. */
+   recovery pages. UC-20 (T-E4-05): the address book. */
 
 .account-link {
   display: flex;
@@ -120,4 +120,167 @@ a.account-link {
   align-items: center;
   margin-top: 16px;
   text-decoration: none;
+}
+
+.account-addresses {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--accent-text);
+}
+
+/* UC-20 (T-E4-05): the address book. */
+
+.address-book {
+  max-width: 640px;
+}
+
+.address-notice {
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.address-notice:empty {
+  display: none;
+}
+
+.address-load-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  color: var(--danger);
+}
+
+.address-list {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.address-card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+}
+
+.address-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.address-primary {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--peach-soft);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.address-place {
+  margin-top: 4px;
+  color: var(--ink-soft);
+}
+
+.address-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 12px;
+}
+
+.address-action {
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.address-confirm {
+  margin-top: 12px;
+}
+
+.address-form h2 {
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.address-form h2:focus {
+  outline: none;
+}
+
+.address-field {
+  margin-bottom: 16px;
+}
+
+.address-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.address-optional {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.address-field input,
+.address-field select {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 13px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 16px; /* 16px keeps iOS from zooming into the field */
+}
+
+.address-field input:focus,
+.address-field select:focus {
+  border-color: var(--accent);
+}
+
+.address-field.error input,
+.address-field.error select {
+  border-color: var(--danger);
+}
+
+.address-field-error {
+  margin-top: 5px;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.address-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.address-check input {
+  width: 20px;
+  height: 20px;
+}
+
+@media (min-width: 640px) {
+  .address-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+  }
+
+  .address-row-street {
+    grid-template-columns: 2fr 1fr;
+  }
 }

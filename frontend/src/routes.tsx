@@ -1,5 +1,6 @@
 import { Navigate, type RouteObject } from 'react-router';
-import { RECOVER_PATH, REGISTER_PATH, SIGN_IN_PATH } from './features/account/AccountLink.tsx';
+import { ADDRESSES_PATH, RECOVER_PATH, REGISTER_PATH, SIGN_IN_PATH } from './features/account/AccountLink.tsx';
+import { AddressBookPage } from './features/account/AddressBookPage.tsx';
 import { RecoverPasswordPage } from './features/account/RecoverPasswordPage.tsx';
 import { RegisterPage } from './features/account/RegisterPage.tsx';
 import { RESET_PATH, ResetPasswordPage } from './features/account/ResetPasswordPage.tsx';
@@ -37,6 +38,7 @@ export const routes: RouteObject[] = [
       { path: VERIFY_PATH, element: <VerifyEmailPage /> },
       { path: RECOVER_PATH, element: <RecoverPasswordPage /> },
       { path: RESET_PATH, element: <ResetPasswordPage /> },
+      { path: ADDRESSES_PATH, element: <AddressBookPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

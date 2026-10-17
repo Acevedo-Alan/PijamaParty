@@ -149,6 +149,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/addresses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace an address
+         * @description Replaces every field. primary true makes it the primary; false or absent leaves it as it was. Requires the CSRF token.
+         */
+        put: operations["editAddress"];
+        post?: never;
+        /**
+         * Delete an address
+         * @description When it was the primary, the oldest remaining address becomes primary. Orders keep their own copy of the address. Requires the CSRF token.
+         */
+        delete: operations["deleteAddress"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/withdrawals": {
         parameters: {
             query?: never;
@@ -823,6 +847,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/addresses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The customer's addresses
+         * @description The primary first, then from the oldest.
+         */
+        get: operations["listAddresses"];
+        put?: never;
+        /**
+         * Add an address
+         * @description The first address is the primary whatever primary says; primary true makes the new one the primary instead of the previous one. Requires the CSRF token.
+         */
+        post: operations["addAddress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{token}/email": {
         parameters: {
             query?: never;
@@ -1384,6 +1432,30 @@ export interface components {
             /** Format: int32 */
             position?: number;
             active?: boolean;
+        };
+        SavedAddressRequest: {
+            street: string;
+            number: string;
+            floor?: string;
+            apartment?: string;
+            city: string;
+            /** @enum {string} */
+            province: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            postalCode: string;
+            primary?: boolean;
+        };
+        SavedAddressResponse: {
+            /** Format: uuid */
+            id?: string;
+            street?: string;
+            number?: string;
+            floor?: string | null;
+            apartment?: string | null;
+            city?: string;
+            /** @enum {string} */
+            province?: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            postalCode?: string;
+            primary?: boolean;
         };
         WithdrawalRequest: {
             orderNumber: string;
@@ -2322,6 +2394,81 @@ export interface operations {
             };
             /** @description The order does not name every category exactly once */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    editAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedAddressRequest"];
+            };
+        };
+        responses: {
+            /** @description The address */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAddressResponse"];
+                };
+            };
+            /** @description ADDRESS_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description INVALID_ADDRESS with the invalid fields */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    deleteAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description ADDRESS_NOT_FOUND */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4105,6 +4252,68 @@ export interface operations {
             };
             /** @description Locked after 5 consecutive failures; lockedUntil says until when */
             423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listAddresses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The addresses; empty when there are none */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAddressResponse"][];
+                };
+            };
+            /** @description Not signed in as a customer */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    addAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedAddressRequest"];
+            };
+        };
+        responses: {
+            /** @description The new address */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAddressResponse"];
+                };
+            };
+            /** @description ADDRESS_BOOK_FULL (already 10 addresses), or INVALID_ADDRESS with the invalid fields */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
