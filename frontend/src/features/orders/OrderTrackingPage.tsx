@@ -2,8 +2,8 @@ import { useEffect, useId, useState, type SyntheticEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
-import { formatMoney } from '../../i18n/formatMoney.ts';
 import { trackPurchase } from '../analytics/checkoutEvents.ts';
+import { OrderItemsAndAmounts } from './OrderItemsAndAmounts.tsx';
 import type { EmailCorrectionAnswer, OrderStatus, RetryAnswer, TrackedOrder } from './orderTrackingApi.ts';
 import { goToPayment } from './redirect.ts';
 import { useCorrectEmail, useRetryPayment, useTrackedOrder } from './useTrackedOrder.ts';
@@ -234,35 +234,7 @@ function TrackedOrderView({ token, order, confirming }: { token: string; order: 
       )}
       <section className="tracking-summary" aria-labelledby="tracking-items">
         <h2 id="tracking-items">{es.tracking.items}</h2>
-        <ul className="tracking-items">
-          {order.items.map((item, index) => (
-            <li key={index}>
-              <span className="tracking-item-name">{item.productName}</span>
-              <span className="tracking-item-detail">{es.tracking.itemDetail(item.color, item.size, item.quantity)}</span>
-              <span className="tracking-item-amount">{formatMoney(item.lineTotalCents)}</span>
-            </li>
-          ))}
-        </ul>
-        <dl className="tracking-amounts">
-          <div>
-            <dt>{es.tracking.subtotal}</dt>
-            <dd>{formatMoney(order.subtotalCents)}</dd>
-          </div>
-          {order.discountCents > 0 && (
-            <div>
-              <dt>{order.couponCode === null ? es.tracking.discount : es.tracking.discountWith(order.couponCode)}</dt>
-              <dd>−{formatMoney(order.discountCents)}</dd>
-            </div>
-          )}
-          <div>
-            <dt>{es.tracking.shipping}</dt>
-            <dd>{order.shippingCents === 0 ? es.tracking.free : formatMoney(order.shippingCents)}</dd>
-          </div>
-          <div className="tracking-total">
-            <dt>{es.tracking.total}</dt>
-            <dd>{formatMoney(order.totalCents)}</dd>
-          </div>
-        </dl>
+        <OrderItemsAndAmounts {...order} />
         <p className="tracking-ship-to">{es.tracking.shipTo(order.city, es.provinces[order.province])}</p>
       </section>
       <EmailCorrection token={token} order={order} />

@@ -14,6 +14,13 @@ const dateTime = new Intl.DateTimeFormat('es-AR', {
   timeZone: TIME_ZONE,
 });
 
+const date = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeZone: TIME_ZONE });
+
+/** The day in Argentina time, e.g. "11/10/26". */
+export function formatDate(day: Date): string {
+  return date.format(day);
+}
+
 /** Hours and minutes in Argentina time, e.g. "14:30". */
 export function formatTime(date: Date): string {
   return time.format(date);

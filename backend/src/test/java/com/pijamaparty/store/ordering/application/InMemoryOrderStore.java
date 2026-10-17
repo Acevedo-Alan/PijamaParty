@@ -11,6 +11,7 @@ import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.ShipmentTrackingNumber;
 import com.pijamaparty.store.ordering.domain.StatusChange;
 import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
+import com.pijamaparty.store.platform.domain.UserId;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -25,12 +26,13 @@ import java.util.UUID;
  * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders}, {@link OrderNumbers},
  * {@link OrdersToPay}, {@link ConfirmableOrders}, {@link TrackedOrders}, {@link PaidOrderDetails},
  * {@link SaveTrackingLinks}, {@link OrderStatuses}, {@link OrderPages}, {@link AdminOrderViews}, {@link StatusChanges},
- * {@link ShipmentTrackingNumbers}, {@link LatePayments}, {@link CorrectableOrders} and {@link BuyerEmails} over the
- * same orders. Locks are not modeled.
+ * {@link ShipmentTrackingNumbers}, {@link LatePayments}, {@link CorrectableOrders}, {@link BuyerEmails},
+ * {@link CustomerOrderPages} and {@link CustomerOrderViews} over the same orders. Locks are not modeled.
  */
 public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay,
     ConfirmableOrders, TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews,
-    StatusChanges, ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails {
+    StatusChanges, ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails, CustomerOrderPages,
+    CustomerOrderViews {
 
     /** Oldest expiry first; the id breaks ties as PostgreSQL orders uuids (as the canonical text does). */
     private static final Comparator<Map.Entry<OrderId, Row>> OLDEST_EXPIRY_FIRST =
@@ -298,6 +300,30 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
         correctedEmails.put(order, email);
         updatedAt.put(order, at);
         return true;
+    }
+
+    /** Only the orders the checkout placed carry a customer. */
+    @Override
+    public synchronized List<CustomerOrderSummary> page(UserId customer, int offset, int limit) {
+        return placed.values().stream()
+            .filter(order -> order.userId().equals(Optional.of(customer)))
+            .sorted(Comparator.comparing(NewOrder::createdAt).thenComparing(NewOrder::number).reversed())
+            .skip(offset)
+            .limit(limit)
+            .map(order -> new CustomerOrderSummary(order.id(), order.number(), order.createdAt(),
+                orders.get(order.id()).status(), order.amounts().total()))
+            .toList();
+    }
+
+    /** Only the orders the checkout placed carry a customer. */
+    @Override
+    public synchronized Optional<CustomerOrder> find(UserId customer, OrderId order) {
+        return Optional.ofNullable(placed.get(order))
+            .filter(placedOrder -> placedOrder.userId().equals(Optional.of(customer)))
+            .map(placedOrder -> new CustomerOrder(order, placedOrder.number(), orders.get(order).status(),
+                placedOrder.createdAt(), placedOrder.lines(), placedOrder.amounts(),
+                placedOrder.coupon().map(AppliedCoupon::code), placedOrder.address(), placedOrder.province(),
+                Optional.ofNullable(shipmentTrackingNumbers.get(order))));
     }
 
     private String buyerEmailOf(NewOrder order) {

@@ -1,6 +1,8 @@
 import { Navigate, type RouteObject } from 'react-router';
-import { ADDRESSES_PATH, RECOVER_PATH, REGISTER_PATH, SIGN_IN_PATH } from './features/account/AccountLink.tsx';
+import { ADDRESSES_PATH, ORDERS_PATH, RECOVER_PATH, REGISTER_PATH, SIGN_IN_PATH } from './features/account/AccountLink.tsx';
 import { AddressBookPage } from './features/account/AddressBookPage.tsx';
+import { MyOrderPage } from './features/account/MyOrderPage.tsx';
+import { MyOrdersPage } from './features/account/MyOrdersPage.tsx';
 import { RecoverPasswordPage } from './features/account/RecoverPasswordPage.tsx';
 import { RegisterPage } from './features/account/RegisterPage.tsx';
 import { RESET_PATH, ResetPasswordPage } from './features/account/ResetPasswordPage.tsx';
@@ -39,6 +41,8 @@ export const routes: RouteObject[] = [
       { path: RECOVER_PATH, element: <RecoverPasswordPage /> },
       { path: RESET_PATH, element: <ResetPasswordPage /> },
       { path: ADDRESSES_PATH, element: <AddressBookPage /> },
+      { path: ORDERS_PATH, element: <MyOrdersPage /> },
+      { path: `${ORDERS_PATH}/:orderId`, element: <MyOrderPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

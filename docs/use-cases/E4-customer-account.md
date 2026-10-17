@@ -164,6 +164,14 @@ Registering is optional: buying as a guest stays the main flow. An account saves
 
 **Design notes**
 - Endpoints: `GET /api/account/orders`, `GET /api/account/orders/{id}` (T-E4-07).
+- **My orders (T-E4-07):**
+  - Only the signed-in customer, on its own orders (`CUSTOMER` role, as the rest of `/api/account/**`); read-only, as the customer (RNF-27). Row Level Security (`orders_customer_select`, V14) already shows a customer only the orders of its `user_id`, and the queries also filter by it, so the tracking token a session may carry never adds a guest order to the list.
+  - `GET /api/account/orders?page=0` (`ListMyOrders`, through `CustomerOrderPages`): `200` with `orders` (`id`, `number`, `createdAt`, `status`, `totalCents`), newest first (then the highest number), 20 per page from page 0, and `hasMore`; an empty list when there are none. A page out of 0 to 1000 gets `400`. Over `orders_user_created_idx` (V14).
+  - `GET /api/account/orders/{id}` (`GetMyOrder`, through `CustomerOrderViews`): `200` with `id`, `number`, `status`, `createdAt`, `items` (`sku`, `productName`, `size`, `color`, `quantity`, `unitPriceCents`, `lineTotalCents`, in the cart's order), `subtotalCents`, `discountCents`, `couponCode` (or `null`), `shippingCents`, `totalCents`, `address` (`street`, `number`, `floor`, `apartment`, `city`, `province`, `postalCode`; the order's own copy, R-04) and `shipmentTrackingNumber` (or `null`). The owner sees its full address, but never the national ID, which the account does not keep (UC-21). Paying again stays on the tracking link (UC-14): the detail has no "Pagar".
+  - Another customer's order, a guest order and an unknown id all get `404` `ORDER_NOT_FOUND` (decided): Row Level Security hides them, so the answer never tells whether the order exists. That is the "access denied" of the acceptance criterion.
+  - Both answer `Cache-Control: no-store`, and `401` without a customer session.
+  - Correo Argentino's tracking (decided): Correo has no stable public link that carries the number, so the detail links to its tracking page (`https://www.correoargentino.com.ar/formularios/e-commerce`, new tab) next to the number and a "Copiar" button. The link lives in the storefront.
+  - Storefront: `/cuenta/pedidos` lists the orders (number, date, status, total) with "Ver más" while `hasMore`; `/cuenta/pedidos/:id` shows the detail. The header shows a "Mis pedidos" link while signed in. A visitor who is not signed in is sent to `/cuenta/ingresar`; an order not found shows "No encontramos tu pedido".
 - Linking guest orders happens only after the email is verified, so nobody sees someone else's orders by registering an email that is not theirs (T-E4-08).
 - Only orders placed as a guest are linked: an order unlinked by an account deletion (UC-28) is never linked again, even when the same email registers again. T-E4-08 settles how the order records it.
 

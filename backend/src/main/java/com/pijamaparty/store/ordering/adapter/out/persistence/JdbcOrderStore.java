@@ -10,6 +10,9 @@ import com.pijamaparty.store.ordering.application.AdminOrderViews;
 import com.pijamaparty.store.ordering.application.BuyerEmails;
 import com.pijamaparty.store.ordering.application.ConfirmableOrders;
 import com.pijamaparty.store.ordering.application.CorrectableOrders;
+import com.pijamaparty.store.ordering.application.CustomerOrderPages;
+import com.pijamaparty.store.ordering.application.CustomerOrderSummary;
+import com.pijamaparty.store.ordering.application.CustomerOrderViews;
 import com.pijamaparty.store.ordering.application.LatePayments;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderPages;
@@ -30,6 +33,7 @@ import com.pijamaparty.store.ordering.domain.OrderLine;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.PaymentProvider;
 import com.pijamaparty.store.ordering.domain.ShipmentTrackingNumber;
+import com.pijamaparty.store.ordering.domain.ShippingAddress;
 import com.pijamaparty.store.ordering.domain.StatusChange;
 import com.pijamaparty.store.platform.application.IdGenerator;
 import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
@@ -61,7 +65,7 @@ import org.springframework.transaction.annotation.Transactional;
 class JdbcOrderStore
     implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders,
     TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews, StatusChanges,
-    ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails {
+    ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails, CustomerOrderPages, CustomerOrderViews {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -208,6 +212,21 @@ class JdbcOrderStore
                subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code, payment_provider,
                shipment_tracking_number, paid_after_closing_at
         FROM orders WHERE id = :id
+        """;
+
+    // UC-22 (T-E4-07): a customer's orders, newest first, over orders_user_created_idx (V14). orders_customer_select
+    // already limits a customer to its own; the filter keeps out the order of a tracking token the session carries.
+    private static final String PAGE_OF_CUSTOMER = """
+        SELECT id, number, created_at, status, total_cents FROM orders
+        WHERE user_id = :userId
+        ORDER BY created_at DESC, number DESC
+        LIMIT :limit OFFSET :offset
+        """;
+
+    private static final String SELECT_CUSTOMER_VIEW = """
+        SELECT id, number, status, created_at, street, street_number, floor, apartment, city, province, postal_code,
+               subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code, shipment_tracking_number
+        FROM orders WHERE id = :id AND user_id = :userId
         """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -443,6 +462,37 @@ class JdbcOrderStore
                     Money.of(row.getLong("total_cents")), row.getString("payment_provider"),
                     Optional.ofNullable(row.getString("shipment_tracking_number")),
                     row.getObject("paid_after_closing_at", OffsetDateTime.class) != null);
+            })
+            .stream().findFirst();
+    }
+
+    @Override
+    public List<CustomerOrderSummary> page(UserId customer, int offset, int limit) {
+        var params = new MapSqlParameterSource("userId", customer.value()).addValue("offset", offset)
+            .addValue("limit", limit);
+        return jdbc.query(PAGE_OF_CUSTOMER, params, (row, n) -> new CustomerOrderSummary(
+            OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
+            row.getObject("created_at", OffsetDateTime.class).toInstant(), OrderStatus.valueOf(row.getString("status")),
+            Money.of(row.getLong("total_cents"))));
+    }
+
+    /** Its own short transaction when the caller has none, so the order and its lines are read together. */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CustomerOrder> find(UserId customer, OrderId order) {
+        var params = new MapSqlParameterSource("id", order.value()).addValue("userId", customer.value());
+        return jdbc.query(SELECT_CUSTOMER_VIEW, params, (row, n) -> {
+                OrderId id = OrderId.of(row.getObject("id", UUID.class));
+                return new CustomerOrder(id, row.getLong("number"), OrderStatus.valueOf(row.getString("status")),
+                    row.getObject("created_at", OffsetDateTime.class).toInstant(), linesOf(id),
+                    new OrderAmounts(Money.of(row.getLong("subtotal_cents")), Money.of(row.getLong("discount_cents")),
+                        Money.of(row.getLong("shipping_cents")), Money.of(row.getLong("total_cents"))),
+                    Optional.ofNullable(row.getString("coupon_code")),
+                    new ShippingAddress(row.getString("street"), row.getString("street_number"),
+                        Optional.ofNullable(row.getString("floor")), Optional.ofNullable(row.getString("apartment")),
+                        row.getString("city"), row.getString("postal_code")),
+                    Province.valueOf(row.getString("province")),
+                    Optional.ofNullable(row.getString("shipment_tracking_number")));
             })
             .stream().findFirst();
     }

@@ -1,5 +1,5 @@
 /* UC-19 (T-E4-02, T-E4-03): the header's account entry and the registration, sign-in, verification and password
-   recovery pages. UC-20 (T-E4-05): the address book. */
+   recovery pages. UC-20 (T-E4-05): the address book. UC-22 (T-E4-07): my orders. */
 
 .account-link {
   display: flex;
@@ -122,6 +122,7 @@ a.account-link {
   text-decoration: none;
 }
 
+.account-orders,
 .account-addresses {
   display: inline-flex;
   align-items: center;
@@ -283,4 +284,93 @@ a.account-link {
   .address-row-street {
     grid-template-columns: 2fr 1fr;
   }
+}
+
+/* UC-22 (T-E4-07): my orders and the detail of one. The detail reuses the tracking page's items and amounts. */
+
+.my-orders,
+.my-order {
+  max-width: 640px;
+}
+
+.my-order-list {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.my-order-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.my-order-number {
+  font-weight: 600;
+}
+
+.my-order-status {
+  justify-self: end;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.my-order-date {
+  color: var(--ink-soft);
+}
+
+.my-order-total {
+  justify-self: end;
+  font-weight: 600;
+}
+
+.my-order-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 8px;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.my-order-shipment,
+.my-order-address {
+  margin: 20px 0;
+}
+
+.my-order-shipment h2,
+.my-order-address h2 {
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.my-order-tracking-number {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.my-order-shipment a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.my-order-hint {
+  color: var(--ink-soft);
+  font-size: 14px;
 }

@@ -1247,6 +1247,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The customer's orders, newest first
+         * @description 20 per page, from page 0. Not cached.
+         */
+        get: operations["list_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One of the customer's orders, with its tracking
+         * @description The items, the amounts in cents, the order's own copy of the address and the shipment tracking number once shipped. Not cached.
+         */
+        get: operations["order_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/me": {
         parameters: {
             query?: never;
@@ -1941,6 +1981,66 @@ export interface components {
             secret?: string;
             otpauthUri?: string;
             qrCode?: string;
+        };
+        MyOrderPageResponse: {
+            orders?: components["schemas"]["MyOrderSummaryResponse"][];
+            hasMore?: boolean;
+        };
+        MyOrderSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int64 */
+            number?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** @enum {string} */
+            status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            /** Format: int64 */
+            totalCents?: number;
+        };
+        MyOrderAddressResponse: {
+            street?: string;
+            number?: string;
+            floor: string | null;
+            apartment: string | null;
+            city?: string;
+            /** @enum {string} */
+            province?: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            postalCode?: string;
+        };
+        MyOrderItemResponse: {
+            sku?: string;
+            productName?: string;
+            size?: string;
+            color?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int64 */
+            unitPriceCents?: number;
+            /** Format: int64 */
+            lineTotalCents?: number;
+        };
+        MyOrderResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int64 */
+            number?: number;
+            /** @enum {string} */
+            status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            /** Format: date-time */
+            createdAt?: string;
+            items?: components["schemas"]["MyOrderItemResponse"][];
+            /** Format: int64 */
+            subtotalCents?: number;
+            /** Format: int64 */
+            discountCents?: number;
+            couponCode: string | null;
+            /** Format: int64 */
+            shippingCents?: number;
+            /** Format: int64 */
+            totalCents?: number;
+            address?: components["schemas"]["MyOrderAddressResponse"];
+            shipmentTrackingNumber: string | null;
         };
     };
     responses: never;
@@ -5261,6 +5361,86 @@ export interface operations {
             };
             /** @description Over 5 attempts per minute from this IP (RNF-22); Retry-After says when to retry */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of orders; empty when there are none */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyOrderPageResponse"];
+                };
+            };
+            /** @description Page out of range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not signed in as a customer */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    order_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyOrderResponse"];
+                };
+            };
+            /** @description Not signed in as a customer */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such order of this customer, whether it does not exist or is another person's (problem ORDER_NOT_FOUND) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
