@@ -27,7 +27,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 /**
  * T-E4-01: the customer account schema (V29): the phone of app_user, the address book, the single-use tokens of the
  * email links and the column guards of app_user and user_token (RNF-27), as committed transactions of the application
- * role. Which rows each actor reaches, with the five actors, is {@link AccountRowLevelSecurityTest} (T-E4-11).
+ * role. T-E4-13 (V34): the linked external accounts, the link confirmation and the social sign-in changes of app_user. Which rows each actor reaches, with the five actors, is {@link AccountRowLevelSecurityTest} (T-E4-11).
  */
 @ApiTest
 class AccountSchemaTest {
@@ -48,8 +48,20 @@ class AccountSchemaTest {
         insert into user_token (id, user_id, purpose, token_hash, created_at, expires_at)
         values (?, ?, ?, ?, now(), now() + ?::interval)
         """;
+    private static final String INSERT_LINK_TOKEN = """
+        insert into user_token (id, user_id, purpose, token_hash, created_at, expires_at, provider, subject)
+        values (?, ?, 'LINK_CONFIRMATION', ?, now(), now() + ?::interval, ?, ?)
+        """;
+    private static final String INSERT_IDENTITY = """
+        insert into external_identity (id, user_id, provider, subject, email, created_at)
+        values (?, ?, ?, ?, ?, now())
+        """;
     private static final String VERIFICATION_HASH = "a".repeat(64);
     private static final String RESET_HASH = "b".repeat(64);
+    private static final String LINK_HASH = "c".repeat(64);
+    private static final String VERIFY_AND_DROP_PASSWORD = """
+        update app_user set email_verified = true, password_hash = null, updated_at = now() where id = ?
+        """;
 
     private final RlsPolicyTester rls;
     private final JdbcTemplate owner;
@@ -70,7 +82,7 @@ class AccountSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate address, user_token, admin_recovery_code, app_user");
+        owner.execute("truncate address, user_token, external_identity, admin_recovery_code, app_user");
     }
 
     // --- app_user.phone ---
@@ -127,14 +139,77 @@ class AccountSchemaTest {
     }
 
     @Test
-    void givenACustomerWithAddressesAndTokens_whenItsUserIsDeleted_thenTheyGoWithIt() {
+    void givenACustomerWithAddressesTokensAndExternalAccounts_whenItsUserIsDeleted_thenTheyGoWithIt() {
         address(CUSTOMER_A_ID.value(), true);
         token(CUSTOMER_A_ID.value(), "EMAIL_VERIFICATION", VERIFICATION_HASH, "24 hours");
+        identity(CUSTOMER_A_ID.value(), "GOOGLE", "google-a", "a@example.com");
 
         owner.update("delete from app_user where id = ?", CUSTOMER_A_ID.value());
 
         assertThat(owner.queryForObject("select count(*) from address", Integer.class)).isZero();
         assertThat(owner.queryForObject("select count(*) from user_token", Integer.class)).isZero();
+        assertThat(owner.queryForObject("select count(*) from external_identity", Integer.class)).isZero();
+    }
+
+    // --- external_identity ---
+
+    @Test
+    void givenALinkedExternalAccount_whenLinkedAgainToAnyoneOrASecondOneOfTheProvider_thenItIsRejected() {
+        identity(CUSTOMER_A_ID.value(), "GOOGLE", "google-a", "a@example.com");
+
+        assertThatThrownBy(() -> identity(CUSTOMER_B_ID.value(), "GOOGLE", "google-a", "b@example.com"))
+            .as("to another customer").isInstanceOf(DuplicateKeyException.class)
+            .hasMessageContaining("external_identity_subject_uk");
+        assertThatThrownBy(() -> identity(CUSTOMER_A_ID.value(), "GOOGLE", "google-a2", "a@example.com"))
+            .as("a second Google account").isInstanceOf(DuplicateKeyException.class)
+            .hasMessageContaining("external_identity_user_provider_uk");
+
+        // The same subject at another provider is another account.
+        identity(CUSTOMER_A_ID.value(), "FACEBOOK", "google-a", "a@example.com");
+        assertThat(owner.queryForObject("select count(*) from external_identity", Integer.class)).isEqualTo(2);
+    }
+
+    @Test
+    void givenAnExternalAccountWithFieldsOutOfFormat_whenStored_thenTheChecksRejectIt() {
+        for (var identity : List.of(
+                List.of("APPLE", "123", "a@example.com", "external_identity_provider_ck"),
+                List.of("google", "123", "a@example.com", "external_identity_provider_ck"),
+                List.of("GOOGLE", "", "a@example.com", "external_identity_subject_ck"),
+                List.of("GOOGLE", "12 3", "a@example.com", "external_identity_subject_ck"),
+                List.of("GOOGLE", "1".repeat(256), "a@example.com", "external_identity_subject_ck"),
+                List.of("GOOGLE", "123", "A@example.com", "external_identity_email_ck"),
+                List.of("GOOGLE", "123", " a@example.com", "external_identity_email_ck"),
+                List.of("GOOGLE", "123", "not-an-email", "external_identity_email_ck"))) {
+            assertThatThrownBy(() -> identity(CUSTOMER_A_ID.value(), identity.get(0), identity.get(1),
+                    identity.get(2)))
+                .as(identity.toString()).isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining(identity.get(3));
+        }
+    }
+
+    @Test
+    void givenTheSystem_whenLinkingAnExternalAccountToTheAdministrator_thenItIsRejected() {
+        int linked = rls.as(SYSTEM, sql -> sql.update(INSERT_IDENTITY, UUID.randomUUID(), CUSTOMER_A_ID.value(),
+            "GOOGLE", "google-a", "a@example.com"));
+        assertThat(linked).isOne();
+
+        // R-14: the administrator signs in with a password and a second factor only.
+        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(INSERT_IDENTITY, UUID.randomUUID(),
+                ADMIN_ID.value(), "GOOGLE", "google-owner", "owner@example.com")))
+            .isInstanceOf(DataAccessException.class).hasStackTraceContaining("row-level security");
+    }
+
+    @Test
+    void givenALinkedExternalAccount_whenAnyoneUpdatesIt_thenNothingChanges() {
+        identity(CUSTOMER_A_ID.value(), "GOOGLE", "google-a", "a@example.com");
+        String move = "update external_identity set user_id = ?";
+
+        int bySystem = rls.as(SYSTEM, sql -> sql.update(move, CUSTOMER_B_ID.value()));
+        int byOwner = rls.as(CUSTOMER_A, sql -> sql.update(move, CUSTOMER_B_ID.value()));
+
+        assertThat(List.of(bySystem, byOwner)).containsOnly(0);
+        assertThat(owner.queryForObject("select user_id from external_identity", UUID.class))
+            .isEqualTo(CUSTOMER_A_ID.value());
     }
 
     // --- user_token ---
@@ -147,8 +222,9 @@ class AccountSchemaTest {
                 .as(token.toString()).isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("user_token_expiry_ck");
         }
-        // Until T-E4-13 both the purpose and the expiry checks refuse it; PostgreSQL reports one of them.
-        assertThatThrownBy(() -> token(CUSTOMER_A_ID.value(), "LINK_CONFIRMATION", VERIFICATION_HASH, "24 hours"))
+        assertThatThrownBy(() -> linkToken(CUSTOMER_A_ID.value(), LINK_HASH, "30 minutes", "FACEBOOK", "1234"))
+            .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("user_token_expiry_ck");
+        assertThatThrownBy(() -> token(CUSTOMER_A_ID.value(), "MAGIC_LINK", VERIFICATION_HASH, "24 hours"))
             .isInstanceOf(DataIntegrityViolationException.class)
             .hasMessageMatching("(?s).*user_token_(purpose|expiry)_ck.*");
         assertThatThrownBy(() -> token(CUSTOMER_A_ID.value(), "PASSWORD_RESET", "B".repeat(64), "30 minutes"))
@@ -187,21 +263,120 @@ class AccountSchemaTest {
         }
     }
 
+    @Test
+    void givenALinkConfirmation_whenStored_thenItLastsADayAndAlwaysNamesTheExternalAccount() {
+        linkToken(CUSTOMER_A_ID.value(), LINK_HASH, "24 hours", "FACEBOOK", "1234");
+
+        assertThatThrownBy(() -> linkToken(CUSTOMER_A_ID.value(), "d".repeat(64), "24 hours", null, null))
+            .as("without the external account").isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("user_token_external_account_ck");
+        assertThatThrownBy(() -> linkToken(CUSTOMER_A_ID.value(), "d".repeat(64), "24 hours", "FACEBOOK", null))
+            .as("without the subject").isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("user_token_external_account_ck");
+        assertThatThrownBy(() -> linkToken(CUSTOMER_A_ID.value(), "d".repeat(64), "24 hours", "TWITTER", "1234"))
+            .as("another provider").isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("user_token_provider_ck");
+        assertThatThrownBy(() -> linkToken(CUSTOMER_A_ID.value(), "d".repeat(64), "24 hours", "FACEBOOK", "12 34"))
+            .as("a subject out of format").isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("user_token_subject_ck");
+        assertThatThrownBy(() -> owner.update("""
+                insert into user_token (id, user_id, purpose, token_hash, created_at, expires_at, provider, subject)
+                values (?, ?, 'EMAIL_VERIFICATION', ?, now(), now() + interval '24 hours', 'FACEBOOK', '1234')
+                """, UUID.randomUUID(), CUSTOMER_A_ID.value(), "d".repeat(64)))
+            .as("another purpose naming an external account").isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("user_token_external_account_ck");
+    }
+
+    @Test
+    void givenAnUnusedLinkConfirmation_whenTheSystemChangesItsExternalAccount_thenItIsRejected() {
+        linkToken(CUSTOMER_A_ID.value(), LINK_HASH, "24 hours", "FACEBOOK", "1234");
+
+        for (String update : List.of(
+                "update user_token set used_at = now(), subject = '5678' where token_hash = ?",
+                "update user_token set used_at = now(), provider = 'GOOGLE' where token_hash = ?")) {
+            assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(update, LINK_HASH)))
+                .as(update).isInstanceOf(DataAccessException.class)
+                .hasStackTraceContaining("a user token only changes from unused to used");
+        }
+    }
+
     // --- app_user: registration and token-bound changes ---
 
     @Test
-    void givenTheSystem_whenRegisteringACustomer_thenOnlyAnUnverifiedOneWithAPasswordIsAllowed() {
-        int registered = rls.as(SYSTEM, sql -> sql.update(INSERT_USER, UUID.randomUUID(), "new@example.com", false,
+    void givenAConsumedLinkConfirmationOfTheCustomer_whenTheSystemVerifiesItAndDropsItsPassword_thenItIsAllowed() {
+        linkToken(CUSTOMER_A_ID.value(), LINK_HASH, "24 hours", "FACEBOOK", "1234");
+
+        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(VERIFY_AND_DROP_PASSWORD, CUSTOMER_A_ID.value())))
+            .as("without the token").isInstanceOf(DataAccessException.class)
+            .hasStackTraceContaining("verify an email or reset a password with its token");
+        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> {
+                bindAccountToken(sql, LINK_HASH);
+                sql.update("update user_token set used_at = now() where token_hash = ?", LINK_HASH);
+                return sql.update(VERIFY_AND_DROP_PASSWORD, CUSTOMER_B_ID.value());
+            }))
+            .as("another customer's").isInstanceOf(DataAccessException.class)
+            .hasStackTraceContaining("verify an email or reset a password with its token");
+
+        int verified = rls.as(SYSTEM, sql -> {
+            bindAccountToken(sql, LINK_HASH);
+            sql.update("update user_token set used_at = now() where token_hash = ?", LINK_HASH);
+            sql.update(INSERT_IDENTITY, UUID.randomUUID(), CUSTOMER_A_ID.value(), "FACEBOOK", "1234",
+                "a@example.com");
+            return sql.update(VERIFY_AND_DROP_PASSWORD, CUSTOMER_A_ID.value());
+        });
+
+        assertThat(verified).isOne();
+        assertThat(owner.queryForMap("select email_verified, password_hash from app_user where id = ?",
+            CUSTOMER_A_ID.value())).containsEntry("email_verified", true).containsEntry("password_hash", null);
+    }
+
+    @Test
+    void givenAGoogleAccountWithTheCustomersEmail_whenTheSystemVerifiesItAndDropsItsPassword_thenItIsAllowed() {
+        identity(CUSTOMER_A_ID.value(), "GOOGLE", "google-a", "a@example.com");
+
+        int verified = rls.as(SYSTEM, sql -> sql.update(VERIFY_AND_DROP_PASSWORD, CUSTOMER_A_ID.value()));
+
+        assertThat(verified).isOne();
+        assertThat(owner.queryForMap("select email_verified, password_hash from app_user where id = ?",
+            CUSTOMER_A_ID.value())).containsEntry("email_verified", true).containsEntry("password_hash", null);
+    }
+
+    @Test
+    void givenNoGoogleAccountWithTheCustomersEmail_whenTheSystemVerifiesItOrDropsItsPassword_thenItIsRejected() {
+        identity(CUSTOMER_A_ID.value(), "FACEBOOK", "1234", "a@example.com");
+        identity(CUSTOMER_B_ID.value(), "GOOGLE", "google-b", "other@example.com");
+
+        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(VERIFY_AND_DROP_PASSWORD, CUSTOMER_A_ID.value())))
+            .as("Facebook does not vouch for the email").isInstanceOf(DataAccessException.class)
+            .hasStackTraceContaining("verify an email or reset a password with its token");
+        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(VERIFY_AND_DROP_PASSWORD, CUSTOMER_B_ID.value())))
+            .as("a Google account with another email").isInstanceOf(DataAccessException.class)
+            .hasStackTraceContaining("verify an email or reset a password with its token");
+
+        // Linking Google to an already verified account keeps its password.
+        owner.update("update app_user set email_verified = true where id = ?", CUSTOMER_B_ID.value());
+        owner.update("update external_identity set email = 'b@example.com' where user_id = ?",
+            CUSTOMER_B_ID.value());
+        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(
+                "update app_user set password_hash = null where id = ?", CUSTOMER_B_ID.value())))
+            .as("the password of a verified account").isInstanceOf(DataAccessException.class)
+            .hasStackTraceContaining("verify an email or reset a password with its token");
+    }
+
+    @Test
+    void givenTheSystem_whenRegisteringACustomer_thenOnlyAVerifiedOneWithAPasswordIsRejected() {
+        int withPassword = rls.as(SYSTEM, sql -> sql.update(INSERT_USER, UUID.randomUUID(), "new@example.com", false,
             PASSWORD, "CUSTOMER"));
-        assertThat(registered).isOne();
+        // V34, UC-27: Google vouches for the email; Facebook's stays unverified until it is confirmed.
+        int google = rls.as(SYSTEM, sql -> sql.update(INSERT_USER, UUID.randomUUID(), "google@example.com", true,
+            null, "CUSTOMER"));
+        int facebook = rls.as(SYSTEM, sql -> sql.update(INSERT_USER, UUID.randomUUID(), "facebook@example.com",
+            false, null, "CUSTOMER"));
+        assertThat(List.of(withPassword, google, facebook)).containsOnly(1);
 
         assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(INSERT_USER, UUID.randomUUID(),
                 "verified@example.com", true, PASSWORD, "CUSTOMER")))
-            .as("already verified").isInstanceOf(DataAccessException.class)
-            .hasStackTraceContaining("row-level security");
-        assertThatThrownBy(() -> rls.as(SYSTEM, sql -> sql.update(INSERT_USER, UUID.randomUUID(),
-                "nopassword@example.com", false, null, "CUSTOMER")))
-            .as("without a password").isInstanceOf(DataAccessException.class)
+            .as("already verified, with a password").isInstanceOf(DataAccessException.class)
             .hasStackTraceContaining("row-level security");
     }
 
@@ -321,6 +496,14 @@ class AccountSchemaTest {
 
     private void token(UUID userId, String purpose, String hash, String lifetime) {
         owner.update(INSERT_TOKEN, UUID.randomUUID(), userId, purpose, hash, lifetime);
+    }
+
+    private void linkToken(UUID userId, String hash, String lifetime, String provider, String subject) {
+        owner.update(INSERT_LINK_TOKEN, UUID.randomUUID(), userId, hash, lifetime, provider, subject);
+    }
+
+    private void identity(UUID userId, String provider, String subject, String email) {
+        owner.update(INSERT_IDENTITY, UUID.randomUUID(), userId, provider, subject, email);
     }
 
     private static void bindAccountToken(JdbcTemplate sql, String hash) {

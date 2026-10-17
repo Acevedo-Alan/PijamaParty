@@ -28,7 +28,22 @@ Registering is optional: buying as a guest stays the main flow. An account saves
 
 - **Token-bound changes:** the email verification and the password reset have no session, so they run as `SYSTEM`. A bug there must not verify or change the password of any account, so the `app_user` update guard lets `SYSTEM` set `email_verified` to true only when the transaction's `app.account_token_hash` (read by `app_account_token_hash()`) is the hash of a used `EMAIL_VERIFICATION` token of that user, and replace `password_hash` only with a used `PASSWORD_RESET` token of that user. The use case marks the token used first, in the same transaction. The application sets the variable through the Row Level Security context, like the cart and tracking tokens (T-E4-02 and T-E4-03).
 - A token row only changes from unused to used: nothing else of it can be updated.
-- Deleting the account (UC-28, T-E4-16) brings its own policy; its addresses and tokens go with it through their foreign keys.
+- Deleting the account (UC-28, T-E4-16) brings its own policy; its addresses, tokens and external identities go with it through their foreign keys.
+
+**Schema of social sign-in (T-E4-13, V34, UC-27):**
+- `external_identity` (`accounts` module): `id`, `user_id` (foreign key to `app_user`, deleted with it, UC-28), `provider` (`GOOGLE` or `FACEBOOK`), `subject` (the provider's account identifier, printable ASCII without spaces, at most 255 characters), `email` (the one the provider gave when it was linked, normalized as `app_user.email`), `created_at`. Unique on `(provider, subject)`: a provider account belongs to one customer; unique on `(user_id, provider)`: a customer links at most one account of each provider. No access token of the provider is stored. A link is never updated: it is unlinked and linked again.
+- `user_token` gains the `LINK_CONFIRMATION` purpose (24 hours) and the optional `provider` and `subject` columns: a link confirmation always names the external account it links once used, and no other purpose names one (decided). The update guard keeps them unchanged, as the rest of the token.
+- Row Level Security on `external_identity`, enabled and forced (RNF-27):
+
+| Table | Customer | Guest (`ANONYMOUS`) | Administrator | System |
+|---|---|---|---|---|
+| `external_identity` | Reads and unlinks (deletes) its own | – | – | Reads to authenticate; links them, only to customers (R-14) |
+
+- `app_user` changes for UC-27:
+  - The system also creates customers without a password: verified (Google) or unverified (Facebook). A customer with a password is still created unverified (UC-19).
+  - The system may also verify a customer's email when the transaction consumed a `LINK_CONFIRMATION` token of that user, or when a Google identity with the user's email is linked to it (Google vouches for its emails, Facebook does not). The use case links the identity first, in the same transaction.
+  - **An unverified account verified by social sign-in loses its password (decided):** the same update that verifies it through Google or a link confirmation drops `password_hash`. Whoever set that password never proved it owned the inbox, so an account pre-registered with someone else's email cannot be taken over; the customer can create a password from "Mi cuenta". A verified account keeps its password when Google is linked to it.
+- The provider that returns no email (alternative flow of UC-27) needs a token before any account exists; it is designed with the sign-in itself (T-E4-14), with its own migration if it needs one (decided).
 
 ---
 
@@ -222,7 +237,8 @@ Registering is optional: buying as a guest stays the main flow. An account saves
 
 **Design notes**
 - Spring Security OAuth2 Client (`oauth2Login`), Authorization Code with `state` and PKCE; for Google the OpenID Connect ID token is validated (signature, `aud`, `iss`, `nonce`) and `email_verified` is used. The email lookup uses the normalized email.
-- Schema: `external_identity` (unique on `(provider, subject)`) and the `LINK_CONFIRMATION` token purpose (T-E4-13).
+- Schema: `external_identity` (unique on `(provider, subject)` and on `(user_id, provider)`), the `LINK_CONFIRMATION` token purpose with the external account it links, and the `app_user` changes of social sign-in (T-E4-13, V34; see "Schema of social sign-in" above).
+- Linking Google or confirming a Facebook link verifies an unverified account and drops its password (decided, T-E4-13).
 - Endpoints: `GET /oauth2/authorization/{provider}`, `GET /login/oauth2/code/{provider}`, `POST /api/account/link/confirm`, `GET` and `DELETE /api/account/identities`, `PUT /api/account/password` (T-E4-14, T-E4-15).
 - Rate limit: provider return 10 per minute per IP (RNF-22).
 

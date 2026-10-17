@@ -66,7 +66,7 @@ class JdbcAddressBookStoreContractTest extends AddressBookStoreContractTest<Jdbc
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate address, user_token, admin_recovery_code, app_user");
+        owner.execute("truncate address, user_token, external_identity, admin_recovery_code, app_user");
     }
 
     private static AddressBook bookWithOneAddress(UserId customer) {

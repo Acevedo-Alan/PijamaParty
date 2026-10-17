@@ -29,8 +29,8 @@ Visitante, Cliente registrado, Administrador (dueño, en el backoffice) y Sistem
 | Cupon | id, codigo, tipo (PORCENTAJE / MONTO_FIJO), valor, vigenciaDesde?/Hasta? (fechas), usosMax?, minimoCompra?, automatico (E5), regla (E5), activo |
 | UsoCupon | cuponId, pedidoId, fecha (una fila por pedido confirmado; los usos del cupón se cuentan de acá) |
 | Usuario | id, email, emailVerificado, passwordHash?, nombre, telefono?, rol (CLIENTE / ADMIN), intentosFallidos, bloqueadoHasta? (sin DNI: se pide en cada compra) |
-| TokenUsuario | id, usuarioId, proposito (VERIFICACION_EMAIL 24 h / RECUPERACION 30 min; CONFIRMACION_VINCULACION 24 h llega en T-E4-13), hashToken, creadoEn, venceEn, usadoEn? (un solo uso) |
-| IdentidadExterna | id, usuarioId, proveedor (GOOGLE / FACEBOOK), sujeto, email, creadoEn |
+| TokenUsuario | id, usuarioId, proposito (VERIFICACION_EMAIL 24 h / RECUPERACION 30 min / CONFIRMACION_VINCULACION 24 h), hashToken, creadoEn, venceEn, usadoEn? (un solo uso), proveedor? y sujeto? (solo y siempre en CONFIRMACION_VINCULACION: la cuenta externa que vincula) |
+| IdentidadExterna | id, usuarioId, proveedor (GOOGLE / FACEBOOK), sujeto, email, creadoEn (una cuenta externa pertenece a un solo cliente; un cliente vincula como máximo una por proveedor) |
 | Direccion | id, usuarioId, calle, numero, piso?, depto?, ciudad, provincia, codigoPostal, principal (como máximo una por cliente; hasta 10 direcciones) |
 | Pedido | id, numero (secuencia desde 1001, se muestra como #1001), usuarioId?, hashTokenSeguimiento, estado, nombre, email, telefono, dni, direccionEnvio (copia: calle, numero, piso?, depto?, ciudad, provincia, codigoPostal), subtotal, descuento, envio, total, cuponId?, cuponCodigo?, medioDePago, versionTerminos, reservaVenceEn, numeroSeguimientoEnvio?, creadoEn, actualizadoEn, entregadoEn?, desvinculadoEn? (al eliminar la cuenta, CU-28: ya no se vuelve a asociar) |
 | SolicitudArrepentimiento | id, pedidoId, codigo, estado (RECIBIDA / RESUELTA), fueraDeTermino, creadoEn, resueltoEn |

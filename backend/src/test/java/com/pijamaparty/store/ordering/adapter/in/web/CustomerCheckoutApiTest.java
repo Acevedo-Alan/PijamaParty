@@ -73,7 +73,7 @@ class CustomerCheckoutApiTest {
         owner.execute("truncate idempotency_key, payment_event, payment_checkout, payment, withdrawal_request, "
             + "order_tracking_token, order_item, orders, cart_item, cart, stock_movement, stock_level, product_image, "
             + "variant, product, category, shipping_zone_rate, email_outbox, address, user_token, admin_recovery_code, "
-            + "app_user");
+            + "external_identity, app_user");
         owner.update("delete from spring_session");
     }
 

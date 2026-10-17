@@ -45,7 +45,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * (V29), tested for reads, inserts, updates and deletes with customer A, customer B, a guest, the administrator, the
  * system and a missing context (RNF-27). A customer reads and updates only its own user and does everything on its
  * own addresses; the administrator reads its own user and every address; the system reads and updates every user,
- * registers customers and is the only one to reach the tokens; nobody deletes a user. Customer B also reaches for
+ * registers customers and is the only one to reach the tokens; nobody deletes a user. T-E4-13 adds
+ * {@code external_identity} (V34): a customer reads and unlinks its own external accounts, and only the system reads
+ * all of them and links them. Customer B also reaches for
  * customer A's orders and addresses by their ids, as a query that forgot to filter by customer would. Which columns
  * each actor may change is {@link AccountSchemaTest} and {@link UserSchemaTest}. Every transaction is committed by
  * the application role.
@@ -77,9 +79,16 @@ class AccountRowLevelSecurityTest {
                 '30123456', 'San Martín', '1234', 'Santa Fe', 'SANTA_FE', '3000', 2000000, 0, 300000, 2300000,
                 'MERCADOPAGO', '2026-10', now() + interval '30 minutes', now(), now())
         """;
+    private static final String INSERT_IDENTITY = """
+        insert into external_identity (id, user_id, provider, subject, email, created_at)
+        values (?, ?, ?, ?, ?, now())
+        """;
     private static final String RLS_VIOLATION = "row-level security";
 
-    /** The seeded accounts: both customers have an address and an unused verification token; the owner has none. */
+    /**
+     * The seeded accounts: both customers have an address, an unused verification token and a linked Google account;
+     * the owner has none.
+     */
     enum Account {
         CUSTOMER_A(CUSTOMER_A_ID, "a@example.com", "CUSTOMER"),
         CUSTOMER_B(CUSTOMER_B_ID, "b@example.com", "CUSTOMER"),
@@ -106,10 +115,12 @@ class AccountRowLevelSecurityTest {
 
     /**
      * Who runs the transaction ({@code actor} empty: no security context), the users it reads and updates, the
-     * customers whose addresses it reads and writes (add, edit and delete) and whether it reaches the tokens.
+     * customers whose addresses it reads and writes (add, edit and delete), whether it reaches the tokens, the
+     * customers whose external accounts it reads and unlinks, and whether it links them.
      */
     record Caller(String name, Optional<Actor> actor, Set<Account> readsUsers, Set<Account> updatesUsers,
-                  Set<Account> readsAddresses, Set<Account> writesAddresses, boolean reachesTokens) {
+                  Set<Account> readsAddresses, Set<Account> writesAddresses, boolean reachesTokens,
+                  Set<Account> readsIdentities, Set<Account> unlinksIdentities, boolean linksIdentities) {
 
         <T> T run(RlsPolicyTester rls, Function<JdbcTemplate, T> work) {
             return actor.map(a -> rls.as(a, work)).orElseGet(() -> rls.withoutContext(work));
@@ -128,13 +139,16 @@ class AccountRowLevelSecurityTest {
     static Stream<Caller> callers() {
         return Stream.of(
             new Caller("customer A", Optional.of(CUSTOMER_A), EnumSet.of(Account.CUSTOMER_A),
-                EnumSet.of(Account.CUSTOMER_A), EnumSet.of(Account.CUSTOMER_A), EnumSet.of(Account.CUSTOMER_A), false),
+                EnumSet.of(Account.CUSTOMER_A), EnumSet.of(Account.CUSTOMER_A), EnumSet.of(Account.CUSTOMER_A), false,
+                EnumSet.of(Account.CUSTOMER_A), EnumSet.of(Account.CUSTOMER_A), false),
             new Caller("customer B", Optional.of(CUSTOMER_B), EnumSet.of(Account.CUSTOMER_B),
-                EnumSet.of(Account.CUSTOMER_B), EnumSet.of(Account.CUSTOMER_B), EnumSet.of(Account.CUSTOMER_B), false),
-            new Caller("guest", Optional.of(GUEST), NONE, NONE, NONE, NONE, false),
-            new Caller("administrator", Optional.of(ADMIN), EnumSet.of(Account.ADMIN), NONE, CUSTOMERS, NONE, false),
-            new Caller("system", Optional.of(SYSTEM), ALL, ALL, NONE, NONE, true),
-            new Caller("no context", Optional.empty(), NONE, NONE, NONE, NONE, false));
+                EnumSet.of(Account.CUSTOMER_B), EnumSet.of(Account.CUSTOMER_B), EnumSet.of(Account.CUSTOMER_B), false,
+                EnumSet.of(Account.CUSTOMER_B), EnumSet.of(Account.CUSTOMER_B), false),
+            new Caller("guest", Optional.of(GUEST), NONE, NONE, NONE, NONE, false, NONE, NONE, false),
+            new Caller("administrator", Optional.of(ADMIN), EnumSet.of(Account.ADMIN), NONE, CUSTOMERS, NONE, false,
+                NONE, NONE, false),
+            new Caller("system", Optional.of(SYSTEM), ALL, ALL, NONE, NONE, true, CUSTOMERS, NONE, true),
+            new Caller("no context", Optional.empty(), NONE, NONE, NONE, NONE, false, NONE, NONE, false));
     }
 
     private final RlsPolicyTester rls;
@@ -157,6 +171,8 @@ class AccountRowLevelSecurityTest {
                 addresses.put(account, address(account, true));
                 owner.update(INSERT_TOKEN, UUID.randomUUID(), account.id.value(), "EMAIL_VERIFICATION",
                     new AccountToken("verification-of-" + account.name()).hash());
+                owner.update(INSERT_IDENTITY, UUID.randomUUID(), account.id.value(), "GOOGLE",
+                    "google-" + account.name(), account.email);
             }
         }
     }
@@ -164,12 +180,12 @@ class AccountRowLevelSecurityTest {
     @AfterEach
     void cleanUp() {
         owner.execute("truncate withdrawal_request, order_tracking_token, order_item, orders");
-        owner.execute("truncate address, user_token, admin_recovery_code, app_user");
+        owner.execute("truncate address, user_token, external_identity, admin_recovery_code, app_user");
     }
 
     @Test
     void givenTheAccountTables_whenCheckingTheirProtection_thenRowLevelSecurityIsEnabledAndForced() {
-        for (String table : List.of("app_user", "address", "user_token")) {
+        for (String table : List.of("app_user", "address", "user_token", "external_identity")) {
             var flags = owner.queryForMap(
                 "select relrowsecurity, relforcerowsecurity from pg_class where oid = ?::regclass", table);
             assertThat(flags).as(table).containsEntry("relrowsecurity", true).containsEntry("relforcerowsecurity", true);
@@ -229,6 +245,8 @@ class AccountRowLevelSecurityTest {
     void givenTheSystemConsumingCustomerAsToken_whenVerifyingEmails_thenOnlyCustomerAIsVerified() {
         // The token travels through the real context (Actor.systemConsuming sets app.account_token_hash).
         owner.update("update app_user set email_verified = false where role = 'CUSTOMER'");
+        // A linked Google account with the customer's email would verify it without a token (V34).
+        owner.update("delete from external_identity");
         var token = new AccountToken("verification-of-" + Account.CUSTOMER_A.name());
         var consuming = Actor.systemConsuming(token);
         String verify = "update app_user set email_verified = true, updated_at = now() where id = ?";
@@ -323,6 +341,44 @@ class AccountRowLevelSecurityTest {
         assertThat(deleted).as("deleted").hasSize(caller.reachesTokens() ? 3 : 0);
         assertThat(owner.queryForObject("select count(*) from user_token where used_at is null", Integer.class))
             .as("unused and stored").isEqualTo(caller.reachesTokens() ? 0 : CUSTOMERS.size());
+    }
+
+    // --- external_identity ---
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callers")
+    void givenAGoogleAccountOfEachCustomer_whenReading_thenOnlyTheReachableOnesAreVisible(Caller caller) {
+        var owners = caller.run(rls, sql -> sql.queryForList("select user_id from external_identity", UUID.class));
+
+        assertThat(accounts(owners)).isEqualTo(caller.readsIdentities());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callers")
+    void givenNoFacebookAccount_whenLinkingOneToEachCustomer_thenOnlyTheSystemIsAccepted(Caller caller) {
+        for (Account customer : CUSTOMERS) {
+            var link = (Function<JdbcTemplate, Integer>) sql -> sql.update(INSERT_IDENTITY, UUID.randomUUID(),
+                customer.id.value(), "FACEBOOK", "facebook-" + customer.name(), customer.email);
+            if (caller.linksIdentities()) {
+                assertThat(caller.run(rls, link)).as(customer.name()).isOne();
+            } else {
+                assertThatThrownBy(() -> caller.run(rls, link)).as(customer.name())
+                    .isInstanceOf(DataAccessException.class).hasStackTraceContaining(RLS_VIOLATION);
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callers")
+    void givenAGoogleAccountOfEachCustomer_whenUnlinkingAll_thenOnlyItsOwnIsUnlinked(Caller caller) {
+        var unlinked = caller.run(rls, sql -> sql.queryForList(
+            "delete from external_identity returning user_id", UUID.class));
+
+        assertThat(accounts(unlinked)).isEqualTo(caller.unlinksIdentities());
+        var kept = EnumSet.copyOf(CUSTOMERS);
+        kept.removeAll(caller.unlinksIdentities());
+        assertThat(accounts(owner.queryForList("select user_id from external_identity", UUID.class)))
+            .as("stored").isEqualTo(kept);
     }
 
     // --- another customer's orders and addresses ---

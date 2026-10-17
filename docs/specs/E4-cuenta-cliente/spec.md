@@ -101,6 +101,7 @@
 - Proveedores de la primera versión: Google y Facebook. Apple queda para una fase posterior (requiere cuenta paga de Apple Developer).
 - Se piden solo los permisos mínimos: nombre y email. No se publica nada en nombre del cliente y no se guardan los tokens de acceso del proveedor; solo su identificador de cuenta.
 - Un email que llega verificado por Google cuenta como verificado (habilita la asociación de pedidos de invitado de CU-22). Un email de Facebook se trata como no verificado hasta confirmarlo por correo.
+- Si la cuenta existente tenía el email sin verificar, vincular Google o confirmar la vinculación de Facebook la verifica y le quita la contraseña, porque quien la puso nunca probó ser dueño del correo; el cliente puede crear una nueva desde "Mi cuenta" (*Decidido*).
 - No se puede desvincular el último medio de ingreso: tiene que quedar una contraseña u otro proveedor.
 - El administrador no puede ingresar con Google ni Facebook: solo con contraseña y segundo factor (RNF-24).
 - La compra como invitado sigue siendo el flujo principal; el ingreso social no se ofrece dentro del checkout.

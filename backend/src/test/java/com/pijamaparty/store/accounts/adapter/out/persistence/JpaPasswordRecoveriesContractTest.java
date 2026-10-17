@@ -57,7 +57,7 @@ class JpaPasswordRecoveriesContractTest extends PasswordRecoveriesContractTest<J
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate address, user_token, admin_recovery_code, app_user");
+        owner.execute("truncate address, user_token, external_identity, admin_recovery_code, app_user");
     }
 
     @Test

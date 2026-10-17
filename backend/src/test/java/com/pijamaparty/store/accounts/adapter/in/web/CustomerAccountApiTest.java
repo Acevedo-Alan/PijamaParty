@@ -80,7 +80,7 @@ class CustomerAccountApiTest {
     @AfterEach
     void cleanUp() {
         resend.reset();
-        owner.execute("truncate email_outbox, address, user_token, admin_recovery_code, app_user");
+        owner.execute("truncate email_outbox, address, user_token, external_identity, admin_recovery_code, app_user");
         owner.update("delete from spring_session");
     }
 
