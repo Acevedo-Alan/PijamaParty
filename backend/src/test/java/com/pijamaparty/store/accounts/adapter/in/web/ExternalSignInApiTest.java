@@ -269,11 +269,7 @@ class ExternalSignInApiTest {
 
     @Test
     void givenTheAdministratorsAccount_whenSomeoneContinuesWithGoogleUsingItsEmail_thenTheBackOfficeIsNotReached() {
-        owner.update("""
-            insert into app_user (id, email, email_verified, password_hash, name, role, failed_login_attempts,
-                                  created_at, updated_at)
-            values (?, 'owner@example.com', true, ?, 'Owner', 'ADMIN', 0, now(), now())
-            """, UUID.randomUUID(), passwords.hash("correct horse battery").value());
+        administrator();
         Browser browser = new Browser(http);
 
         ResponseEntity<String> back = signInWithGoogle(browser,
@@ -283,6 +279,23 @@ class ExternalSignInApiTest {
         assertThat(browser.get("/api/admin/auth/me").getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(browser.get(ME).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(owner.queryForObject("select count(*) from external_identity", Integer.class)).isZero();
+    }
+
+    @Test
+    void givenTheAdministratorsAccount_whenSomeoneContinuesWithFacebookUsingItsEmail_thenNothingIsLinkedOrSent() {
+        administrator();
+        Browser browser = new Browser(http);
+
+        ResponseEntity<String> back = signInWithFacebook(browser,
+            new Account("10220000000001", "owner@example.com", false, "Owner"));
+
+        assertThat(page(back)).isEqualTo("/cuenta/ingresar?social=failed");
+        assertThat(browser.get("/api/admin/auth/me").getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(browser.get(ME).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(owner.queryForObject("select count(*) from external_identity", Integer.class)).isZero();
+        assertThat(owner.queryForObject("select count(*) from pending_link", Integer.class)).isZero();
+        assertThat(owner.queryForObject("select count(*) from email_outbox", Integer.class))
+            .as("no link confirmation").isZero();
     }
 
     @Test
@@ -367,6 +380,14 @@ class ExternalSignInApiTest {
             values (?, ?, ?, ?, 'Ana', 'CUSTOMER', 0, now(), now())
             """, id, email, verified, passwords.hash(PASSWORD).value());
         return id;
+    }
+
+    private void administrator() {
+        owner.update("""
+            insert into app_user (id, email, email_verified, password_hash, name, role, failed_login_attempts,
+                                  created_at, updated_at)
+            values (?, 'owner@example.com', true, ?, 'Owner', 'ADMIN', 0, now(), now())
+            """, UUID.randomUUID(), passwords.hash("correct horse battery").value());
     }
 
     /** Sends every email due, as the job does, and answers the ones delivered so far. */
