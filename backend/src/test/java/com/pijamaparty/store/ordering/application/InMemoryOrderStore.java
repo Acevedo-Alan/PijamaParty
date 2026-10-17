@@ -27,13 +27,13 @@ import java.util.UUID;
  * {@link OrdersToPay}, {@link ConfirmableOrders}, {@link TrackedOrders}, {@link PaidOrderDetails},
  * {@link SaveTrackingLinks}, {@link OrderStatuses}, {@link OrderPages}, {@link AdminOrderViews}, {@link StatusChanges},
  * {@link ShipmentTrackingNumbers}, {@link LatePayments}, {@link CorrectableOrders}, {@link BuyerEmails},
- * {@link CustomerOrderPages}, {@link CustomerOrderViews} and {@link GuestOrderLinks} over the same orders. Locks are
- * not modeled.
+ * {@link CustomerOrderPages}, {@link CustomerOrderViews}, {@link GuestOrderLinks}, {@link CustomerOrderExports} and
+ * {@link CustomerOrderUnlinks} over the same orders. Locks are not modeled.
  */
 public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay,
     ConfirmableOrders, TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews,
     StatusChanges, ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails, CustomerOrderPages,
-    CustomerOrderViews, GuestOrderLinks {
+    CustomerOrderViews, GuestOrderLinks, CustomerOrderExports, CustomerOrderUnlinks {
 
     /** Oldest expiry first; the id breaks ties as PostgreSQL orders uuids (as the canonical text does). */
     private static final Comparator<Map.Entry<OrderId, Row>> OLDEST_EXPIRY_FIRST =
@@ -356,7 +356,40 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
         return guests.size();
     }
 
+    /** Only the orders the checkout placed carry a buyer. */
+    @Override
+    public synchronized List<ExportedOrder> all(UserId customer) {
+        return placed.values().stream()
+            .filter(order -> userOf(order).equals(Optional.of(customer)))
+            .sorted(Comparator.comparing(NewOrder::createdAt).thenComparing(NewOrder::number).reversed())
+            .map(order -> new ExportedOrder(order.id(), order.number(), orders.get(order.id()).status(),
+                order.createdAt(), Optional.ofNullable(deliveredAt.get(order.id())),
+                new ExportedOrder.Buyer(order.buyer().name(), buyerEmailOf(order), order.buyer().phone(),
+                    order.buyer().nationalId()),
+                order.address(), order.province(), order.lines(), order.amounts(),
+                order.coupon().map(AppliedCoupon::code), order.paymentProvider().name(),
+                Optional.ofNullable(shipmentTrackingNumbers.get(order.id()))))
+            .toList();
+    }
+
+    /** Only the orders the checkout placed carry a customer. */
+    @Override
+    public synchronized int unlinkAll(UserId customer, Instant at) {
+        List<NewOrder> customers = placed.values().stream()
+            .filter(order -> userOf(order).equals(Optional.of(customer)))
+            .toList();
+        for (NewOrder order : customers) {
+            linkedUsers.remove(order.id());
+            unlinked.add(order.id());
+            updatedAt.put(order.id(), at);
+        }
+        return customers.size();
+    }
+
     private Optional<UserId> userOf(NewOrder order) {
+        if (unlinked.contains(order.id())) {
+            return Optional.empty();
+        }
         return order.userId().or(() -> Optional.ofNullable(linkedUsers.get(order.id())));
     }
 

@@ -1,4 +1,5 @@
-@ApplicationModule(allowedDependencies = {"platform", "catalog::api", "inventory::api", "promotions::api"})
+@ApplicationModule(allowedDependencies = {"platform", "catalog::api", "inventory::api", "promotions::api",
+    "accounts::api"})
 package com.pijamaparty.store.cart;
 
 import org.springframework.modulith.ApplicationModule;

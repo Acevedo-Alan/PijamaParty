@@ -137,7 +137,8 @@ class SignInMethodsController {
         if (enabled.isEmpty() || actor.flatMap(Actor::userId).isEmpty()) {
             return problem(HttpStatus.NOT_FOUND, "Provider not enabled", "PROVIDER_NOT_ENABLED");
         }
-        PendingExternalLink.of(actor.get().userId().get(), enabled.get(), clock.instant()).store(request);
+        PendingProviderIntent.of(actor.get().userId().get(), enabled.get(), PendingProviderIntent.Purpose.LINK,
+            clock.instant()).store(request);
         return ResponseEntity.noContent().build();
     }
 

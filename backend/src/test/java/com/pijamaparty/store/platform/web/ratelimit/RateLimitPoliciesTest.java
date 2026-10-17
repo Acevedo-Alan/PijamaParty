@@ -3,9 +3,13 @@ package com.pijamaparty.store.platform.web.ratelimit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
+import com.pijamaparty.store.accounts.application.PasswordHasher;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,15 +21,18 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.context.TestConstructor;
+import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
  * The RNF-22 policies as configured in application.yml: login per IP (UC-04) and per account (RNF-29.5), catalog and
  * search (UC-26) of T-E1-15, cart changes (UC-08, UC-09) of T-E2-04, coupon attempts (UC-10) of T-E2-11, the
  * tracking link and its payment retry (UC-14) of T-E3-08, checkout confirmations (UC-13) of T-E3-19, email
- * corrections (UC-17) of T-E3-23, withdrawal requests (UC-29) of T-E3-27, and the customers' sign-in,
- * registration and password recovery (UC-19) of T-E4-10. The test client (127.0.0.1) plays Caddy, so
- * {@code X-Forwarded-For} is the client IP and each test uses its own addresses.
+ * corrections (UC-17) of T-E3-23, withdrawal requests (UC-29) of T-E3-27, the customers' sign-in, registration
+ * and password recovery (UC-19) of T-E4-10, and the account deletion (UC-28) of T-E4-16. The test client (127.0.0.1)
+ * plays Caddy, so {@code X-Forwarded-For} is the client IP and each test uses its own addresses.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = "store.rate-limit.enabled=true")
@@ -37,10 +44,22 @@ class RateLimitPoliciesTest {
     private static final String CUSTOMER_LOGIN = "/api/account/login";
 
     private final TestRestTemplate http;
+    private final PasswordHasher passwords;
+    private final JdbcTemplate owner;
     private String csrfToken;
 
-    RateLimitPoliciesTest(TestRestTemplate http) {
+    RateLimitPoliciesTest(TestRestTemplate http, PasswordHasher passwords, PostgreSQLContainer<?> postgres) {
         this.http = http;
+        this.passwords = passwords;
+        this.owner = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), "tienda_owner",
+            TestcontainersConfiguration.OWNER_PASSWORD));
+    }
+
+    @AfterEach
+    void cleanUpCustomers() {
+        owner.execute("truncate cart_item, cart, email_outbox, address, user_token, external_identity, pending_link, "
+            + "admin_recovery_code, app_user");
+        owner.update("delete from spring_session");
     }
 
     @BeforeEach
@@ -272,10 +291,92 @@ class RateLimitPoliciesTest {
         return response;
     }
 
+    @Test
+    void givenFiveAccountDeletionsInAMinuteFromOneIp_whenAnotherArrives_thenItGets429WithRetryAfter() {
+        for (int i = 1; i <= 5; i++) {
+            assertThat(deleteAccount("192.0.2.80").getStatusCode())
+                .as("attempt %d reaches the endpoint", i).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        assertLimited(deleteAccount("192.0.2.80"));
+        assertThat(deleteAccount("192.0.2.81").getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void givenFiveWrongDeletionPasswordsOfOneCustomerFromManyIps_whenAnotherArrives_thenItGets429WithRetryAfter() {
+        Map<String, String> session = signedIn("ana-deletes@example.com", "192.0.2.90");
+        for (int i = 1; i <= 5; i++) {
+            assertThat(asCustomer(HttpMethod.DELETE, "/api/account", "192.0.2." + (100 + i), session,
+                "{\"password\":\"not the password\"}").getStatusCode())
+                .as("attempt %d reaches the endpoint", i).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        // 5 every 15 minutes: one token every 3 minutes.
+        assertLimited(asCustomer(HttpMethod.DELETE, "/api/account", "192.0.2.120", session,
+            "{\"password\":\"not the password\"}"), 180);
+    }
+
+    @Test
+    void givenFiveDataDownloadsInAMinuteOfOneCustomer_whenAnotherArrives_thenItGets429WithRetryAfter() {
+        Map<String, String> session = signedIn("ana-downloads@example.com", "192.0.2.91");
+        for (int i = 1; i <= 5; i++) {
+            assertThat(asCustomer(HttpMethod.GET, "/api/account/data", "192.0.2." + (130 + i), session, null)
+                .getStatusCode()).as("download %d", i).isEqualTo(HttpStatus.OK);
+        }
+
+        assertLimited(asCustomer(HttpMethod.GET, "/api/account/data", "192.0.2.150", session, null));
+    }
+
+    /** A verified customer with a password, signed in from {@code clientIp}: its session and CSRF cookies. */
+    private Map<String, String> signedIn(String email, String clientIp) {
+        owner.update("""
+            insert into app_user (id, email, email_verified, password_hash, name, role, failed_login_attempts,
+                                  created_at, updated_at)
+            values (?, ?, true, ?, 'Ana', 'CUSTOMER', 0, now(), now())
+            """, UUID.randomUUID(), email, passwords.hash("ocho1234").value());
+        ResponseEntity<String> login = post(CUSTOMER_LOGIN, clientIp,
+            "{\"email\":\"" + email + "\",\"password\":\"ocho1234\"}");
+        assertThat(login.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, String> cookies = new HashMap<>();
+        for (String setCookie : login.getHeaders().getOrDefault(HttpHeaders.SET_COOKIE, List.of())) {
+            String pair = setCookie.split(";", 2)[0];
+            cookies.put(pair.substring(0, pair.indexOf('=')), pair.substring(pair.indexOf('=') + 1));
+        }
+        return cookies;
+    }
+
+    private ResponseEntity<String> asCustomer(HttpMethod method, String path, String clientIp,
+                                              Map<String, String> session, String body) {
+        var headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", clientIp);
+        // The sign-in may hand a new CSRF token; otherwise the one of this test still holds.
+        String csrf = session.getOrDefault("XSRF-TOKEN", csrfToken);
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + session.get("SESSION") + "; XSRF-TOKEN=" + csrf);
+        headers.add("X-XSRF-TOKEN", csrf);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return http.exchange(path, method, new HttpEntity<>(body, headers), String.class);
+    }
+
+    /** UC-28 (T-E4-16): without a session, so it never deletes anything; the limit comes first anyway. */
+    private ResponseEntity<String> deleteAccount(String clientIp) {
+        var headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", clientIp);
+        headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + csrfToken);
+        headers.add("X-XSRF-TOKEN", csrfToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return http.exchange("/api/account", HttpMethod.DELETE,
+            new HttpEntity<>("{\"password\":\"not the password\"}", headers), String.class);
+    }
+
     private static void assertLimited(ResponseEntity<String> response) {
+        assertLimited(response, 60);
+    }
+
+    /** {@code maxRetryAfter}: the seconds until the next token, at most the period over the capacity. */
+    private static void assertLimited(ResponseEntity<String> response, long maxRetryAfter) {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
         assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
-        assertThat(Long.parseLong(response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER))).isBetween(1L, 60L);
+        assertThat(Long.parseLong(response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER))).isBetween(1L, maxRetryAfter);
     }
 
     private ResponseEntity<String> signIn(String clientIp, String email) {

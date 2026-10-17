@@ -119,7 +119,8 @@ class GuestOrderLinkRowLevelSecurityTest {
     void givenTheBuyers_whenTheyLinkTheGuestsOrder_thenTheirGuardRefusesIt() {
         var holding = Actor.customer(CUSTOMER_A_ID, Optional.empty(), Optional.of(GUEST_TRACKING));
         assertRefused(GUEST, CUSTOMER_A_ID, "a buyer may only update the email");
-        assertRefused(holding, CUSTOMER_A_ID, "a buyer may only update the email");
+        // Since V36 a customer changing user_id meets the unlink branch of the guard, which refuses a link too.
+        assertRefused(holding, CUSTOMER_A_ID, "a customer may only unlink its own orders");
         int reached = rls.as(CUSTOMER_A, sql -> sql.update(LINK, CUSTOMER_A_ID.value(), guestsOrder.value()));
         assertThat(reached).as("without the token a customer does not even reach a guest order").isZero();
     }

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { AccountDataSection, type AccountDeletedState } from './AccountDataSection.tsx';
 import { SIGN_IN_PATH } from './AccountLink.tsx';
 import { signInWithProviderUrl, type SignInProvider } from './accountApi.ts';
 import {
@@ -13,6 +14,7 @@ import {
   type CreatePasswordAnswer,
   type LinkedIdentity,
 } from './signInMethodsApi.ts';
+import { forgetAccount } from './forgetAccount.ts';
 import { goToProvider } from './providerRedirect.ts';
 import { PROVIDER_NAMES, useSignInProviders } from './SocialSignIn.tsx';
 import { CUSTOMER_KEY, useCustomer } from './useCustomer.ts';
@@ -23,7 +25,7 @@ const messages = es.account.myAccount;
 /** The providers in the order the page lists them. */
 const PROVIDERS: readonly SignInProvider[] = ['GOOGLE', 'FACEBOOK'];
 
-/** Where the provider's return of a link left the browser: the `social` value of this page's query. */
+/** Where the provider's return of a link or a confirmation left the browser: the `social` value of this page's query. */
 function socialNotice(social: string | null): { text: string; problem: boolean } | null {
   switch (social) {
     case 'linked':
@@ -34,6 +36,12 @@ function socialNotice(social: string | null): { text: string; problem: boolean }
       return { text: messages.social.alreadyLinked, problem: true };
     case 'failed':
       return { text: messages.social.failed, problem: true };
+    case 'reauthenticated':
+      return { text: messages.social.reauthenticated, problem: false };
+    case 'reauthentication-cancelled':
+      return { text: messages.social.reauthenticationCancelled, problem: false };
+    case 'reauthentication-failed':
+      return { text: messages.social.reauthenticationFailed, problem: true };
     default:
       return null;
   }
@@ -42,8 +50,9 @@ function socialNotice(social: string | null): { text: string; problem: boolean }
 /**
  * UC-27 (T-E4-15): "Mi cuenta" at /cuenta. It shows how the customer signs in: its password, or "Crear contraseña"
  * while it has none, and each provider, linked ("Desvincular", after a confirmation) or not ("Vincular", only for the
- * enabled providers). The last way in cannot be unlinked: the page says so and offers to create a password. A visitor
- * who is not signed in goes to sign in.
+ * enabled providers). The last way in cannot be unlinked: the page says so and offers to create a password. UC-28
+ * (T-E4-16): "Tus datos" downloads the customer's data and deletes its account. A visitor who is not signed in goes to
+ * sign in.
  */
 export function MyAccountPage() {
   const customer = useCustomer();
@@ -62,6 +71,7 @@ export function MyAccountPage() {
     problem: boolean;
   } | null>(() => socialNotice(searchParams.get('social')));
   const noticeRef = useRef<HTMLParagraphElement>(null);
+  const [deleted, setDeleted] = useState(false);
 
   useEffect(() => {
     if (notice !== null) {
@@ -125,6 +135,11 @@ export function MyAccountPage() {
     },
   });
 
+  if (deleted) {
+    // Before the signed-out check: the deletion forgets the customer, and the page goes home, not to sign in.
+    const state: AccountDeletedState = { accountDeleted: true };
+    return <Navigate to="/" replace state={state} />;
+  }
   if (customer === null || methods.data === null) {
     return <Navigate to={SIGN_IN_PATH} replace />;
   }
@@ -274,6 +289,18 @@ export function MyAccountPage() {
             );
           })}
         </ul>
+      )}
+      {current !== undefined && (
+        <AccountDataSection
+          methods={current}
+          providers={PROVIDERS.filter((provider) => enabled.includes(provider) && linked(provider) !== undefined)}
+          reauthenticated={searchParams.get('social') === 'reauthenticated'}
+          onSignedOut={signedOut}
+          onDeleted={() => {
+            setDeleted(true);
+            forgetAccount(queryClient);
+          }}
+        />
       )}
     </main>
   );

@@ -443,3 +443,40 @@ a.account-link {
 .my-account-password {
   margin-top: 12px;
 }
+
+/* UC-28 (T-E4-16): "Tus datos", downloading the data and deleting the account. */
+
+.my-account section {
+  margin-top: 32px;
+}
+
+.btn-danger {
+  background: var(--danger);
+}
+
+@media (hover: hover) {
+  .btn-danger:hover:not(:disabled) {
+    background: #9a3628;
+  }
+}
+
+.my-account-delete {
+  margin-top: 16px;
+}
+
+.my-account-delete h3 {
+  font-size: 16px;
+}
+
+.my-account-delete p {
+  margin-top: 8px;
+}
+
+.account-deleted {
+  margin-top: 16px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-radius: var(--radius-s);
+  background: var(--peach-soft);
+  font-weight: 700;
+}

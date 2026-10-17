@@ -42,6 +42,8 @@ Implementado en la aplicación con Bucket4j en memoria. Los contadores se reinic
 | Login (cliente y administrador) | IP y cuenta (RNF-29.5) | 5 por minuto |
 | Registro y recuperación de contraseña | IP | 3 por hora |
 | Ingreso con Google o Facebook (vuelta del proveedor) | IP | 10 por minuto |
+| Eliminar la cuenta (CU-28) | IP; y usuario (RNF-29.5) | 5 por minuto; y 5 cada 15 minutos |
+| Descargar mis datos (CU-28) | Usuario | 5 por minuto |
 | Botón de arrepentimiento | Pedido + IP | 3 por hora |
 | Aplicar cupón | Carrito + IP | 10 por minuto |
 | Checkout | Carrito + IP | 5 por minuto |
@@ -126,10 +128,10 @@ Es una defensa en profundidad: no reemplaza la autorización de la aplicación, 
 
 | Tabla | Cliente | Anónimo (invitado) | Administrador | Sistema |
 |---|---|---|---|---|
-| `pedido`, `pedido_item` | Lee los propios y el de su token; crea el propio en el checkout; corrige su email | Lee el pedido de su token; crea el suyo en el checkout, atado a su token; corrige su email | Lee y actualiza el estado | Lee y actualiza el estado |
+| `pedido`, `pedido_item` | Lee los propios y el de su token; crea el propio en el checkout; corrige su email; desvincula los propios al borrar su cuenta (solo con la función de V36, CU-28) | Lee el pedido de su token; crea el suyo en el checkout, atado a su token; corrige su email | Lee y actualiza el estado | Lee y actualiza el estado |
 | `pago`, `pago_evento` | – | – | Lee | Crea y actualiza |
 | `direccion` | Todo sobre las propias | – | Lee | – |
-| `usuario` | Lee y actualiza el propio (solo nombre, teléfono y contraseña) | – | Lee el propio | Crea el administrador inicial y clientes sin verificar, lee para autenticar, actualiza intentos fallidos, bloqueo y segundo factor, y marca el email verificado o cambia la contraseña solo consumiendo un token de ese usuario |
+| `usuario` | Lee y actualiza el propio (solo nombre, teléfono y contraseña); borra el propio (CU-28) | – | Lee el propio | Crea el administrador inicial y clientes sin verificar, lee para autenticar, actualiza intentos fallidos, bloqueo y segundo factor, y marca el email verificado o cambia la contraseña solo consumiendo un token de ese usuario |
 | `token_usuario` | – | – | – | Crea, lee, marca usado y limpia |
 | `identidad_externa` | Lee y desvincula las propias | – | – | Crea y lee para autenticar |
 | `solicitud_arrepentimiento` | Crea y lee las del pedido cuyo número y email acaba de verificar la base | Igual que el cliente | Lee y resuelve | Lee (para componer los correos) |

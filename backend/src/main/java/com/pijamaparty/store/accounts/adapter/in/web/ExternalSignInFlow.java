@@ -1,9 +1,13 @@
 package com.pijamaparty.store.accounts.adapter.in.web;
 
+import com.pijamaparty.store.accounts.domain.ExternalProvider;
 import com.pijamaparty.store.platform.security.SignInFlows;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.Clock;
 import java.time.Duration;
+import java.util.Map;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
@@ -21,6 +25,7 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
@@ -33,7 +38,8 @@ import org.springframework.web.client.RestTemplate;
  * {@code /api} (Authorization Code with {@code state} and PKCE; for Google, the ID token with its {@code nonce}).
  * Nothing of the provider is kept: the authorized client (its access token) is never stored, and the provider's
  * authentication lives only for the request; {@link ExternalSignInHandlers} opens the customer's own session through
- * {@code SessionAuthentication}, which also changes the session id. The provider calls are bounded (RNF-21).
+ * {@code SessionAuthentication}, which also changes the session id. The provider calls are bounded (RNF-21). UC-28
+ * (T-E4-16): a reauthentication asks the provider for the credentials again, even when the browser is signed in there.
  */
 @Component
 class ExternalSignInFlow implements SignInFlows {
@@ -44,12 +50,14 @@ class ExternalSignInFlow implements SignInFlows {
     private final ExternalProviderRegistrations registrations;
     private final ExternalSignInHandlers handlers;
     private final SimpleClientHttpRequestFactory requestFactory;
+    private final Clock clock;
 
-    ExternalSignInFlow(ExternalProviderRegistrations registrations, ExternalSignInHandlers handlers,
+    ExternalSignInFlow(ExternalProviderRegistrations registrations, ExternalSignInHandlers handlers, Clock clock,
                        @Value("${store.accounts.oauth2.connect-timeout}") Duration connectTimeout,
                        @Value("${store.accounts.oauth2.read-timeout}") Duration readTimeout) {
         this.registrations = registrations;
         this.handlers = handlers;
+        this.clock = clock;
         this.requestFactory = requestFactory(connectTimeout, readTimeout);
     }
 
@@ -99,15 +107,43 @@ class ExternalSignInFlow implements SignInFlows {
                     == null) {
                     return null;
                 }
-                return resolver.resolve(request);
+                return forReauthentication(request, resolver.resolve(request));
             }
 
             @Override
             public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String registrationId) {
                 return registrations.findByRegistrationId(registrationId) == null
-                    ? null : resolver.resolve(request, registrationId);
+                    ? null : forReauthentication(request, resolver.resolve(request, registrationId));
             }
         };
+    }
+
+    /**
+     * UC-28 (T-E4-16): when this session waits to confirm the deletion with this provider ({@link PendingProviderIntent}),
+     * the provider must ask for the credentials again, even when the browser is already signed in there: Google with
+     * {@code prompt=login} and {@code max_age=0}, Facebook with {@code auth_type=reauthenticate}. Linking and signing in
+     * are left as they are.
+     */
+    private OAuth2AuthorizationRequest forReauthentication(HttpServletRequest request,
+                                                           OAuth2AuthorizationRequest authorization) {
+        if (authorization == null) {
+            return null;
+        }
+        Optional<ExternalProvider> provider = ExternalProviderRegistrations.provider(
+            authorization.getAttribute(OAuth2ParameterNames.REGISTRATION_ID));
+        boolean reauthenticating = PendingProviderIntent.peek(request, clock.instant())
+            .filter(intent -> intent.purpose() == PendingProviderIntent.Purpose.REAUTHENTICATE)
+            .filter(intent -> provider.equals(Optional.of(intent.provider())))
+            .isPresent();
+        if (!reauthenticating) {
+            return authorization;
+        }
+        Map<String, Object> fresh = provider.get() == ExternalProvider.GOOGLE
+            ? Map.of("prompt", "login", "max_age", "0")
+            : Map.of("auth_type", "reauthenticate");
+        return OAuth2AuthorizationRequest.from(authorization)
+            .additionalParameters(parameters -> parameters.putAll(fresh))
+            .build();
     }
 
     private RestClientAuthorizationCodeTokenResponseClient tokenResponseClient() {

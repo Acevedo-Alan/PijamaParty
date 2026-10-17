@@ -1,12 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
-import { CART_KEY } from '../cart/useCart.ts';
 import { signOut } from './accountApi.ts';
-import { ADDRESSES_KEY } from './addressBookApi.ts';
-import { MY_ORDERS_KEY } from './myOrdersApi.ts';
-import { SIGN_IN_METHODS_KEY } from './signInMethodsApi.ts';
-import { CUSTOMER_KEY, firstName, useCustomer } from './useCustomer.ts';
+import { forgetAccount } from './forgetAccount.ts';
+import { firstName, useCustomer } from './useCustomer.ts';
 import './account.css';
 
 export const SIGN_IN_PATH = '/cuenta/ingresar';
@@ -26,12 +23,7 @@ export function AccountLink() {
   const exit = useMutation({
     mutationFn: signOut,
     onSettled: () => {
-      queryClient.setQueryData(CUSTOMER_KEY, null);
-      queryClient.removeQueries({ queryKey: ADDRESSES_KEY });
-      queryClient.removeQueries({ queryKey: MY_ORDERS_KEY });
-      queryClient.removeQueries({ queryKey: SIGN_IN_METHODS_KEY });
-      // The cart shown belonged to the account: the guest's comes back with its cookie.
-      void queryClient.invalidateQueries({ queryKey: CART_KEY });
+      forgetAccount(queryClient);
     },
   });
 

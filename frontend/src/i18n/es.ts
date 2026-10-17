@@ -904,7 +904,37 @@ export const es = {
           'Esa cuenta ya está vinculada con otra cuenta de la tienda, o ya tenés otra cuenta de ese servicio vinculada.',
         cancelled: 'Cancelaste la vinculación. No cambió nada.',
         failed: 'No pudimos vincular la cuenta. Probá de nuevo.',
+        reauthenticated: 'Confirmaste que sos vos. Ya podés eliminar tu cuenta.',
+        reauthenticationCancelled: 'Cancelaste la confirmación. Tu cuenta sigue igual.',
+        reauthenticationFailed:
+          'No pudimos confirmar que sos vos. Ingresá con la misma cuenta que tenés vinculada y probá de nuevo.',
       },
+      /** UC-28 (T-E4-16): downloading the customer's data and deleting its account. */
+      dataTitle: 'Tus datos',
+      dataIntro: 'Podés descargar una copia de tus datos o eliminar tu cuenta.',
+      download: 'Descargar mis datos',
+      downloading: 'Preparando…',
+      downloadError: 'No pudimos preparar tus datos. Probá de nuevo.',
+      deleteAccount: 'Eliminar mi cuenta',
+      deleteTitle: '¿Eliminar tu cuenta?',
+      deleteExplanation:
+        'Vamos a borrar tu cuenta, tus direcciones, tus cuentas vinculadas y tu carrito, y vas a salir en todos tus dispositivos. No se puede deshacer.',
+      deleteOrders:
+        'Tus pedidos se conservan por las obligaciones legales de la tienda, pero ya no van a estar asociados a una cuenta.',
+      deletePassword: 'Tu contraseña',
+      deleteWithPassword: 'Eliminar mi cuenta',
+      deleting: 'Eliminando…',
+      orConfirmWith: 'O confirmá ingresando de nuevo con tu cuenta vinculada:',
+      confirmWithIntro: 'Para confirmar, ingresá de nuevo con tu cuenta vinculada.',
+      confirmWith: (provider: string) => `Confirmar con ${provider}`,
+      deleteNow: 'Sí, eliminar mi cuenta',
+      wrongPassword: 'La contraseña no es correcta.',
+      reauthenticationRequired:
+        'Pasaron más de 5 minutos desde que confirmaste. Volvé a confirmar para eliminar tu cuenta.',
+      reauthenticationNotLinked: 'Esa cuenta ya no está vinculada.',
+      reauthenticationError: 'No pudimos empezar la confirmación. Probá de nuevo.',
+      deleteError: 'No pudimos eliminar tu cuenta. Probá de nuevo.',
+      accountDeleted: 'Tu cuenta fue eliminada.',
     },
     /** UC-22 (T-E4-07): the customer's orders and the detail of each, with its tracking. */
     orders: {

@@ -16,4 +16,7 @@ public interface AccountEvents {
 
     /** UC-27 (T-E4-14): someone typed the customer's email to connect an external account; nothing was linked. */
     void linkAttemptNoticeRequested(UserId customer);
+
+    /** UC-28 (T-E4-16): the customer's account was deleted in this transaction. */
+    void customerAccountDeleted(UserId customer);
 }

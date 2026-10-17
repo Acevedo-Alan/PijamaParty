@@ -5,9 +5,11 @@ import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { answer, NO_CART, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
+import { saveFile } from './fileDownload.ts';
 import { goToProvider } from './providerRedirect.ts';
 
 vi.mock('./providerRedirect.ts', () => ({ goToProvider: vi.fn() }));
+vi.mock('./fileDownload.ts', () => ({ saveFile: vi.fn() }));
 
 const messages = es.account.myAccount;
 const ANA = {
@@ -32,8 +34,11 @@ interface Methods {
   identities: (typeof GOOGLE)[];
 }
 
-/** The customer is signed in, both providers are enabled, and GET /api/account/identities answers `methods` now. */
-function stubMethods(initial: Methods) {
+/**
+ * The customer is signed in, both providers are enabled, and GET /api/account/identities answers `methods` now; any
+ * other GET of `more` answers what it says.
+ */
+function stubMethods(initial: Methods, more: Record<string, unknown> = {}) {
   const methods = { current: initial };
   vi.spyOn(api, 'GET').mockImplementation(
     withHeader(
@@ -44,7 +49,7 @@ function stubMethods(initial: Methods) {
           case '/api/account/oauth2/providers':
             return Promise.resolve(answer(200, { providers: ['GOOGLE', 'FACEBOOK'] }));
           default:
-            return Promise.resolve(NO_CART);
+            return Promise.resolve(path in more ? more[path] : NO_CART);
         }
       },
       answer(200, ANA),
@@ -207,6 +212,8 @@ describe('my account (UC-27, T-E4-15)', () => {
     ['already-linked', messages.social.alreadyLinked],
     ['cancelled', messages.social.cancelled],
     ['failed', messages.social.failed],
+    ['reauthentication-cancelled', messages.social.reauthenticationCancelled],
+    ['reauthentication-failed', messages.social.reauthenticationFailed],
   ])(
     'given the provider sent the customer back with %s, when the page opens, then it says so',
     async (social, text) => {
@@ -216,4 +223,98 @@ describe('my account (UC-27, T-E4-15)', () => {
       expect(await screen.findByText(text)).toBeInTheDocument();
     },
   );
+});
+
+describe('my data (UC-28, T-E4-16)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.mocked(goToProvider).mockClear();
+    vi.mocked(saveFile).mockClear();
+  });
+
+  it('given a signed-in customer, when it downloads its data, then the browser saves the file', async () => {
+    const file = new Blob(['{}'], { type: 'application/json' });
+    stubMethods({ hasPassword: true, identities: [] }, { '/api/account/data': answer(200, file) });
+    const get = vi.mocked(api.GET);
+    renderRoute('/cuenta');
+
+    await userEvent.click(await screen.findByRole('button', { name: messages.download }));
+
+    await waitFor(() => {
+      expect(saveFile).toHaveBeenCalledWith(file, 'mis-datos.json');
+    });
+    expect(get).toHaveBeenCalledWith('/api/account/data', { parseAs: 'blob' });
+  });
+
+  it('given a customer with a password, when it deletes its account with it, then it goes home and is told', async () => {
+    stubMethods({ hasPassword: true, identities: [] });
+    const remove = vi.spyOn(api, 'DELETE').mockResolvedValue(answer(204));
+    const { router } = renderRoute('/cuenta');
+
+    await userEvent.click(await screen.findByRole('button', { name: messages.deleteAccount }));
+    expect(screen.getByText(messages.deleteOrders)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText(messages.deletePassword), 'ocho1234');
+    await userEvent.click(screen.getByRole('button', { name: messages.deleteWithPassword }));
+
+    expect(remove).toHaveBeenCalledWith('/api/account', { body: { password: 'ocho1234' } });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+    expect(await screen.findByText(messages.accountDeleted)).toBeInTheDocument();
+  });
+
+  it('given a wrong password, when the customer deletes its account, then it is told and stays', async () => {
+    stubMethods({ hasPassword: true, identities: [] });
+    vi.spyOn(api, 'DELETE').mockResolvedValue(answer(403, { problem: 'WRONG_PASSWORD' }));
+    const { router } = renderRoute('/cuenta');
+
+    await userEvent.click(await screen.findByRole('button', { name: messages.deleteAccount }));
+    await userEvent.type(screen.getByLabelText(messages.deletePassword), 'no-es-esta');
+    await userEvent.click(screen.getByRole('button', { name: messages.deleteWithPassword }));
+
+    expect(await screen.findByText(messages.wrongPassword)).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/cuenta');
+  });
+
+  it('given a customer without a password, when it deletes its account, then it confirms with its provider first', async () => {
+    stubMethods({ hasPassword: false, identities: [GOOGLE] });
+    const post = vi.spyOn(api, 'POST').mockResolvedValue(answer(204));
+    renderRoute('/cuenta');
+
+    await userEvent.click(await screen.findByRole('button', { name: messages.deleteAccount }));
+    expect(screen.queryByLabelText(messages.deletePassword)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: messages.confirmWith('Google') }));
+
+    expect(post).toHaveBeenCalledWith('/api/account/oauth2/reauthenticate/{provider}', {
+      params: { path: { provider: 'google' } },
+    });
+    await waitFor(() => {
+      expect(goToProvider).toHaveBeenCalledWith('/api/account/oauth2/authorization/google');
+    });
+  });
+
+  it('given the customer came back from its provider, when the page opens, then it deletes without a password', async () => {
+    stubMethods({ hasPassword: false, identities: [GOOGLE] });
+    const remove = vi.spyOn(api, 'DELETE').mockResolvedValue(answer(204));
+    const { router } = renderRoute('/cuenta?social=reauthenticated');
+
+    expect(await screen.findByText(messages.social.reauthenticated)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: messages.deleteNow }));
+
+    expect(remove).toHaveBeenCalledWith('/api/account', { body: {} });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+  });
+
+  it('given the confirmation with the provider expired, when the customer deletes, then it is asked to confirm with it again', async () => {
+    stubMethods({ hasPassword: false, identities: [GOOGLE] });
+    vi.spyOn(api, 'DELETE').mockResolvedValue(answer(403, { problem: 'REAUTHENTICATION_REQUIRED' }));
+    renderRoute('/cuenta?social=reauthenticated');
+
+    await userEvent.click(await screen.findByRole('button', { name: messages.deleteNow }));
+
+    expect(await screen.findByText(messages.reauthenticationRequired)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: messages.confirmWith('Google') })).toBeInTheDocument();
+  });
 });

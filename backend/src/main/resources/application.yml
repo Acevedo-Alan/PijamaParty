@@ -230,6 +230,27 @@ store:
         keys: [ip]
         capacity: 3
         period: 1h
+      # UC-28 (T-E4-16): account deletions per IP, for the guesses of the password that confirms one
+      - name: account-deletion
+        paths: [/api/account]
+        methods: [DELETE]
+        keys: [ip]
+        capacity: 5
+        period: 1m
+      # and per customer (the session's user id, RNF-29.5), so a stolen session that rotates its IP is still limited
+      - name: account-deletion-user
+        paths: [/api/account]
+        methods: [DELETE]
+        keys: [user]
+        capacity: 5
+        period: 15m
+      # UC-28 (T-E4-16): the data download, the heaviest read of a customer, per customer
+      - name: account-data
+        paths: [/api/account/data]
+        methods: [GET]
+        keys: [user]
+        capacity: 5
+        period: 1m
       # UC-27 (T-E4-14, RNF-22): returns from Google and Facebook per IP
       - name: social-sign-in
         paths: [/api/account/oauth2/code/*]

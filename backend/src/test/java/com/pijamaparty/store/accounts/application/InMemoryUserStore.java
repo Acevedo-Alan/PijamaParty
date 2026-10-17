@@ -40,6 +40,11 @@ public class InMemoryUserStore implements LoadUser, SaveUser, FindUserByEmail, A
         return users.findAll(user -> user.email().equals(email)).stream().findFirst();
     }
 
+    /** The account and nothing else; {@link InMemorySignInMethods} also drops its links. */
+    boolean delete(UserId id) {
+        return users.delete(id);
+    }
+
     /** Synchronized: the real adapter lets the email's unique constraint pick one of two inserts. */
     @Override
     public synchronized boolean add(User customer) {

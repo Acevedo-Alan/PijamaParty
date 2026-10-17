@@ -1,5 +1,6 @@
 package com.pijamaparty.store.accounts.application;
 
+import com.pijamaparty.store.accounts.api.CustomerAccountDeleted;
 import com.pijamaparty.store.accounts.api.EmailVerificationRequested;
 import com.pijamaparty.store.accounts.api.LinkAttemptNoticeRequested;
 import com.pijamaparty.store.accounts.api.LinkConfirmationRequested;
@@ -31,6 +32,11 @@ public class InMemoryAccountEvents implements AccountEvents {
     @Override
     public void linkAttemptNoticeRequested(UserId customer) {
         published.add(new LinkAttemptNoticeRequested(customer.value()));
+    }
+
+    @Override
+    public void customerAccountDeleted(UserId customer) {
+        published.add(new CustomerAccountDeleted(customer.value()));
     }
 
     public List<Object> published() {

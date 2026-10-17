@@ -1,5 +1,6 @@
 package com.pijamaparty.store.accounts.adapter.out.event;
 
+import com.pijamaparty.store.accounts.api.CustomerAccountDeleted;
 import com.pijamaparty.store.accounts.api.EmailVerificationRequested;
 import com.pijamaparty.store.accounts.api.LinkAttemptNoticeRequested;
 import com.pijamaparty.store.accounts.api.LinkConfirmationRequested;
@@ -37,5 +38,10 @@ class SpringAccountEvents implements AccountEvents {
     @Override
     public void linkAttemptNoticeRequested(UserId customer) {
         publisher.publishEvent(new LinkAttemptNoticeRequested(customer.value()));
+    }
+
+    @Override
+    public void customerAccountDeleted(UserId customer) {
+        publisher.publishEvent(new CustomerAccountDeleted(customer.value()));
     }
 }

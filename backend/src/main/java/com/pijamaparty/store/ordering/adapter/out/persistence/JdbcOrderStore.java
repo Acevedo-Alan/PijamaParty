@@ -10,9 +10,12 @@ import com.pijamaparty.store.ordering.application.AdminOrderViews;
 import com.pijamaparty.store.ordering.application.BuyerEmails;
 import com.pijamaparty.store.ordering.application.ConfirmableOrders;
 import com.pijamaparty.store.ordering.application.CorrectableOrders;
+import com.pijamaparty.store.ordering.application.CustomerOrderExports;
 import com.pijamaparty.store.ordering.application.CustomerOrderPages;
 import com.pijamaparty.store.ordering.application.CustomerOrderSummary;
+import com.pijamaparty.store.ordering.application.CustomerOrderUnlinks;
 import com.pijamaparty.store.ordering.application.CustomerOrderViews;
+import com.pijamaparty.store.ordering.application.ExportedOrder;
 import com.pijamaparty.store.ordering.application.GuestOrderLinks;
 import com.pijamaparty.store.ordering.application.LatePayments;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
@@ -46,7 +49,10 @@ import java.sql.Types;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -67,7 +73,7 @@ class JdbcOrderStore
     implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders,
     TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews, StatusChanges,
     ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails, CustomerOrderPages, CustomerOrderViews,
-    GuestOrderLinks {
+    GuestOrderLinks, CustomerOrderExports, CustomerOrderUnlinks {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -235,6 +241,31 @@ class JdbcOrderStore
         SELECT id, number, status, created_at, street, street_number, floor, apartment, city, province, postal_code,
                subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code, shipment_tracking_number
         FROM orders WHERE id = :id AND user_id = :userId
+        """;
+
+    // UC-28 (T-E4-16): every order of a customer for its data download, newest first, over orders_user_created_idx. As
+    // PAGE_OF_CUSTOMER, orders_customer_select limits a customer to its own and the filter keeps out a tracked order.
+    private static final String SELECT_CUSTOMER_EXPORT = """
+        SELECT id, number, status, created_at, delivered_at, customer_name, customer_email, customer_phone, national_id,
+               street, street_number, floor, apartment, city, province, postal_code, subtotal_cents, discount_cents,
+               shipping_cents, total_cents, coupon_code, payment_provider, shipment_tracking_number
+        FROM orders
+        WHERE user_id = :userId
+        ORDER BY created_at DESC, number DESC
+        """;
+
+    // UC-28 (T-E4-16): the lines of every order of a customer in one query, for its data download.
+    private static final String SELECT_CUSTOMER_EXPORT_LINES = """
+        SELECT i.order_id, i.variant_id, i.sku, i.product_name, i.size, i.color, i.unit_price_cents, i.quantity
+        FROM order_item i JOIN orders o ON o.id = i.order_id
+        WHERE o.user_id = :userId
+        ORDER BY i.order_id, i.position
+        """;
+
+    // UC-28 (T-E4-16): as the customer, once its user is gone. No policy lets a customer update its orders: the function
+    // of V36 does it, and it and the buyer guard check both conditions.
+    private static final String UNLINK_CUSTOMER_ORDERS = """
+        SELECT unlink_deleted_customer_orders(:userId, :at)
         """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -510,6 +541,42 @@ class JdbcOrderStore
                     Optional.ofNullable(row.getString("shipment_tracking_number")));
             })
             .stream().findFirst();
+    }
+
+    @Override
+    public List<ExportedOrder> all(UserId customer) {
+        var parameters = new MapSqlParameterSource("userId", customer.value());
+        Map<UUID, List<OrderLine>> lines = new HashMap<>();
+        jdbc.query(SELECT_CUSTOMER_EXPORT_LINES, parameters, row -> {
+            lines.computeIfAbsent(row.getObject("order_id", UUID.class), order -> new ArrayList<>())
+                .add(new OrderLine(row.getObject("variant_id", UUID.class), row.getString("sku"),
+                    row.getString("product_name"), row.getString("size"), row.getString("color"),
+                    Money.of(row.getLong("unit_price_cents")), row.getInt("quantity")));
+        });
+        return jdbc.query(SELECT_CUSTOMER_EXPORT, parameters, (row, n) -> {
+            OrderId id = OrderId.of(row.getObject("id", UUID.class));
+            return new ExportedOrder(id, row.getLong("number"), OrderStatus.valueOf(row.getString("status")),
+                row.getObject("created_at", OffsetDateTime.class).toInstant(),
+                Optional.ofNullable(row.getObject("delivered_at", OffsetDateTime.class)).map(OffsetDateTime::toInstant),
+                new ExportedOrder.Buyer(row.getString("customer_name"), row.getString("customer_email"),
+                    row.getString("customer_phone"), row.getString("national_id")),
+                new ShippingAddress(row.getString("street"), row.getString("street_number"),
+                    Optional.ofNullable(row.getString("floor")), Optional.ofNullable(row.getString("apartment")),
+                    row.getString("city"), row.getString("postal_code")),
+                Province.valueOf(row.getString("province")), lines.getOrDefault(id.value(), List.of()),
+                new OrderAmounts(Money.of(row.getLong("subtotal_cents")), Money.of(row.getLong("discount_cents")),
+                    Money.of(row.getLong("shipping_cents")), Money.of(row.getLong("total_cents"))),
+                Optional.ofNullable(row.getString("coupon_code")), row.getString("payment_provider"),
+                Optional.ofNullable(row.getString("shipment_tracking_number")));
+        });
+    }
+
+    @Override
+    public int unlinkAll(UserId customer, Instant at) {
+        var parameters = new MapSqlParameterSource("userId", customer.value())
+            .addValue("at", at.atOffset(ZoneOffset.UTC));
+        Integer unlinked = jdbc.queryForObject(UNLINK_CUSTOMER_ORDERS, parameters, Integer.class);
+        return unlinked == null ? 0 : unlinked;
     }
 
     private SqlParameterSource item(OrderId order, int position, OrderLine line) {

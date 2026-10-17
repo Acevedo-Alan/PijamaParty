@@ -45,7 +45,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * (V29), tested for reads, inserts, updates and deletes with customer A, customer B, a guest, the administrator, the
  * system and a missing context (RNF-27). A customer reads and updates only its own user and does everything on its
  * own addresses; the administrator reads its own user and every address; the system reads and updates every user,
- * registers customers and is the only one to reach the tokens; nobody deletes a user. T-E4-13 adds
+ * registers customers and is the only one to reach the tokens. T-E4-16 lets a customer delete its own user (V36),
+ * whose addresses, tokens, external accounts and waiting link go with it; nobody else deletes a user. T-E4-13 adds
  * {@code external_identity} (V34): a customer reads and unlinks its own external accounts, and only the system reads
  * all of them and links them. T-E4-14 adds {@code pending_link} (V35), which only the system reaches, and only for
  * customers. Customer B also reaches for customer A's orders and addresses by their ids, as a query that forgot to filter by customer would. Which columns
@@ -238,11 +239,24 @@ class AccountRowLevelSecurityTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("callers")
-    void givenEveryAccount_whenDeletingAllUsers_thenNoneIsDeleted(Caller caller) {
+    void givenEveryAccount_whenDeletingAllUsers_thenOnlyACustomerDeletesItselfWithItsRows(Caller caller) {
+        // A customer updates only itself (updatesUsers), and that is the one user it may delete; nobody else deletes one.
+        Set<Account> deletable = caller.actor().filter(actor -> actor.is(Role.CUSTOMER)).isPresent()
+            ? caller.updatesUsers() : NONE;
+
         var deleted = caller.run(rls, sql -> sql.queryForList("delete from app_user returning id", UUID.class));
 
-        assertThat(deleted).isEmpty();
-        assertThat(owner.queryForObject("select count(*) from app_user", Integer.class)).isEqualTo(ALL.size());
+        assertThat(accounts(deleted)).isEqualTo(deletable);
+        Set<Account> remaining = EnumSet.copyOf(ALL);
+        remaining.removeAll(deletable);
+        assertThat(accounts(owner.queryForList("select id from app_user", UUID.class))).as("stored").isEqualTo(remaining);
+        for (String ownersOfRows : List.of("select user_id from address", "select user_id from user_token",
+            "select user_id from external_identity", "select user_id from pending_link")) {
+            Set<Account> owners = accounts(owner.queryForList(ownersOfRows, UUID.class));
+            Set<Account> kept = EnumSet.copyOf(CUSTOMERS);
+            kept.removeAll(deletable);
+            assertThat(owners).as(ownersOfRows).isEqualTo(kept);
+        }
     }
 
     @Test

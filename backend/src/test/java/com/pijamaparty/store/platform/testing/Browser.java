@@ -58,6 +58,11 @@ public final class Browser {
         return exchange(HttpMethod.DELETE, path, null, Map.of());
     }
 
+    /** A DELETE with a body, such as the password that confirms an account deletion (UC-28). */
+    public ResponseEntity<String> delete(String path, String json) {
+        return exchange(HttpMethod.DELETE, path, json, Map.of());
+    }
+
     private ResponseEntity<String> exchange(HttpMethod method, String path, String json,
                                             Map<String, String> extraHeaders) {
         var headers = new HttpHeaders();

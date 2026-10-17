@@ -119,12 +119,17 @@ class UserSchemaTest {
     }
 
     @Test
-    void givenAnyActor_whenDeletingUsers_thenNoRowIsDeleted() {
-        for (Actor actor : ALL_ACTORS) {
+    void givenAnyActor_whenDeletingUsers_thenOnlyACustomerDeletesItself() {
+        // Since V36 (T-E4-16) a customer deletes its own user; nobody else deletes one.
+        for (Actor actor : List.of(GUEST, ADMIN, SYSTEM)) {
             int deleted = rls.as(actor, sql -> sql.update("delete from app_user"));
             assertThat(deleted).as(actor.role().name()).isZero();
         }
-        assertThat(owner.queryForObject("select count(*) from app_user", Integer.class)).isEqualTo(3);
+        for (Actor customer : List.of(CUSTOMER_A, CUSTOMER_B)) {
+            var deleted = rls.as(customer, sql -> sql.queryForList("delete from app_user returning id", UUID.class));
+            assertThat(deleted).as(customer.toString()).containsExactly(customer.userId().orElseThrow().value());
+        }
+        assertThat(owner.queryForList("select id from app_user", UUID.class)).containsExactly(ADMIN_ID.value());
     }
 
     @Test

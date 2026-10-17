@@ -827,6 +827,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/oauth2/reauthenticate/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask to confirm the account's deletion with a linked provider (google or facebook)
+         * @description For 15 minutes this session confirms, instead of signing in, when it comes back from that provider; the storefront then navigates to /api/account/oauth2/authorization/{provider}. Coming back with the external account linked to the customer lets this session delete the account without the password for 5 minutes: /cuenta?social=reauthenticated; otherwise reauthentication-failed or reauthentication-cancelled. Requires the CSRF token.
+         */
+        post: operations["requestReauthentication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/oauth2/link/{provider}": {
         parameters: {
             query?: never;
@@ -1424,6 +1444,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the customer's data
+         * @description One JSON file with the profile, the linked external accounts, the addresses, the orders and the reviews; every section is present, empty when there is nothing.
+         */
+        get: operations["data"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/products/{id}/images/{imageId}": {
         parameters: {
             query?: never;
@@ -1439,6 +1479,26 @@ export interface paths {
          * @description The other photos close the gap and its files are removed. Requires the CSRF token.
          */
         delete: operations["delete_2"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete the customer's account
+         * @description Confirmed with the password, or without it within 5 minutes of coming back from a linked provider. Deletes the account, its addresses, its linked external accounts and its cart; the orders stay, unlinked from the account. Signs out, and every other session of the account ends. Requires the CSRF token.
+         */
+        delete: operations["deleteAccount"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2204,6 +2264,27 @@ export interface components {
         SignInMethodsResponse: {
             hasPassword?: boolean;
             identities?: components["schemas"]["IdentityResponse"][];
+        };
+        CustomerDataResponse: {
+            /** Format: date-time */
+            exportedAt?: string;
+            profile?: components["schemas"]["ProfileResponse"];
+            identities?: components["schemas"]["IdentityResponse"][];
+            addresses?: components["schemas"]["SavedAddressResponse"][];
+            orders?: unknown[];
+            reviews?: unknown[];
+        };
+        ProfileResponse: {
+            email?: string;
+            name?: string;
+            phone: string | null;
+            emailVerified?: boolean;
+            hasPassword?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        DeleteAccountRequest: {
+            password?: string;
         };
     };
     responses: never;
@@ -4517,6 +4598,37 @@ export interface operations {
             };
         };
     };
+    requestReauthentication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session waits for the provider's return */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description PROVIDER_NOT_ENABLED, or IDENTITY_NOT_FOUND: the customer has no account of that provider */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     requestLink: {
         parameters: {
             query?: never;
@@ -5884,6 +5996,35 @@ export interface operations {
             };
         };
     };
+    data: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (Content-Disposition: attachment) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerDataResponse"];
+                };
+            };
+            /** @description Not signed in as a customer */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     delete_2: {
         parameters: {
             query?: never;
@@ -5916,6 +6057,48 @@ export interface operations {
             };
             /** @description No such product or photo */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    deleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description Deleted and signed out */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description WRONG_PASSWORD, or REAUTHENTICATION_REQUIRED: neither a password nor a recent confirmation with a provider */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over 5 deletion attempts per minute from this IP (RNF-22); Retry-After says when to retry */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

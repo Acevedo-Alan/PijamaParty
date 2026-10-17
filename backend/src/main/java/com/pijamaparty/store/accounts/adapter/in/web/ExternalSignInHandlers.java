@@ -2,6 +2,7 @@ package com.pijamaparty.store.accounts.adapter.in.web;
 
 import com.pijamaparty.store.accounts.application.ConcurrentExternalSignInException;
 import com.pijamaparty.store.accounts.application.LinkExternalAccount;
+import com.pijamaparty.store.accounts.application.ReauthenticateWithExternalAccount;
 import com.pijamaparty.store.accounts.application.SignInWithExternalAccount;
 import com.pijamaparty.store.accounts.domain.ExternalAccount;
 import com.pijamaparty.store.accounts.domain.ExternalProvider;
@@ -34,8 +35,9 @@ import org.springframework.stereotype.Component;
  * {@code state}, exchanged the code with PKCE and, for Google, validated the ID token with its {@code nonce}. This
  * adapter only translates the provider's account into the use case's command and its result into the customer's own
  * session and a page of the storefront, on its own origin ({@code store.public-url}), whatever host the request came
- * through. The provider's authentication never becomes the session. T-E4-15: when the signed-in customer asked to
- * link that provider from "Mi cuenta" ({@link PendingExternalLink}), the return links instead and goes back there.
+ * through. The provider's authentication never becomes the session. When the signed-in customer asked, from "Mi
+ * cuenta", to link that provider (T-E4-15) or to confirm the deletion of its account with it (T-E4-16) ({@link
+ * PendingProviderIntent}), the return does that instead and goes back there.
  */
 @Component
 class ExternalSignInHandlers implements AuthenticationSuccessHandler, AuthenticationFailureHandler {
@@ -47,25 +49,31 @@ class ExternalSignInHandlers implements AuthenticationSuccessHandler, Authentica
     static final String ALREADY_LINKED = SIGN_IN_PAGE + "already-linked";
     static final String CANCELLED = SIGN_IN_PAGE + "cancelled";
     static final String FAILED = SIGN_IN_PAGE + "failed";
-    /** T-E4-15: where a link started from "Mi cuenta" comes back to. */
+    /** T-E4-15 and T-E4-16: where an intent started from "Mi cuenta" comes back to. */
     private static final String ACCOUNT_PAGE = "/cuenta?social=";
     static final String LINKED = ACCOUNT_PAGE + "linked";
     static final String LINK_ALREADY_LINKED = ACCOUNT_PAGE + "already-linked";
     static final String LINK_CANCELLED = ACCOUNT_PAGE + "cancelled";
     static final String LINK_FAILED = ACCOUNT_PAGE + "failed";
+    static final String REAUTHENTICATED = ACCOUNT_PAGE + "reauthenticated";
+    static final String REAUTHENTICATION_CANCELLED = ACCOUNT_PAGE + "reauthentication-cancelled";
+    static final String REAUTHENTICATION_FAILED = ACCOUNT_PAGE + "reauthentication-failed";
 
     private static final Logger log = LoggerFactory.getLogger(ExternalSignInHandlers.class);
 
     private final SignInWithExternalAccount signIn;
     private final LinkExternalAccount link;
+    private final ReauthenticateWithExternalAccount reauthenticate;
     private final SessionAuthentication sessions;
     private final Clock clock;
     private final String storefront;
 
-    ExternalSignInHandlers(SignInWithExternalAccount signIn, LinkExternalAccount link, SessionAuthentication sessions,
-                           Clock clock, @Value("${store.public-url}") URI publicUrl) {
+    ExternalSignInHandlers(SignInWithExternalAccount signIn, LinkExternalAccount link,
+                           ReauthenticateWithExternalAccount reauthenticate, SessionAuthentication sessions, Clock clock,
+                           @Value("${store.public-url}") URI publicUrl) {
         this.signIn = signIn;
         this.link = link;
+        this.reauthenticate = reauthenticate;
         this.sessions = sessions;
         this.clock = clock;
         this.storefront = publicUrl.toString().replaceAll("/+$", "");
@@ -75,11 +83,14 @@ class ExternalSignInHandlers implements AuthenticationSuccessHandler, Authentica
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
         SecurityContextHolder.clearContext();
-        Optional<PendingExternalLink> pendingLink = pendingLink(request);
+        Optional<PendingProviderIntent> intent = pendingIntent(request);
         Optional<SignInWithExternalAccount.Command> command = authentication instanceof OAuth2AuthenticationToken token
             ? command(token) : Optional.empty();
-        if (pendingLink.isPresent()) {
-            response.sendRedirect(storefront + link(pendingLink.get(), command));
+        if (intent.isPresent()) {
+            response.sendRedirect(storefront + switch (intent.get().purpose()) {
+                case LINK -> link(intent.get(), command);
+                case REAUTHENTICATE -> reauthenticate(intent.get(), command, request);
+            });
             return;
         }
         if (command.isEmpty()) {
@@ -119,17 +130,17 @@ class ExternalSignInHandlers implements AuthenticationSuccessHandler, Authentica
     }
 
     /**
-     * T-E4-15: the link this session asked for from "Mi cuenta", forgotten either way. It counts only while the
-     * customer that asked for it is still the one signed in; otherwise the return is a sign-in.
+     * T-E4-15 and T-E4-16: what this session asked for from "Mi cuenta", forgotten either way. It counts only while
+     * the customer that asked for it is still the one signed in; otherwise the return is a sign-in.
      */
-    private Optional<PendingExternalLink> pendingLink(HttpServletRequest request) {
-        Optional<PendingExternalLink> pending = PendingExternalLink.take(request, clock.instant());
+    private Optional<PendingProviderIntent> pendingIntent(HttpServletRequest request) {
+        Optional<PendingProviderIntent> pending = PendingProviderIntent.take(request, clock.instant());
         Optional<UserId> customer = sessions.signedIn(Role.CUSTOMER, request);
-        return pending.filter(link -> customer.equals(Optional.of(link.customerId())));
+        return pending.filter(intent -> customer.equals(Optional.of(intent.customerId())));
     }
 
     /** The session stays as it was: the customer is already signed in. */
-    private String link(PendingExternalLink pending, Optional<SignInWithExternalAccount.Command> returned) {
+    private String link(PendingProviderIntent pending, Optional<SignInWithExternalAccount.Command> returned) {
         Optional<SignInWithExternalAccount.Command> command = returned
             .filter(each -> each.account().provider() == pending.provider());
         if (command.isEmpty()) {
@@ -150,14 +161,45 @@ class ExternalSignInHandlers implements AuthenticationSuccessHandler, Authentica
         }
     }
 
+    /**
+     * T-E4-16: the session stays as it was and only remembers, for 5 minutes, that the customer came back with the
+     * external account linked to it.
+     */
+    private String reauthenticate(PendingProviderIntent pending, Optional<SignInWithExternalAccount.Command> returned,
+                                  HttpServletRequest request) {
+        Optional<SignInWithExternalAccount.Command> command = returned
+            .filter(each -> each.account().provider() == pending.provider());
+        if (command.isEmpty()) {
+            return REAUTHENTICATION_FAILED;
+        }
+        try {
+            return switch (reauthenticate.execute(new ReauthenticateWithExternalAccount.Command(pending.customerId(),
+                command.get().account()))) {
+                case ReauthenticateWithExternalAccount.Result.Reauthenticated reauthenticated -> {
+                    RecentReauthentication.store(request, pending.customerId(), clock.instant());
+                    yield REAUTHENTICATED;
+                }
+                case ReauthenticateWithExternalAccount.Result.NotLinked notLinked -> REAUTHENTICATION_FAILED;
+            };
+        } catch (RuntimeException e) {
+            // No personal data is logged.
+            log.error("Reauthenticating with {} failed", pending.provider(), e);
+            return REAUTHENTICATION_FAILED;
+        }
+    }
+
     /** The visitor cancelled at the provider ({@code access_denied}), or anything else went wrong: nothing changes. */
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
         boolean cancelled = exception instanceof OAuth2AuthenticationException oauth2
             && OAuth2ErrorCodes.ACCESS_DENIED.equals(oauth2.getError().getErrorCode());
-        if (pendingLink(request).isPresent()) {
-            response.sendRedirect(storefront + (cancelled ? LINK_CANCELLED : LINK_FAILED));
+        Optional<PendingProviderIntent> intent = pendingIntent(request);
+        if (intent.isPresent()) {
+            response.sendRedirect(storefront + switch (intent.get().purpose()) {
+                case LINK -> cancelled ? LINK_CANCELLED : LINK_FAILED;
+                case REAUTHENTICATE -> cancelled ? REAUTHENTICATION_CANCELLED : REAUTHENTICATION_FAILED;
+            });
             return;
         }
         response.sendRedirect(storefront + (cancelled ? CANCELLED : FAILED));
