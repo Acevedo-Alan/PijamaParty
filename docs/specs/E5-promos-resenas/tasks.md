@@ -9,7 +9,7 @@
 - [x] **T-E5-07** Mostrar reseñas y promedio en la ficha del producto (CU-24).
 - [x] **T-E5-08** Backoffice: moderación de reseñas (CU-25).
 - [x] **T-E5-09** Tests de los criterios de aceptación de CU-23 a CU-25. En el código: cada criterio ya tenía su test desde la tarea que lo construyó; se suma el uso registrado de un cupón automático al pagarse la orden (`CouponStoreContractTest`), que antes solo se probaba con cupones con código.
-- [ ] **T-E5-10** Políticas de Row Level Security de `resena` y sus tests (RNF-27).
+- [x] **T-E5-10** Políticas de Row Level Security de `resena` y sus tests (RNF-27). En el código: las políticas nacieron con la tabla en T-E5-02 (V37); `ReviewRowLevelSecurityTest` es la matriz de lecturas, altas, ediciones, moderaciones y bajas con cliente A, cliente B, invitado, administrador, sistema y sin contexto, sobre una reseña de cada cliente en cada estado, cada actor buscándolas también por id, sin filtro. El cliente borra solo las propias y solo una vez borrada su cuenta en la misma transacción (CU-28), aunque la cuenta del otro cliente tampoco exista. Las guardas de columnas siguen en `ReviewsSchemaTest`, cuyas pruebas de filas visibles pasan a la matriz. Sin migraciones.
 - [ ] **T-E5-11** Guía de talles por categoría: edición en el backoffice y acceso desde la ficha (RNF-31.5, *Propuesto*).
 - [ ] **T-E5-12** Página de preguntas frecuentes con envíos, plazos, medios de pago y cambios (RNF-31.6).
 

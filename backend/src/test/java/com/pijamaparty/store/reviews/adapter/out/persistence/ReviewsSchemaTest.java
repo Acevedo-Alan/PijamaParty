@@ -5,7 +5,6 @@ import static com.pijamaparty.store.platform.testing.RlsPolicyTester.CUSTOMER_A;
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.CUSTOMER_A_ID;
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.CUSTOMER_B;
 import static com.pijamaparty.store.platform.testing.RlsPolicyTester.CUSTOMER_B_ID;
-import static com.pijamaparty.store.platform.testing.RlsPolicyTester.GUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -27,7 +26,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 /**
  * T-E5-02: the review schema (V37) enforces the UC-24 and UC-25 rules and guards the columns each actor may change
  * (RNF-27), as committed transactions of the application role. Which rows each actor reaches, with the five actors,
- * is T-E5-10.
+ * is {@link ReviewRowLevelSecurityTest} (T-E5-10).
  */
 @ApiTest
 class ReviewsSchemaTest {
@@ -36,12 +35,6 @@ class ReviewsSchemaTest {
         insert into review (id, product_id, user_id, rating, text, author_name, status, created_at, updated_at,
                             moderated_at)
         values (?, ?, ?, ?, ?, ?, ?, now(), now(), ?::timestamptz)
-        """;
-    private static final String INSERT_USER = """
-        insert into app_user (id, email, email_verified, password_hash, name, role, failed_login_attempts,
-                              created_at, updated_at)
-        values (?, ?, true, '{bcrypt}$2a$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-                'Ana', 'CUSTOMER', 0, now(), now())
         """;
     private static final UUID PRODUCT = UUID.randomUUID();
 
@@ -57,8 +50,7 @@ class ReviewsSchemaTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate review, address, user_token, external_identity, pending_link, admin_recovery_code, "
-            + "app_user");
+        owner.execute("truncate review");
     }
 
     // --- constraints ---
@@ -140,22 +132,6 @@ class ReviewsSchemaTest {
     }
 
     @Test
-    void givenReviewsInEveryStatus_whenRead_thenTheGuestSeesTheApprovedOnesAndTheAuthorAlsoItsOwn() {
-        UUID approved = review(CUSTOMER_B_ID.value(), "APPROVED");
-        UUID pendingOfA = review(CUSTOMER_A_ID.value(), "PENDING");
-        review(UUID.randomUUID(), "REJECTED");
-        String select = "select id from review";
-
-        List<UUID> guest = rls.as(GUEST, sql -> sql.queryForList(select, UUID.class));
-        List<UUID> author = rls.as(CUSTOMER_A, sql -> sql.queryForList(select, UUID.class));
-        List<UUID> admin = rls.as(ADMIN, sql -> sql.queryForList(select, UUID.class));
-
-        assertThat(guest).containsExactly(approved);
-        assertThat(author).containsExactlyInAnyOrder(approved, pendingOfA);
-        assertThat(admin).hasSize(3);
-    }
-
-    @Test
     void givenAnApprovedReview_whenItsAuthorEditsIt_thenItGoesBackToPending() {
         UUID review = review(CUSTOMER_A_ID.value(), "APPROVED");
 
@@ -212,21 +188,6 @@ class ReviewsSchemaTest {
             .hasStackTraceContaining("the administrator may only update the status of a review");
         int deleted = rls.as(ADMIN, sql -> sql.update("delete from review where id = ?", review));
         assertThat(deleted).isOne();
-    }
-
-    @Test
-    void givenACustomerWithReviews_whenItDeletesThemWithItsAccount_thenOnlyThenAreTheyDeleted() {
-        owner.update(INSERT_USER, CUSTOMER_A_ID.value(), "a@example.com");
-        UUID review = review(CUSTOMER_A_ID.value(), "APPROVED");
-
-        int withItsAccount = rls.as(CUSTOMER_A, sql -> sql.update("delete from review where id = ?", review));
-        assertThat(withItsAccount).as("with its account").isZero();
-
-        int deleted = rls.as(CUSTOMER_A, sql -> sql.update("delete from app_user where id = ?",
-            CUSTOMER_A_ID.value()) + sql.update("delete from review where user_id = ?", CUSTOMER_A_ID.value()));
-
-        assertThat(deleted).isEqualTo(2);
-        assertThat(owner.queryForObject("select count(*) from review", Integer.class)).isZero();
     }
 
     private UUID review(UUID userId, String status) {
