@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
-import type { Cart, CartCoupon, CartItem, CouponRefusal } from './cartApi.ts';
+import { isCouponOutdone, type Cart, type CartItem, type CouponRefusal } from './cartApi.ts';
 import { useCartPanel } from './CartPanelContext.tsx';
 import {
   useAcknowledgePrices,
@@ -184,8 +184,12 @@ function applyProblem(apply: ReturnType<typeof useApplyCoupon>): string | null {
   }
 }
 
-/** UC-10: the coupon field, and the applied coupon with "Quitar" and why it does not discount when it does not. */
-function CouponField({ coupon }: { coupon: CartCoupon | null }) {
+/**
+ * UC-10: the coupon field, and the applied coupon with "Quitar" and why it does not discount when it does not: it no
+ * longer applies, or an automatic coupon takes more (UC-23).
+ */
+function CouponField({ cart }: { cart: Cart }) {
+  const { coupon } = cart;
   const apply = useApplyCoupon();
   const remove = useRemoveCoupon();
   const [code, setCode] = useState('');
@@ -229,6 +233,7 @@ function CouponField({ coupon }: { coupon: CartCoupon | null }) {
           {coupon.status !== 'APPLICABLE' && (
             <p className="cart-item-note">{couponReason(coupon.status, coupon.missingCents)}</p>
           )}
+          {isCouponOutdone(cart) && <p className="cart-item-note">{es.cart.couponNotAdded(coupon.code)}</p>}
           <p className="cart-item-problem" role="alert">
             {remove.isError ? es.cart.couponRemoveError : null}
           </p>
@@ -275,7 +280,9 @@ function Totals({ cart }: { cart: Cart }) {
       </div>
       {cart.discountCents > 0 && (
         <div className="cart-row">
-          <dt>{cart.coupon === null ? es.cart.discount : es.cart.discountWith(cart.coupon.code)}</dt>
+          <dt>
+            {cart.appliedDiscount === null ? es.cart.discount : es.cart.discountWith(cart.appliedDiscount.code)}
+          </dt>
           <dd>−{formatMoney(cart.discountCents)}</dd>
         </div>
       )}
@@ -376,7 +383,7 @@ export function CartPanel() {
             </ul>
             <footer className="cart-foot">
               {cart.data.items.some((item) => item.previousUnitPriceCents !== null) && <PriceChangeNotice />}
-              <CouponField coupon={cart.data.coupon} />
+              <CouponField cart={cart.data} />
               <Totals cart={cart.data} />
               <button
                 type="button"

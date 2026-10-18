@@ -185,9 +185,10 @@ class CartController {
 
     @PostMapping("/coupon")
     @Operation(summary = "Apply a coupon code",
-        description = "The code is matched ignoring surrounding spaces and case. A coupon that applies to the cart's "
-            + "subtotal replaces the one the cart had; a rejected code leaves the cart as it was. The discount is "
-            + "calculated on the server. Requires the CSRF token.")
+        description = "The code is matched ignoring surrounding spaces and case; an automatic coupon's code is "
+            + "unknown. A coupon that applies to the cart's subtotal replaces the one the cart had; a rejected code "
+            + "leaves the cart as it was. The discount is calculated on the server: an automatic coupon that takes more "
+            + "still wins (appliedDiscount). Requires the CSRF token.")
     @ApiResponse(responseCode = "200", description = "The full cart with the discount",
         headers = @Header(name = HttpHeaders.SET_COOKIE, description = CART_TOKEN_COOKIE), content = @Content(
         mediaType = "application/json", schema = @Schema(implementation = CartResponse.class)))
@@ -326,28 +327,43 @@ class CartController {
     record ApplyCouponRequest(@NotNull @Size(max = 100) String code) {}
 
     /**
-     * {@code subtotalCents} counts only the {@code AVAILABLE} items; {@code discountCents} is the coupon's discount
-     * when it applies, 0 otherwise; {@code totalCents} is subtotal − discount.
+     * {@code subtotalCents} counts only the {@code AVAILABLE} items; {@code discountCents} is the discount of
+     * {@code appliedDiscount}, 0 without one; {@code totalCents} is subtotal − discount. Discounts never stack: the
+     * one coupon that takes the most discounts, the code coupon on a tie (UC-23).
      */
-    record CartResponse(List<ItemResponse> items, @Schema(nullable = true) CouponResponse coupon, long subtotalCents,
+    record CartResponse(List<ItemResponse> items, @Schema(nullable = true) CouponResponse coupon,
+                        @Schema(nullable = true) AppliedDiscountResponse appliedDiscount, long subtotalCents,
                         long discountCents, long totalCents) {
 
         static CartResponse of(CartView cart) {
             return new CartResponse(cart.items().stream().map(ItemResponse::of).toList(),
-                cart.coupon().map(CouponResponse::of).orElse(null), cart.subtotal().cents(), cart.discount().cents(),
-                cart.total().cents());
+                cart.coupon().map(CouponResponse::of).orElse(null),
+                cart.appliedDiscount().map(AppliedDiscountResponse::of).orElse(null), cart.subtotal().cents(),
+                cart.discount().cents(), cart.total().cents());
         }
     }
 
     /**
-     * The applied coupon. It stays in the cart when it stops applying, with the reason in {@code status} and no
-     * discount, and applies again on its own if the cart qualifies again. {@code missingCents} is what the subtotal
-     * lacks to reach the minimum purchase when {@code status} is {@code BELOW_MINIMUM}, 0 otherwise.
+     * The code coupon the cart holds. It stays in the cart when it stops applying, with the reason in {@code status}
+     * and no discount, and applies again on its own if the cart qualifies again. {@code missingCents} is what the
+     * subtotal lacks to reach the minimum purchase when {@code status} is {@code BELOW_MINIMUM}, 0 otherwise. An
+     * {@code APPLICABLE} coupon does not discount when {@code appliedDiscount} is an automatic coupon that takes more.
      */
     record CouponResponse(String code, CouponCheck.Status status, long missingCents) {
 
         static CouponResponse of(CartView.CouponView coupon) {
             return new CouponResponse(coupon.code(), coupon.status(), coupon.missing().cents());
+        }
+    }
+
+    /**
+     * UC-23: the coupon whose discount {@code discountCents} is, labeled by its {@code code} ("Descuento VERANO10"):
+     * the held code coupon, or one that applied on its own ({@code automatic}).
+     */
+    record AppliedDiscountResponse(String code, boolean automatic) {
+
+        static AppliedDiscountResponse of(CartView.AppliedDiscountView applied) {
+            return new AppliedDiscountResponse(applied.code(), applied.automatic());
         }
     }
 

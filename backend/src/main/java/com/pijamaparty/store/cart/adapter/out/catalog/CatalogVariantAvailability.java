@@ -5,7 +5,6 @@ import com.pijamaparty.store.cart.domain.SellableVariant;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.catalog.api.SellableVariants;
 import com.pijamaparty.store.inventory.api.StockAvailability;
-import com.pijamaparty.store.platform.domain.Money;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +13,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * Whether the catalog sells variants and at which price, through its public API, and their available stock through
- * the inventory's, both in the caller's transaction.
+ * Whether the catalog sells variants, at which price and of which product and category, through its public API, and
+ * their available stock through the inventory's, both in the caller's transaction.
  */
 @Component
 class CatalogVariantAvailability implements VariantAvailability {
@@ -34,13 +33,14 @@ class CatalogVariantAvailability implements VariantAvailability {
         if (variantIds.isEmpty()) {
             return sellable;
         }
-        Map<UUID, Money> prices = sellableVariants.prices(variantIds.stream().map(VariantId::value).toList());
-        if (prices.isEmpty()) {
+        Map<UUID, com.pijamaparty.store.catalog.api.SellableVariant> sold =
+            sellableVariants.sellable(variantIds.stream().map(VariantId::value).toList());
+        if (sold.isEmpty()) {
             return sellable;
         }
-        Map<UUID, Integer> available = stockAvailability.available(List.copyOf(prices.keySet()));
-        prices.forEach((id, price) ->
-            sellable.put(VariantId.of(id), new SellableVariant(price, available.getOrDefault(id, 0))));
+        Map<UUID, Integer> available = stockAvailability.available(List.copyOf(sold.keySet()));
+        sold.forEach((id, variant) -> sellable.put(VariantId.of(id), new SellableVariant(variant.price(),
+            available.getOrDefault(id, 0), variant.productId(), variant.categoryId())));
         return sellable;
     }
 }

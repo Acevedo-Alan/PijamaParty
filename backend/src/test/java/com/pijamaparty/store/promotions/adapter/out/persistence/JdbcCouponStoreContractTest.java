@@ -8,10 +8,12 @@ import com.pijamaparty.store.promotions.application.CouponStoreContractTest;
 import com.pijamaparty.store.promotions.application.CouponSummaries;
 import com.pijamaparty.store.promotions.application.CouponUses;
 import com.pijamaparty.store.promotions.application.CouponView;
+import com.pijamaparty.store.promotions.application.LoadAutomaticCoupons;
 import com.pijamaparty.store.promotions.application.LoadCoupon;
 import com.pijamaparty.store.promotions.application.RemoveStoredCoupon;
 import com.pijamaparty.store.promotions.application.SaveCoupon;
 import com.pijamaparty.store.promotions.application.SaveCouponRedemption;
+import com.pijamaparty.store.promotions.domain.CountedCoupon;
 import com.pijamaparty.store.promotions.domain.Coupon;
 import com.pijamaparty.store.promotions.domain.CouponCode;
 import com.pijamaparty.store.promotions.domain.CouponId;
@@ -93,7 +95,8 @@ class JdbcCouponStoreContractTest extends CouponStoreContractTest<JdbcCouponStor
 
     /** Each call in its own committed transaction, as a use case would run it. */
     record InTransaction(JdbcCouponStore adapter, TransactionTemplate transactions)
-        implements LoadCoupon, CouponUses, CouponSummaries, SaveCoupon, RemoveStoredCoupon, SaveCouponRedemption {
+        implements LoadCoupon, LoadAutomaticCoupons, CouponUses, CouponSummaries, SaveCoupon, RemoveStoredCoupon,
+        SaveCouponRedemption {
 
         @Override
         public Optional<Coupon> findByCode(CouponCode code) {
@@ -103,6 +106,11 @@ class JdbcCouponStoreContractTest extends CouponStoreContractTest<JdbcCouponStor
         @Override
         public Optional<Coupon> findById(CouponId id) {
             return transactions.execute(status -> adapter.findById(id));
+        }
+
+        @Override
+        public List<CountedCoupon> activeOldestFirst() {
+            return transactions.execute(status -> adapter.activeOldestFirst());
         }
 
         @Override

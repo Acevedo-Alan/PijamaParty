@@ -214,7 +214,7 @@ public abstract class CartStoreContractTest<T extends LoadCart & SaveCart & Dele
         assertThat(subject.delete(guestCart.id())).isTrue();
         Cart customerCart = Cart.open(CartId.of(UUID.randomUUID()), CUSTOMER, OPENED);
         customerCart.merge(guestCart, Map.of(guestCart.items().getFirst().variantId(),
-            new SellableVariant(PRICE, 5)), OPENED.plusSeconds(60));
+            sellable(PRICE, 5)), OPENED.plusSeconds(60));
         subject.save(customerCart);
         persistAndForget();
 
@@ -235,5 +235,10 @@ public abstract class CartStoreContractTest<T extends LoadCart & SaveCart & Dele
 
     private static void assertSameState(Optional<Cart> loaded, Cart expected) {
         assertThat(loaded).hasValueSatisfying(cart -> assertThat(cart).usingRecursiveComparison().isEqualTo(expected));
+    }
+
+    /** A variant the catalog sells; its product and category matter only to a coupon's scope (UC-23). */
+    private static SellableVariant sellable(Money price, int available) {
+        return new SellableVariant(price, available, UUID.randomUUID(), UUID.randomUUID());
     }
 }

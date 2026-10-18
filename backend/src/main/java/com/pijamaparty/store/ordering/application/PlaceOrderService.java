@@ -94,7 +94,7 @@ class PlaceOrderService {
         if (cart.coupon().isPresent() && !cart.coupon().get().applies()) {
             return new Result.CouponNotApplicable(cart.coupon().get().status());
         }
-        Money afterDiscount = cart.subtotal().minus(cart.discount());
+        Money afterDiscount = cart.subtotal().minus(cart.discountAmount());
         Optional<Money> shipping = shippingQuotes.costTo(command.province(), afterDiscount);
         if (shipping.isEmpty()) {
             return new Result.NoShipping(command.province());
@@ -105,12 +105,12 @@ class PlaceOrderService {
             return new Result.InsufficientStock(shortage.get().variantId(), shortage.get().available());
         }
         Instant now = clock.instant();
-        OrderAmounts amounts = OrderAmounts.of(cart.subtotal(), cart.discount(), shipping.get());
+        OrderAmounts amounts = OrderAmounts.of(cart.subtotal(), cart.discountAmount(), shipping.get());
         long number = orderNumbers.next();
         Instant expiresAt = StockHold.expiryOf(now);
         saveOrders.insert(new NewOrder(orderId, number, trackingToken.hash(), actor.userId(), valid.buyer(),
             valid.address(), command.province(), cart.lines(), amounts,
-            cart.coupon().map(coupon -> new AppliedCoupon(coupon.couponId(), coupon.code())),
+            cart.discount().map(discount -> new AppliedCoupon(discount.couponId(), discount.code())),
             command.paymentProvider(), terms.version(), now, expiresAt));
         clearCart.clear(actor);
         if (actor.is(Role.CUSTOMER)) {

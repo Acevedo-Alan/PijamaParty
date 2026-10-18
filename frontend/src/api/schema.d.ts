@@ -344,7 +344,7 @@ export interface paths {
         put?: never;
         /**
          * Apply a coupon code
-         * @description The code is matched ignoring surrounding spaces and case. A coupon that applies to the cart's subtotal replaces the one the cart had; a rejected code leaves the cart as it was. The discount is calculated on the server. Requires the CSRF token.
+         * @description The code is matched ignoring surrounding spaces and case; an automatic coupon's code is unknown. A coupon that applies to the cart's subtotal replaces the one the cart had; a rejected code leaves the cart as it was. The discount is calculated on the server: an automatic coupon that takes more still wins (appliedDiscount). Requires the CSRF token.
          */
         post: operations["applyCoupon"];
         /**
@@ -1754,9 +1754,14 @@ export interface components {
             /** Format: int32 */
             quantity: number;
         };
+        AppliedDiscountResponse: {
+            code?: string;
+            automatic?: boolean;
+        };
         CartResponse: {
             items?: components["schemas"]["ItemResponse"][];
             coupon?: components["schemas"]["CouponResponse"];
+            appliedDiscount?: components["schemas"]["AppliedDiscountResponse"];
             /** Format: int64 */
             subtotalCents?: number;
             /** Format: int64 */

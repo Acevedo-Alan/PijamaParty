@@ -6,6 +6,7 @@ type CartResponse = components['schemas']['CartResponse'];
 type ItemResponse = components['schemas']['ItemResponse'];
 type ItemProductResponse = components['schemas']['ItemProductResponse'];
 type CouponResponse = components['schemas']['CouponResponse'];
+type AppliedDiscountResponse = components['schemas']['AppliedDiscountResponse'];
 
 /** Whether an item can be bought now (UC-09): only AVAILABLE items count in the subtotal. */
 export type ItemStatus = NonNullable<ItemResponse['status']>;
@@ -38,7 +39,10 @@ export interface CartItem {
 /** Whether the applied coupon discounts now (UC-10); any other status says why it does not. */
 export type CouponStatus = NonNullable<CouponResponse['status']>;
 
-/** The coupon applied to the cart; it stays when it stops qualifying, without a discount. */
+/**
+ * The code coupon applied to the cart; it stays when it stops qualifying, without a discount. An APPLICABLE one does not
+ * discount either when an automatic coupon takes more (UC-23).
+ */
 export interface CartCoupon {
   code: string;
   status: CouponStatus;
@@ -46,16 +50,37 @@ export interface CartCoupon {
   missingCents: number;
 }
 
+/** The one coupon whose discount the cart gets (UC-23): the code coupon, or one that applied on its own. */
+export interface AppliedDiscount {
+  /** Labels the discount line ("Descuento VERANO10"). */
+  code: string;
+  automatic: boolean;
+}
+
 /** The cart as the server prices it (R-01, R-02): the totals are never calculated here. */
 export interface Cart {
   items: CartItem[];
   coupon: CartCoupon | null;
+  /** Whose discount discountCents is; null without a discount. */
+  appliedDiscount: AppliedDiscount | null;
   subtotalCents: number;
   discountCents: number;
   totalCents: number;
 }
 
-export const EMPTY_CART: Cart = { items: [], coupon: null, subtotalCents: 0, discountCents: 0, totalCents: 0 };
+export const EMPTY_CART: Cart = {
+  items: [],
+  coupon: null,
+  appliedDiscount: null,
+  subtotalCents: 0,
+  discountCents: 0,
+  totalCents: 0,
+};
+
+/** UC-23: the held code coupon applies, but an automatic coupon that takes more discounts instead. */
+export function isCouponOutdone(cart: Cart): boolean {
+  return cart.coupon?.status === 'APPLICABLE' && cart.appliedDiscount?.automatic === true;
+}
 
 /** The number the cart button shows: the units in the cart, not the lines. */
 export function unitCount(cart: Cart): number {
@@ -108,6 +133,17 @@ function toCoupon(coupon: CouponResponse | null | undefined): CartCoupon | null 
   return { code, status, missingCents: coupon.missingCents ?? 0 };
 }
 
+function toAppliedDiscount(applied: AppliedDiscountResponse | null | undefined): AppliedDiscount | null {
+  if (applied === null || applied === undefined) {
+    return null;
+  }
+  const { code, automatic } = applied;
+  if (code === undefined || automatic === undefined) {
+    throw new Error('Incomplete applied discount');
+  }
+  return { code, automatic };
+}
+
 function toCart(data: CartResponse): Cart {
   const { subtotalCents, discountCents, totalCents } = data;
   if (subtotalCents === undefined || discountCents === undefined || totalCents === undefined) {
@@ -116,6 +152,7 @@ function toCart(data: CartResponse): Cart {
   return {
     items: (data.items ?? []).map(toItem),
     coupon: toCoupon(data.coupon),
+    appliedDiscount: toAppliedDiscount(data.appliedDiscount),
     subtotalCents,
     discountCents,
     totalCents,

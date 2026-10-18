@@ -30,8 +30,8 @@ class CatalogVariantAvailabilityContractTest extends VariantAvailabilityContract
     }
 
     @Override
-    protected void givenSold(VariantId variantId, Money price, Integer available) {
-        variantOf(product(true), variantId, price);
+    protected void givenSold(VariantId variantId, UUID productId, UUID categoryId, Money price, Integer available) {
+        variantOf(product(productId, categoryId, true), variantId, price);
         if (available != null) {
             stock(variantId, available);
         }
@@ -39,7 +39,7 @@ class CatalogVariantAvailabilityContractTest extends VariantAvailabilityContract
 
     @Override
     protected void givenNotSold(VariantId variantId, int available) {
-        variantOf(product(false), variantId, Money.of(1_500_000));
+        variantOf(product(UUID.randomUUID(), UUID.randomUUID(), false), variantId, Money.of(1_500_000));
         stock(variantId, available);
     }
 
@@ -48,18 +48,18 @@ class CatalogVariantAvailabilityContractTest extends VariantAvailabilityContract
         owner.execute("truncate stock_movement, stock_level, product_image, variant, product, category");
     }
 
-    /** A product of an active category, published or hidden. */
-    private UUID product(boolean published) {
-        UUID category = UUID.randomUUID();
-        UUID product = UUID.randomUUID();
+    /** A product of an active category, published or hidden; either may exist already. */
+    private UUID product(UUID product, UUID category, boolean published) {
         owner.update("""
             insert into category (id, name, slug, position, active, created_at, updated_at)
             values (?, 'Verano', ?, 0, true, now(), now())
+            on conflict do nothing
             """, category, "verano-" + category);
         owner.update("""
             insert into product (id, category_id, name, slug, description, material, season, audience, active,
                                  created_at, updated_at)
             values (?, ?, 'Pijama', ?, '', 'Algodón', 'SUMMER', 'WOMEN', ?, now(), now())
+            on conflict do nothing
             """, product, category, "pijama-" + product, published);
         return product;
     }

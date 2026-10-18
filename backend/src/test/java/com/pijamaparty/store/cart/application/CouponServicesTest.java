@@ -2,6 +2,7 @@ package com.pijamaparty.store.cart.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.pijamaparty.store.cart.application.CartView.AppliedDiscountView;
 import com.pijamaparty.store.cart.application.CartView.CouponView;
 import com.pijamaparty.store.cart.application.CartView.ItemView;
 import com.pijamaparty.store.cart.domain.Cart;
@@ -212,10 +213,15 @@ class CouponServicesTest {
         return new CouponView(code, CouponCheck.Status.APPLICABLE, Money.zero());
     }
 
-    /** The guest's cart, 1 pijama at ARS 20,000, with {@code coupon} and its {@code discount}. */
+    /**
+     * The guest's cart, 1 pijama at ARS 20,000, with {@code coupon} and its {@code discount}; an applicable coupon is
+     * the one that discounts.
+     */
     private static CartView cart(Optional<CouponView> coupon, Money discount) {
         ItemView pijama =
             new ItemView(PIJAMA_ITEM, PIJAMA, 1, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5, Optional.empty());
-        return new CartView(List.of(pijama), coupon, PRICE, discount, PRICE.minus(discount));
+        Optional<AppliedDiscountView> applied = coupon.filter(held -> held.status() == CouponCheck.Status.APPLICABLE)
+            .map(held -> new AppliedDiscountView(held.code(), false));
+        return new CartView(List.of(pijama), coupon, applied, PRICE, discount, PRICE.minus(discount));
     }
 }

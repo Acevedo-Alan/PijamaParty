@@ -18,7 +18,7 @@ export interface ItemForAnalytics {
 export interface CheckoutForAnalytics {
   items: readonly ItemForAnalytics[];
   totalCents: number;
-  /** The code of an applicable coupon, otherwise null. */
+  /** The code of the coupon that discounts, a code or an automatic one (UC-23); otherwise null. */
   couponCode: string | null;
 }
 

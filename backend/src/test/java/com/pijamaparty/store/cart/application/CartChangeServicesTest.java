@@ -170,7 +170,7 @@ class CartChangeServicesTest {
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(new CartView(List.of(
                 line(PIJAMA_ITEM, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.UNAVAILABLE, 0),
                 item(CAMISON_ITEM, CAMISON, 1)),
-            Optional.empty(), PRICE, Money.zero(), PRICE));
+            Optional.empty(), Optional.empty(), PRICE, Money.zero(), PRICE));
     }
 
     @Test
@@ -213,7 +213,7 @@ class CartChangeServicesTest {
         CartView expected = new CartView(List.of(
                 line(PIJAMA_ITEM, PIJAMA, 2, NEW_PRICE, Optional.empty(), LineStatus.AVAILABLE, 5),
                 item(CAMISON_ITEM, CAMISON, 1)),
-            Optional.empty(), Money.of(4_700_000), Money.zero(), Money.of(4_700_000));
+            Optional.empty(), Optional.empty(), Money.of(4_700_000), Money.zero(), Money.of(4_700_000));
         assertThat(result).isEqualTo(new AcknowledgePriceChanges.Result.Acknowledged(expected));
         assertThat(getCart.execute(new GetCart.Query(GUEST))).isEqualTo(expected);
         assertThat(carts.findByOwner(GUEST_OWNER).orElseThrow().updatedAt()).isEqualTo(NOW);
@@ -262,6 +262,6 @@ class CartChangeServicesTest {
     /** A cart of {@code items} in stock at {@link #PRICE}. */
     private static CartView cart(List<ItemView> items) {
         Money total = PRICE.times(items.stream().mapToInt(ItemView::quantity).sum());
-        return new CartView(items, Optional.empty(), total, Money.zero(), total);
+        return new CartView(items, Optional.empty(), Optional.empty(), total, Money.zero(), total);
     }
 }

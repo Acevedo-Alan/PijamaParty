@@ -34,15 +34,41 @@ export function cartItem(overrides: Partial<CartItemBody> = {}): CartItemBody {
 }
 
 export type CouponBody = components['schemas']['CouponResponse'];
+export type AppliedDiscountBody = components['schemas']['AppliedDiscountResponse'];
 
-/** A cart of these items, with the totals the server would send for them and this discount and coupon. */
-export function cartBody(items: CartItemBody[], discountCents = 0, coupon: CouponBody | null = null): CartBody {
+/** The held coupon discounts when it applies, unless an automatic coupon is given (UC-23). */
+function appliedBy(coupon: CouponBody | null): AppliedDiscountBody | null {
+  return coupon?.status === 'APPLICABLE' && coupon.code !== undefined ? { code: coupon.code, automatic: false } : null;
+}
+
+/**
+ * A cart of these items, with the totals the server would send for them, this discount and coupon, and the coupon
+ * whose discount it is.
+ */
+export function cartBody(
+  items: CartItemBody[],
+  discountCents = 0,
+  coupon: CouponBody | null = null,
+  appliedDiscount: AppliedDiscountBody | null = appliedBy(coupon),
+): CartBody {
   const subtotalCents = items
     .filter((item) => item.status === 'AVAILABLE')
     .reduce((sum, item) => sum + (item.unitPriceCents ?? 0) * (item.quantity ?? 0), 0);
-  return { items, coupon: coupon as never, subtotalCents, discountCents, totalCents: subtotalCents - discountCents };
+  return {
+    items,
+    coupon: coupon as never,
+    appliedDiscount: appliedDiscount as never,
+    subtotalCents,
+    discountCents,
+    totalCents: subtotalCents - discountCents,
+  };
 }
 
-export function cart(items: CartItemBody[], discountCents = 0, coupon: CouponBody | null = null) {
-  return answer(200, cartBody(items, discountCents, coupon));
+export function cart(
+  items: CartItemBody[],
+  discountCents = 0,
+  coupon: CouponBody | null = null,
+  appliedDiscount: AppliedDiscountBody | null = appliedBy(coupon),
+) {
+  return answer(200, cartBody(items, discountCents, coupon, appliedDiscount));
 }

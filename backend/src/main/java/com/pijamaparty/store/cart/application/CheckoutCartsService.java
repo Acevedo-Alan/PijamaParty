@@ -5,9 +5,9 @@ import com.pijamaparty.store.cart.api.CheckoutCarts;
 import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartOwner;
 import com.pijamaparty.store.cart.domain.PricedCart;
+import com.pijamaparty.store.cart.domain.SellableVariant;
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Actor;
-import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.promotions.api.CouponStatus;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** UC-13: the actor's cart locked and priced as every cart response (UC-09, UC-10), for the checkout. */
+/** UC-13: the actor's cart locked and priced as every cart response (UC-09, UC-10, UC-23), for the checkout. */
 @Service
 class CheckoutCartsService implements CheckoutCarts {
 
@@ -41,19 +41,22 @@ class CheckoutCartsService implements CheckoutCarts {
             return new CheckoutCart.Empty();
         }
         Cart cart = found.get();
-        PricedCart priced = PricedCart.of(cart, CartPricing.sellableIn(cart, availability));
-        if (!priced.isReadyForCheckout()) {
+        Map<VariantId, SellableVariant> sellable = CartPricing.sellableIn(cart, availability);
+        if (!PricedCart.of(cart, sellable).isReadyForCheckout()) {
             return new CheckoutCart.NotReady();
         }
-        Optional<CouponCheck> coupon = cart.coupon().flatMap(id -> coupons.byId(id, priced.subtotal()));
-        Money discount = coupon.filter(CouponCheck::applies).map(CouponCheck::discount).orElse(Money.zero());
+        CartPricing.Discounted priced = CartPricing.priced(cart, sellable, coupons);
         Map<VariantId, ItemDescription> described =
-            descriptions.describe(priced.lines().stream().map(line -> line.item().variantId()).toList());
-        List<CheckoutCart.Line> lines = priced.lines().stream()
+            descriptions.describe(priced.cart().lines().stream().map(line -> line.item().variantId()).toList());
+        List<CheckoutCart.Line> lines = priced.cart().lines().stream()
             .map(line -> line(line, described.get(line.item().variantId())))
             .toList();
-        return new CheckoutCart.Ready(lines, priced.subtotal(), discount, coupon.map(check ->
-            new CheckoutCart.Coupon(check.id().value(), check.code(), CouponStatus.valueOf(check.status().name()))));
+        CartDiscount discount = priced.discount();
+        return new CheckoutCart.Ready(lines, priced.cart().subtotal(),
+            discount.coupon().map(check -> new CheckoutCart.Coupon(check.id().value(), check.code(),
+                CouponStatus.valueOf(check.status().name()))),
+            discount.applied().map(applied ->
+                new CheckoutCart.AppliedDiscount(applied.id().value(), applied.code(), applied.amount())));
     }
 
     private static CheckoutCart.Line line(PricedCart.PricedLine line, ItemDescription description) {

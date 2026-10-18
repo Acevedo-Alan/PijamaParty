@@ -6,6 +6,7 @@ import com.pijamaparty.store.platform.domain.Money;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Fake of {@link VariantAvailability}: a variant is sold once {@link #sell} sets its price and stock. */
@@ -13,8 +14,13 @@ public class InMemoryVariantAvailability implements VariantAvailability {
 
     private final Map<VariantId, SellableVariant> sold = new ConcurrentHashMap<>();
 
+    /** Of a product and category of its own, which matter only to a coupon's scope (UC-23). */
     public void sell(VariantId variantId, Money price, int available) {
-        sold.put(variantId, new SellableVariant(price, available));
+        sell(variantId, UUID.randomUUID(), UUID.randomUUID(), price, available);
+    }
+
+    public void sell(VariantId variantId, UUID productId, UUID categoryId, Money price, int available) {
+        sold.put(variantId, new SellableVariant(price, available, productId, categoryId));
     }
 
     /** The catalog stops selling it (hidden, deactivated or unpriced). */

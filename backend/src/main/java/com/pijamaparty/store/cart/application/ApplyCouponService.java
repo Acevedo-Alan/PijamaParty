@@ -3,7 +3,10 @@ package com.pijamaparty.store.cart.application;
 import com.pijamaparty.store.cart.domain.Cart;
 import com.pijamaparty.store.cart.domain.CartOwner;
 import com.pijamaparty.store.cart.domain.PricedCart;
+import com.pijamaparty.store.cart.domain.SellableVariant;
+import com.pijamaparty.store.cart.domain.VariantId;
 import java.time.Clock;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +43,8 @@ class ApplyCouponService implements ApplyCoupon {
             return new Result.EmptyCart();
         }
         Cart cart = found.get();
-        PricedCart priced = PricedCart.of(cart, CartPricing.sellableIn(cart, availability));
+        Map<VariantId, SellableVariant> sellable = CartPricing.sellableIn(cart, availability);
+        PricedCart priced = PricedCart.of(cart, sellable);
         Optional<CouponCheck> check = coupons.byCode(command.code(), priced.subtotal());
         if (check.isEmpty()) {
             return new Result.Unknown();
@@ -49,7 +53,8 @@ class ApplyCouponService implements ApplyCoupon {
             case APPLICABLE -> {
                 cart.applyCoupon(check.get().id(), clock.instant());
                 saveCart.save(cart);
-                yield new Result.Applied(CartPricing.discounted(priced, check, descriptions));
+                // UC-23: an automatic coupon that discounts more still wins over the code.
+                yield new Result.Applied(CartPricing.view(cart, sellable, coupons, descriptions));
             }
             case INACTIVE -> new Result.Inactive();
             case NOT_STARTED -> new Result.NotStarted();

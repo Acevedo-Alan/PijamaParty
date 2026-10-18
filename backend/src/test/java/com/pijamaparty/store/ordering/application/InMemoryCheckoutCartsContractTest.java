@@ -1,6 +1,7 @@
 package com.pijamaparty.store.ordering.application;
 
 import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartCoupon;
+import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartDiscount;
 import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartState;
 import com.pijamaparty.store.ordering.domain.OrderLine;
 import com.pijamaparty.store.platform.domain.Actor;
@@ -18,6 +19,7 @@ class InMemoryCheckoutCartsContractTest extends CheckoutCartsContractTest<InMemo
 
     private final Map<Actor, List<GivenLine>> lines = new HashMap<>();
     private final Map<Actor, GivenCoupon> coupons = new HashMap<>();
+    private final List<GivenCoupon> automaticCoupons = new ArrayList<>();
 
     @Override
     protected InMemoryCheckoutCarts createSubject() {
@@ -41,6 +43,14 @@ class InMemoryCheckoutCartsContractTest extends CheckoutCartsContractTest<InMemo
         return coupon;
     }
 
+    @Override
+    protected UUID givenAutomaticCoupon(String code, int percent) {
+        UUID coupon = UUID.randomUUID();
+        automaticCoupons.add(new GivenCoupon(coupon, code, percent, true));
+        lines.keySet().forEach(this::price);
+        return coupon;
+    }
+
     private void price(Actor guest) {
         List<GivenLine> given = lines.getOrDefault(guest, List.of());
         boolean ready = given.stream()
@@ -56,9 +66,18 @@ class InMemoryCheckoutCartsContractTest extends CheckoutCartsContractTest<InMemo
         Money subtotal = orderLines.stream().map(OrderLine::amount).reduce(Money.zero(), Money::plus);
         Optional<CartCoupon> coupon = Optional.ofNullable(coupons.get(guest)).map(c ->
             new CartCoupon(c.id(), c.code(), c.active() ? CouponStatus.APPLICABLE : CouponStatus.INACTIVE));
-        Money discount = Optional.ofNullable(coupons.get(guest)).filter(GivenCoupon::active)
-            .map(c -> subtotal.percent(c.percent())).orElse(Money.zero());
-        subject.put(guest, new CartState.Ready(orderLines, subtotal, discount, coupon));
+        // The largest discount, the code coupon on a tie, then the oldest automatic one (UC-23).
+        Optional<CartDiscount> discount = Optional.empty();
+        List<GivenCoupon> candidates = new ArrayList<>();
+        Optional.ofNullable(coupons.get(guest)).filter(GivenCoupon::active).ifPresent(candidates::add);
+        candidates.addAll(automaticCoupons);
+        for (GivenCoupon candidate : candidates) {
+            Money amount = subtotal.percent(candidate.percent());
+            if (discount.map(best -> amount.isGreaterThan(best.amount())).orElse(true)) {
+                discount = Optional.of(new CartDiscount(candidate.id(), candidate.code(), amount));
+            }
+        }
+        subject.put(guest, new CartState.Ready(orderLines, subtotal, coupon, discount));
     }
 
     private record GivenLine(UUID variant, long priceCents, long seenPriceCents, int quantity, int available) {}

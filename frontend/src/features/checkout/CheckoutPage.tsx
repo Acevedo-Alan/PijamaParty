@@ -7,7 +7,7 @@ import { formatMoney } from '../../i18n/formatMoney.ts';
 import { ADDRESSES_KEY, fetchAddresses, type SavedAddress } from '../account/addressBookApi.ts';
 import { useCustomer } from '../account/useCustomer.ts';
 import { trackAddPaymentInfo, trackBeginCheckout, type CheckoutForAnalytics } from '../analytics/checkoutEvents.ts';
-import type { Cart, CartItem } from '../cart/cartApi.ts';
+import { isCouponOutdone, type Cart, type CartItem } from '../cart/cartApi.ts';
 import { useCartPanel } from '../cart/CartPanelContext.tsx';
 import { useCart, useRemoveCoupon } from '../cart/useCart.ts';
 import { goToPayment } from '../orders/redirect.ts';
@@ -42,7 +42,7 @@ function forAnalytics(cart: Cart): CheckoutForAnalytics {
         : [],
     ),
     totalCents: cart.totalCents,
-    couponCode: cart.coupon?.status === 'APPLICABLE' ? cart.coupon.code : null,
+    couponCode: cart.appliedDiscount?.code ?? null,
   };
 }
 
@@ -206,10 +206,14 @@ function SummaryItem({ item }: { item: CartItem }) {
   );
 }
 
+/** Why the held coupon does not discount: it no longer applies, or an automatic coupon takes more (UC-23). */
 function couponNote(cart: Cart): string | null {
   const { coupon } = cart;
-  if (coupon === null || coupon.status === 'APPLICABLE') {
+  if (coupon === null) {
     return null;
+  }
+  if (coupon.status === 'APPLICABLE') {
+    return isCouponOutdone(cart) ? es.cart.couponNotAdded(coupon.code) : null;
   }
   return coupon.status === 'BELOW_MINIMUM'
     ? es.cart.couponBelowMinimum(formatMoney(coupon.missingCents))
@@ -267,7 +271,11 @@ function Summary({ cart, amounts }: { cart: Cart; amounts: Amounts }) {
         </div>
         {amounts.discountCents > 0 && (
           <div>
-            <dt>{cart.coupon === null ? es.checkout.discount : es.checkout.discountWith(cart.coupon.code)}</dt>
+            <dt>
+              {cart.appliedDiscount === null
+                ? es.checkout.discount
+                : es.checkout.discountWith(cart.appliedDiscount.code)}
+            </dt>
             <dd>−{formatMoney(amounts.discountCents)}</dd>
           </div>
         )}

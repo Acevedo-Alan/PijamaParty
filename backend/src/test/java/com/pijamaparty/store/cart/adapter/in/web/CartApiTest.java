@@ -415,6 +415,8 @@ class CartApiTest {
             .andExpect(jsonPath("$.coupon.code").value("VERANO10"))
             .andExpect(jsonPath("$.coupon.status").value("APPLICABLE"))
             .andExpect(jsonPath("$.coupon.missingCents").value(0))
+            .andExpect(jsonPath("$.appliedDiscount.code").value("VERANO10"))
+            .andExpect(jsonPath("$.appliedDiscount.automatic").value(false))
             .andExpect(jsonPath("$.subtotalCents").value(2_000_000))
             .andExpect(jsonPath("$.discountCents").value(200_000))
             .andExpect(jsonPath("$.totalCents").value(1_800_000));
@@ -423,6 +425,33 @@ class CartApiTest {
             .andExpect(jsonPath("$.coupon.code").value("VERANO10"))
             .andExpect(jsonPath("$.discountCents").value(200_000))
             .andExpect(jsonPath("$.totalCents").value(1_800_000));
+    }
+
+    @Test
+    void givenAnAutomaticCouponThatDiscountsMore_whenACodeIsApplied_thenTheCodeIsHeldAndTheAutomaticOneDiscounts()
+        throws Exception {
+        add(sellable(2_000_000, 5), 1).andExpect(status().isOk());
+        coupon("VERANO10", null, null, null);
+        owner.update("""
+            insert into coupon (id, code, type, discount_value, automatic, active, created_at, updated_at)
+            values (?, 'OTONO20', 'PERCENTAGE', 20, true, true, now(), now())
+            """, UUID.randomUUID());
+
+        mvc.perform(guest(get("/api/cart")))
+            .andExpect(jsonPath("$.coupon").isEmpty())
+            .andExpect(jsonPath("$.appliedDiscount.code").value("OTONO20"))
+            .andExpect(jsonPath("$.appliedDiscount.automatic").value(true))
+            .andExpect(jsonPath("$.discountCents").value(400_000));
+        applyCoupon("VERANO10")
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.coupon.code").value("VERANO10"))
+            .andExpect(jsonPath("$.coupon.status").value("APPLICABLE"))
+            .andExpect(jsonPath("$.appliedDiscount.code").value("OTONO20"))
+            .andExpect(jsonPath("$.discountCents").value(400_000))
+            .andExpect(jsonPath("$.totalCents").value(1_600_000));
+        applyCoupon("OTONO20")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.problem").value("COUPON_UNKNOWN"));
     }
 
     @Test

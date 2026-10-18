@@ -29,15 +29,16 @@ public abstract class SellableVariantPricesContractTest<T extends SellableVarian
     }
 
     @Test
-    void givenActivePricedVariantsOfAPublishedProduct_whenAskingTheirPrices_thenEachHasItsOwn() {
+    void givenActivePricedVariantsOfAPublishedProduct_whenAskingTheirPrices_thenEachHasItsPriceProductAndCategory() {
         Product product = stored(product(summer, "Pijama", 0, List.of("S", "M"), ROSA, 5000, p -> p
             .price("M", "Rosa", 4500)));
         VariantId small = variant(product, "S", "Rosa");
         VariantId medium = variant(product, "M", "Rosa");
         persistAndForget();
 
-        assertThat(subject.pricesOf(List.of(small, medium)))
-            .isEqualTo(Map.of(small, Money.of(5000), medium, Money.of(4500)));
+        assertThat(subject.pricesOf(List.of(small, medium))).isEqualTo(Map.of(
+            small, new SellableVariantPrices.Priced(Money.of(5000), product.id(), summer),
+            medium, new SellableVariantPrices.Priced(Money.of(4500), product.id(), summer)));
     }
 
     @Test

@@ -398,6 +398,24 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     expect(screen.getByRole('heading', { name: es.checkout.shippingTitle })).toBeInTheDocument();
   });
 
+  it('given an applicable code and an automatic coupon that takes more (UC-23), when the checkout opens, then the summary says the code is not added', async () => {
+    stubGets(
+      cart([cartItem()], 500_000, { code: 'PIJAMA10', status: 'APPLICABLE', missingCents: 0 }, {
+        code: 'VERANO20',
+        automatic: true,
+      }),
+    );
+    renderRoute('/checkout');
+
+    await screen.findByRole('heading', { name: es.checkout.shippingTitle });
+
+    expect(summary().getByText(es.cart.coupon('PIJAMA10'))).toBeInTheDocument();
+    expect(summary().getByText('Tu cupón PIJAMA10 no se suma: ya tenés un descuento mejor.')).toBeInTheDocument();
+    expect(summary().getByText(es.checkout.discountWith('VERANO20')).nextElementSibling).toHaveTextContent(
+      /^−\$\s5\.000$/,
+    );
+  });
+
   it('given a coupon that no longer applies, when confirming, then the buyer is told to remove it', async () => {
     stubGets();
     stubPost(answer(409, { problem: 'COUPON_NOT_APPLICABLE', couponStatus: 'EXPIRED' }));

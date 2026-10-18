@@ -28,21 +28,37 @@ public interface CheckoutCartLock {
 
         /**
          * @param lines in the cart's order, one per variant
-         * @param discount the coupon's when it applies, otherwise zero
-         * @param coupon the cart's coupon, whether or not it applies
+         * @param coupon the cart's code coupon, whether or not it applies
+         * @param discount the one coupon that discounts (UC-23): the code coupon or an automatic one; empty when none
+         *                 does
          */
-        record Ready(List<OrderLine> lines, Money subtotal, Money discount, Optional<CartCoupon> coupon)
-            implements CartState {
+        record Ready(List<OrderLine> lines, Money subtotal, Optional<CartCoupon> coupon,
+                     Optional<CartDiscount> discount) implements CartState {
 
             public Ready {
                 lines = List.copyOf(lines);
                 Objects.requireNonNull(subtotal, "subtotal");
-                Objects.requireNonNull(discount, "discount");
                 Objects.requireNonNull(coupon, "coupon");
+                Objects.requireNonNull(discount, "discount");
                 if (lines.isEmpty()) {
                     throw new IllegalArgumentException("a ready cart has items");
                 }
             }
+
+            /** What comes off the subtotal: the discounting coupon's amount, or zero. */
+            public Money discountAmount() {
+                return discount.map(CartDiscount::amount).orElse(Money.zero());
+            }
+        }
+    }
+
+    /** UC-23: the coupon whose discount the order gets. {@code code} as stored, in upper case. */
+    record CartDiscount(UUID couponId, String code, Money amount) {
+
+        public CartDiscount {
+            Objects.requireNonNull(couponId, "couponId");
+            Objects.requireNonNull(code, "code");
+            Objects.requireNonNull(amount, "amount");
         }
     }
 

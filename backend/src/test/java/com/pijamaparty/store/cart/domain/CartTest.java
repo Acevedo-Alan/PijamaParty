@@ -156,7 +156,7 @@ class CartTest {
         cart.add(pijama, PIJAMA, 2, 5, PRICE, OPENED);
         cart.add(camison, CAMISON, 1, 5, PRICE, OPENED);
 
-        boolean changed = cart.acknowledgePrices(Map.of(PIJAMA, new SellableVariant(Money.of(1_600_000), 0)), LATER);
+        boolean changed = cart.acknowledgePrices(Map.of(PIJAMA, sellable(Money.of(1_600_000), 0)), LATER);
 
         assertThat(changed).isTrue();
         assertThat(cart.items()).containsExactly(
@@ -169,7 +169,7 @@ class CartTest {
     void givenNoPriceChange_whenAcknowledgingPrices_thenNothingChanges() {
         cart.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 2, 5, PRICE, OPENED);
 
-        assertThat(cart.acknowledgePrices(Map.of(PIJAMA, new SellableVariant(PRICE, 5)), LATER)).isFalse();
+        assertThat(cart.acknowledgePrices(Map.of(PIJAMA, sellable(PRICE, 5)), LATER)).isFalse();
         assertThat(cart.updatedAt()).isEqualTo(OPENED);
     }
 
@@ -265,7 +265,7 @@ class CartTest {
         own.add(ownLine, PIJAMA, 2, 10, PRICE, OPENED);
         cart.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 3, 10, Money.of(1_400_000), LATER);
 
-        boolean changed = own.merge(cart, Map.of(PIJAMA, new SellableVariant(Money.of(1_400_000), 10)),
+        boolean changed = own.merge(cart, Map.of(PIJAMA, sellable(Money.of(1_400_000), 10)),
             LATER.plusSeconds(1));
 
         assertThat(changed).isTrue();
@@ -281,7 +281,7 @@ class CartTest {
         cart.add(CartItemId.of(UUID.randomUUID()), PIJAMA, 3, 10, PRICE, LATER);
         cart.add(CartItemId.of(UUID.randomUUID()), CAMISON, 1, 10, PRICE, LATER);
 
-        own.merge(cart, Map.of(PIJAMA, new SellableVariant(PRICE, 4), CAMISON, new SellableVariant(PRICE, 3)), LATER);
+        own.merge(cart, Map.of(PIJAMA, sellable(PRICE, 4), CAMISON, sellable(PRICE, 3)), LATER);
 
         assertThat(own.items()).extracting(CartItem::variantId, CartItem::quantity)
             .containsExactly(tuple(PIJAMA, 4), tuple(CAMISON, 4));
@@ -294,7 +294,7 @@ class CartTest {
         CartItemId guestLine = CartItemId.of(UUID.randomUUID());
         cart.add(guestLine, CAMISON, 5, 10, Money.of(990_000), OPENED.plusSeconds(60));
 
-        own.merge(cart, Map.of(CAMISON, new SellableVariant(PRICE, 3)), LATER);
+        own.merge(cart, Map.of(CAMISON, sellable(PRICE, 3)), LATER);
 
         assertThat(own.items()).extracting(CartItem::variantId).containsExactly(CAMISON, PIJAMA);
         assertThat(own.item(guestLine))
@@ -310,7 +310,7 @@ class CartTest {
         cart.add(CartItemId.of(UUID.randomUUID()), CAMISON, 1, 10, PRICE, LATER);
         cart.add(CartItemId.of(UUID.randomUUID()), BATA, 1, 10, PRICE, LATER);
 
-        boolean changed = own.merge(cart, Map.of(PIJAMA, new SellableVariant(PRICE, 0)), LATER);
+        boolean changed = own.merge(cart, Map.of(PIJAMA, sellable(PRICE, 0)), LATER);
 
         assertThat(changed).isFalse();
         assertThat(own.items()).containsExactly(ownLine);
@@ -346,5 +346,10 @@ class CartTest {
     void givenSomethingThatIsNotATokenHash_whenMakingAGuestOwner_thenItFails() {
         assertThatThrownBy(() -> new CartOwner.Guest("a-guest-cart-token")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new CartOwner.Guest(null)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /** A variant the catalog sells; its product and category matter only to a coupon's scope (UC-23). */
+    private static SellableVariant sellable(Money price, int available) {
+        return new SellableVariant(price, available, UUID.randomUUID(), UUID.randomUUID());
     }
 }

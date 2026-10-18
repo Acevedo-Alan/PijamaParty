@@ -116,7 +116,7 @@ export const es = {
     unknownProduct: 'Producto no disponible',
     subtotal: 'Subtotal',
     discount: 'Descuento',
-    /** The discount line of an applied coupon (UC-10), e.g. "Descuento PIJAMA10". */
+    /** The discount line of the coupon that discounts (UC-10, UC-23), e.g. "Descuento PIJAMA10". */
     discountWith: (code: string) => `Descuento ${code}`,
     total: 'Total',
     couponCode: 'Código de cupón',
@@ -135,6 +135,8 @@ export const es = {
     },
     /** A cart below the coupon's minimum purchase, with the missing amount already formatted, e.g. "$ 3.000". */
     couponBelowMinimum: (missing: string) => `Te faltan ${missing} para usar este cupón.`,
+    /** UC-23: the applied code applies, but an automatic coupon that takes more discounts instead. */
+    couponNotAdded: (code: string) => `Tu cupón ${code} no se suma: ya tenés un descuento mejor.`,
     couponTooManyAttempts: 'Hiciste muchos intentos. Esperá un minuto y probá de nuevo.',
     couponApplyError: 'No pudimos aplicar el cupón. Probá de nuevo.',
     couponRemoveError: 'No pudimos quitar el cupón. Probá de nuevo.',

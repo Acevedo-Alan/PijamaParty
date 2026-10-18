@@ -5,17 +5,18 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * UC-10: whether a coupon applies to a cart's subtotal today (store date, R-07) and its discount, calculated on the
- * server. Read only: a use is counted when an order is confirmed (E3), not here. Joins the caller's transaction.
+ * UC-10: whether a code coupon applies to a cart's subtotal today (store date, R-07) and its discount, calculated on
+ * the server. Automatic coupons (UC-23) are unknown here: they apply on their own, through {@link CartDiscounts}. Read
+ * only: a use is counted when an order is confirmed (E3), not here. Joins the caller's transaction.
  */
 public interface CouponDiscounts {
 
     /**
-     * The coupon of the code a customer typed, ignoring surrounding spaces and case; empty when no coupon has it or the
-     * text cannot be a code.
+     * The code coupon of the code a customer typed, ignoring surrounding spaces and case; empty when no code coupon has
+     * it or the text cannot be a code.
      */
     Optional<CouponDiscount> byCode(String code, Money subtotal);
 
-    /** The coupon a cart holds; empty when it no longer exists. */
+    /** The code coupon a cart holds; empty when it no longer exists or is automatic. */
     Optional<CouponDiscount> byId(UUID couponId, Money subtotal);
 }

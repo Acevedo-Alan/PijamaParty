@@ -40,8 +40,8 @@ class PricedCartTest {
     @Test
     void givenEveryItemInStockAtItsPrice_whenPricing_thenTheTotalIsTheSumOfTheLinesAndNothingIsAnnounced() {
         PricedCart priced = PricedCart.of(cart, Map.of(
-            PIJAMA, new SellableVariant(PIJAMA_PRICE, 5),
-            CAMISON, new SellableVariant(CAMISON_PRICE, 3)));
+            PIJAMA, sellable(PIJAMA_PRICE, 5),
+            CAMISON, sellable(CAMISON_PRICE, 3)));
 
         assertThat(priced.lines()).containsExactly(
             new PricedLine(pijama, PIJAMA_PRICE, Optional.empty(), LineStatus.AVAILABLE, 5),
@@ -54,8 +54,8 @@ class PricedCartTest {
     @Test
     void givenAPriceChangeInTheCatalog_whenPricing_thenTheTotalUsesTheNewPriceAndTheChangeIsAnnounced() {
         PricedCart priced = PricedCart.of(cart, Map.of(
-            PIJAMA, new SellableVariant(Money.of(1_600_000), 5),
-            CAMISON, new SellableVariant(CAMISON_PRICE, 5)));
+            PIJAMA, sellable(Money.of(1_600_000), 5),
+            CAMISON, sellable(CAMISON_PRICE, 5)));
 
         assertThat(priced.lines().get(0)).isEqualTo(new PricedLine(pijama, Money.of(1_600_000),
             Optional.of(PIJAMA_PRICE), LineStatus.AVAILABLE, 5));
@@ -66,8 +66,8 @@ class PricedCartTest {
     @Test
     void givenAVariantThatSoldOutWhileInTheCart_whenPricing_thenItIsUnavailableAndLeftOutOfTheTotal() {
         PricedCart priced = PricedCart.of(cart, Map.of(
-            PIJAMA, new SellableVariant(PIJAMA_PRICE, 0),
-            CAMISON, new SellableVariant(CAMISON_PRICE, 5)));
+            PIJAMA, sellable(PIJAMA_PRICE, 0),
+            CAMISON, sellable(CAMISON_PRICE, 5)));
 
         assertThat(priced.lines().get(0)).isEqualTo(new PricedLine(pijama, PIJAMA_PRICE, Optional.empty(),
             LineStatus.UNAVAILABLE, 0));
@@ -76,7 +76,7 @@ class PricedCartTest {
 
     @Test
     void givenAVariantTheCatalogNoLongerSells_whenPricing_thenItIsUnavailableAtItsLastSeenPrice() {
-        PricedCart priced = PricedCart.of(cart, Map.of(CAMISON, new SellableVariant(CAMISON_PRICE, 5)));
+        PricedCart priced = PricedCart.of(cart, Map.of(CAMISON, sellable(CAMISON_PRICE, 5)));
 
         assertThat(priced.lines().get(0)).isEqualTo(new PricedLine(pijama, PIJAMA_PRICE, Optional.empty(),
             LineStatus.UNAVAILABLE, 0));
@@ -86,8 +86,8 @@ class PricedCartTest {
     @Test
     void givenFewerUnitsLeftThanInTheCart_whenPricing_thenTheLineKeepsItsQuantityWithTheUnitsLeftAndIsLeftOutOfTheTotal() {
         PricedCart priced = PricedCart.of(cart, Map.of(
-            PIJAMA, new SellableVariant(PIJAMA_PRICE, 1),
-            CAMISON, new SellableVariant(CAMISON_PRICE, 5)));
+            PIJAMA, sellable(PIJAMA_PRICE, 1),
+            CAMISON, sellable(CAMISON_PRICE, 5)));
 
         assertThat(priced.lines().get(0)).isEqualTo(new PricedLine(pijama, PIJAMA_PRICE, Optional.empty(),
             LineStatus.INSUFFICIENT_STOCK, 1));
@@ -98,8 +98,8 @@ class PricedCartTest {
     @Test
     void givenASoldOutVariantWhosePriceChanged_whenPricing_thenTheChangeIsStillAnnounced() {
         PricedCart priced = PricedCart.of(cart, Map.of(
-            PIJAMA, new SellableVariant(Money.of(1_400_000), 0),
-            CAMISON, new SellableVariant(CAMISON_PRICE, 5)));
+            PIJAMA, sellable(Money.of(1_400_000), 0),
+            CAMISON, sellable(CAMISON_PRICE, 5)));
 
         assertThat(priced.lines().get(0)).isEqualTo(new PricedLine(pijama, Money.of(1_400_000),
             Optional.of(PIJAMA_PRICE), LineStatus.UNAVAILABLE, 0));
@@ -115,8 +115,8 @@ class PricedCartTest {
     @Test
     void givenAPricedCart_whenACouponDiscountIsTakenOff_thenTheTotalIsWhatIsLeftOfTheSubtotal() {
         PricedCart priced = PricedCart.of(cart, Map.of(
-            PIJAMA, new SellableVariant(PIJAMA_PRICE, 5),
-            CAMISON, new SellableVariant(CAMISON_PRICE, 5)));
+            PIJAMA, sellable(PIJAMA_PRICE, 5),
+            CAMISON, sellable(CAMISON_PRICE, 5)));
 
         PricedCart discounted = priced.withDiscount(Money.of(597_000));
 
@@ -129,7 +129,7 @@ class PricedCartTest {
 
     @Test
     void givenAPricedCart_whenADiscountAboveTheSubtotalIsTakenOff_thenItFails() {
-        PricedCart priced = PricedCart.of(cart, Map.of(PIJAMA, new SellableVariant(PIJAMA_PRICE, 5)));
+        PricedCart priced = PricedCart.of(cart, Map.of(PIJAMA, sellable(PIJAMA_PRICE, 5)));
 
         assertThatThrownBy(() -> priced.withDiscount(priced.subtotal().plus(Money.of(1))))
             .isInstanceOf(IllegalArgumentException.class);
@@ -137,32 +137,37 @@ class PricedCartTest {
 
     @Test
     void givenTheLineStatuses_whenPricing_thenTheCartHasSomethingToSellOnlyWithAnAvailableLine() {
-        PricedCart priced = PricedCart.of(cart, Map.of(PIJAMA, new SellableVariant(PIJAMA_PRICE, 1)));
+        PricedCart priced = PricedCart.of(cart, Map.of(PIJAMA, sellable(PIJAMA_PRICE, 1)));
 
         assertThat(priced.lines()).extracting(PricedLine::status)
             .containsExactly(LineStatus.INSUFFICIENT_STOCK, LineStatus.UNAVAILABLE);
         assertThat(priced.hasAvailableLines()).isFalse();
-        assertThat(PricedCart.of(cart, Map.of(CAMISON, new SellableVariant(CAMISON_PRICE, 3))).hasAvailableLines())
+        assertThat(PricedCart.of(cart, Map.of(CAMISON, sellable(CAMISON_PRICE, 3))).hasAvailableLines())
             .isTrue();
         assertThat(PricedCart.empty().hasAvailableLines()).isFalse();
     }
 
     @Test
     void givenEveryLineAvailableAtThePriceSeen_whenCheckingOut_thenTheCartIsReady() {
-        var both = Map.of(PIJAMA, new SellableVariant(PIJAMA_PRICE, 5), CAMISON, new SellableVariant(CAMISON_PRICE, 3));
+        var both = Map.of(PIJAMA, sellable(PIJAMA_PRICE, 5), CAMISON, sellable(CAMISON_PRICE, 3));
 
         assertThat(PricedCart.of(cart, both).isReadyForCheckout()).isTrue();
     }
 
     @Test
     void givenALineNotAvailableOrWithAPriceChange_whenCheckingOut_thenTheCartIsNotReady() {
-        var camison = new SellableVariant(CAMISON_PRICE, 3);
+        var camison = sellable(CAMISON_PRICE, 3);
 
-        assertThat(PricedCart.of(cart, Map.of(PIJAMA, new SellableVariant(PIJAMA_PRICE, 1), CAMISON, camison))
+        assertThat(PricedCart.of(cart, Map.of(PIJAMA, sellable(PIJAMA_PRICE, 1), CAMISON, camison))
             .isReadyForCheckout()).isFalse();
         assertThat(PricedCart.of(cart, Map.of(CAMISON, camison)).isReadyForCheckout()).isFalse();
-        assertThat(PricedCart.of(cart, Map.of(PIJAMA, new SellableVariant(Money.of(1_400_000), 5), CAMISON, camison))
+        assertThat(PricedCart.of(cart, Map.of(PIJAMA, sellable(Money.of(1_400_000), 5), CAMISON, camison))
             .isReadyForCheckout()).isFalse();
         assertThat(PricedCart.empty().isReadyForCheckout()).isFalse();
+    }
+
+    /** A variant the catalog sells; its product and category matter only to a coupon's scope (UC-23). */
+    private static SellableVariant sellable(Money price, int available) {
+        return new SellableVariant(price, available, UUID.randomUUID(), UUID.randomUUID());
     }
 }

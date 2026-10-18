@@ -9,6 +9,7 @@ import com.pijamaparty.store.promotions.api.CouponStatus;
 import com.pijamaparty.store.promotions.domain.Coupon;
 import com.pijamaparty.store.promotions.domain.CouponCode;
 import com.pijamaparty.store.promotions.domain.CouponId;
+import com.pijamaparty.store.promotions.domain.CouponScope;
 import com.pijamaparty.store.promotions.domain.CouponType;
 import java.time.Clock;
 import java.time.Instant;
@@ -92,6 +93,15 @@ class CouponDiscountsServiceTest {
             .map(CouponDiscount::status).contains(CouponStatus.INACTIVE);
         assertThat(service(LAST_MINUTE_OF_OCTOBER).byCode("NOVIEMBRE", SUBTOTAL))
             .map(CouponDiscount::status).contains(CouponStatus.NOT_STARTED);
+    }
+
+    @Test
+    void givenAnAutomaticCoupon_whenAskedByItsCodeOrId_thenItIsUnknown() {
+        coupons.save(Coupon.automatic(VERANO, new CouponCode("VERANO10"), CouponType.PERCENTAGE, 10,
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), CouponScope.WHOLE_CART, true));
+
+        assertThat(service(LAST_MINUTE_OF_OCTOBER).byCode("VERANO10", SUBTOTAL)).isEmpty();
+        assertThat(service(LAST_MINUTE_OF_OCTOBER).byId(VERANO.value(), SUBTOTAL)).isEmpty();
     }
 
     private CouponDiscountsService service(Instant now) {

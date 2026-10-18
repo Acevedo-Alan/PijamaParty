@@ -7,6 +7,7 @@ import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,6 +21,7 @@ class PromotionsCouponsContractTest extends CouponsContractTest<PromotionsCoupon
 
     private final PromotionsCoupons adapter;
     private final JdbcTemplate owner;
+    private int automaticCoupons;
 
     PromotionsCouponsContractTest(PromotionsCoupons adapter, PostgreSQLContainer<?> postgres) {
         this.adapter = adapter;
@@ -40,6 +42,20 @@ class PromotionsCouponsContractTest extends CouponsContractTest<PromotionsCoupon
     @Override
     protected CouponId givenExpiredCoupon(String code) {
         return coupon(code, 10, Money.of(1), LocalDate.of(2020, 1, 31));
+    }
+
+    @Override
+    protected CouponId givenAutomaticCoupon(String code, int percent, Money minimum, Optional<UUID> category) {
+        UUID id = UUID.randomUUID();
+        // Each one newer than the last: the tie between automatic coupons goes to the oldest.
+        owner.update("""
+            insert into coupon (id, code, type, discount_value, minimum_purchase_cents, automatic, active, created_at,
+                                updated_at)
+            values (?, ?, 'PERCENTAGE', ?, ?, true, true, now() + ? * interval '1 second', now())
+            """, id, code, percent, minimum.cents(), ++automaticCoupons);
+        category.ifPresent(target -> owner.update(
+            "insert into coupon_scope (coupon_id, target_type, target_id) values (?, 'CATEGORY', ?)", id, target));
+        return CouponId.of(id);
     }
 
     @AfterEach

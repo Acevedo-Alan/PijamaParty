@@ -9,7 +9,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** UC-13: the actor's cart priced as every cart response (UC-09, UC-10). */
+/** UC-13: the actor's cart priced as every cart response (UC-09, UC-10, UC-23). */
 @Service
 class CartSummariesService implements CartSummaries {
 
@@ -28,7 +28,7 @@ class CartSummariesService implements CartSummaries {
     public Optional<CartSummary> of(Actor actor) {
         return CartOwner.of(actor)
             .flatMap(loadCart::findByOwner)
-            .map(cart -> CartPricing.priced(cart, availability, coupons))
+            .map(cart -> CartPricing.priced(cart, availability, coupons).cart())
             .filter(PricedCart::hasAvailableLines)
             .map(priced -> new CartSummary(priced.subtotal(), priced.discount(), priced.total()));
     }

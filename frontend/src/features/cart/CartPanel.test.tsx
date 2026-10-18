@@ -396,6 +396,27 @@ describe('cart side panel coupon (UC-10)', () => {
     expect(within(panel()).getByText(es.cart.total).nextElementSibling).toHaveTextContent(/^\$\s20\.000$/);
   });
 
+  it('given an automatic coupon that applies (UC-23), when the cart opens, then its code labels the discount', async () => {
+    await openWith(cart([item()], 200_000, null, { code: 'VERANO10', automatic: true }));
+
+    expect(within(panel()).getByText(es.cart.discountWith('VERANO10')).nextElementSibling).toHaveTextContent(
+      /^−\$\s2\.000$/,
+    );
+    expect(within(panel()).queryByText(es.cart.coupon('VERANO10'))).not.toBeInTheDocument();
+    expect(within(panel()).getByText(es.cart.total).nextElementSibling).toHaveTextContent(/^\$\s18\.000$/);
+  });
+
+  it('given an applicable code and an automatic coupon that takes more (UC-23), when the cart opens, then the code is not added', async () => {
+    await openWith(cart([item()], 400_000, pijama10, { code: 'VERANO20', automatic: true }));
+
+    expect(within(panel()).getByText(es.cart.coupon('PIJAMA10'))).toBeInTheDocument();
+    expect(
+      within(panel()).getByText('Tu cupón PIJAMA10 no se suma: ya tenés un descuento mejor.'),
+    ).toBeInTheDocument();
+    expect(within(panel()).getByText(es.cart.discountWith('VERANO20'))).toBeInTheDocument();
+    expect(within(panel()).queryByText(es.cart.discountWith('PIJAMA10'))).not.toBeInTheDocument();
+  });
+
   it('given an applied coupon, when "Quitar" is tapped, then it is removed', async () => {
     await openWith(cart([item()], 200_000, pijama10));
     const remove = vi.spyOn(api, 'DELETE').mockResolvedValue(cart([item()]));

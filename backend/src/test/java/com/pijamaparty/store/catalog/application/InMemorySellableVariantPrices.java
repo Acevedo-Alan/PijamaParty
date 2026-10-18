@@ -3,7 +3,6 @@ package com.pijamaparty.store.catalog.application;
 import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.VariantId;
-import com.pijamaparty.store.platform.domain.Money;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,8 +19,8 @@ public class InMemorySellableVariantPrices implements SellableVariantPrices {
     }
 
     @Override
-    public Map<VariantId, Money> pricesOf(Collection<VariantId> variants) {
-        Map<VariantId, Money> prices = new HashMap<>();
+    public Map<VariantId, Priced> pricesOf(Collection<VariantId> variants) {
+        Map<VariantId, Priced> prices = new HashMap<>();
         for (Product product : products.all()) {
             boolean listed = product.published() && categories.findById(product.details().categoryId())
                 .map(Category::active)
@@ -29,7 +28,8 @@ public class InMemorySellableVariantPrices implements SellableVariantPrices {
             if (listed) {
                 product.sellableVariants().stream()
                     .filter(variant -> variants.contains(variant.id()))
-                    .forEach(variant -> prices.put(variant.id(), variant.price().orElseThrow()));
+                    .forEach(variant -> prices.put(variant.id(), new Priced(variant.price().orElseThrow(),
+                        product.id(), product.details().categoryId())));
             }
         }
         return prices;

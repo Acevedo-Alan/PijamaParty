@@ -67,7 +67,8 @@ class IdempotentPlaceOrderTest {
     /** 2 pijamas at ARS 20,000 in the guest's cart, 5 in stock; shipping to Santa Fe ARS 3,000. */
     @BeforeEach
     void arrange() {
-        carts.put(FIRST, new CartState.Ready(List.of(PIJAMAS), Money.of(4_000_000), Money.zero(), Optional.empty()));
+        carts.put(FIRST, new CartState.Ready(List.of(PIJAMAS), Money.of(4_000_000), Optional.empty(),
+            Optional.empty()));
         stock.stock(PIJAMA, 5);
         shipping.rate(Province.SANTA_FE, Money.of(300_000));
     }
@@ -163,7 +164,7 @@ class IdempotentPlaceOrderTest {
         UserId user = UserId.of(UUID.randomUUID());
         Actor customer = Actor.customer(user, Optional.of(CART), Optional.of(FIRST_TOKEN));
         Actor sameCustomerElsewhere = Actor.customer(user, Optional.empty(), Optional.of(SECOND_TOKEN));
-        carts.put(customer, new CartState.Ready(List.of(PIJAMAS), Money.of(4_000_000), Money.zero(),
+        carts.put(customer, new CartState.Ready(List.of(PIJAMAS), Money.of(4_000_000), Optional.empty(),
             Optional.empty()));
         var first = placeOrder.execute(command(customer, FORM));
 
@@ -200,7 +201,7 @@ class IdempotentPlaceOrderTest {
     void givenACustomersFirstOrder_whenTheSameKeyArrivesAgain_thenItsCheckoutIsNotRememberedAgain() {
         UserId user = UserId.of(UUID.randomUUID());
         Actor customer = Actor.customer(user, Optional.of(CART), Optional.of(FIRST_TOKEN));
-        carts.put(customer, new CartState.Ready(List.of(PIJAMAS), Money.of(4_000_000), Money.zero(),
+        carts.put(customer, new CartState.Ready(List.of(PIJAMAS), Money.of(4_000_000), Optional.empty(),
             Optional.empty()));
         checkoutDetails.customer(user);
         var saving = new PlaceOrder.Command(customer, key, FORM, Province.SANTA_FE, PaymentProvider.MERCADOPAGO, true,

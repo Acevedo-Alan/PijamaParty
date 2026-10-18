@@ -12,18 +12,22 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * The full state of a cart that every cart response returns (UC-08, UC-09, UC-10): its items in the order they were
- * added, each with what the panel shows of its variant, priced with the current catalog prices and stock, its coupon,
- * and the totals calculated by the server.
+ * The full state of a cart that every cart response returns (UC-08, UC-09, UC-10, UC-23): its items in the order they
+ * were added, each with what the panel shows of its variant, priced with the current catalog prices and stock, its
+ * code coupon, the coupon that discounts, and the totals calculated by the server.
+ *
+ * @param coupon the code coupon the cart holds, whether or not it discounts
+ * @param appliedDiscount the coupon whose discount {@code discount} is: the held code coupon or an automatic one
  */
-public record CartView(List<ItemView> items, Optional<CouponView> coupon, Money subtotal, Money discount,
-                       Money total) {
+public record CartView(List<ItemView> items, Optional<CouponView> coupon,
+                       Optional<AppliedDiscountView> appliedDiscount, Money subtotal, Money discount, Money total) {
 
-    private static final CartView EMPTY = of(PricedCart.empty(), Optional.empty(), Map.of());
+    private static final CartView EMPTY = of(PricedCart.empty(), CartDiscount.NONE, Map.of());
 
     public CartView {
         items = List.copyOf(items);
         Objects.requireNonNull(coupon, "coupon");
+        Objects.requireNonNull(appliedDiscount, "appliedDiscount");
     }
 
     public static CartView empty() {
@@ -31,16 +35,16 @@ public record CartView(List<ItemView> items, Optional<CouponView> coupon, Money 
     }
 
     /**
-     * {@code cart} already carries the discount of {@code coupon} when it applies; {@code descriptions} has what the
-     * catalog says of each line's variant.
+     * {@code cart} already carries the amount of {@code discount}; {@code descriptions} has what the catalog says of
+     * each line's variant.
      */
-    public static CartView of(PricedCart cart, Optional<CouponCheck> coupon,
-                              Map<VariantId, ItemDescription> descriptions) {
+    public static CartView of(PricedCart cart, CartDiscount discount, Map<VariantId, ItemDescription> descriptions) {
         return new CartView(
             cart.lines().stream()
                 .map(line -> ItemView.of(line, Optional.ofNullable(descriptions.get(line.item().variantId()))))
                 .toList(),
-            coupon.map(CouponView::of), cart.subtotal(), cart.discount(), cart.total());
+            discount.coupon().map(CouponView::of), discount.applied().map(AppliedDiscountView::of), cart.subtotal(),
+            cart.discount(), cart.total());
     }
 
     /** As {@link PricedLine}; {@code description} is empty when the catalog no longer has the variant. */
@@ -63,6 +67,14 @@ public record CartView(List<ItemView> items, Optional<CouponView> coupon, Money 
 
         static CouponView of(CouponCheck check) {
             return new CouponView(check.code(), check.status(), check.missing());
+        }
+    }
+
+    /** UC-23: the coupon that discounts, by its code, and whether it applied on its own. */
+    public record AppliedDiscountView(String code, boolean automatic) {
+
+        static AppliedDiscountView of(CartDiscount.Applied applied) {
+            return new AppliedDiscountView(applied.code(), applied.automatic());
         }
     }
 }

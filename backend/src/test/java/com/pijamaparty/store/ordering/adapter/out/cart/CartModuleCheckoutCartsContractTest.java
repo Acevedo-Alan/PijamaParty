@@ -77,6 +77,16 @@ class CartModuleCheckoutCartsContractTest
         return id;
     }
 
+    @Override
+    protected UUID givenAutomaticCoupon(String code, int percent) {
+        UUID id = UUID.randomUUID();
+        owner.update("""
+            insert into coupon (id, code, type, discount_value, automatic, active, created_at, updated_at)
+            values (?, ?, 'PERCENTAGE', ?, true, true, now(), now())
+            """, id, code, percent);
+        return id;
+    }
+
     /** A variant of a published product of an active category, with {@code available} units on hand. */
     private UUID sellable(long priceCents, int available) {
         UUID category = UUID.randomUUID();

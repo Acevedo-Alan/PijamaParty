@@ -2,6 +2,7 @@ package com.pijamaparty.store.cart.application;
 
 import com.pijamaparty.store.cart.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Money;
+import java.util.UUID;
 
 class InMemoryVariantAvailabilityContractTest extends VariantAvailabilityContractTest<InMemoryVariantAvailability> {
 
@@ -11,8 +12,8 @@ class InMemoryVariantAvailabilityContractTest extends VariantAvailabilityContrac
     }
 
     @Override
-    protected void givenSold(VariantId variantId, Money price, Integer available) {
-        subject.sell(variantId, price, available == null ? 0 : available);
+    protected void givenSold(VariantId variantId, UUID productId, UUID categoryId, Money price, Integer available) {
+        subject.sell(variantId, productId, categoryId, price, available == null ? 0 : available);
     }
 
     @Override

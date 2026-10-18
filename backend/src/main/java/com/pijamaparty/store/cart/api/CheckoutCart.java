@@ -20,28 +20,43 @@ public sealed interface CheckoutCart {
      * Every item can be bought at the price the buyer saw.
      *
      * @param lines in the order they were added, one per variant
-     * @param discount the coupon's when it applies, otherwise zero
-     * @param coupon the coupon the cart holds, whether or not it applies; empty when it has none or it no longer exists
+     * @param coupon the code coupon the cart holds, whether or not it applies; empty when it has none or it no longer
+     *               exists
+     * @param applied the one coupon that discounts (UC-23): the held code coupon or an automatic one; empty when none
+     *                does
      */
-    record Ready(List<Line> lines, Money subtotal, Money discount, Optional<Coupon> coupon) implements CheckoutCart {
+    record Ready(List<Line> lines, Money subtotal, Optional<Coupon> coupon, Optional<AppliedDiscount> applied)
+        implements CheckoutCart {
 
         public Ready {
             lines = List.copyOf(lines);
             Objects.requireNonNull(subtotal, "subtotal");
-            Objects.requireNonNull(discount, "discount");
             Objects.requireNonNull(coupon, "coupon");
+            Objects.requireNonNull(applied, "applied");
             if (lines.isEmpty()) {
                 throw new IllegalArgumentException("a ready cart has items");
             }
             if (!subtotal.equals(lines.stream().map(Line::amount).reduce(Money.zero(), Money::plus))) {
                 throw new IllegalArgumentException("the subtotal is the sum of the lines");
             }
-            if (discount.isGreaterThan(subtotal)) {
+            if (applied.filter(discount -> discount.amount().isGreaterThan(subtotal)).isPresent()) {
                 throw new IllegalArgumentException("the discount is at most the subtotal");
             }
-            if (!discount.isZero() && coupon.map(c -> c.status() != CouponStatus.APPLICABLE).orElse(true)) {
-                throw new IllegalArgumentException("only an applicable coupon discounts");
-            }
+        }
+
+        /** What comes off the subtotal: the applied coupon's discount, or zero. */
+        public Money discount() {
+            return applied.map(AppliedDiscount::amount).orElse(Money.zero());
+        }
+    }
+
+    /** UC-23: the coupon whose discount the order gets, and how much. {@code code} as stored, in upper case. */
+    record AppliedDiscount(UUID couponId, String code, Money amount) {
+
+        public AppliedDiscount {
+            Objects.requireNonNull(couponId, "couponId");
+            Objects.requireNonNull(code, "code");
+            Objects.requireNonNull(amount, "amount");
         }
     }
 

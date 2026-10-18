@@ -5,7 +5,6 @@ import com.pijamaparty.store.catalog.application.SellableVariantPricesContractTe
 import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.VariantId;
-import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import java.util.Collection;
 import java.util.Map;
@@ -60,7 +59,7 @@ class JdbcSellableVariantPricesContractTest
         implements SellableVariantPrices {
 
         @Override
-        public Map<VariantId, Money> pricesOf(Collection<VariantId> variants) {
+        public Map<VariantId, Priced> pricesOf(Collection<VariantId> variants) {
             return transactions.execute(status -> adapter.pricesOf(variants));
         }
     }

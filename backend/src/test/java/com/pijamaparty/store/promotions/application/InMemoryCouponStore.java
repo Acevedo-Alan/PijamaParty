@@ -1,6 +1,7 @@
 package com.pijamaparty.store.promotions.application;
 
 import com.pijamaparty.store.platform.testing.InMemoryStore;
+import com.pijamaparty.store.promotions.domain.CountedCoupon;
 import com.pijamaparty.store.promotions.domain.Coupon;
 import com.pijamaparty.store.promotions.domain.CouponCode;
 import com.pijamaparty.store.promotions.domain.CouponId;
@@ -17,8 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Fake of every coupon port, with the database's rules: unique codes, and a coupon with uses cannot be deleted. Uses
  * are {@link #redeem}ed, as confirmed orders will (E3).
  */
-public class InMemoryCouponStore
-    implements LoadCoupon, CouponUses, CouponSummaries, SaveCoupon, RemoveStoredCoupon, SaveCouponRedemption {
+public class InMemoryCouponStore implements LoadCoupon, LoadAutomaticCoupons, CouponUses, CouponSummaries, SaveCoupon,
+    RemoveStoredCoupon, SaveCouponRedemption {
 
     /** Arbitrary creation instant of {@link #save}d coupons. */
     private static final Instant ARRANGED = Instant.parse("2026-10-01T12:00:00Z");
@@ -29,7 +30,12 @@ public class InMemoryCouponStore
 
     /** Test arrangement: stores the coupon, like {@link #add} without the result. */
     public void save(Coupon coupon) {
-        if (add(coupon, ARRANGED) != SaveCoupon.Outcome.SAVED) {
+        save(coupon, ARRANGED);
+    }
+
+    /** Test arrangement: stores the coupon as created at {@code createdAt}. */
+    public void save(Coupon coupon, Instant createdAt) {
+        if (add(coupon, createdAt) != SaveCoupon.Outcome.SAVED) {
             throw new IllegalArgumentException("code already used");
         }
     }
@@ -47,6 +53,14 @@ public class InMemoryCouponStore
     @Override
     public Optional<Coupon> findById(CouponId id) {
         return coupons.findById(id).map(Row::coupon);
+    }
+
+    @Override
+    public List<CountedCoupon> activeOldestFirst() {
+        return coupons.findAll(row -> row.coupon().automatic() && row.coupon().active()).stream()
+            .sorted(Comparator.comparing(Row::createdAt).thenComparing(row -> row.coupon().id().value().toString()))
+            .map(row -> new CountedCoupon(row.coupon(), count(row.coupon().id())))
+            .toList();
     }
 
     @Override

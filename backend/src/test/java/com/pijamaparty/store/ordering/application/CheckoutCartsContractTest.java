@@ -3,6 +3,7 @@ package com.pijamaparty.store.ordering.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartCoupon;
+import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartDiscount;
 import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartState;
 import com.pijamaparty.store.ordering.domain.OrderLine;
 import com.pijamaparty.store.platform.domain.AccessToken.CartToken;
@@ -33,6 +34,9 @@ public abstract class CheckoutCartsContractTest<T extends CheckoutCartLock & Cle
     /** The cart of {@code guest} holds a coupon {@code code} of {@code percent} percent, active or not. */
     protected abstract UUID givenCoupon(Actor guest, String code, int percent, boolean active);
 
+    /** UC-23: an active automatic coupon of {@code percent} percent of the whole cart, without a minimum. */
+    protected abstract UUID givenAutomaticCoupon(String code, int percent);
+
     /** The SKU of the variants of {@link #givenLine}. */
     protected static String skuOf(UUID variantId) {
         return "PP-" + variantId.toString().substring(0, 8);
@@ -48,8 +52,8 @@ public abstract class CheckoutCartsContractTest<T extends CheckoutCartLock & Cle
         assertThat(subject.lock(guest)).isEqualTo(new CartState.Ready(
             List.of(new OrderLine(first, skuOf(first), "Pijama", "M", "Rosa", Money.of(2_000_000), 2),
                 new OrderLine(second, skuOf(second), "Pijama", "M", "Rosa", Money.of(1_000_000), 1)),
-            Money.of(5_000_000), Money.of(500_000),
-            Optional.of(new CartCoupon(coupon, "VERANO10", CouponStatus.APPLICABLE))));
+            Money.of(5_000_000), Optional.of(new CartCoupon(coupon, "VERANO10", CouponStatus.APPLICABLE)),
+            Optional.of(new CartDiscount(coupon, "VERANO10", Money.of(500_000)))));
     }
 
     @Test
@@ -60,8 +64,22 @@ public abstract class CheckoutCartsContractTest<T extends CheckoutCartLock & Cle
 
         var ready = (CartState.Ready) subject.lock(guest);
 
-        assertThat(ready.discount()).isEqualTo(Money.zero());
+        assertThat(ready.discount()).isEmpty();
         assertThat(ready.coupon()).contains(new CartCoupon(coupon, "INVIERNO", CouponStatus.INACTIVE));
+    }
+
+    @Test
+    void givenAnAutomaticCouponThatDiscountsMoreThanTheHeldCode_whenLocked_thenItIsTheCartsDiscount() {
+        Actor guest = newGuest();
+        givenLine(guest, 2_000_000, 2_000_000, 1, 5);
+        UUID coupon = givenCoupon(guest, "VERANO10", 10, true);
+        UUID automatic = givenAutomaticCoupon("OTONO20", 20);
+
+        var ready = (CartState.Ready) subject.lock(guest);
+
+        assertThat(ready.coupon()).contains(new CartCoupon(coupon, "VERANO10", CouponStatus.APPLICABLE));
+        assertThat(ready.discount()).contains(new CartDiscount(automatic, "OTONO20", Money.of(400_000)));
+        assertThat(ready.discountAmount()).isEqualTo(Money.of(400_000));
     }
 
     @Test

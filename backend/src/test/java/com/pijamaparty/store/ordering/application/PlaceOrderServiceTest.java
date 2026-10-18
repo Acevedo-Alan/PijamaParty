@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartCoupon;
+import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartDiscount;
 import com.pijamaparty.store.ordering.application.CheckoutCartLock.CartState;
 import com.pijamaparty.store.ordering.application.SaveOrders.AppliedCoupon;
 import com.pijamaparty.store.ordering.domain.BuyerDetails;
@@ -134,6 +135,30 @@ class PlaceOrderServiceTest {
         var order = orders.placed(placed.orderId()).orElseThrow();
         assertThat(order.amounts().discount()).isEqualTo(Money.of(500_000));
         assertThat(order.coupon()).contains(new AppliedCoupon(coupon, "VERANO10"));
+    }
+
+    @Test
+    void givenAnAutomaticCouponThatApplies_whenTheBuyerConfirms_thenTheOrderKeepsItsDiscountAndCode() {
+        UUID automatic = UUID.randomUUID();
+        carts.put(GUEST, new CartState.Ready(List.of(PIJAMAS, CAMISONES), Money.of(5_000_000), Optional.empty(),
+            Optional.of(new CartDiscount(automatic, "OTONO10", Money.of(500_000)))));
+
+        var placed = (PlaceOrder.Result.Placed) placeOrder.execute(command(GUEST, FORM, true));
+
+        var order = orders.placed(placed.orderId()).orElseThrow();
+        assertThat(order.amounts().discount()).isEqualTo(Money.of(500_000));
+        assertThat(order.coupon()).contains(new AppliedCoupon(automatic, "OTONO10"));
+    }
+
+    @Test
+    void givenAHeldCouponThatNoLongerAppliesAndAnAutomaticOneThatDoes_whenConfirming_thenItIsStillRefused() {
+        carts.put(GUEST, new CartState.Ready(List.of(PIJAMAS, CAMISONES), Money.of(5_000_000),
+            Optional.of(new CartCoupon(UUID.randomUUID(), "VERANO20", CouponStatus.EXPIRED)),
+            Optional.of(new CartDiscount(UUID.randomUUID(), "OTONO10", Money.of(500_000)))));
+
+        assertThat(placeOrder.execute(command(GUEST, FORM, true)))
+            .isEqualTo(new PlaceOrder.Result.CouponNotApplicable(CouponStatus.EXPIRED));
+        assertNothingHappened();
     }
 
     @Test
@@ -281,8 +306,11 @@ class PlaceOrderServiceTest {
         assertThat(carts.wasCleared(GUEST)).isFalse();
     }
 
+    /** A discount other than zero is that of {@code coupon}. */
     private static CartState.Ready ready(Money discount, Optional<CartCoupon> coupon) {
-        return new CartState.Ready(List.of(PIJAMAS, CAMISONES), Money.of(5_000_000), discount, coupon);
+        return new CartState.Ready(List.of(PIJAMAS, CAMISONES), Money.of(5_000_000), coupon, discount.isZero()
+            ? Optional.empty()
+            : coupon.map(held -> new CartDiscount(held.couponId(), held.code(), discount)));
     }
 
     private static PlaceOrder.Command command(Actor actor, CheckoutForm form, boolean acceptedTerms) {

@@ -54,7 +54,7 @@ class AddItemToCartServiceTest {
         ItemView item = new ItemView(itemId, PIJAMA, 2, PRICE, Optional.empty(), LineStatus.AVAILABLE, 5,
             Optional.of(PIJAMA_DESCRIPTION));
         assertThat(result).isEqualTo(new Result.Added(
-            new CartView(List.of(item), Optional.empty(), Money.of(3_000_000), Money.zero(), Money.of(3_000_000))));
+            new CartView(List.of(item), Optional.empty(), Optional.empty(), Money.of(3_000_000), Money.zero(), Money.of(3_000_000))));
         assertThat(carts.findByOwner(GUEST_OWNER)).hasValueSatisfying(cart -> {
             assertThat(cart.id()).isEqualTo(CartId.of(InMemoryIdGenerator.nth(1)));
             assertThat(cart.createdAt()).isEqualTo(NOW);
@@ -85,7 +85,7 @@ class AddItemToCartServiceTest {
         assertThat(result).isEqualTo(new Result.Added(new CartView(List.of(
             new ItemView(CartItemId.of(InMemoryIdGenerator.nth(2)), PIJAMA, 5, Money.of(1_400_000), Optional.empty(),
                 LineStatus.AVAILABLE, 5, Optional.empty())),
-            Optional.empty(), Money.of(7_000_000), Money.zero(), Money.of(7_000_000))));
+            Optional.empty(), Optional.empty(), Money.of(7_000_000), Money.zero(), Money.of(7_000_000))));
         assertThat(carts.size()).isEqualTo(1);
     }
 

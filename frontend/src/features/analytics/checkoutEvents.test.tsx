@@ -193,6 +193,22 @@ describe('checkout analytics events (RNF-25, T-E3-20)', { timeout: 30_000 }, () 
     ]);
   });
 
+  it('given an applicable code and an automatic coupon that takes more (UC-23), when the checkout opens, then begin_checkout carries the automatic code', async () => {
+    stubCheckout(
+      cart([cartItem()], 500_000, { code: 'PIJAMA10', status: 'APPLICABLE', missingCents: 0 }, {
+        code: 'VERANO20',
+        automatic: true,
+      }),
+    );
+    renderRoute('/checkout');
+
+    await screen.findByRole('heading', { name: es.checkout.shippingTitle });
+
+    await waitFor(() => {
+      expect(gaEvents('begin_checkout')).toMatchObject([{ value: 20000, coupon: 'VERANO20' }]);
+    });
+  });
+
   it('given the payment step, when the buyer goes on to the review, back and on again, then add_payment_info and AddPaymentInfo go once with MercadoPago', async () => {
     stubCheckout();
     renderRoute('/checkout');

@@ -24,8 +24,10 @@ class CartModuleCheckoutCartLock implements CheckoutCartLock {
             case CheckoutCart.NotReady notReady -> new CartState.NotReady();
             case CheckoutCart.Ready ready -> new CartState.Ready(
                 ready.lines().stream().map(CartModuleCheckoutCartLock::toOrderLine).toList(),
-                ready.subtotal(), ready.discount(),
-                ready.coupon().map(coupon -> new CartCoupon(coupon.couponId(), coupon.code(), coupon.status())));
+                ready.subtotal(),
+                ready.coupon().map(coupon -> new CartCoupon(coupon.couponId(), coupon.code(), coupon.status())),
+                ready.applied().map(applied -> new CheckoutCartLock.CartDiscount(applied.couponId(), applied.code(),
+                    applied.amount())));
         };
     }
 

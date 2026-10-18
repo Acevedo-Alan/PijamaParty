@@ -68,8 +68,36 @@ class CheckoutCartsServiceTest {
                 new CheckoutCart.Line(PIJAMA.value(), "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 2),
                 new CheckoutCart.Line(CAMISON.value(), "CS-S-GRIS", "Camisón Sol", "S", "Gris", Money.of(1_000_000),
                     1)),
-            Money.of(5_000_000), Money.of(500_000),
-            Optional.of(new CheckoutCart.Coupon(coupon.value(), "VERANO10", CouponStatus.APPLICABLE))));
+            Money.of(5_000_000),
+            Optional.of(new CheckoutCart.Coupon(coupon.value(), "VERANO10", CouponStatus.APPLICABLE)),
+            Optional.of(new CheckoutCart.AppliedDiscount(coupon.value(), "VERANO10", Money.of(500_000)))));
+    }
+
+    @Test
+    void givenAnAutomaticCouponThatApplies_whenLockedForCheckout_thenItIsTheAppliedDiscountWithoutACode() {
+        CouponId automatic = coupons.automatic("OTONO10", 10, Money.of(3_000_000));
+
+        var ready = (CheckoutCart.Ready) checkoutCarts.lock(GUEST);
+
+        assertThat(ready.coupon()).isEmpty();
+        assertThat(ready.applied())
+            .contains(new CheckoutCart.AppliedDiscount(automatic.value(), "OTONO10", Money.of(500_000)));
+        assertThat(ready.discount()).isEqualTo(Money.of(500_000));
+    }
+
+    @Test
+    void givenAHeldCodeThatDoesNotApplyAndAnAutomaticCouponThatDoes_whenLockedForCheckout_thenBothComeAsTheyAre() {
+        CouponId automatic = coupons.automatic("OTONO10", 10, Money.of(1));
+        CouponId code = coupons.percentage("VERANO20", 20);
+        coupons.reject(code, CouponCheck.Status.EXPIRED);
+        cart.applyCoupon(code, OPENED);
+        carts.save(cart);
+
+        var ready = (CheckoutCart.Ready) checkoutCarts.lock(GUEST);
+
+        // The checkout refuses it (UC-13): the held code no longer applies.
+        assertThat(ready.coupon()).contains(new CheckoutCart.Coupon(code.value(), "VERANO20", CouponStatus.EXPIRED));
+        assertThat(ready.applied()).map(CheckoutCart.AppliedDiscount::couponId).contains(automatic.value());
     }
 
     @Test
