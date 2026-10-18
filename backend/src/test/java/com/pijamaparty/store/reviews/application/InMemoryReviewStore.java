@@ -14,9 +14,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-/** Fake of the review store: one review per author and product, as the unique constraint of V37. */
+/** Fake of the review store: one review per author and product, as the unique constraint of V37. Locks nothing. */
 public class InMemoryReviewStore
-    implements LoadReview, SaveReview, CustomerReviews, RemoveCustomerReviews, ApprovedReviews {
+    implements LoadReview, SaveReview, CustomerReviews, RemoveCustomerReviews, ApprovedReviews, ReviewsForModeration,
+    LockReview, SaveModeration, RemoveReview {
 
     private record Key(UserId author, ProductId product) {}
 
@@ -70,6 +71,39 @@ public class InMemoryReviewStore
             .limit(limit)
             .map(review -> new PublishedReview(review.authorName(), review.content(), review.createdAt()))
             .toList();
+    }
+
+    @Override
+    public synchronized List<Review> withStatus(ReviewStatus status, int offset, int limit) {
+        Comparator<Review> oldestFirst = Comparator.comparing(Review::updatedAt)
+            .thenComparing(review -> review.id().value());
+        return reviews.values().stream()
+            .filter(review -> review.status() == status)
+            .sorted(status == ReviewStatus.PENDING ? oldestFirst : oldestFirst.reversed())
+            .skip(offset)
+            .limit(limit)
+            .toList();
+    }
+
+    @Override
+    public synchronized Optional<Review> lockById(ReviewId id) {
+        return reviews.values().stream().filter(review -> review.id().equals(id)).findFirst();
+    }
+
+    @Override
+    public synchronized void saveDecision(Review review) {
+        Key key = new Key(review.author(), review.product());
+        Review stored = reviews.get(key);
+        if (stored == null || !stored.id().equals(review.id())) {
+            throw new IllegalStateException("the review was locked for the decision, so it must still be stored");
+        }
+        reviews.put(key, new Review(stored.id(), stored.product(), stored.author(), stored.content(),
+            stored.authorName(), review.status(), stored.createdAt(), stored.updatedAt(), review.moderatedAt()));
+    }
+
+    @Override
+    public synchronized boolean remove(ReviewId id) {
+        return reviews.values().removeIf(review -> review.id().equals(id));
     }
 
     private Stream<Review> approvedOf(ProductId product) {

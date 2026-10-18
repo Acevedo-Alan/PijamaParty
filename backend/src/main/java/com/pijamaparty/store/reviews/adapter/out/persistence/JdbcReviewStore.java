@@ -4,8 +4,12 @@ import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.reviews.application.ApprovedReviews;
 import com.pijamaparty.store.reviews.application.CustomerReviews;
 import com.pijamaparty.store.reviews.application.LoadReview;
+import com.pijamaparty.store.reviews.application.LockReview;
 import com.pijamaparty.store.reviews.application.PublishedReview;
 import com.pijamaparty.store.reviews.application.RemoveCustomerReviews;
+import com.pijamaparty.store.reviews.application.RemoveReview;
+import com.pijamaparty.store.reviews.application.ReviewsForModeration;
+import com.pijamaparty.store.reviews.application.SaveModeration;
 import com.pijamaparty.store.reviews.application.SaveReview;
 import com.pijamaparty.store.reviews.domain.AuthorName;
 import com.pijamaparty.store.reviews.domain.ProductId;
@@ -28,10 +32,12 @@ import org.springframework.stereotype.Repository;
 
 /**
  * Reviews in table {@code review} (V37), in the caller's transaction. Row Level Security decides which reviews the
- * actor reaches and writes (RNF-27): a customer only its own, always pending moderation.
+ * actor reaches and writes (RNF-27): a customer only its own, always pending moderation; the administrator every
+ * review, only its status and moderation time.
  */
 @Repository
-class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, RemoveCustomerReviews, ApprovedReviews {
+class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, RemoveCustomerReviews, ApprovedReviews,
+    ReviewsForModeration, LockReview, SaveModeration, RemoveReview {
 
     private static final String SELECT = """
         SELECT id, product_id, user_id, rating, text, author_name, status, created_at, updated_at, moderated_at
@@ -83,6 +89,38 @@ class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, Remove
         WHERE product_id = :product AND status = :approved
         ORDER BY created_at DESC, id DESC
         LIMIT :limit OFFSET :offset
+        """;
+
+    // The moderation tabs (UC-25) over the index review_status_updated_at_idx: the pending queue from the oldest
+    // submission, the decided reviews from the newest.
+    private static final String PENDING_OLDEST_FIRST = SELECT + """
+        WHERE status = :status
+        ORDER BY updated_at, id
+        LIMIT :limit OFFSET :offset
+        """;
+
+    private static final String DECIDED_NEWEST_FIRST = SELECT + """
+        WHERE status = :status
+        ORDER BY updated_at DESC, id DESC
+        LIMIT :limit OFFSET :offset
+        """;
+
+    // The author's upsert waits for this lock, so a decision never overwrites an edit it did not see.
+    private static final String LOCK_BY_ID = SELECT + """
+        WHERE id = :id
+        FOR UPDATE
+        """;
+
+    private static final String SAVE_DECISION = """
+        UPDATE review
+        SET status = :status,
+            moderated_at = :moderatedAt
+        WHERE id = :id
+        """;
+
+    private static final String DELETE_BY_ID = """
+        DELETE FROM review
+        WHERE id = :id
         """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -137,6 +175,37 @@ class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, Remove
                 new AuthorName(row.getString("author_name")),
                 new ReviewContent(row.getInt("rating"), Optional.ofNullable(row.getString("text"))),
                 row.getObject("created_at", OffsetDateTime.class).toInstant()));
+    }
+
+    @Override
+    public List<Review> withStatus(ReviewStatus status, int offset, int limit) {
+        String query = status == ReviewStatus.PENDING ? PENDING_OLDEST_FIRST : DECIDED_NEWEST_FIRST;
+        return jdbc.query(query, new MapSqlParameterSource("status", status.name())
+            .addValue("offset", offset)
+            .addValue("limit", limit), JdbcReviewStore::row);
+    }
+
+    @Override
+    public Optional<Review> lockById(ReviewId id) {
+        return jdbc.query(LOCK_BY_ID, new MapSqlParameterSource("id", id.value()), JdbcReviewStore::row).stream()
+            .findFirst();
+    }
+
+    @Override
+    public void saveDecision(Review review) {
+        int updated = jdbc.update(SAVE_DECISION, new MapSqlParameterSource()
+            .addValue("id", review.id().value())
+            .addValue("status", review.status().name())
+            .addValue("moderatedAt", review.moderatedAt().map(at -> at.atOffset(ZoneOffset.UTC)).orElse(null),
+                Types.TIMESTAMP_WITH_TIMEZONE));
+        if (updated != 1) {
+            throw new IllegalStateException("the review was locked for the decision, so it must still be stored");
+        }
+    }
+
+    @Override
+    public boolean remove(ReviewId id) {
+        return jdbc.update(DELETE_BY_ID, new MapSqlParameterSource("id", id.value())) == 1;
     }
 
     private static MapSqlParameterSource approvedOf(ProductId product) {

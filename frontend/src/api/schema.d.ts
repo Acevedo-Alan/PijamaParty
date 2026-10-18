@@ -441,6 +441,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/reviews/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a review
+         * @description In any status: it leaves the product page and the average. Rejecting it again changes nothing. Requires the CSRF token.
+         */
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a review
+         * @description In any status: it shows on the product page and counts toward the average. Approving it again changes nothing. Requires the CSRF token.
+         */
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/orders/{id}/status": {
         parameters: {
             query?: never;
@@ -1337,6 +1377,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The reviews in one status, pending when absent
+         * @description 50 per page, from page 0. Pending ones from the oldest submission to the newest, the others newest first.
+         */
+        get: operations["list_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/orders": {
         parameters: {
             query?: never;
@@ -1348,7 +1408,7 @@ export interface paths {
          * The orders, newest first, optionally only those in a status
          * @description 50 per page, from page 0.
          */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1402,7 +1462,7 @@ export interface paths {
          * The customer's orders, newest first
          * @description 20 per page, from page 0. Not cached.
          */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1508,6 +1568,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/reviews/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a review
+         * @description Its author can write a new one. Requires the CSRF token.
+         */
+        delete: operations["delete_2"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/products/{id}/images/{imageId}": {
         parameters: {
             query?: never;
@@ -1522,7 +1602,7 @@ export interface paths {
          * Delete a photo of a product
          * @description The other photos close the gap and its files are removed. Requires the CSRF token.
          */
-        delete: operations["delete_2"];
+        delete: operations["delete_3"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1902,6 +1982,25 @@ export interface components {
             /** Format: int32 */
             onHand?: number;
         };
+        ModeratedReviewResponse: {
+            /** Format: uuid */
+            id?: string;
+            product?: components["schemas"]["ReviewedProductResponse"];
+            authorName?: string;
+            /** Format: int32 */
+            rating?: number;
+            text?: string | null;
+            /** @enum {string} */
+            status?: "PENDING" | "APPROVED" | "REJECTED";
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ReviewedProductResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string | null;
+            slug?: string | null;
+        };
         OrderStatusChangeRequest: {
             /** @enum {string} */
             from: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
@@ -2177,6 +2276,10 @@ export interface components {
             userName?: string;
             /** Format: date-time */
             createdAt?: string;
+        };
+        ModerationPageResponse: {
+            items?: components["schemas"]["ModeratedReviewResponse"][];
+            hasMore?: boolean;
         };
         OrderPageResponse: {
             items?: components["schemas"]["OrderSummaryResponse"][];
@@ -3673,6 +3776,86 @@ export interface operations {
             };
             /** @description See problem: INVALID_QUANTITY, INVALID_NOTE or KEY_REUSED */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModeratedReviewResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such review */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModeratedReviewResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such review */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5962,6 +6145,47 @@ export interface operations {
     list_4: {
         parameters: {
             query?: {
+                status?: "PENDING" | "APPROVED" | "REJECTED";
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of reviews */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationPageResponse"];
+                };
+            };
+            /** @description Unknown status or page out of range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
+            query?: {
                 status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
                 page?: number;
             };
@@ -6078,7 +6302,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 page?: number;
@@ -6266,6 +6490,46 @@ export interface operations {
         };
     };
     delete_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such review */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    delete_3: {
         parameters: {
             query?: never;
             header?: never;

@@ -93,6 +93,7 @@ export function AdminLayout() {
             <NavLink to="/admin/productos">{es.admin.products}</NavLink>
             <NavLink to="/admin/categorias">{es.admin.categories}</NavLink>
             <NavLink to="/admin/cupones">{es.admin.coupons}</NavLink>
+            <NavLink to="/admin/resenas">{es.admin.reviews}</NavLink>
             <NavLink to="/admin/envios">{es.admin.shipping}</NavLink>
             <Link to="/">{es.admin.viewStore}</Link>
             <button

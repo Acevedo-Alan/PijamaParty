@@ -154,8 +154,9 @@ Automatic coupons apply on their own when the cart meets their rule; they never 
 
 **Design notes**
 - Inbound ports (T-E5-08): `ListReviewsForModeration`, `ApproveReview`, `RejectReview`, `DeleteReview`; each command carries the `Actor`, and any actor other than `ADMIN` gets `Forbidden`.
+- Outbound ports (T-E5-08): `ReviewsForModeration` (read side, one page of a status), `LockReview` (a review by id, locked until the decision is saved, so an edit of its author never interleaves with it), `SaveModeration` (only the status and the moderation time), `RemoveReview`, `ProductLinks` (backed by a new `catalog.api` query: the name and slug of products, published or not).
 - Endpoints under `/api/admin/reviews` (every write requires the CSRF token):
-  - `GET ?status=PENDING|APPROVED|REJECTED` → `200` with each review's `id`, product (`id`, `name`, `slug`), `authorName`, `rating`, `text`, `status`, `updatedAt`; pending ones from the oldest submission to the newest, the others newest first.
-  - `POST /{id}/approve`, `POST /{id}/reject` → `200`; `404`. Repeating a decision changes nothing.
+  - `GET ?status=PENDING|APPROVED|REJECTED&page=` (`PENDING` when absent) → `200 {items, hasMore}`, 50 per page from page 0, as the other back-office lists; each review with its `id`, product (`id`, `name`, `slug`; `name` and `slug` `null` when the catalog no longer has it), `authorName`, `rating`, `text`, `status`, `updatedAt`; pending ones from the oldest submission to the newest (`updatedAt`, then the id), the others newest first. `400` for an unknown status or a page out of range.
+  - `POST /{id}/approve`, `POST /{id}/reject` → `200` with the review; `404`. Repeating a decision changes nothing (its moderation time stays).
   - `DELETE /{id}` → `204`; `404`.
 - Back office `/admin/resenas`: tabs by status, pending first, with approve, reject and delete (after a confirmation). Rate-limit policy: authenticated back office (300 per minute per user).

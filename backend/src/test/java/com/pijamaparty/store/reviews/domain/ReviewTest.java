@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-/** UC-24: a review and its author's name. */
+/** UC-24, UC-25: a review, its moderation and its author's name. */
 class ReviewTest {
 
     private static final Instant T0 = Instant.parse("2026-10-18T12:00:00Z");
@@ -64,6 +64,46 @@ class ReviewTest {
         assertThatThrownBy(() -> new Review(ReviewId.of(UUID.randomUUID()), PRODUCT, ANA, content,
             new AuthorName("Ana"), ReviewStatus.PENDING, T0, T0, Optional.of(T0)))
             .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void givenAPendingReview_whenApprovedOrRejected_thenOnlyItsStatusAndModerationTimeChange() {
+        Review pending = submitted();
+
+        Review approved = pending.approved(T0.plusSeconds(60));
+        Review rejected = pending.rejected(T0.plusSeconds(120));
+
+        assertThat(approved.status()).isEqualTo(ReviewStatus.APPROVED);
+        assertThat(approved.moderatedAt()).contains(T0.plusSeconds(60));
+        assertThat(rejected.status()).isEqualTo(ReviewStatus.REJECTED);
+        assertThat(rejected.moderatedAt()).contains(T0.plusSeconds(120));
+        for (Review decided : new Review[] {approved, rejected}) {
+            assertThat(decided.id()).isEqualTo(pending.id());
+            assertThat(decided.content()).isEqualTo(pending.content());
+            assertThat(decided.authorName()).isEqualTo(pending.authorName());
+            assertThat(decided.createdAt()).isEqualTo(pending.createdAt());
+            assertThat(decided.updatedAt()).isEqualTo(pending.updatedAt());
+        }
+    }
+
+    @Test
+    void givenADecidedReview_whenTheOtherDecisionIsTaken_thenItChangesWithANewModerationTime() {
+        Review approved = submitted().approved(T0.plusSeconds(60));
+
+        Review rejected = approved.rejected(T0.plusSeconds(120));
+
+        assertThat(rejected.status()).isEqualTo(ReviewStatus.REJECTED);
+        assertThat(rejected.moderatedAt()).contains(T0.plusSeconds(120));
+        assertThat(rejected.approved(T0.plusSeconds(180)).moderatedAt()).contains(T0.plusSeconds(180));
+    }
+
+    @Test
+    void givenADecidedReview_whenTheSameDecisionIsRepeated_thenNothingChanges() {
+        Review approved = submitted().approved(T0.plusSeconds(60));
+        Review rejected = submitted().rejected(T0.plusSeconds(60));
+
+        assertThat(approved.approved(T0.plusSeconds(120))).isEqualTo(approved);
+        assertThat(rejected.rejected(T0.plusSeconds(120))).isEqualTo(rejected);
     }
 
     @Test

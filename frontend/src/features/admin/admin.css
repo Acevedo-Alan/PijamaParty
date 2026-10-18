@@ -190,6 +190,35 @@
   border: 1px solid var(--danger);
 }
 
+/* UC-25: the moderation tabs, one per review status; the chosen one is pressed. */
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.admin-tabs .btn {
+  min-height: 44px;
+  padding: 8px 16px;
+}
+
+.admin-tabs .btn[aria-pressed='true'] {
+  background: var(--rose-soft);
+  border-color: var(--accent-text);
+  font-weight: 700;
+}
+
+.admin-review-stars {
+  color: var(--accent-text);
+  letter-spacing: 1px;
+}
+
+.admin-review-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 .admin-actions {
   display: flex;
   flex-wrap: wrap;

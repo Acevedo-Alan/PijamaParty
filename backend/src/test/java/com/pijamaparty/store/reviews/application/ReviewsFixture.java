@@ -29,6 +29,12 @@ class ReviewsFixture {
     final DeleteCustomerReviews delete = new DeleteCustomerReviewsService(reviews);
     final ExportCustomerReviews export = new ExportCustomerReviewsService(reviews, catalog);
     final ListApprovedReviews listApproved = new ListApprovedReviewsService(catalog, reviews);
+    final ListReviewsForModeration listForModeration = new ListReviewsForModerationService(reviews, catalog);
+    final ApproveReview approve = new ApproveReviewService(reviews, reviews, catalog, clock);
+    final RejectReview reject = new RejectReviewService(reviews, reviews, catalog, clock);
+    final DeleteReview deleteReview = new DeleteReviewService(reviews);
+
+    final Actor admin = Actor.admin(UserId.of(UUID.randomUUID()));
 
     final UserId anaId = UserId.of(UUID.randomUUID());
     final UserId brunoId = UserId.of(UUID.randomUUID());

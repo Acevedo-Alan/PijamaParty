@@ -8,6 +8,7 @@ export { OrderDetailPage } from './OrderDetailPage.tsx';
 export { OrdersPage } from './OrdersPage.tsx';
 export { ProductEditPage } from './ProductEditPage.tsx';
 export { ProductsPage } from './ProductsPage.tsx';
+export { ReviewsPage } from './ReviewsPage.tsx';
 export { SignInPage } from './SignInPage.tsx';
 export { StockPage } from './StockPage.tsx';
 export { WithdrawalsPage } from './WithdrawalsPage.tsx';

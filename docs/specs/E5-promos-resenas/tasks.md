@@ -7,7 +7,7 @@
 - [x] **T-E5-05** Backoffice: crear cupones automáticos con su regla (CU-11, CU-23).
 - [x] **T-E5-06** API y pantalla para dejar y editar reseñas con las reglas de elegibilidad (CU-24).
 - [x] **T-E5-07** Mostrar reseñas y promedio en la ficha del producto (CU-24).
-- [ ] **T-E5-08** Backoffice: moderación de reseñas (CU-25).
+- [x] **T-E5-08** Backoffice: moderación de reseñas (CU-25).
 - [ ] **T-E5-09** Tests de los criterios de aceptación de CU-23 a CU-25.
 - [ ] **T-E5-10** Políticas de Row Level Security de `resena` y sus tests (RNF-27).
 - [ ] **T-E5-11** Guía de talles por categoría: edición en el backoffice y acceso desde la ficha (RNF-31.5, *Propuesto*).

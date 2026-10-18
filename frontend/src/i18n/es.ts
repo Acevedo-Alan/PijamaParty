@@ -361,6 +361,7 @@ export const es = {
     products: 'Productos',
     categories: 'Categorías',
     coupons: 'Cupones',
+    reviews: 'Reseñas',
     shipping: 'Envíos',
     viewStore: 'Ver tienda',
     signOut: 'Cerrar sesión',
@@ -552,6 +553,31 @@ export const es = {
       resolved: (code: string) => `Solicitud ${code} resuelta.`,
       alreadyResolved: 'Esa solicitud ya estaba resuelta. Actualizamos la lista.',
       notFound: 'No encontramos esa solicitud. Actualizamos la lista.',
+    },
+    /** UC-25 (T-E5-08): review moderation. */
+    reviewList: {
+      title: 'Reseñas',
+      tabs: 'Estado de las reseñas',
+      statuses: { PENDING: 'Pendientes', APPROVED: 'Aprobadas', REJECTED: 'Rechazadas' },
+      empty: {
+        PENDING: 'No hay reseñas pendientes.',
+        APPROVED: 'No hay reseñas aprobadas.',
+        REJECTED: 'No hay reseñas rechazadas.',
+      },
+      productGone: 'Producto eliminado',
+      /** The accessible name of a rating, e.g. "4 de 5 estrellas". */
+      rating: (count: number) => `${String(count)} de 5 estrellas`,
+      /** Who and when it was last submitted, e.g. "Ana · enviada el 13/10/26, 15:00". */
+      submitted: (authorName: string, dateTime: string) => `${authorName} · enviada el ${dateTime}`,
+      noText: 'Sin comentario.',
+      approve: 'Aprobar',
+      reject: 'Rechazar',
+      delete: 'Eliminar',
+      confirmDelete: (authorName: string) => `¿Eliminar la reseña de ${authorName}? No se puede deshacer.`,
+      approved: (authorName: string) => `Reseña de ${authorName} aprobada.`,
+      rejected: (authorName: string) => `Reseña de ${authorName} rechazada.`,
+      deleted: (authorName: string) => `Reseña de ${authorName} eliminada.`,
+      notFound: 'No encontramos esa reseña. Actualizamos la lista.',
     },
     orderDetail: {
       backToList: 'Volver a pedidos',

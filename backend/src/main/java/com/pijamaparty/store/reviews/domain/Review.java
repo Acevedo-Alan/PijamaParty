@@ -51,6 +51,30 @@ public record Review(ReviewId id, ProductId product, UserId author, ReviewConten
             submittedAt, Optional.empty());
     }
 
+    /**
+     * UC-25: the administrator approves the review, in any status, so it shows on the product page and counts toward
+     * the average. An approved review stays as it is, with its moderation time.
+     */
+    public Review approved(Instant now) {
+        return decided(ReviewStatus.APPROVED, now);
+    }
+
+    /**
+     * UC-25: the administrator rejects the review, in any status, so it leaves the product page and the average. A
+     * rejected review stays as it is, with its moderation time.
+     */
+    public Review rejected(Instant now) {
+        return decided(ReviewStatus.REJECTED, now);
+    }
+
+    private Review decided(ReviewStatus decision, Instant now) {
+        if (status == decision) {
+            return this;
+        }
+        return new Review(id, product, author, content, authorName, decision, createdAt, updatedAt,
+            Optional.of(now));
+    }
+
     @Override
     public String toString() {
         return "Review[id=" + id + ", product=" + product + ", rating=" + content.rating() + ", status=" + status

@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.application;
 
 import com.pijamaparty.store.catalog.api.ListedProductIds;
+import com.pijamaparty.store.catalog.api.ProductLinks;
 import com.pijamaparty.store.catalog.api.ProductNames;
 import com.pijamaparty.store.catalog.api.ProductVariantIds;
 import com.pijamaparty.store.catalog.domain.Product;
@@ -18,9 +19,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** UC-24, UC-28: what the reviews module needs to know of a product. */
+/** UC-24, UC-25, UC-28: what the reviews module needs to know of a product. */
 @Service
-class ProductLookupsService implements ProductVariantIds, ProductNames, ListedProductIds {
+class ProductLookupsService implements ProductVariantIds, ProductNames, ListedProductIds, ProductLinks {
 
     private final LoadCategories categories;
     private final LoadProducts products;
@@ -49,6 +50,18 @@ class ProductLookupsService implements ProductVariantIds, ProductNames, ListedPr
                 .ifPresent(details -> names.put(id, details.name().value()));
         }
         return Map.copyOf(names);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, ProductLink> linksOf(Collection<UUID> productIds) {
+        // A back-office page holds at most 50 reviews, of fewer products: one lookup each is enough.
+        Map<UUID, ProductLink> links = new HashMap<>();
+        for (UUID id : Set.copyOf(productIds)) {
+            products.findById(ProductId.of(id)).ifPresent(product -> links.put(id,
+                new ProductLink(product.details().name().value(), product.slug().value())));
+        }
+        return Map.copyOf(links);
     }
 
     @Override
