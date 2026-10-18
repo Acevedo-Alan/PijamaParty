@@ -238,6 +238,21 @@ public abstract class CouponStoreContractTest<T extends LoadCoupon & LoadAutomat
     }
 
     @Test
+    void givenAnOrderPaidWithAnAutomaticCoupon_whenItsUseIsRecorded_thenTheCouponHasOneMoreUse() {
+        Coupon coupon = automatic(CouponId.of(UUID.randomUUID()), "OTONO10", CouponScope.WHOLE_CART);
+        subject.add(coupon, CREATED);
+        givenRedemptions(coupon.id(), 2);
+        persistAndForget();
+
+        assertThat(subject.redeem(coupon.id(), UUID.randomUUID(), LATER)).isTrue();
+        persistAndForget();
+
+        assertThat(subject.count(coupon.id())).isEqualTo(3);
+        assertThat(subject.activeOldestFirst()).usingRecursiveComparison()
+            .isEqualTo(List.of(new CountedCoupon(coupon, 3)));
+    }
+
+    @Test
     void givenACouponThatNoLongerExists_whenAUseIsRecorded_thenNothingIsRecorded() {
         CouponId deleted = CouponId.of(UUID.randomUUID());
 

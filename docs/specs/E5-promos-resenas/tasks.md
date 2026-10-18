@@ -8,7 +8,7 @@
 - [x] **T-E5-06** API y pantalla para dejar y editar reseñas con las reglas de elegibilidad (CU-24).
 - [x] **T-E5-07** Mostrar reseñas y promedio en la ficha del producto (CU-24).
 - [x] **T-E5-08** Backoffice: moderación de reseñas (CU-25).
-- [ ] **T-E5-09** Tests de los criterios de aceptación de CU-23 a CU-25.
+- [x] **T-E5-09** Tests de los criterios de aceptación de CU-23 a CU-25. En el código: cada criterio ya tenía su test desde la tarea que lo construyó; se suma el uso registrado de un cupón automático al pagarse la orden (`CouponStoreContractTest`), que antes solo se probaba con cupones con código.
 - [ ] **T-E5-10** Políticas de Row Level Security de `resena` y sus tests (RNF-27).
 - [ ] **T-E5-11** Guía de talles por categoría: edición en el backoffice y acceso desde la ficha (RNF-31.5, *Propuesto*).
 - [ ] **T-E5-12** Página de preguntas frecuentes con envíos, plazos, medios de pago y cambios (RNF-31.6).
