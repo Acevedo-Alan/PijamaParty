@@ -3,6 +3,7 @@ package com.pijamaparty.store.catalog.application;
 import com.pijamaparty.store.catalog.domain.Audience;
 import com.pijamaparty.store.catalog.domain.Color;
 import com.pijamaparty.store.catalog.domain.Product;
+import com.pijamaparty.store.catalog.domain.ProductId;
 import com.pijamaparty.store.catalog.domain.Season;
 import com.pijamaparty.store.catalog.domain.Size;
 import com.pijamaparty.store.catalog.domain.Variant;
@@ -18,13 +19,15 @@ import java.util.stream.Collectors;
 /**
  * What a visitor sees of a product (UC-03): only its sellable variants, each with its price and available stock, the
  * sizes and colors of those variants in display order, and the photos of the whole product and of those colors by
- * position. {@code fromPrice} is the lowest of their prices, as in the grid.
+ * position. {@code fromPrice} is the lowest of their prices, as in the grid. {@code id} is what the customer's
+ * review of the product refers to (UC-24).
  */
-public record ProductDetail(String slug, String name, String description, String material, Season season,
-                            Audience audience, Money fromPrice, List<String> sizes, List<String> colors,
-                            List<VariantDetail> variants, List<ProductView.ImageView> images) {
+public record ProductDetail(ProductId id, String slug, String name, String description, String material,
+                            Season season, Audience audience, Money fromPrice, List<String> sizes,
+                            List<String> colors, List<VariantDetail> variants, List<ProductView.ImageView> images) {
 
     public ProductDetail {
+        Objects.requireNonNull(id, "id");
         Objects.requireNonNull(fromPrice, "fromPrice");
         sizes = List.copyOf(sizes);
         colors = List.copyOf(colors);
@@ -40,7 +43,7 @@ public record ProductDetail(String slug, String name, String description, String
         }
         Set<Color> colors = sellable.stream().map(Variant::color).collect(Collectors.toSet());
         var details = product.details();
-        return new ProductDetail(product.slug().value(), details.name().value(), details.description().value(),
+        return new ProductDetail(product.id(), product.slug().value(), details.name().value(), details.description().value(),
             details.material().value(), details.season(), details.audience(),
             sellable.stream().map(variant -> variant.price().orElseThrow()).min(Comparator.naturalOrder()).orElseThrow(),
             product.sizes().stream().filter(size -> sellable.stream().anyMatch(v -> v.size().equals(size)))

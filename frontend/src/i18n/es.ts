@@ -80,6 +80,33 @@ export const es = {
     noLongerAvailable: 'Este producto ya no está disponible.',
     addError: 'No pudimos agregar el producto. Probá de nuevo.',
   },
+  reviews: {
+    /** UC-24: the customer's own review on the product page. */
+    mine: {
+      title: 'Tu opinión',
+      signIn: 'Ingresá',
+      signInToReview: 'para dejar tu opinión si compraste este producto.',
+      loading: 'Cargando tu opinión…',
+      loadError: 'No pudimos cargar tu opinión.',
+      notABuyer: 'Solo pueden opinar quienes compraron este producto.',
+      statusLabel: 'Estado:',
+      status: { PENDING: 'En revisión', APPROVED: 'Publicada', REJECTED: 'No publicada' },
+      rating: 'Tu calificación',
+      /** The accessible name of a rating, e.g. "4 estrellas". */
+      stars: (count: number) => (count === 1 ? '1 estrella' : `${String(count)} estrellas`),
+      yourRating: (count: number) => `Tu calificación: ${count === 1 ? '1 estrella' : `${String(count)} estrellas`}.`,
+      pickRating: 'Elegí una calificación de 1 a 5 estrellas.',
+      text: 'Contanos qué te pareció (opcional)',
+      /** Characters typed of the most allowed, e.g. "120/1000". */
+      count: (typed: number, max: number) => `${String(typed)}/${String(max)}`,
+      textTooLong: (max: number) => `El texto puede tener hasta ${max.toLocaleString('es-AR')} caracteres.`,
+      send: 'Enviar opinión',
+      save: 'Guardar cambios',
+      sending: 'Enviando…',
+      sent: '¡Gracias! Tu opinión se publicará cuando la revisemos.',
+      error: 'No pudimos guardar tu opinión. Probá de nuevo.',
+    },
+  },
   cart: {
     title: 'Mi carrito',
     /** The header button with the units in the cart, e.g. "Carrito, 3 productos". */

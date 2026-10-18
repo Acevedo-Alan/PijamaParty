@@ -149,6 +149,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/reviews/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether the customer may review a product, and its review of it
+         * @description eligible: the customer has an order of the product that is paid and not cancelled, so it may submit or edit its review; false for an unknown product. review: null when it has not reviewed it.
+         */
+        get: operations["myReview"];
+        /**
+         * Review a product, or edit the review
+         * @description Only a customer who bought the product (an order paid and not cancelled), checked on every submission. The review waits for moderation, also after an edit. Requires the CSRF token.
+         */
+        put: operations["submitReview"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/password": {
         parameters: {
             query?: never;
@@ -1685,6 +1709,20 @@ export interface components {
             position?: number;
             active?: boolean;
         };
+        ReviewRequest: {
+            /** Format: int32 */
+            rating?: number;
+            text?: string | null;
+        };
+        MyReviewResponse: {
+            /** Format: int32 */
+            rating?: number;
+            text?: string | null;
+            /** @enum {string} */
+            status?: "PENDING" | "APPROVED" | "REJECTED";
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         CreatePasswordRequest: {
             password: string;
         };
@@ -2014,6 +2052,8 @@ export interface components {
             files?: components["schemas"]["FileResponse"][];
         };
         ProductDetailResponse: {
+            /** Format: uuid */
+            id?: string;
             slug?: string;
             name?: string;
             description?: string;
@@ -2207,6 +2247,10 @@ export interface components {
             secret?: string;
             otpauthUri?: string;
             qrCode?: string;
+        };
+        MyReviewAnswer: {
+            eligible?: boolean;
+            review?: components["schemas"]["MyReviewResponse"];
         };
         MyOrderPageResponse: {
             orders?: components["schemas"]["MyOrderSummaryResponse"][];
@@ -2756,6 +2800,99 @@ export interface operations {
                 };
             };
             /** @description The order does not name every category exactly once */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    myReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The customer's standing on the product */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyReviewAnswer"];
+                };
+            };
+            /** @description Not signed in as a customer */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    submitReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description The review was replaced and went back to moderation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyReviewResponse"];
+                };
+            };
+            /** @description The customer's first review of the product */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyReviewResponse"];
+                };
+            };
+            /** @description Not signed in as a customer */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description PRODUCT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description NOT_A_BUYER, or INVALID_REVIEW with the invalid fields */
             422: {
                 headers: {
                     [name: string]: unknown;

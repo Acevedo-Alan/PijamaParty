@@ -27,6 +27,14 @@ public enum OrderStatus {
         CANCELLED, EnumSet.noneOf(OrderStatus.class),
         EXPIRED, EnumSet.noneOf(OrderStatus.class));
 
+    /**
+     * UC-24: whether the buyer of an order in this status bought its items: paid, and neither cancelled nor expired.
+     * Who may review a product depends on it.
+     */
+    public boolean isBought() {
+        return this == PAID || this == PREPARING || this == SHIPPED || this == DELIVERED;
+    }
+
     /** Whether the state diagram allows going from this status to {@code next}. */
     public boolean canBecome(OrderStatus next) {
         return TRANSITIONS.get(this).contains(next);

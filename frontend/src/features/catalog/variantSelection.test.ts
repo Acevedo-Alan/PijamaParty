@@ -19,6 +19,7 @@ function image(src: string, color: string | null): DetailImage {
 
 function detail(overrides: Partial<ProductDetail>): ProductDetail {
   return {
+    id: 'product-1',
     slug: 'luna',
     name: 'Pijama Luna',
     description: '',

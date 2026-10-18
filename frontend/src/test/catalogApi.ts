@@ -148,6 +148,7 @@ export function detailImage(name: string, color: string | null): DetailImageBody
 /** A listed product with pink M in stock and light-blue M out of stock (the example of UC-03). */
 export function productDetail(overrides: Partial<DetailBody> = {}): DetailBody {
   return {
+    id: '7d1c2e4a-5b6f-4c3d-8e9f-0a1b2c3d4e5f',
     slug: 'luna',
     name: 'Pijama Luna',
     description: 'Pijama largo de algodón.',

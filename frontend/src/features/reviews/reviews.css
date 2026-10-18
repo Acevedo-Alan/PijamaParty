@@ -1,0 +1,56 @@
+/* "Tu opinión" on the product page (UC-24): the customer's rating and text, and its moderation status. */
+.my-review {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  max-width: 640px;
+}
+
+.my-review h2 {
+  margin-bottom: 12px;
+}
+
+.my-review-intro,
+.my-review-status,
+.my-review-text {
+  margin-bottom: 12px;
+  color: var(--ink-soft);
+}
+
+.my-review-text {
+  white-space: pre-line;
+}
+
+.my-review-form {
+  display: grid;
+  gap: 10px;
+}
+
+.my-review-label {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.my-review-form textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.my-review-count {
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.my-review-error,
+.my-review-notice:not(:empty) {
+  font-size: 14px;
+}
+
+.my-review-error {
+  color: var(--danger);
+}
+
+.my-review-form .btn {
+  justify-self: start;
+}

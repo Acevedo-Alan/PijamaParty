@@ -8,6 +8,7 @@ import { trackItemView } from '../analytics/catalogEvents.ts';
 import type { AddAnswer } from '../cart/cartApi.ts';
 import { useAddToCart } from '../cart/useCart.ts';
 import { NotFoundPage } from '../errors/NotFoundPage.tsx';
+import { MyReviewSection } from '../reviews/MyReviewSection.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
 import { productDetailKey, useProductDetail } from './useProductDetail.ts';
@@ -189,6 +190,7 @@ export function ProductDetailPage() {
         <>
           <title>{`${detail.data.product.name} | ${es.store.name}`}</title>
           <ProductDetailView key={detail.data.product.slug} product={detail.data.product} />
+          <MyReviewSection key={detail.data.product.id} productId={detail.data.product.id} />
         </>
       )}
     </main>

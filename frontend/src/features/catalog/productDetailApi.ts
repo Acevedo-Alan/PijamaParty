@@ -23,6 +23,8 @@ export interface DetailImage extends ListingImage {
 }
 
 export interface ProductDetail {
+  /** What the customer's review of the product refers to (UC-24). */
+  id: string;
   slug: string;
   name: string;
   description: string;
@@ -48,8 +50,8 @@ function toVariant({ id, sku, size, color, priceCents, available }: VariantRespo
 }
 
 function toDetail(data: DetailResponse): ProductDetail {
-  const { slug, name, season, fromPriceCents } = data;
-  if (slug === undefined || name === undefined || season === undefined || fromPriceCents === undefined) {
+  const { id, slug, name, season, fromPriceCents } = data;
+  if (id === undefined || slug === undefined || name === undefined || season === undefined || fromPriceCents === undefined) {
     throw new Error('Incomplete product detail');
   }
   const images = (data.images ?? []).flatMap((image) => {
@@ -57,6 +59,7 @@ function toDetail(data: DetailResponse): ProductDetail {
     return photo === null ? [] : [{ ...photo, color: image.color ?? null }];
   });
   return {
+    id,
     slug,
     name,
     description: data.description ?? '',
