@@ -1,0 +1,110 @@
+/* RNF-31.6 (T-E5-12): the FAQ page and the purchase summary of the product page. */
+
+.faq {
+  max-width: 640px;
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+
+.faq h1 {
+  font-family: var(--ff-display);
+  font-weight: 500;
+  font-size: 26px;
+  margin-bottom: 16px;
+}
+
+.faq details {
+  border-top: 1px solid var(--line);
+}
+
+.faq details:last-of-type {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.faq-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 18px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.faq-highlight {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 20px;
+}
+
+/* The table scrolls sideways inside its box, never the page. */
+.faq-table {
+  overflow-x: auto;
+}
+
+.faq-table table {
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.faq-table th,
+.faq-table td {
+  padding: 7px 10px 7px 4px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.faq-table thead th {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.faq-table tbody th {
+  font-weight: 600;
+}
+
+.faq-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.purchase-info {
+  margin-top: 18px;
+  padding: 12px 16px 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.purchase-info ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 18px;
+}
+
+.purchase-info a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  color: var(--accent-text);
+}

@@ -23,6 +23,8 @@ import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
 import { CheckoutPage } from './features/checkout/CheckoutPage.tsx';
 import { CheckoutResultPage } from './features/checkout/CheckoutResultPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
+import { FAQ_PATH } from './features/help/FaqLink.tsx';
+import { FaqPage } from './features/help/FaqPage.tsx';
 import { OrderTrackingPage } from './features/orders/OrderTrackingPage.tsx';
 import { SearchPage } from './features/search/SearchPage.tsx';
 import { StoreLayout } from './features/search/StoreLayout.tsx';
@@ -45,6 +47,7 @@ export const routes: RouteObject[] = [
       { path: '/checkout/result', element: <CheckoutResultPage /> },
       { path: '/pedido/:token', element: <OrderTrackingPage /> },
       { path: WITHDRAWAL_PATH, element: <WithdrawalPage /> },
+      { path: FAQ_PATH, element: <FaqPage /> },
       { path: REGISTER_PATH, element: <RegisterPage /> },
       { path: SIGN_IN_PATH, element: <CustomerSignInPage /> },
       { path: VERIFY_PATH, element: <VerifyEmailPage /> },

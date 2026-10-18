@@ -52,6 +52,7 @@ Implementado en la aplicación con Bucket4j en memoria. Los contadores se reinic
 | Corregir el email de un pedido | Pedido + IP | 3 por hora |
 | Modificar carrito | IP | 60 por minuto |
 | Catálogo | IP | 120 por minuto |
+| Costos de envío y medios de pago (preguntas frecuentes y ficha, RNF-31.6) | IP | 120 por minuto |
 | Búsqueda y sugerencias | IP | 60 por minuto |
 | Backoffice autenticado | Usuario | 300 por minuto |
 | Webhooks (pagos y correo) y `/api/health` | Excluidos | Se protegen con verificación del proveedor |

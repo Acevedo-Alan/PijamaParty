@@ -1,6 +1,6 @@
 # E5 – Promotions and reviews
 
-**Status:** Draft · **Use cases:** UC-23 to UC-25 (and the UC-11 and UC-28 changes they bring), and the size guide (RNF-31.5) · **Spanish counterpart:** `docs/specs/E5-promos-resenas/spec.md`
+**Status:** Draft · **Use cases:** UC-23 to UC-25 (and the UC-11 and UC-28 changes they bring), the size guide (RNF-31.5) and the shopping information (RNF-31.6) · **Spanish counterpart:** `docs/specs/E5-promos-resenas/spec.md`
 
 **Modules involved:** `promotions`, `cart`, `ordering`, `reviews`, `catalog.api`, `accounts.api`, `platform`.
 
@@ -211,3 +211,38 @@ Automatic coupons apply on their own when the cart meets their rule; they never 
 - **Product detail:** `GET /api/catalog/products/{slug}` adds `sizeGuide`: `null` or `{columns, rows: [{size, values}], note}`.
 - **Back office (T-E5-11):** each row of `/admin/categorias` links to `/admin/categorias/{id}/guia-de-talles`, a one-column form at 360 px (RNF-26): the column names (add, remove), the rows (size and one value per column; add, remove, move up or down), the note, "Guardar" and "Eliminar guía" (after a confirmation). A `422` marks the invalid parts.
 - **Product page (T-E5-11):** right below the size picker, a collapsed "Ver guía de talles" section holds the table (size first, then the columns) and the note. The table scrolls sideways inside its box when it does not fit, never the page.
+
+---
+
+## Shopping information (RNF-31.6)
+
+**Actor:** Visitor · **Module:** `shipping` (the costs) and the storefront · **Stage:** E5 (T-E5-12)
+
+**Decisions (T-E5-12, 2026-10-18):** the questions and answers are fixed texts of the storefront (the i18n bundle) and change with a deploy; there is no back-office editor. Only the shipping costs and the payment methods are read from the server, so they always match what the checkout charges and offers (UC-12, T-E3b-04). Delivery times are a fixed text: 1 to 3 business days to Santa Fe and 3 to 7 to the rest of the country, counted from the payment's approval. Exchanges get a short answer about the withdrawal right (UC-29) and a link to the full policy (`/cambios-y-devoluciones`, T-E6-06).
+
+**Preconditions:** none.
+
+**Main flow**
+1. A visitor opens "Preguntas frecuentes" from the footer of any public page, or "Envíos, pagos y cambios" from a product page.
+2. The page answers how much shipping costs (a table of the provinces with shipping and their cost, and the free-shipping threshold when there is one), how long it takes, how to pay (the enabled payment methods) and how to return or exchange a product.
+3. On the product page, right below the add-to-cart button, a short summary repeats the free-shipping threshold (when there is one), the delivery times and the payment methods, with the link to the page.
+
+**Alternative flows**
+- No province has shipping: the shipping answer says that shipping is not available yet, without a table.
+- The costs or the payment methods could not be read: the page keeps the fixed answers, and the answer that could not be loaded says so, with "Reintentar"; the summary of the product page leaves out what it could not read.
+
+**Business rules**
+- The table lists only the provinces with a cost, in the order of the `Province` enum, by their Spanish names; a cost of $0 shows as "Gratis". A province left out has no shipping (UC-12).
+- The free-shipping threshold is the one of UC-12, compared with the subtotal after the discount; the page says so ("en compras desde $50.000, con el descuento aplicado").
+- The payment methods are those the checkout offers (`GET /api/checkout/payment-providers`, MercadoPago always and MODO while it is switched on), with the names and hints of step 2.
+
+**Acceptance criteria**
+- Given costs for Santa Fe ($3.500) and Córdoba ($0) only, when the page opens, then the table lists Santa Fe with $3.500 and Córdoba with "Gratis", and no other province.
+- Given free shipping from $50.000, when the page opens, then it says shipping is free from $50.000; without a threshold, it says nothing about free shipping.
+- Given MODO switched on, when the page opens, then it lists MercadoPago and MODO; switched off, only MercadoPago.
+- Given any product, when its page opens, then the summary shows the delivery times, the payment methods and a link to the page, and the free-shipping threshold only when there is one.
+
+**Design notes**
+- **Inbound port (`shipping.application`):** `GetShippingRates`, read only and public (no `Actor`, the data is public as the catalog's): the costs (`ShippingZoneRates`) and the settings (`ShippingSettings`), over the outbound ports of UC-12 (`LoadShippingZoneRates`, `LoadShippingSettings`). No expected failure, so it returns `ShippingConfiguration` directly.
+- **Endpoint:** `GET /api/shipping/rates` (public) → `200 {zones: [{province, costCents}], freeShippingThresholdCents}`, `zones` only the provinces with shipping in the order of `Province`, `freeShippingThresholdCents` `null` without free shipping. Rate-limit policy `purchase-info`: 120 per minute per IP, as the catalog, shared with `GET /api/checkout/payment-providers`, which these pages also read and had no policy of its own. No personal data: no Row Level Security (RNF-27).
+- **Storefront (T-E5-12):** `/preguntas-frecuentes`, one `<details>` per question (envíos, plazos, medios de pago, cambios y devoluciones), the shipping one open. The footer of every public page links to it. The product page's summary reads the same two endpoints.

@@ -10,6 +10,7 @@ import {
   NO_CART,
   NO_REVIEWS,
   productDetail,
+  purchaseInfo,
   REVIEWS_PATH,
   withHeader,
 } from '../../test/catalogApi.ts';
@@ -22,7 +23,7 @@ function stubDetail(...answers: never[]) {
     if (path === '/api/cart') {
       return Promise.resolve(NO_CART);
     }
-    return Promise.resolve(path === REVIEWS_PATH ? NO_REVIEWS : queue.shift());
+    return Promise.resolve(path === REVIEWS_PATH ? NO_REVIEWS : (purchaseInfo(path) ?? queue.shift()));
   }));
 }
 

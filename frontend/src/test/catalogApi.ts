@@ -170,7 +170,25 @@ export const REVIEWS_PATH = '/api/catalog/products/{slug}/reviews';
 /** A product without approved reviews. */
 export const NO_REVIEWS = answer(200, { average: null, count: 0, reviews: [] });
 
-/** The product page's own reads: no approved reviews below it, and {@code detail} for the product. */
+/** GETs of the purchase summary below the add to cart (RNF-31.6, T-E5-12). */
+export const SHIPPING_RATES_PATH = '/api/shipping/rates';
+export const PAYMENT_PROVIDERS_PATH = '/api/checkout/payment-providers';
+
+/** No province with shipping yet, and no free shipping. */
+export const NO_SHIPPING_RATES = answer(200, { zones: [], freeShippingThresholdCents: null });
+
+/** MODO switched off. */
+export const MERCADOPAGO_ONLY = answer(200, { providers: ['MERCADOPAGO'] });
+
+/** The answer of a purchase-summary read, or undefined for any other path. */
+export function purchaseInfo(path: string): unknown {
+  if (path === SHIPPING_RATES_PATH) {
+    return NO_SHIPPING_RATES;
+  }
+  return path === PAYMENT_PROVIDERS_PATH ? MERCADOPAGO_ONLY : undefined;
+}
+
+/** The product page's own reads: no approved reviews below it, the purchase summary, and {@code detail}. */
 export function detailOrNoReviews(path: string, detail: unknown = answer(200, productDetail())): unknown {
-  return path === REVIEWS_PATH ? NO_REVIEWS : detail;
+  return path === REVIEWS_PATH ? NO_REVIEWS : (purchaseInfo(path) ?? detail);
 }

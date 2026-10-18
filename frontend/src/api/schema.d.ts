@@ -1148,6 +1148,26 @@ export interface paths {
         patch: operations["rename"];
         trace?: never;
     };
+    "/api/shipping/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The shipping cost of each province with shipping and the free-shipping threshold
+         * @description Public. A province left out has no shipping; a cost of 0 is a free shipping to it. Shipping is free when the subtotal after the discount reaches the threshold.
+         */
+        get: operations["shippingRates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{token}": {
         parameters: {
             query?: never;
@@ -2132,6 +2152,17 @@ export interface components {
             /** Format: int64 */
             priceCents?: number;
             active?: boolean;
+        };
+        ShippingRatesResponse: {
+            zones?: components["schemas"]["ZoneRateResponse"][];
+            /** Format: int64 */
+            freeShippingThresholdCents?: number | null;
+        };
+        ZoneRateResponse: {
+            /** @enum {string} */
+            province?: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
+            /** Format: int64 */
+            costCents?: number;
         };
         TrackedItemResponse: {
             sku?: string;
@@ -5795,6 +5826,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    shippingRates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The costs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShippingRatesResponse"];
                 };
             };
         };

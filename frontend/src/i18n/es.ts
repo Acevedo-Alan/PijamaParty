@@ -1179,6 +1179,53 @@ export const es = {
       signIn: 'Ir a ingresar',
     },
   },
+  /** RNF-31.6 (T-E5-12): the FAQ page and its summary on the product page. */
+  faq: {
+    title: 'Preguntas frecuentes',
+    retry: 'Reintentar',
+    shipping: {
+      question: '¿Cuánto cuesta el envío?',
+      intro: 'El costo depende de la provincia de entrega:',
+      table: 'Costos de envío por provincia',
+      province: 'Provincia',
+      cost: 'Costo',
+      free: 'Gratis',
+      notListed: 'Por ahora no hacemos envíos a las provincias que no figuran en la tabla.',
+      /** The free-shipping threshold of UC-12, compared with the subtotal after the discount. */
+      freeFrom: (amount: string) => `El envío es gratis en compras desde ${amount}, con el descuento aplicado.`,
+      none: 'Por ahora no estamos haciendo envíos.',
+      loading: 'Cargando los costos de envío…',
+      loadError: 'No pudimos cargar los costos de envío.',
+    },
+    delivery: {
+      question: '¿Cuánto tarda en llegar mi pedido?',
+      answer:
+        'A Santa Fe llega en 1 a 3 días hábiles y al resto del país en 3 a 7 días hábiles, contados desde que se acredita el pago.',
+      tracking: 'Cuando despachamos tu pedido, el número de seguimiento aparece en el enlace de tu pedido.',
+    },
+    payment: {
+      question: '¿Cómo puedo pagar?',
+      intro: 'Elegís el medio de pago al finalizar la compra:',
+      loading: 'Cargando los medios de pago…',
+      loadError: 'No pudimos cargar los medios de pago.',
+    },
+    returns: {
+      question: '¿Puedo cambiar o devolver un producto?',
+      withdrawal:
+        'Tenés 10 días corridos desde que recibiste tu compra para arrepentirte, sin costo para vos. Pedilo desde el',
+      policy: 'Conocé todas las condiciones en la',
+      policyLink: 'política de cambios y devoluciones',
+    },
+    /** Below the add to cart of the product page. */
+    summary: {
+      label: 'Envíos y pagos',
+      freeFrom: (amount: string) => `Envío gratis en compras desde ${amount}`,
+      delivery: 'Llega en 1 a 3 días hábiles a Santa Fe y en 3 a 7 al resto del país',
+      /** The payment methods as one phrase, e.g. "Pagá con MercadoPago o MODO". */
+      payWith: (methods: string) => `Pagá con ${methods}`,
+      link: 'Envíos, pagos y cambios',
+    },
+  },
   notFound: {
     title: 'No encontramos esta página',
     body: 'Puede que el enlace esté mal escrito o que la página ya no exista.',

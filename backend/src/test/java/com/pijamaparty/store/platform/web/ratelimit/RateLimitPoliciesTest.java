@@ -31,7 +31,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * search (UC-26) of T-E1-15, cart changes (UC-08, UC-09) of T-E2-04, coupon attempts (UC-10) of T-E2-11, the
  * tracking link and its payment retry (UC-14) of T-E3-08, checkout confirmations (UC-13) of T-E3-19, email
  * corrections (UC-17) of T-E3-23, withdrawal requests (UC-29) of T-E3-27, the customers' sign-in, registration
- * and password recovery (UC-19) of T-E4-10, and the account deletion (UC-28) of T-E4-16. The test client (127.0.0.1)
+ * and password recovery (UC-19) of T-E4-10, the account deletion (UC-28) of T-E4-16, and the shipping costs and payment methods (RNF-31.6) of T-E5-12. The test client (127.0.0.1)
  * plays Caddy, so {@code X-Forwarded-For} is the client IP and each test uses its own addresses.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -149,6 +149,17 @@ class RateLimitPoliciesTest {
 
         assertLimited(firstOfNextRequests(() -> get("/api/catalog/filters", "198.51.100.10")));
         assertThat(get("/api/catalog/filters", "198.51.100.11").getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void givenOneHundredTwentyPurchaseInfoReadsInAMinuteFromOneIp_whenMoreArrive_thenTheyGet429() {
+        for (int i = 0; i < 120; i++) {
+            assertThat(get("/api/shipping/rates", "198.51.100.30").getStatusCode()).isEqualTo(HttpStatus.OK);
+        }
+
+        assertLimited(firstOfNextRequests(() -> get("/api/checkout/payment-providers", "198.51.100.30")));
+        assertLimited(get("/api/shipping/rates", "198.51.100.30"));
+        assertThat(get("/api/shipping/rates", "198.51.100.31").getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test

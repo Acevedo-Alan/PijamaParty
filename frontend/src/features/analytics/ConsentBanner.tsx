@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { FaqLink } from '../help/FaqLink.tsx';
 import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
 import {
   analyticsIds,
@@ -132,6 +133,7 @@ export function StoreFooter() {
     <footer className="site-footer">
       <div className="wrap site-footer-inner">
         <p>{es.store.name}</p>
+        <FaqLink />
         <WithdrawalLink />
         {enabled && (
           <button type="button" className="link-btn" onClick={reopenConsent}>

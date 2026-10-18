@@ -8,6 +8,7 @@ import { trackItemView } from '../analytics/catalogEvents.ts';
 import type { AddAnswer } from '../cart/cartApi.ts';
 import { useAddToCart } from '../cart/useCart.ts';
 import { NotFoundPage } from '../errors/NotFoundPage.tsx';
+import { PurchaseInfoSummary } from '../help/PurchaseInfoSummary.tsx';
 import { MyReviewSection } from '../reviews/MyReviewSection.tsx';
 import { ProductReviewsSection, RatingSummary } from '../reviews/ProductReviews.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
@@ -147,6 +148,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         <p className="pdp-add-error" role="alert">
           <AddProblem answer={add.data} failed={add.isError} />
         </p>
+        <PurchaseInfoSummary />
       </div>
     </div>
   );
