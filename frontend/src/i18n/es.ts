@@ -79,6 +79,11 @@ export const es = {
       count === 0 ? 'Sin stock' : count === 1 ? 'Solo queda 1' : `Solo quedan ${String(count)}`,
     noLongerAvailable: 'Este producto ya no está disponible.',
     addError: 'No pudimos agregar el producto. Probá de nuevo.',
+    /** RNF-31.5: the collapsed size guide of the category, below the size picker. */
+    sizeGuide: 'Ver guía de talles',
+    sizeGuideTable: 'Tabla de talles',
+    /** A blank value of the size guide. */
+    noMeasure: '–',
   },
   reviews: {
     /** UC-24 (T-E5-07): the approved reviews on the product page. */
@@ -432,6 +437,41 @@ export const es = {
       slugUsed: (slug: string) => `Ya hay una categoría con ese nombre (dirección /categoria/${slug}).`,
       invalidName: 'El nombre tiene que tener letras o números y hasta 80 caracteres.',
       hasProducts: 'La categoría tiene productos, así que no se puede eliminar. Podés desactivarla.',
+      notFound: 'La categoría ya no existe.',
+      /** RNF-31.5: opens the category's size guide. */
+      sizeGuide: 'Guía de talles',
+      sizeGuideOf: (name: string) => `Guía de talles de ${name}`,
+    },
+    sizeGuidePage: {
+      /** RNF-31.5 (T-E5-11): the size guide of one category. */
+      title: 'Guía de talles',
+      /** E.g. "Guía de talles de Pijamas de mujer". */
+      heading: (category: string) => `Guía de talles de ${category}`,
+      back: 'Volver a categorías',
+      hint: 'Nombrá las columnas (por ejemplo «Busto (cm)» o «Edad») y cargá una fila por talle. Se muestra en la ficha de cada producto de la categoría.',
+      noGuide: 'Esta categoría todavía no tiene guía de talles.',
+      columnsTitle: 'Columnas',
+      columnLabel: (position: number) => `Columna ${String(position)}`,
+      addColumn: 'Agregar columna',
+      /** E.g. "Quitar la columna Busto (cm)". */
+      removeColumn: (name: string) => `Quitar la columna ${name}`,
+      rowsTitle: 'Talles',
+      rowTitle: (position: number) => `Fila ${String(position)}`,
+      sizeLabel: 'Talle',
+      addRow: 'Agregar talle',
+      removeRow: (position: number) => `Quitar la fila ${String(position)}`,
+      moveUp: (position: number) => `Subir la fila ${String(position)}`,
+      moveDown: (position: number) => `Bajar la fila ${String(position)}`,
+      remove: 'Quitar',
+      note: 'Nota (opcional)',
+      noteHint: 'Por ejemplo, cómo tomarse las medidas.',
+      delete: 'Eliminar guía',
+      confirmDelete: '¿Eliminar la guía de talles? Los productos de la categoría dejan de mostrarla.',
+      deleted: 'Guía eliminada.',
+      invalid: 'Revisá lo marcado.',
+      invalidColumns: 'Entre 1 y 6 columnas con nombres distintos, de hasta 30 caracteres.',
+      invalidRows: 'Entre 1 y 20 talles distintos, de hasta 20 caracteres, con un valor de hasta 20 caracteres en cada columna.',
+      invalidNote: 'La nota puede tener hasta 500 caracteres.',
       notFound: 'La categoría ya no existe.',
     },
     couponList: {

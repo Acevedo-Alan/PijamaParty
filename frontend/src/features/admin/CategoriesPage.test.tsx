@@ -40,6 +40,18 @@ describe('category management (UC-05)', () => {
     expect(rowOf('Pijamas').queryByText(messages.inactive)).not.toBeInTheDocument();
   });
 
+  it('given a category, when its row is shown, then it links to the category size guide (RNF-31.5)', async () => {
+    stubApi({ 'GET /api/admin/auth/me': signedIn, 'GET /api/admin/catalog/categories': listed });
+
+    renderRoute('/admin/categorias');
+
+    const row = await findRow('Batas');
+    expect(row.getByRole('link', { name: messages.sizeGuideOf('Batas') })).toHaveAttribute(
+      'href',
+      '/admin/categorias/c-2/guia-de-talles',
+    );
+  });
+
   it('given an existing category name, when another with the same slug is created, then it is rejected with a clear message', async () => {
     const api = stubApi({
       'GET /api/admin/auth/me': signedIn,

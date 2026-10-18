@@ -73,7 +73,7 @@ class ReviewModerationApiTest {
     @AfterEach
     void cleanUp() {
         owner.execute("truncate review");
-        owner.execute("truncate stock_movement, stock_level, product_image, variant, product, category");
+        owner.execute("truncate stock_movement, stock_level, product_image, variant, product, size_guide, category");
     }
 
     /** A review of Pijama Luna by a new author, last submitted at {@code submittedAt}, in {@code status}. */

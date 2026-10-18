@@ -12,6 +12,7 @@ import { MyReviewSection } from '../reviews/MyReviewSection.tsx';
 import { ProductReviewsSection, RatingSummary } from '../reviews/ProductReviews.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
+import { SizeGuideSection } from './SizeGuideSection.tsx';
 import { productDetailKey, useProductDetail } from './useProductDetail.ts';
 import { VariantPicker } from './VariantPicker.tsx';
 import { findVariant, galleryFor, initialSelection, pickColor, shownPrice } from './variantSelection.ts';
@@ -125,6 +126,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
             add.reset();
           }}
         />
+        {product.sizeGuide !== null && <SizeGuideSection guide={product.sizeGuide} />}
         <p className="stock-note" role="status">
           <StockNote available={variant?.available} />
         </p>

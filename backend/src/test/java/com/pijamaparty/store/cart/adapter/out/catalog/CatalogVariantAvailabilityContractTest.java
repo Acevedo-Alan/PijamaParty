@@ -45,7 +45,7 @@ class CatalogVariantAvailabilityContractTest extends VariantAvailabilityContract
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate stock_movement, stock_level, product_image, variant, product, category");
+        owner.execute("truncate stock_movement, stock_level, product_image, variant, product, size_guide, category");
     }
 
     /** A product of an active category, published or hidden; either may exist already. */

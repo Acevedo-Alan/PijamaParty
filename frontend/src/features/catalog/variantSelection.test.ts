@@ -30,6 +30,7 @@ function detail(overrides: Partial<ProductDetail>): ProductDetail {
     colors: [],
     variants: [],
     images: [],
+    sizeGuide: null,
     ...overrides,
   };
 }

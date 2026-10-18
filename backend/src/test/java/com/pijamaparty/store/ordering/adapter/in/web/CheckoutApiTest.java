@@ -62,7 +62,7 @@ class CheckoutApiTest {
     @AfterEach
     void cleanUp() {
         owner.execute("truncate cart_item, cart, coupon_scope, coupon_redemption, coupon, stock_movement, stock_level, "
-            + "product_image, variant, product, category, shipping_zone_rate");
+            + "product_image, variant, product, size_guide, category, shipping_zone_rate");
         owner.update("update shop_setting set free_shipping_threshold_cents = null");
     }
 

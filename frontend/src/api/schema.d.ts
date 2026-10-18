@@ -129,6 +129,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/catalog/categories/{id}/size-guide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The category's name and its size guide, null without one */
+        get: operations["get_1"];
+        /**
+         * Create or replace the category's size guide
+         * @description Replaces the whole guide. Requires the CSRF token.
+         */
+        put: operations["edit"];
+        post?: never;
+        /**
+         * Delete the category's size guide
+         * @description Also answers 204 when the category had none. Requires the CSRF token.
+         */
+        delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/categories/order": {
         parameters: {
             query?: never;
@@ -1113,7 +1138,7 @@ export interface paths {
          * Delete a category without products
          * @description A category with products can only be deactivated. Requires the CSRF token.
          */
-        delete: operations["delete_1"];
+        delete: operations["delete_2"];
         options?: never;
         head?: never;
         /**
@@ -1368,7 +1393,7 @@ export interface paths {
             cookie?: never;
         };
         /** The shipping cost of every province and the free-shipping threshold */
-        get: operations["get_1"];
+        get: operations["get_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1425,7 +1450,7 @@ export interface paths {
             cookie?: never;
         };
         /** An order with its buyer, address, lines, amounts, next statuses, withdrawal and alerts */
-        get: operations["get_2"];
+        get: operations["get_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1582,7 +1607,7 @@ export interface paths {
          * Delete a review
          * @description Its author can write a new one. Requires the CSRF token.
          */
-        delete: operations["delete_2"];
+        delete: operations["delete_3"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1602,7 +1627,7 @@ export interface paths {
          * Delete a photo of a product
          * @description The other photos close the gap and its files are removed. Requires the CSRF token.
          */
-        delete: operations["delete_3"];
+        delete: operations["delete_4"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1796,6 +1821,26 @@ export interface components {
         };
         ImageOrderRequest: {
             imageIds: string[];
+        };
+        RowRequest: {
+            size: string;
+            values: string[];
+        };
+        SizeGuideRequest: {
+            columns: string[];
+            rows: components["schemas"]["RowRequest"][];
+            note?: string;
+        };
+        AdminSizeGuideResponse: {
+            columns?: string[];
+            rows?: components["schemas"]["SizeGuideRowResponse"][];
+            note?: string | null;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        SizeGuideRowResponse: {
+            size?: string;
+            values?: string[];
         };
         CategoryOrderRequest: {
             categoryIds: string[];
@@ -2187,6 +2232,12 @@ export interface components {
             colors?: string[];
             variants?: components["schemas"]["VariantDetailResponse"][];
             images?: components["schemas"]["DetailImageResponse"][];
+            sizeGuide?: components["schemas"]["SizeGuideResponse"];
+        };
+        SizeGuideResponse: {
+            columns?: string[];
+            rows?: components["schemas"]["SizeGuideRowResponse"][];
+            note?: string | null;
         };
         VariantDetailResponse: {
             /** Format: uuid */
@@ -2380,6 +2431,15 @@ export interface components {
             published?: boolean;
             /** Format: int32 */
             variantCount?: number;
+        };
+        CategoryGuideResponse: {
+            category?: components["schemas"]["SizeGuideCategoryResponse"];
+            guide?: components["schemas"]["AdminSizeGuideResponse"];
+        };
+        SizeGuideCategoryResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
         };
         EnrollmentResponse: {
             secret?: string;
@@ -2897,6 +2957,139 @@ export interface operations {
             };
             /** @description The order does not name every photo exactly once */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The category and its guide */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryGuideResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such category */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SizeGuideRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved guide */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSizeGuideResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such category */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description INVALID_SIZE_GUIDE with the invalid fields */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such category */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5495,7 +5688,7 @@ export interface operations {
             };
         };
     };
-    delete_1: {
+    delete_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -6113,7 +6306,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -6224,7 +6417,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -6489,7 +6682,7 @@ export interface operations {
             };
         };
     };
-    delete_2: {
+    delete_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -6529,7 +6722,7 @@ export interface operations {
             };
         };
     };
-    delete_3: {
+    delete_4: {
         parameters: {
             query?: never;
             header?: never;

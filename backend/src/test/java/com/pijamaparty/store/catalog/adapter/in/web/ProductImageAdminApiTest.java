@@ -114,7 +114,7 @@ class ProductImageAdminApiTest {
     @AfterEach
     void cleanUp() throws IOException {
         processor.saturated = false;
-        owner.execute("truncate product_image, variant, product, category, stock_movement, stock_level");
+        owner.execute("truncate product_image, variant, product, size_guide, category, stock_movement, stock_level");
         FileSystemUtils.deleteRecursively(uploads);
     }
 

@@ -248,17 +248,22 @@ class CatalogController {
         }
     }
 
-    /** {@code id} is what the customer's review of the product refers to (UC-24). */
+    /**
+     * {@code id} is what the customer's review of the product refers to (UC-24); {@code sizeGuide} is the guide of the
+     * product's category, null without one (RNF-31.5).
+     */
     record ProductDetailResponse(UUID id, String slug, String name, String description, String material,
                                  Season season, Audience audience, long fromPriceCents, List<String> sizes,
                                  List<String> colors, List<VariantDetailResponse> variants,
-                                 List<DetailImageResponse> images) {
+                                 List<DetailImageResponse> images,
+                                 @Schema(nullable = true) SizeGuideResponse sizeGuide) {
 
         static ProductDetailResponse of(ProductDetail product) {
             return new ProductDetailResponse(product.id().value(), product.slug(), product.name(), product.description(), product.material(),
                 product.season(), product.audience(), product.fromPrice().cents(), product.sizes(), product.colors(),
                 product.variants().stream().map(VariantDetailResponse::of).toList(),
-                product.images().stream().map(DetailImageResponse::of).toList());
+                product.images().stream().map(DetailImageResponse::of).toList(),
+                product.sizeGuide().map(SizeGuideResponse::of).orElse(null));
         }
     }
 

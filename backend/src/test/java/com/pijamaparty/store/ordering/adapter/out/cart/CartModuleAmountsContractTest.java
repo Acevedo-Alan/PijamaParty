@@ -43,7 +43,7 @@ class CartModuleAmountsContractTest extends CartAmountsContractTest<CartModuleAm
     @AfterEach
     void cleanUp() {
         owner.execute("truncate cart_item, cart, coupon_scope, coupon_redemption, coupon, stock_movement, stock_level, "
-            + "product_image, variant, product, category");
+            + "product_image, variant, product, size_guide, category");
     }
 
     @Override

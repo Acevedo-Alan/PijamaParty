@@ -128,5 +128,5 @@ PAGADO | PREPARANDO → CANCELADO
 | Botón de arrepentimiento | Obligatorio | CU-29 y RNF-30.1; validar el texto y el procedimiento con un profesional |
 | Requisitos legales de la tienda (Data Fiscal, Defensa del Consumidor, IVA contenido, AAIP) | Pendiente | RNF-30; validar con abogado y contador antes de E6 |
 | SEO, datos estructurados y redirecciones desde Treinta | Recomendado | RNF-31.1 a RNF-31.3 |
-| Guía de talles por categoría | Propuesto | RNF-31.5 |
+| Guía de talles por categoría | Decidido | RNF-31.5; columnas definidas por el administrador, una fila por talle y nota opcional (2026-10-18) |
 | Fuera de la primera versión | Propuesto | Favoritos, aviso de reposición de stock, correo de carrito abandonado (requiere consentimiento y contradice la regla de un solo correo), newsletter, tarjetas de regalo, reembolsos desde el sistema e ingreso con Apple |

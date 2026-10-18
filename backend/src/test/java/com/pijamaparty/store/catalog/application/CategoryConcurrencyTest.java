@@ -49,7 +49,7 @@ class CategoryConcurrencyTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate product_image, variant, product, category");
+        owner.execute("truncate product_image, variant, product, size_guide, category");
     }
 
     @Test

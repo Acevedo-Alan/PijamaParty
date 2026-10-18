@@ -76,6 +76,10 @@ export const routes: RouteObject[] = [
         lazy: async () => ({ Component: (await admin()).StockPage }),
       },
       { path: 'categorias', lazy: async () => ({ Component: (await admin()).CategoriesPage }) },
+      {
+        path: 'categorias/:categoryId/guia-de-talles',
+        lazy: async () => ({ Component: (await admin()).SizeGuidePage }),
+      },
       { path: 'cupones', lazy: async () => ({ Component: (await admin()).CouponsPage }) },
       { path: 'resenas', lazy: async () => ({ Component: (await admin()).ReviewsPage }) },
       { path: 'envios', lazy: async () => ({ Component: (await admin()).ShippingPage }) },

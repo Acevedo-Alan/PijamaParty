@@ -78,7 +78,7 @@ class ProductReviewsApiTest {
     @AfterEach
     void cleanUp() {
         owner.execute("truncate review");
-        owner.execute("truncate stock_movement, stock_level, product_image, variant, product, category");
+        owner.execute("truncate stock_movement, stock_level, product_image, variant, product, size_guide, category");
         owner.execute("truncate cart_item, cart, email_outbox, address, user_token, external_identity, pending_link, "
             + "admin_recovery_code, app_user");
         owner.update("delete from spring_session");

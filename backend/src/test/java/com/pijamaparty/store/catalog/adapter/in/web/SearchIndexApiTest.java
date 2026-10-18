@@ -50,7 +50,7 @@ class SearchIndexApiTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate product_image, variant, product, category, stock_movement, stock_level");
+        owner.execute("truncate product_image, variant, product, size_guide, category, stock_movement, stock_level");
     }
 
     @Test

@@ -139,3 +139,50 @@ describe('product detail (UC-03)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' })).toBeInTheDocument();
   });
 });
+
+describe('size guide on the product page (RNF-31.5)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('given a category with a guide, when one of its products opens, then the guide shows the columns, the rows in order and the note', async () => {
+    stubDetail(answer(200, productDetail({
+      sizeGuide: {
+        columns: ['Busto (cm)', 'Cintura (cm)'],
+        rows: [
+          { size: 'M', values: ['88–93', '70–75'] },
+          { size: 'S', values: ['83–87', ''] },
+        ],
+        note: 'Medí sobre la ropa interior.',
+      },
+    })));
+
+    renderRoute('/producto/luna');
+
+    const summary = await screen.findByText(es.product.sizeGuide);
+    await userEvent.click(summary);
+    const table = within(screen.getByRole('table'));
+    expect(table.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
+      es.product.size,
+      'Busto (cm)',
+      'Cintura (cm)',
+    ]);
+    expect(table.getAllByRole('rowheader').map((cell) => cell.textContent)).toEqual(['M', 'S']);
+    const small = table.getAllByRole('row')[2];
+    expect(small === undefined ? [] : within(small).getAllByRole('cell').map((cell) => cell.textContent)).toEqual([
+      '83–87',
+      es.product.noMeasure,
+    ]);
+    expect(screen.getByText('Medí sobre la ropa interior.')).toBeVisible();
+  });
+
+  it('given a category without a guide, when one of its products opens, then no size guide link is shown', async () => {
+    stubDetail(answer(200, productDetail()));
+
+    renderRoute('/producto/luna');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' })).toBeInTheDocument();
+    expect(screen.queryByText(es.product.sizeGuide)).not.toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+});

@@ -14,6 +14,8 @@ import com.pijamaparty.store.catalog.domain.ContentHash;
 import com.pijamaparty.store.catalog.domain.ImageId;
 import com.pijamaparty.store.catalog.domain.ImagePlaceholder;
 import com.pijamaparty.store.catalog.domain.Product;
+import com.pijamaparty.store.catalog.domain.Size;
+import com.pijamaparty.store.catalog.domain.SizeGuide;
 import com.pijamaparty.store.catalog.domain.StorageKey;
 import com.pijamaparty.store.catalog.domain.UploadKey;
 import com.pijamaparty.store.catalog.domain.VariantId;
@@ -30,7 +32,9 @@ class GetProductDetailServiceTest {
     private final InMemoryCategoryStore categories = new InMemoryCategoryStore();
     private final InMemoryProductStore products = new InMemoryProductStore(categories);
     private final InMemoryVariantAvailability availability = new InMemoryVariantAvailability();
-    private final GetProductDetail detail = new GetProductDetailService(categories, products, availability);
+    private final InMemorySizeGuideStore sizeGuides = new InMemorySizeGuideStore(categories);
+    private final GetProductDetail detail = new GetProductDetailService(categories, products, availability,
+        sizeGuides);
 
     private final Category summer = saved(category("Verano", true));
 
@@ -101,6 +105,31 @@ class GetProductDetailServiceTest {
             .isEqualTo(new GetProductDetail.Result.NotFound());
         assertThat(detail.execute(new GetProductDetail.Query("No Existe!")))
             .isEqualTo(new GetProductDetail.Result.NotFound());
+    }
+
+    @Test
+    void givenACategoryWithAGuide_whenOneOfItsProductsOpens_thenTheDetailHasTheWholeGuide() {
+        saved(product(summer.id(), "Pijama", 0, List.of("M"), List.of("Rosa"), 4500));
+        var guide = new SizeGuide(summer.id(), List.of("Busto (cm)", "Cintura (cm)"),
+            List.of(new SizeGuide.Row(new Size("S"), List.of("83–87", "65–69")),
+                new SizeGuide.Row(new Size("M"), List.of("88–93", ""))),
+            Optional.of("Medí sobre la ropa interior."), T0);
+        sizeGuides.save(guide);
+
+        assertThat(found("pijama").sizeGuide()).contains(new SizeGuideView(List.of("Busto (cm)", "Cintura (cm)"),
+            List.of(new SizeGuideView.RowView("S", List.of("83–87", "65–69")),
+                new SizeGuideView.RowView("M", List.of("88–93", ""))),
+            Optional.of("Medí sobre la ropa interior."), T0));
+    }
+
+    @Test
+    void givenACategoryWithoutAGuide_whenOneOfItsProductsOpens_thenTheDetailHasNone() {
+        Category winter = saved(category("Invierno", true));
+        sizeGuides.save(new SizeGuide(winter.id(), List.of("Busto"), List.of(new SizeGuide.Row(new Size("S"),
+            List.of("1"))), Optional.empty(), T0));
+        saved(product(summer.id(), "Pijama", 0, List.of("M"), List.of("Rosa"), 4500));
+
+        assertThat(found("pijama").sizeGuide()).isEmpty();
     }
 
     private ProductDetail found(String slug) {

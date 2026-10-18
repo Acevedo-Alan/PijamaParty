@@ -46,7 +46,7 @@ class CartModuleCheckoutCartsContractTest
     @AfterEach
     void cleanUp() {
         owner.execute("truncate cart_item, cart, coupon_scope, coupon_redemption, coupon, stock_movement, "
-            + "stock_level, product_image, variant, product, category");
+            + "stock_level, product_image, variant, product, size_guide, category");
     }
 
     @Override

@@ -74,7 +74,8 @@ class GuestCartSignInApiTest {
     @AfterEach
     void cleanUp() {
         owner.execute("truncate cart_item, cart, stock_movement, stock_level, product_image, variant, product, "
-            + "category, email_outbox, address, user_token, external_identity, pending_link, admin_recovery_code, app_user");
+            + "size_guide, category, email_outbox, address, user_token, external_identity, pending_link, "
+            + "admin_recovery_code, app_user");
         owner.update("delete from spring_session");
     }
 

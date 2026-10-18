@@ -1,6 +1,6 @@
 # E5 – Promotions and reviews
 
-**Status:** Draft · **Use cases:** UC-23 to UC-25 (and the UC-11 and UC-28 changes they bring) · **Spanish counterpart:** `docs/specs/E5-promos-resenas/spec.md`
+**Status:** Draft · **Use cases:** UC-23 to UC-25 (and the UC-11 and UC-28 changes they bring), and the size guide (RNF-31.5) · **Spanish counterpart:** `docs/specs/E5-promos-resenas/spec.md`
 
 **Modules involved:** `promotions`, `cart`, `ordering`, `reviews`, `catalog.api`, `accounts.api`, `platform`.
 
@@ -160,3 +160,54 @@ Automatic coupons apply on their own when the cart meets their rule; they never 
   - `POST /{id}/approve`, `POST /{id}/reject` → `200` with the review; `404`. Repeating a decision changes nothing (its moderation time stays).
   - `DELETE /{id}` → `204`; `404`.
 - Back office `/admin/resenas`: tabs by status, pending first, with approve, reject and delete (after a confirmation). Rate-limit policy: authenticated back office (300 per minute per user).
+
+---
+
+## Size guide by category (RNF-31.5)
+
+**Actor:** Administrator (edits) and Visitor (reads) · **Module:** `catalog` · **Stage:** E5 (T-E5-11)
+
+**Decisions (T-E5-11, 2026-10-18):** the administrator defines the measurement columns of each category's guide (women's lines measure bust, waist and hips; kids' lines may go by age and height), so the columns are not fixed. Each row is a size as free text, as the variants' sizes are (UC-06), and the product page shows the whole table of its category, not only the product's sizes. A guide may carry a short note on how to measure. A category without a guide shows no link.
+
+**Preconditions:** the administrator is signed in (to edit); the product is listed (UC-03, to read).
+
+**Main flow**
+1. In the back office, the administrator opens a category's size guide from the categories screen (UC-05).
+2. It names the columns, adds one row per size with a value for each column, orders the rows and, optionally, writes a note.
+3. It saves; the guide replaces the category's previous one.
+4. A visitor opening a product of that category sees "Ver guía de talles" next to the size picker, which unfolds the table and the note.
+
+**Alternative flows**
+- Invalid guide (see the rules): it is refused and the form marks what is wrong.
+- The administrator deletes the guide: the product pages of the category no longer show the link.
+- The category is deleted (UC-05, only without products): its guide is deleted with it.
+- The category does not exist or was deleted meanwhile: `404`.
+
+**Business rules**
+- A category has at most one guide. Saving replaces the whole guide; there are no partial edits.
+- Columns: 1 to 6, in the administrator's order. Each name is trimmed, one line, 1 to 30 characters, and unique within the guide ignoring case. Units go in the name when they matter ("Busto (cm)", "Edad").
+- Rows: 1 to 20, in the administrator's order. Each row's size follows the size rules of UC-06 (trimmed, one line, 1 to 20 characters) and is unique within the guide ignoring case.
+- Each row has exactly one value per column: trimmed, one line, at most 20 characters ("83–87", "4 años"). A blank value is allowed and shows as "–".
+- Note: optional, trimmed, at most 500 characters, line breaks allowed; blank is none.
+- The guide of an inactive category can be edited; its products are not listed anyway (UC-01).
+
+**Acceptance criteria**
+- Given a category with a guide, when one of its products opens, then "Ver guía de talles" shows the columns, the rows in the administrator's order and the note.
+- Given a category without a guide, when one of its products opens, then no size guide link is shown.
+- Given a guide with a row that lacks a value for a column, when it is saved, then it is refused and nothing changes.
+- Given two columns with the same name in different case, when the guide is saved, then it is refused.
+- Given a category with a guide, when the administrator deletes the guide, then its products no longer show the link.
+- Given a category without products and with a guide, when the category is deleted, then its guide is deleted too.
+
+**Design notes**
+- **Domain (`catalog.domain`):** `SizeGuide` aggregate (category id, columns, rows, note, `updatedAt`) holding the rules above; `SizeGuideForm.parse` turns what the administrator typed into a `SizeGuide` or the set of invalid fields (`COLUMNS`, `ROWS`, `NOTE`), as `ReviewForm` does in `reviews`.
+- **Inbound ports (`catalog.application`):** `GetSizeGuide` (the administrator's view: the category's name and its guide or none), `EditSizeGuide` (creates or replaces it) and `DeleteSizeGuide`; each command carries the `Actor`, and any actor other than `ADMIN` gets `Forbidden`. `GetProductDetail` adds the category's guide to `ProductDetail` (UC-03).
+- **Outbound ports:** `LoadSizeGuides` (by category), `SaveSizeGuide` (upsert; `CATEGORY_NOT_FOUND` when the category is gone, on the foreign key) and `RemoveSizeGuide`.
+- **Schema (V38):** `size_guide` with `category_id` (primary key, foreign key to `category`, deleted with it), `column_names` (`text[]`), `sizes` (`text[]`), `cells` (two-dimensional `text[]`, one row per size and one value per column, which PostgreSQL keeps rectangular), `note` (null or 1 to 500 characters) and `updated_at`. Checks on the counts and lengths back the domain. Public data: no Row Level Security (RNF-27), as the rest of the catalog.
+- **Endpoints** under `/api/admin/catalog/categories/{id}/size-guide` (every write requires the CSRF token; rate-limit policy: authenticated back office):
+  - `GET` → `200 {category: {id, name}, guide}`, `guide` `null` or `{columns, rows: [{size, values}], note, updatedAt}`; `404` unknown category.
+  - `PUT {columns, rows: [{size, values}], note?}` → `200` the guide; `404` unknown category; `422` `INVALID_SIZE_GUIDE` with `fields` (`columns`, `rows`, `note`).
+  - `DELETE` → `204` (also when the category had no guide); `404` unknown category.
+- **Product detail:** `GET /api/catalog/products/{slug}` adds `sizeGuide`: `null` or `{columns, rows: [{size, values}], note}`.
+- **Back office (T-E5-11):** each row of `/admin/categorias` links to `/admin/categorias/{id}/guia-de-talles`, a one-column form at 360 px (RNF-26): the column names (add, remove), the rows (size and one value per column; add, remove, move up or down), the note, "Guardar" and "Eliminar guía" (after a confirmation). A `422` marks the invalid parts.
+- **Product page (T-E5-11):** right below the size picker, a collapsed "Ver guía de talles" section holds the table (size first, then the columns) and the note. The table scrolls sideways inside its box when it does not fit, never the page.

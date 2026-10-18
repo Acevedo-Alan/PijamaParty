@@ -13,12 +13,14 @@ class GetProductDetailService implements GetProductDetail {
     private final LoadCategories categories;
     private final LoadProducts products;
     private final VariantAvailabilityLookup availability;
+    private final LoadSizeGuides sizeGuides;
 
     GetProductDetailService(LoadCategories categories, LoadProducts products,
-                            VariantAvailabilityLookup availability) {
+                            VariantAvailabilityLookup availability, LoadSizeGuides sizeGuides) {
         this.categories = categories;
         this.products = products;
         this.availability = availability;
+        this.sizeGuides = sizeGuides;
     }
 
     @Override
@@ -34,6 +36,7 @@ class GetProductDetailService implements GetProductDetail {
         }
         Product product = listed.get();
         var stock = availability.availableOf(product.sellableVariants().stream().map(Variant::id).toList());
-        return new Result.Found(ProductDetail.of(product, stock));
+        var sizeGuide = sizeGuides.findByCategory(product.details().categoryId()).map(SizeGuideView::of);
+        return new Result.Found(ProductDetail.of(product, stock, sizeGuide));
     }
 }

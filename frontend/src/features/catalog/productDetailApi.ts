@@ -5,6 +5,7 @@ import type { Season } from './listingCriteria.ts';
 
 type DetailResponse = components['schemas']['ProductDetailResponse'];
 type VariantResponse = components['schemas']['VariantDetailResponse'];
+type SizeGuideResponse = components['schemas']['SizeGuideResponse'];
 
 /** An active priced variant with its own price and exact available stock (UC-03). */
 export interface DetailVariant {
@@ -15,6 +16,13 @@ export interface DetailVariant {
   color: string;
   priceCents: number;
   available: number;
+}
+
+/** The size guide of the product's category (RNF-31.5): one value per column in each row; blank values show "–". */
+export interface SizeGuide {
+  columns: string[];
+  rows: { size: string; values: string[] }[];
+  note: string | null;
 }
 
 /** A photo of the gallery: of one color, or of the whole product when the color is null. */
@@ -37,6 +45,8 @@ export interface ProductDetail {
   variants: DetailVariant[];
   /** The photos of the whole product and of the shown colors, by position. */
   images: DetailImage[];
+  /** Null when the category has no guide, so the page shows no link. */
+  sizeGuide: SizeGuide | null;
 }
 
 /** GET /api/catalog/products/{slug}. A product that is not listed is an expected answer, not an error. */
@@ -47,6 +57,22 @@ function toVariant({ id, sku, size, color, priceCents, available }: VariantRespo
     throw new Error('Incomplete variant in the product detail');
   }
   return { id, sku, size, color, priceCents, available: available ?? 0 };
+}
+
+function toSizeGuide({ columns, rows, note }: SizeGuideResponse): SizeGuide {
+  if (columns === undefined || rows === undefined) {
+    throw new Error('Incomplete size guide');
+  }
+  return {
+    columns,
+    rows: rows.map(({ size, values }) => {
+      if (size === undefined || values === undefined) {
+        throw new Error('Incomplete size guide row');
+      }
+      return { size, values };
+    }),
+    note: note ?? null,
+  };
 }
 
 function toDetail(data: DetailResponse): ProductDetail {
@@ -70,6 +96,7 @@ function toDetail(data: DetailResponse): ProductDetail {
     colors: data.colors ?? [],
     variants: (data.variants ?? []).map(toVariant),
     images,
+    sizeGuide: data.sizeGuide ? toSizeGuide(data.sizeGuide) : null,
   };
 }
 

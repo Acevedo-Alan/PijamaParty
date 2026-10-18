@@ -58,7 +58,7 @@ class ProductSearchApiTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate stock_movement, stock_level, product_image, variant, product, category");
+        owner.execute("truncate stock_movement, stock_level, product_image, variant, product, size_guide, category");
     }
 
     @Test

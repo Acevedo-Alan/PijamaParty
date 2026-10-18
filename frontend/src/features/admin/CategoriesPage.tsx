@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, type SubmitEvent } from 'react';
+import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import {
   createCategory,
@@ -143,6 +144,13 @@ function CategoryRow({ category, index, count, busy, onRename, onMove, onToggleA
           >
             ↓
           </button>
+          <Link
+            to={`/admin/categorias/${category.id}/guia-de-talles`}
+            className="btn btn-secondary"
+            aria-label={messages.sizeGuideOf(category.name)}
+          >
+            {messages.sizeGuide}
+          </Link>
           <button type="button" className="btn btn-secondary" disabled={busy} onClick={onToggleActive}>
             {category.active ? messages.deactivate : messages.activate}
           </button>
