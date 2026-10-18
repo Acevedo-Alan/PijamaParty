@@ -227,6 +227,35 @@
   accent-color: var(--accent);
 }
 
+/* UC-23: the categories and products of an automatic coupon. */
+.scope-picker,
+.scope-picker fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.scope-picker legend {
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.check-list {
+  max-height: 264px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.check-list .switch {
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
 .photo-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

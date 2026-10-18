@@ -27,7 +27,7 @@ class CreateCouponService implements CreateCoupon {
         if (!command.actor().is(Role.ADMIN)) {
             return new Result.Forbidden();
         }
-        return switch (command.coupon().parse(CouponId.of(ids.newId()), true)) {
+        return switch (command.coupon().parse(CouponId.of(ids.newId()), true, command.automatic())) {
             case CouponInput.Parsed.Invalid invalid -> new Result.InvalidFields(invalid.fields());
             case CouponInput.Parsed.Valid valid -> save(valid.coupon());
         };

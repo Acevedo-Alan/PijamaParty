@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
-import { coupon, problem, signedIn, stubApi } from '../../test/adminApi.ts';
+import { category, coupon, problem, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
@@ -94,6 +94,8 @@ describe('coupon management (UC-11)', () => {
       validUntil: '2027-05-31',
       maxUses: null,
       minimumPurchaseCents: 2_000_000,
+      automatic: false,
+      scope: { productIds: [], categoryIds: [] },
     });
     expect(created.getByLabelText(form.code)).toHaveValue('');
     expect(api.callsTo('GET /api/admin/coupons')).toHaveLength(2);
@@ -228,5 +230,158 @@ describe('coupon management (UC-11)', () => {
         minimumPurchaseCents: 2_000_000,
       },
     });
+  });
+});
+
+describe('automatic coupons (UC-11, UC-23)', () => {
+  const catalog = {
+    'GET /api/admin/catalog/categories': answer(200, [category('c-1', 'Pijamas'), category('c-2', 'Camisones')]),
+    'GET /api/admin/catalog/products': answer(200, {
+      items: [
+        { id: 'p-1', categoryId: 'c-1', name: 'Pijama Luna', slug: 'pijama-luna', published: true, variantCount: 2 },
+        { id: 'p-2', categoryId: 'c-2', name: 'Camisón Sol', slug: 'camison-sol', published: true, variantCount: 1 },
+      ],
+      hasMore: false,
+    }),
+  };
+  const automatic = coupon('k-4', 'VERANO10', {
+    automatic: true,
+    scope: { productIds: [], categoryIds: ['c-1'] },
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('given an automatic coupon, when it is created with a scope of one category, then the list shows it as automatic with that category', async () => {
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/coupons': [answer(200, []), answer(200, [automatic])],
+      'POST /api/admin/coupons': answer(201, automatic),
+      ...catalog,
+    });
+    renderRoute('/admin/cupones');
+    await screen.findByText(messages.empty);
+
+    const created = newCouponForm();
+    expect(created.queryByRole('group', { name: form.scope })).not.toBeInTheDocument();
+    await userEvent.click(created.getByRole('checkbox', { name: form.automatic }));
+    await userEvent.type(created.getByLabelText(form.code), 'verano10');
+    await userEvent.type(created.getByLabelText(form.percent), '10');
+    const scope = within(created.getByRole('group', { name: form.scope }));
+    await userEvent.click(await scope.findByRole('checkbox', { name: 'Pijamas' }));
+    expect(scope.getByText(form.scopeCount(1))).toBeInTheDocument();
+    await userEvent.click(created.getByRole('button', { name: messages.create }));
+
+    const row = await findRow('VERANO10');
+    expect(row.getByText(messages.automatic)).toBeInTheDocument();
+    expect(row.getByText(messages.scope('Pijamas'))).toBeInTheDocument();
+    expect(api.callsTo('POST /api/admin/coupons')[0]?.options.body).toMatchObject({
+      code: 'verano10',
+      automatic: true,
+      scope: { productIds: [], categoryIds: ['c-1'] },
+    });
+  });
+
+  it('given a scope picked and then automatic unticked, when created, then it goes as a code coupon without a scope', async () => {
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/coupons': answer(200, []),
+      'POST /api/admin/coupons': answer(201, coupon('k-5', 'OTONO')),
+      ...catalog,
+    });
+    renderRoute('/admin/cupones');
+    await screen.findByText(messages.empty);
+
+    const created = newCouponForm();
+    await userEvent.click(created.getByRole('checkbox', { name: form.automatic }));
+    await userEvent.click(await created.findByRole('checkbox', { name: 'Pijama Luna' }));
+    await userEvent.click(created.getByRole('checkbox', { name: form.automatic }));
+    await userEvent.type(created.getByLabelText(form.code), 'OTONO');
+    await userEvent.type(created.getByLabelText(form.percent), '10');
+    await userEvent.click(created.getByRole('button', { name: messages.create }));
+
+    await screen.findByText(es.admin.saved);
+    expect(api.callsTo('POST /api/admin/coupons')[0]?.options.body).toMatchObject({
+      automatic: false,
+      scope: { productIds: [], categoryIds: [] },
+    });
+  });
+
+  it('given products, when the filter is typed, then only the matching products are offered', async () => {
+    stubApi({ 'GET /api/admin/auth/me': signedIn, 'GET /api/admin/coupons': answer(200, []), ...catalog });
+    renderRoute('/admin/cupones');
+    await screen.findByText(messages.empty);
+
+    const created = newCouponForm();
+    await userEvent.click(created.getByRole('checkbox', { name: form.automatic }));
+    await userEvent.type(await created.findByLabelText(form.productFilter), 'camisón');
+
+    expect(created.getByRole('checkbox', { name: 'Camisón Sol' })).toBeInTheDocument();
+    expect(created.queryByRole('checkbox', { name: 'Pijama Luna' })).not.toBeInTheDocument();
+    await userEvent.type(created.getByLabelText(form.productFilter), 'xyz');
+    expect(created.getByText(form.noProducts)).toBeInTheDocument();
+  });
+
+  it('given automatic coupons, when listed, then the scope shows by name, a removed target as such and none as the whole cart', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/coupons': answer(200, [
+        coupon('k-6', 'MIXTO', { automatic: true, scope: { productIds: ['p-2', 'p-9'], categoryIds: ['c-1'] } }),
+        coupon('k-7', 'TODO', { automatic: true }),
+        coupon('k-8', 'CODIGO'),
+      ]),
+      ...catalog,
+    });
+    renderRoute('/admin/cupones');
+
+    const mixed = await findRow('MIXTO');
+    expect(await mixed.findByText(messages.scope(`Pijamas, Camisón Sol, ${messages.removed}`))).toBeInTheDocument();
+    expect(rowOf('TODO').getByText(messages.wholeCart)).toBeInTheDocument();
+    expect(rowOf('CODIGO').queryByText(messages.automatic)).not.toBeInTheDocument();
+    expect(rowOf('CODIGO').queryByText(messages.wholeCart)).not.toBeInTheDocument();
+  });
+
+  it('given an automatic coupon, when edited, then automatic cannot change and its scope can', async () => {
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/coupons': answer(200, [automatic]),
+      'PUT /api/admin/coupons/{id}': answer(200, automatic),
+      ...catalog,
+    });
+    renderRoute('/admin/cupones');
+
+    await userEvent.click((await findRow('VERANO10')).getByRole('button', { name: messages.edit }));
+    const edited = within(screen.getByText(messages.editing('VERANO10')).closest('li') as HTMLElement);
+    expect(edited.queryByRole('checkbox', { name: form.automatic })).not.toBeInTheDocument();
+    expect(await edited.findByRole('checkbox', { name: 'Pijamas' })).toBeChecked();
+    await userEvent.click(edited.getByRole('checkbox', { name: 'Camisón Sol' }));
+    await userEvent.click(edited.getByRole('button', { name: es.admin.save }));
+
+    await screen.findByText(es.admin.saved);
+    expect(api.callsTo('PUT /api/admin/coupons/{id}')[0]?.options.body).toMatchObject({
+      automatic: true,
+      scope: { productIds: ['p-2'], categoryIds: ['c-1'] },
+    });
+  });
+
+  it('given a scope the server refuses, when created, then the scope is marked with its message', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/coupons': answer(200, []),
+      'POST /api/admin/coupons': problem(422, { fields: ['SCOPE'] }),
+      ...catalog,
+    });
+    renderRoute('/admin/cupones');
+    await screen.findByText(messages.empty);
+
+    const created = newCouponForm();
+    await userEvent.click(created.getByRole('checkbox', { name: form.automatic }));
+    await userEvent.type(created.getByLabelText(form.code), 'VERANO10');
+    await userEvent.type(created.getByLabelText(form.percent), '10');
+    await userEvent.click(created.getByRole('button', { name: messages.create }));
+
+    expect(await created.findByText(form.errors.SCOPE)).toBeInTheDocument();
+    expect(created.getAllByRole('alert').some((alert) => alert.textContent === form.invalid)).toBe(true);
   });
 });

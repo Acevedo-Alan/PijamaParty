@@ -12,7 +12,9 @@ import {
   type DeleteAnswer,
 } from './couponsApi.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
+import { useCategories } from './useCategories.ts';
 import { COUPONS_KEY, useCoupons } from './useCoupons.ts';
+import { useProductSummaries } from './useProductSummaries.ts';
 
 const messages = es.admin.couponList;
 
@@ -41,6 +43,32 @@ function validityText({ validFrom, validUntil }: Coupon): string {
   return messages.noExpiry;
 }
 
+function hasScope({ scope }: Coupon): boolean {
+  return scope.categoryIds.length + scope.productIds.length > 0;
+}
+
+/** The catalog's names by id; null while they are not read. */
+type ScopeNames = { categories: ReadonlyMap<string, string>; products: ReadonlyMap<string, string> } | null;
+
+/**
+ * UC-23: what an automatic coupon discounts, categories first, by the catalog's names; a target the catalog no longer
+ * has is "Eliminado".
+ */
+function scopeText(coupon: Coupon, names: ScopeNames): string {
+  const { categoryIds, productIds } = coupon.scope;
+  if (!hasScope(coupon)) {
+    return messages.wholeCart;
+  }
+  if (names === null) {
+    return messages.scopeCount(categoryIds.length + productIds.length);
+  }
+  const targets = [
+    ...categoryIds.map((id) => names.categories.get(id) ?? messages.removed),
+    ...productIds.map((id) => names.products.get(id) ?? messages.removed),
+  ];
+  return messages.scope(targets.join(', '));
+}
+
 function deleteProblem(answer: DeleteAnswer): string | null {
   switch (answer.status) {
     case 'deleted':
@@ -54,13 +82,14 @@ function deleteProblem(answer: DeleteAnswer): string | null {
 
 interface RowProps {
   coupon: Coupon;
+  scopeNames: ScopeNames;
   busy: boolean;
   onSaved: () => void;
   onToggleActive: () => void;
   onDelete: () => void;
 }
 
-function CouponRow({ coupon, busy, onSaved, onToggleActive, onDelete }: RowProps) {
+function CouponRow({ coupon, scopeNames, busy, onSaved, onToggleActive, onDelete }: RowProps) {
   const [editing, setEditing] = useState(false);
 
   if (editing) {
@@ -88,8 +117,10 @@ function CouponRow({ coupon, busy, onSaved, onToggleActive, onDelete }: RowProps
       <div className="admin-card-head">
         <p className="admin-card-title">{coupon.code}</p>
         <p className="admin-card-meta">{discountText(coupon)}</p>
+        {coupon.automatic && <span className="admin-badge published">{messages.automatic}</span>}
         {!coupon.active && <span className="admin-badge">{messages.inactive}</span>}
       </div>
+      {coupon.automatic && <p className="admin-card-meta">{scopeText(coupon, scopeNames)}</p>}
       <p className="admin-card-meta">{validityText(coupon)}</p>
       {coupon.minimumPurchaseCents !== null && (
         <p className="admin-card-meta">{messages.minimum(formatMoney(coupon.minimumPurchaseCents))}</p>
@@ -119,10 +150,21 @@ function CouponRow({ coupon, busy, onSaved, onToggleActive, onDelete }: RowProps
 
 /**
  * UC-11 at /admin/cupones: create, edit, activate, deactivate and delete coupons, and see how many times each one was
- * used. A used coupon cannot be deleted; the message offers to deactivate it.
+ * used. A used coupon cannot be deleted; the message offers to deactivate it. Automatic coupons (UC-23) are marked and
+ * show their scope by the catalog's names.
  */
 export function CouponsPage() {
   const coupons = useCoupons();
+  const scoped = coupons.data?.some(hasScope) === true;
+  const categories = useCategories(scoped);
+  const products = useProductSummaries(scoped);
+  const scopeNames: ScopeNames =
+    categories.data === undefined || products.data === undefined
+      ? null
+      : {
+          categories: new Map(categories.data.map((category) => [category.id, category.name])),
+          products: new Map(products.data.map((product) => [product.id, product.name])),
+        };
   const queryClient = useQueryClient();
   const [notice, setNotice] = useState<Notice | null>(null);
   const newTitleId = useId();
@@ -178,6 +220,7 @@ export function CouponsPage() {
             <CouponRow
               key={coupon.id}
               coupon={coupon}
+              scopeNames={scopeNames}
               busy={change.isPending}
               onSaved={() => {
                 setNotice({ kind: 'ok', text: es.admin.saved });

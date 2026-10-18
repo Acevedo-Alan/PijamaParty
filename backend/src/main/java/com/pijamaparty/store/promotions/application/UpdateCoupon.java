@@ -5,8 +5,8 @@ import com.pijamaparty.store.promotions.domain.CouponId;
 import java.util.Set;
 
 /**
- * UC-11: the administrator replaces every field of a coupon but its state, also when it has uses. Its uses stay, and
- * a confirmed order keeps the discount it got (E3).
+ * UC-11: the administrator replaces every field of a coupon but its state and whether it is automatic (UC-23), also
+ * when it has uses. Its uses stay, and a confirmed order keeps the discount it got (E3).
  */
 public interface UpdateCoupon {
 

@@ -8,6 +8,7 @@ import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.promotions.domain.CouponCode;
 import com.pijamaparty.store.promotions.domain.CouponId;
+import com.pijamaparty.store.promotions.domain.CouponScope;
 import com.pijamaparty.store.promotions.domain.CouponType;
 import java.time.Clock;
 import java.time.Instant;
@@ -17,6 +18,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /** UC-11: the back-office use cases of coupons, over the in-memory store. */
@@ -44,7 +47,8 @@ class CouponAdminServicesTest {
 
         CouponView created = new CouponView(CouponId.of(InMemoryIdGenerator.nth(1)), "VERANO-10",
             CouponType.FIXED_AMOUNT, 500_000, Optional.of(LocalDate.of(2026, 12, 1)),
-            Optional.of(LocalDate.of(2027, 2, 28)), Optional.of(100), Optional.of(Money.of(2_000_000)), true, 0);
+            Optional.of(LocalDate.of(2027, 2, 28)), Optional.of(100), Optional.of(Money.of(2_000_000)), false,
+            CouponScope.WHOLE_CART, true, 0);
         assertThat(result).isEqualTo(new CreateCoupon.Result.Created(created));
         assertThat(list.execute(new ListCoupons.Query(ADMIN))).isEqualTo(new ListCoupons.Result.Listed(
             List.of(created)));
@@ -87,7 +91,7 @@ class CouponAdminServicesTest {
 
         assertThat(result).isEqualTo(new UpdateCoupon.Result.Updated(new CouponView(id, "INVIERNO",
             CouponType.FIXED_AMOUNT, 300_000, Optional.empty(), Optional.of(LocalDate.of(2027, 8, 31)),
-            Optional.of(10), Optional.empty(), false, 4)));
+            Optional.of(10), Optional.empty(), false, CouponScope.WHOLE_CART, false, 4)));
         assertThat(coupons.findByCode(new CouponCode("INVIERNO")))
             .isPresent();
     }
@@ -171,6 +175,73 @@ class CouponAdminServicesTest {
         assertThat(delete.execute(new DeleteCoupon.Command(Actor.anonymous(Optional.empty(), Optional.empty()), id)))
             .isEqualTo(new DeleteCoupon.Result.Forbidden());
         assertThat(coupons.findById(id)).hasValueSatisfying(coupon -> assertThat(coupon.active()).isTrue());
+    }
+
+    @Test
+    void givenAnAutomaticCoupon_whenItIsCreatedWithAScopeOfOneCategory_thenTheListShowsItAsAutomaticWithThatCategory() {
+        UUID category = UUID.randomUUID();
+
+        CouponId id = idOf(create.execute(new CreateCoupon.Command(ADMIN,
+            scoped("VERANO10", new CouponInput.Scope(Set.of(), Set.of(category))), true)));
+
+        assertThat(list.execute(new ListCoupons.Query(ADMIN))).isInstanceOfSatisfying(ListCoupons.Result.Listed.class,
+            listed -> assertThat(listed.coupons()).singleElement().satisfies(coupon -> {
+                assertThat(coupon.id()).isEqualTo(id);
+                assertThat(coupon.automatic()).isTrue();
+                assertThat(coupon.scope()).isEqualTo(new CouponScope(Set.of(), Set.of(category)));
+            }));
+        assertThat(coupons.activeOldestFirst()).singleElement()
+            .satisfies(counted -> assertThat(counted.coupon().id()).isEqualTo(id));
+    }
+
+    @Test
+    void givenACodeCoupon_whenAScopeIsSentForIt_thenItIsRefused() {
+        CouponInput.Scope scope = new CouponInput.Scope(Set.of(UUID.randomUUID()), Set.of());
+
+        assertThat(create.execute(new CreateCoupon.Command(ADMIN, scoped("VERANO10", scope))))
+            .isEqualTo(new CreateCoupon.Result.InvalidFields(Set.of(CouponInput.Field.SCOPE)));
+        CouponId id = idOf(create.execute(new CreateCoupon.Command(ADMIN, percentage("INVIERNO"))));
+        assertThat(update.execute(new UpdateCoupon.Command(ADMIN, id, scoped("INVIERNO", scope))))
+            .isEqualTo(new UpdateCoupon.Result.InvalidFields(Set.of(CouponInput.Field.SCOPE)));
+        assertThat(coupons.findById(id)).hasValueSatisfying(coupon -> assertThat(coupon.scope().isWholeCart()).isTrue());
+    }
+
+    @Test
+    void givenAScopeOfMoreThanOneHundredTargets_whenAnAutomaticCouponIsCreated_thenItIsRefused() {
+        Set<UUID> products = Stream.generate(UUID::randomUUID).limit(60).collect(Collectors.toSet());
+        Set<UUID> categories = Stream.generate(UUID::randomUUID).limit(41).collect(Collectors.toSet());
+
+        assertThat(create.execute(new CreateCoupon.Command(ADMIN,
+            scoped("VERANO10", new CouponInput.Scope(products, categories)), true)))
+            .isEqualTo(new CreateCoupon.Result.InvalidFields(Set.of(CouponInput.Field.SCOPE)));
+        assertThat(create.execute(new CreateCoupon.Command(ADMIN,
+            scoped("VERANO10", new CouponInput.Scope(products, Set.copyOf(List.copyOf(categories).subList(0, 40)))),
+            true))).isInstanceOf(CreateCoupon.Result.Created.class);
+    }
+
+    @Test
+    void givenAnAutomaticCoupon_whenEditedWithAnotherScope_thenItStaysAutomaticWithTheNewScope() {
+        CouponId id = idOf(create.execute(new CreateCoupon.Command(ADMIN,
+            scoped("VERANO10", new CouponInput.Scope(Set.of(), Set.of(UUID.randomUUID()))), true)));
+        UUID product = UUID.randomUUID();
+
+        UpdateCoupon.Result result = update.execute(new UpdateCoupon.Command(ADMIN, id,
+            scoped("VERANO10", new CouponInput.Scope(Set.of(product), Set.of()))));
+
+        assertThat(result).isInstanceOfSatisfying(UpdateCoupon.Result.Updated.class, updated -> {
+            assertThat(updated.coupon().automatic()).isTrue();
+            assertThat(updated.coupon().scope()).isEqualTo(new CouponScope(Set.of(product), Set.of()));
+        });
+        assertThat(update.execute(new UpdateCoupon.Command(ADMIN, id, percentage("VERANO10"))))
+            .isInstanceOfSatisfying(UpdateCoupon.Result.Updated.class, updated -> {
+                assertThat(updated.coupon().automatic()).isTrue();
+                assertThat(updated.coupon().scope()).isEqualTo(CouponScope.WHOLE_CART);
+            });
+    }
+
+    private static CouponInput scoped(String code, CouponInput.Scope scope) {
+        return new CouponInput(code, CouponType.PERCENTAGE, 10, Optional.empty(), Optional.empty(), Optional.empty(),
+            Optional.empty(), scope);
     }
 
     private static CouponInput percentage(String code) {

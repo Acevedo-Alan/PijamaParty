@@ -12,6 +12,7 @@ import com.pijamaparty.store.promotions.application.DeleteCoupon;
 import com.pijamaparty.store.promotions.application.ListCoupons;
 import com.pijamaparty.store.promotions.application.UpdateCoupon;
 import com.pijamaparty.store.promotions.domain.CouponId;
+import com.pijamaparty.store.promotions.domain.CouponScope;
 import com.pijamaparty.store.promotions.domain.CouponType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -49,6 +50,7 @@ class CouponAdminController {
 
     /** Bounds the typed code; a valid one has at most 20 characters, surrounding spaces aside (UC-10). */
     private static final int MAX_TYPED_CODE = 100;
+    private static final int SCOPE_SLACK = 4;
 
     private final ListCoupons list;
     private final CreateCoupon create;
@@ -81,7 +83,8 @@ class CouponAdminController {
 
     @PostMapping
     @Operation(summary = "Create a coupon",
-        description = "The code ignores surrounding spaces and case. The coupon is active. Requires the CSRF token.")
+        description = "The code ignores surrounding spaces and case. The coupon is active. automatic (false when absent) "
+            + "cannot change later; only an automatic coupon may have a scope. Requires the CSRF token.")
     @ApiResponse(responseCode = "201", description = "Created", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = AdminCouponResponse.class)))
     @ApiResponse(responseCode = "409", description = "Another coupon already uses this code; see code",
@@ -89,7 +92,8 @@ class CouponAdminController {
     @ApiResponse(responseCode = "422", description = "Invalid fields; see fields",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> create(@Valid @RequestBody AdminCouponRequest body) {
-        return switch (create.execute(new CreateCoupon.Command(actor(), body.input()))) {
+        return switch (create.execute(new CreateCoupon.Command(actor(), body.input(),
+            Boolean.TRUE.equals(body.automatic())))) {
             case CreateCoupon.Result.Created created ->
                 ResponseEntity.status(HttpStatus.CREATED).body(AdminCouponResponse.of(created.coupon()));
             case CreateCoupon.Result.CodeAlreadyUsed used -> codeAlreadyUsed(used.code());
@@ -100,7 +104,8 @@ class CouponAdminController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Edit a coupon",
-        description = "Replaces every field but the state and the uses, also on a used coupon. Requires the CSRF token.")
+        description = "Replaces every field but the state and the uses, also on a used coupon; automatic is ignored. "
+            + "Requires the CSRF token.")
     @ApiResponse(responseCode = "200", description = "Edited", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = AdminCouponResponse.class)))
     @ApiResponse(responseCode = "404", description = "No such coupon",
@@ -180,7 +185,8 @@ class CouponAdminController {
     private static ResponseEntity<ProblemDetail> invalidFields(Set<CouponInput.Field> fields) {
         var problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY,
             "Code: 3 to 20 letters, digits or hyphens. Percentage: 1 to 100. Amounts: 1 cent to ARS 10,000,000. "
-                + "Maximum uses: 1 to 1,000,000. The validity cannot start after it ends.");
+                + "Maximum uses: 1 to 1,000,000. The validity cannot start after it ends. Only an automatic coupon "
+                + "has a scope, of at most 100 products and categories.");
         problem.setTitle("Invalid coupon");
         problem.setProperty("fields", fields.stream().map(Enum::name).sorted().toList());
         return ResponseEntity.unprocessableEntity().body(problem);
@@ -204,6 +210,8 @@ class CouponAdminController {
      * The coupon as typed; the use case checks the rules.
      *
      * @param discountValue the percent, or the cents of a fixed amount
+     * @param automatic only read when creating; absent is a code coupon
+     * @param scope absent: the whole cart
      */
     record AdminCouponRequest(
         @NotNull @Size(max = MAX_TYPED_CODE) String code,
@@ -212,25 +220,53 @@ class CouponAdminController {
         @Schema(nullable = true) LocalDate validFrom,
         @Schema(nullable = true) LocalDate validUntil,
         @Schema(nullable = true) Integer maxUses,
-        @Schema(nullable = true) Long minimumPurchaseCents) {
+        @Schema(nullable = true) Long minimumPurchaseCents,
+        @Schema(nullable = true) Boolean automatic,
+        @Schema(nullable = true) @Valid ScopeRequest scope) {
 
         CouponInput input() {
             return new CouponInput(code, type, discountValue, Optional.ofNullable(validFrom),
                 Optional.ofNullable(validUntil), Optional.ofNullable(maxUses),
-                Optional.ofNullable(minimumPurchaseCents));
+                Optional.ofNullable(minimumPurchaseCents),
+                scope == null ? CouponInput.Scope.NONE : scope.input());
         }
     }
 
-    /** @param discountValue the percent, or the cents of a fixed amount */
+    /**
+     * UC-23: the products and categories an automatic coupon discounts; repeated ids count once. Each list is only
+     * capped to bound the body, at 4 times the domain limit: the use case answers 422 with {@code SCOPE} above it.
+     */
+    record ScopeRequest(
+        @Schema(nullable = true) @Size(max = SCOPE_SLACK * CouponScope.MAX_TARGETS) List<@NotNull UUID> productIds,
+        @Schema(nullable = true) @Size(max = SCOPE_SLACK * CouponScope.MAX_TARGETS) List<@NotNull UUID> categoryIds) {
+
+        CouponInput.Scope input() {
+            return new CouponInput.Scope(productIds == null ? Set.of() : Set.copyOf(productIds),
+                categoryIds == null ? Set.of() : Set.copyOf(categoryIds));
+        }
+    }
+
+    /**
+     * @param discountValue the percent, or the cents of a fixed amount
+     * @param scope empty lists: the whole cart
+     */
     record AdminCouponResponse(UUID id, String code, CouponType type, long discountValue,
                           @Schema(nullable = true) LocalDate validFrom, @Schema(nullable = true) LocalDate validUntil,
                           @Schema(nullable = true) Integer maxUses, @Schema(nullable = true) Long minimumPurchaseCents,
-                          boolean active, long uses) {
+                          boolean automatic, ScopeResponse scope, boolean active, long uses) {
 
         static AdminCouponResponse of(CouponView view) {
             return new AdminCouponResponse(view.id().value(), view.code(), view.type(), view.discountValue(),
                 view.validFrom().orElse(null), view.validUntil().orElse(null), view.maxUses().orElse(null),
-                view.minimumPurchase().map(Money::cents).orElse(null), view.active(), view.uses());
+                view.minimumPurchase().map(Money::cents).orElse(null), view.automatic(),
+                new ScopeResponse(sorted(view.scope().productIds()), sorted(view.scope().categoryIds())),
+                view.active(), view.uses());
+        }
+
+        private static List<UUID> sorted(Set<UUID> ids) {
+            return ids.stream().sorted().toList();
         }
     }
+
+    record ScopeResponse(List<UUID> productIds, List<UUID> categoryIds) {}
 }

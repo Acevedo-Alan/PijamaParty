@@ -74,7 +74,7 @@ export interface paths {
         get?: never;
         /**
          * Edit a coupon
-         * @description Replaces every field but the state and the uses, also on a used coupon. Requires the CSRF token.
+         * @description Replaces every field but the state and the uses, also on a used coupon; automatic is ignored. Requires the CSRF token.
          */
         put: operations["update"];
         post?: never;
@@ -449,7 +449,7 @@ export interface paths {
         put?: never;
         /**
          * Create a coupon
-         * @description The code ignores surrounding spaces and case. The coupon is active. Requires the CSRF token.
+         * @description The code ignores surrounding spaces and case. The coupon is active. automatic (false when absent) cannot change later; only an automatic coupon may have a scope. Requires the CSRF token.
          */
         post: operations["create"];
         delete?: never;
@@ -1585,6 +1585,12 @@ export interface components {
             maxUses?: number | null;
             /** Format: int64 */
             minimumPurchaseCents?: number | null;
+            automatic?: boolean | null;
+            scope?: components["schemas"]["ScopeRequest"];
+        };
+        ScopeRequest: {
+            productIds?: string[] | null;
+            categoryIds?: string[] | null;
         };
         AdminCouponResponse: {
             /** Format: uuid */
@@ -1602,9 +1608,15 @@ export interface components {
             maxUses?: number | null;
             /** Format: int64 */
             minimumPurchaseCents?: number | null;
+            automatic?: boolean;
+            scope?: components["schemas"]["ScopeResponse"];
             active?: boolean;
             /** Format: int64 */
             uses?: number;
+        };
+        ScopeResponse: {
+            productIds?: string[];
+            categoryIds?: string[];
         };
         ProductRequest: {
             /** Format: uuid */

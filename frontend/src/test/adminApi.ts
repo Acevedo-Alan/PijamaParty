@@ -115,7 +115,7 @@ export function adminProduct(overrides: Partial<ProductBody> = {}): ProductBody 
 
 type CouponBody = components['schemas']['AdminCouponResponse'];
 
-/** An active 10 % coupon without limits nor uses, unless overridden. */
+/** An active 10 % code coupon without limits nor uses, unless overridden. */
 export function coupon(id: string, code: string, overrides: Partial<CouponBody> = {}): CouponBody {
   return {
     id,
@@ -126,6 +126,8 @@ export function coupon(id: string, code: string, overrides: Partial<CouponBody> 
     validUntil: null,
     maxUses: null,
     minimumPurchaseCents: null,
+    automatic: false,
+    scope: { productIds: [], categoryIds: [] },
     active: true,
     uses: 0,
     ...overrides,

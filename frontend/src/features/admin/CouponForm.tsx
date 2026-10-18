@@ -1,11 +1,13 @@
 import { useId, useState, type ReactNode, type SubmitEvent } from 'react';
 import { es } from '../../i18n/es.ts';
 import { centsToPesosInput, parsePesos } from './adminInput.ts';
-import type { CouponData, CouponField, CouponType, SaveAnswer } from './couponsApi.ts';
+import { CouponScopePicker } from './CouponScopePicker.tsx';
+import type { CouponData, CouponField, CouponScope, CouponType, SaveAnswer } from './couponsApi.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 
 const messages = es.admin.couponForm;
 const TYPES: readonly CouponType[] = ['PERCENTAGE', 'FIXED_AMOUNT'];
+const WHOLE_CART: CouponScope = { productIds: [], categoryIds: [] };
 
 /** The form as typed: amounts in pesos, empty texts for the optional fields. */
 interface Draft {
@@ -16,6 +18,9 @@ interface Draft {
   validUntil: string;
   maxUses: string;
   minimum: string;
+  automatic: boolean;
+  /** Kept while "Automático" is unticked, but only an automatic coupon sends it. */
+  scope: CouponScope;
 }
 
 const EMPTY: Draft = {
@@ -26,6 +31,8 @@ const EMPTY: Draft = {
   validUntil: '',
   maxUses: '',
   minimum: '',
+  automatic: false,
+  scope: WHOLE_CART,
 };
 
 function draftOf(coupon: CouponData): Draft {
@@ -37,6 +44,8 @@ function draftOf(coupon: CouponData): Draft {
     validUntil: coupon.validUntil ?? '',
     maxUses: coupon.maxUses === null ? '' : String(coupon.maxUses),
     minimum: coupon.minimumPurchaseCents === null ? '' : centsToPesosInput(coupon.minimumPurchaseCents),
+    automatic: coupon.automatic,
+    scope: coupon.scope,
   };
 }
 
@@ -70,6 +79,8 @@ function parseDraft(draft: Draft): { data: CouponData } | { invalid: CouponField
       validUntil: draft.validUntil === '' ? null : draft.validUntil,
       maxUses,
       minimumPurchaseCents: minimum,
+      automatic: draft.automatic,
+      scope: draft.automatic ? draft.scope : WHOLE_CART,
     },
   };
 }
@@ -130,12 +141,16 @@ interface CouponFormProps {
   onCancel?: () => void;
 }
 
-/** Code, type, value, validity, maximum uses and minimum purchase of a coupon (UC-11), in one column. */
+/**
+ * Code, type, value, validity, maximum uses and minimum purchase of a coupon (UC-11), in one column. A new coupon may
+ * be automatic (UC-23), which cannot change later; an automatic coupon also has its scope.
+ */
 export function CouponForm({ initial, submitLabel, onSubmit, onSaved, onCancel }: CouponFormProps) {
   const [draft, setDraft] = useState<Draft>(() => (initial === null ? EMPTY : draftOf(initial)));
   const [invalid, setInvalid] = useState<CouponField[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [saving, setSaving] = useState(false);
+  const automaticHintId = useId();
 
   function change(next: Partial<Draft>) {
     setDraft({ ...draft, ...next });
@@ -181,6 +196,24 @@ export function CouponForm({ initial, submitLabel, onSubmit, onSaved, onCancel }
 
   return (
     <form className="admin-form" onSubmit={(event) => void submit(event)}>
+      {initial === null && (
+        <div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={draft.automatic}
+              aria-describedby={automaticHintId}
+              onChange={(event) => {
+                change({ automatic: event.target.checked });
+              }}
+            />
+            <span>{messages.automatic}</span>
+          </label>
+          <p id={automaticHintId} className="field-hint">
+            {messages.automaticHint}
+          </p>
+        </div>
+      )}
       <Field label={messages.code} hint={messages.codeHint} field="CODE" invalid={invalid}>
         {(aria) => (
           <input
@@ -278,6 +311,15 @@ export function CouponForm({ initial, submitLabel, onSubmit, onSaved, onCancel }
           />
         )}
       </Field>
+      {draft.automatic && (
+        <CouponScopePicker
+          scope={draft.scope}
+          invalid={invalid.includes('SCOPE')}
+          onChange={(scope) => {
+            change({ scope });
+          }}
+        />
+      )}
       <Feedback notice={notice} />
       <div className="admin-actions">
         <button type="submit" className="btn" disabled={saving}>

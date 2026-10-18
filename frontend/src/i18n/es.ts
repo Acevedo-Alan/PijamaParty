@@ -394,6 +394,15 @@ export const es = {
       create: 'Crear cupón',
       empty: 'Todavía no hay cupones.',
       inactive: 'Inactivo',
+      /** UC-23: a coupon that applies on its own. */
+      automatic: 'Automático',
+      /** What an automatic coupon discounts, e.g. "Alcance: Pijamas, Camisón Luna". */
+      scope: (targets: string) => `Alcance: ${targets}`,
+      wholeCart: 'Alcance: todo el carrito',
+      /** A scope target the catalog no longer has. */
+      removed: 'Eliminado',
+      /** The scope while the catalog names cannot be read, e.g. "Alcance: 3 categorías y productos". */
+      scopeCount: (count: number) => `Alcance: ${String(count)} categorías y productos`,
       /** E.g. "10 % de descuento". */
       percentOff: (percent: number) => `${String(percent)} % de descuento`,
       /** E.g. "$ 2.000 de descuento". */
@@ -430,6 +439,21 @@ export const es = {
       maxUsesHint: 'Opcional. Vacío: sin límite.',
       minimum: 'Compra mínima ($)',
       minimumHint: 'Opcional. Vacío: sin mínimo.',
+      /** UC-23, only when creating: it cannot change later. */
+      automatic: 'Automático',
+      automaticHint:
+        'Se aplica solo cuando el carrito cumple las condiciones, sin escribir el código. El código es el nombre del descuento en el carrito. No se puede cambiar después.',
+      scope: 'Alcance',
+      scopeHint: 'Opcional. Sin elegir nada, descuenta todo el carrito. Hasta 100 categorías y productos en total.',
+      /** How many targets are picked, e.g. "3 de 100 elegidos". */
+      scopeCount: (count: number) => `${String(count)} de 100 elegidos`,
+      categories: 'Categorías',
+      products: 'Productos',
+      productFilter: 'Buscar producto',
+      noProducts: 'Ningún producto coincide.',
+      /** A picked target the catalog no longer has; unticking it takes it out of the scope. */
+      removed: 'Eliminado',
+      scopeLoadError: 'No pudimos cargar las categorías y los productos.',
       codeUsed: (code: string) => `Ya hay un cupón con el código ${code}.`,
       invalid: 'Revisá los campos marcados.',
       errors: {
@@ -438,6 +462,7 @@ export const es = {
         VALIDITY: 'La fecha de inicio no puede ser posterior a la de fin.',
         MAX_USES: 'Un número entero de 1 a 1.000.000.',
         MINIMUM_PURCHASE: 'Un monto de $ 0,01 a $ 10.000.000.',
+        SCOPE: 'Solo un cupón automático tiene alcance, de hasta 100 categorías y productos.',
       },
     },
     shippingPage: {

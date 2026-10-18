@@ -32,7 +32,7 @@ class UpdateCouponService implements UpdateCoupon {
         if (stored.isEmpty()) {
             return new Result.NotFound();
         }
-        return switch (command.coupon().parse(command.couponId(), stored.get().active())) {
+        return switch (command.coupon().parse(command.couponId(), stored.get().active(), stored.get().automatic())) {
             case CouponInput.Parsed.Invalid invalid -> new Result.InvalidFields(invalid.fields());
             case CouponInput.Parsed.Valid valid -> save(valid.coupon());
         };

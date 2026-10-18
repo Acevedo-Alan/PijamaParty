@@ -7,9 +7,25 @@ type AdminCouponResponse = components['schemas']['AdminCouponResponse'];
 export type CouponType = 'PERCENTAGE' | 'FIXED_AMOUNT';
 
 /** The fields the server can refuse (UC-11 `fields`). */
-export type CouponField = 'CODE' | 'DISCOUNT_VALUE' | 'VALIDITY' | 'MAX_USES' | 'MINIMUM_PURCHASE';
+export type CouponField = 'CODE' | 'DISCOUNT_VALUE' | 'VALIDITY' | 'MAX_USES' | 'MINIMUM_PURCHASE' | 'SCOPE';
 
-const COUPON_FIELDS: readonly CouponField[] = ['CODE', 'DISCOUNT_VALUE', 'VALIDITY', 'MAX_USES', 'MINIMUM_PURCHASE'];
+const COUPON_FIELDS: readonly CouponField[] = [
+  'CODE',
+  'DISCOUNT_VALUE',
+  'VALIDITY',
+  'MAX_USES',
+  'MINIMUM_PURCHASE',
+  'SCOPE',
+];
+
+/** UC-23: the products and categories an automatic coupon discounts; both empty is the whole cart. */
+export interface CouponScope {
+  productIds: string[];
+  categoryIds: string[];
+}
+
+/** An automatic coupon's most targets, products and categories together (UC-11). */
+export const MAX_SCOPE_TARGETS = 100;
 
 /** What the administrator types for a coupon; dates as ISO days ("2026-12-01"). */
 export interface CouponData {
@@ -21,6 +37,10 @@ export interface CouponData {
   validUntil: string | null;
   maxUses: number | null;
   minimumPurchaseCents: number | null;
+  /** Whether it applies on its own (UC-23); fixed when created, the server ignores it on an edit. */
+  automatic: boolean;
+  /** Only an automatic coupon has one. */
+  scope: CouponScope;
 }
 
 export interface Coupon extends CouponData {
@@ -53,6 +73,8 @@ function toCoupon(body: AdminCouponResponse): Coupon {
     validUntil: body.validUntil ?? null,
     maxUses: body.maxUses ?? null,
     minimumPurchaseCents: body.minimumPurchaseCents ?? null,
+    automatic: body.automatic === true,
+    scope: { productIds: body.scope?.productIds ?? [], categoryIds: body.scope?.categoryIds ?? [] },
     active: active === true,
     uses: uses ?? 0,
   };

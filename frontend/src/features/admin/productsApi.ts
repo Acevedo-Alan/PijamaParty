@@ -195,6 +195,22 @@ export async function fetchProductSummaries(
   return { items: (data.items ?? []).map(toSummary), hasMore: data.hasMore === true };
 }
 
+/** Bounds the pages read by {@link fetchAllProductSummaries}: 5,000 products, far above the shop's catalog. */
+const MAX_SUMMARY_PAGES = 100;
+
+/** Every product, published or not, newest first, reading the pages one after the other (UC-23 scope pickers). */
+export async function fetchAllProductSummaries(signal?: AbortSignal): Promise<ProductSummary[]> {
+  const products: ProductSummary[] = [];
+  for (let page = 0; page < MAX_SUMMARY_PAGES; page++) {
+    const { items, hasMore } = await fetchProductSummaries(page, signal);
+    products.push(...items);
+    if (!hasMore) {
+      break;
+    }
+  }
+  return products;
+}
+
 export async function fetchAdminProduct(id: string, signal?: AbortSignal): Promise<ProductAnswer> {
   const { data, response } = await api.GET('/api/admin/catalog/products/{id}', {
     params: { path: { id } },

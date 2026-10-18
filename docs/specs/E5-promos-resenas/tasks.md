@@ -4,7 +4,7 @@
 - [x] **T-E5-02** Migraciones: `resena`, ampliación de `cupon` y `cupon_alcance` (el promedio se calcula al leer, ver el plan).
 - [x] **T-E5-03** Motor de reglas de descuento y tipos de regla acordados (CU-23).
 - [x] **T-E5-04** Integrar el motor en el cálculo de totales del carrito y el checkout (CU-23).
-- [ ] **T-E5-05** Backoffice: crear cupones automáticos con su regla (CU-11, CU-23).
+- [x] **T-E5-05** Backoffice: crear cupones automáticos con su regla (CU-11, CU-23).
 - [ ] **T-E5-06** API y pantalla para dejar y editar reseñas con las reglas de elegibilidad (CU-24).
 - [ ] **T-E5-07** Mostrar reseñas y promedio en la ficha del producto (CU-24).
 - [ ] **T-E5-08** Backoffice: moderación de reseñas (CU-25).

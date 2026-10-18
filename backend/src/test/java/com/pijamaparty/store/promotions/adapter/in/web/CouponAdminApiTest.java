@@ -1,6 +1,7 @@
 package com.pijamaparty.store.promotions.adapter.in.web;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -64,6 +66,9 @@ class CouponAdminApiTest {
             .andExpect(jsonPath("$.validUntil").value("2027-02-28"))
             .andExpect(jsonPath("$.maxUses").value(100))
             .andExpect(jsonPath("$.minimumPurchaseCents").value(2_000_000))
+            .andExpect(jsonPath("$.automatic").value(false))
+            .andExpect(jsonPath("$.scope.productIds", hasSize(0)))
+            .andExpect(jsonPath("$.scope.categoryIds", hasSize(0)))
             .andExpect(jsonPath("$.active").value(true))
             .andExpect(jsonPath("$.uses").value(0));
 
@@ -73,6 +78,74 @@ class CouponAdminApiTest {
             .andExpect(jsonPath("$.validUntil").isEmpty())
             .andExpect(jsonPath("$.maxUses").isEmpty())
             .andExpect(jsonPath("$.minimumPurchaseCents").isEmpty());
+    }
+
+    @Test
+    void givenAnAutomaticCoupon_whenCreatedWithAScopeOfOneCategory_thenTheListShowsItAsAutomaticWithThatCategory()
+        throws Exception {
+        UUID category = UUID.randomUUID();
+
+        send(post(COUPONS), """
+            {"code":"VERANO10","type":"PERCENTAGE","discountValue":10,"automatic":true,
+             "scope":{"categoryIds":["%s"]}}
+            """.formatted(category))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.automatic").value(true));
+
+        mvc.perform(get(COUPONS).with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].code").value("VERANO10"))
+            .andExpect(jsonPath("$[0].automatic").value(true))
+            .andExpect(jsonPath("$[0].scope.productIds", hasSize(0)))
+            .andExpect(jsonPath("$[0].scope.categoryIds", contains(category.toString())));
+    }
+
+    @Test
+    void givenACodeCoupon_whenAScopeIsSentForIt_thenItIsRefused() throws Exception {
+        String scope = "\"scope\":{\"productIds\":[\"" + UUID.randomUUID() + "\"]}";
+
+        send(post(COUPONS), "{\"code\":\"VERANO10\",\"type\":\"PERCENTAGE\",\"discountValue\":10," + scope + "}")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.fields", contains("SCOPE")));
+        String id = idOf(create("INVIERNO"));
+        send(put(COUPONS + "/" + id), "{\"code\":\"INVIERNO\",\"type\":\"PERCENTAGE\",\"discountValue\":10,"
+            + "\"automatic\":true," + scope + "}")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.fields", contains("SCOPE")));
+        send(post(COUPONS), "{\"code\":\"OTONO\",\"type\":\"PERCENTAGE\",\"discountValue\":10,"
+            + "\"scope\":{\"productIds\":[null]}}")
+            .andExpect(status().isBadRequest());
+        send(post(COUPONS), "{\"code\":\"OTONO\",\"type\":\"PERCENTAGE\",\"discountValue\":10,\"automatic\":true,"
+            + "\"scope\":{\"categoryIds\":" + json.writeValueAsString(Stream.generate(UUID::randomUUID).limit(101)
+            .toList()) + "}}")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.fields", contains("SCOPE")));
+        send(post(COUPONS), "{\"code\":\"OTONO\",\"type\":\"PERCENTAGE\",\"discountValue\":10,\"automatic\":true,"
+            + "\"scope\":{\"categoryIds\":" + json.writeValueAsString(Stream.generate(UUID::randomUUID).limit(401)
+            .toList()) + "}}")
+            .andExpect(status().isBadRequest());
+        mvc.perform(get(COUPONS).with(ADMIN))
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].automatic").value(false));
+    }
+
+    @Test
+    void givenAnAutomaticCoupon_whenEditedWithoutAutomatic_thenItStaysAutomaticWithTheNewScope() throws Exception {
+        String id = idOf(send(post(COUPONS), """
+            {"code":"VERANO10","type":"PERCENTAGE","discountValue":10,"automatic":true,
+             "scope":{"categoryIds":["%s"]}}
+            """.formatted(UUID.randomUUID())));
+        UUID product = UUID.randomUUID();
+
+        send(put(COUPONS + "/" + id), """
+            {"code":"VERANO10","type":"PERCENTAGE","discountValue":15,"scope":{"productIds":["%s","%s"]}}
+            """.formatted(product, product))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.automatic").value(true))
+            .andExpect(jsonPath("$.discountValue").value(15))
+            .andExpect(jsonPath("$.scope.productIds", contains(product.toString())))
+            .andExpect(jsonPath("$.scope.categoryIds", hasSize(0)));
     }
 
     @Test
