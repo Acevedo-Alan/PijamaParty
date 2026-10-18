@@ -28,6 +28,7 @@ class ReviewsFixture {
     final GetMyReview get = new GetMyReviewService(catalog, purchases, reviews);
     final DeleteCustomerReviews delete = new DeleteCustomerReviewsService(reviews);
     final ExportCustomerReviews export = new ExportCustomerReviewsService(reviews, catalog);
+    final ListApprovedReviews listApproved = new ListApprovedReviewsService(catalog, reviews);
 
     final UserId anaId = UserId.of(UUID.randomUUID());
     final UserId brunoId = UserId.of(UUID.randomUUID());
@@ -38,6 +39,7 @@ class ReviewsFixture {
 
     ReviewsFixture() {
         catalog.add(luna, "Pijama Luna", Set.of(lunaRosaM, UUID.randomUUID()));
+        catalog.list(luna, "pijama-luna");
         names.add(anaId, "Ana María Pérez");
         names.add(brunoId, "Bruno Díaz");
         purchases.bought(anaId, lunaRosaM);

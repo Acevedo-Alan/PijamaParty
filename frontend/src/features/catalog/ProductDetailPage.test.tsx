@@ -3,14 +3,27 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
-import { answer, detailImage, detailVariant, NO_CART, productDetail, withHeader } from '../../test/catalogApi.ts';
+import {
+  answer,
+  detailImage,
+  detailVariant,
+  NO_CART,
+  NO_REVIEWS,
+  productDetail,
+  REVIEWS_PATH,
+  withHeader,
+} from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
-/** Answers the product detail calls in order; the header's cart is empty. */
+/** Answers the product detail calls in order; the header's cart is empty and the product has no reviews. */
 function stubDetail(...answers: never[]) {
   const queue: unknown[] = [...answers];
-  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
-    Promise.resolve(path === '/api/cart' ? NO_CART : queue.shift())));
+  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
+    if (path === '/api/cart') {
+      return Promise.resolve(NO_CART);
+    }
+    return Promise.resolve(path === REVIEWS_PATH ? NO_REVIEWS : queue.shift());
+  }));
 }
 
 const addToCart = () => screen.getByRole('button', { name: es.product.addToCart });

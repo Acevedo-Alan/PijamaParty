@@ -54,3 +54,67 @@
 .my-review-form .btn {
   justify-self: start;
 }
+
+/* The approved reviews on the product page (UC-24, T-E5-07): the average near the price and the list below. */
+.pdp-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.review-stars {
+  color: var(--accent-text);
+  letter-spacing: 1px;
+}
+
+.product-reviews {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  max-width: 640px;
+}
+
+.product-reviews h2 {
+  margin-bottom: 12px;
+}
+
+.product-reviews-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.product-reviews-empty,
+.product-reviews-error {
+  margin-bottom: 12px;
+  color: var(--ink-soft);
+}
+
+.product-review-list {
+  list-style: none;
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.product-review {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.product-review-byline {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.product-review-text {
+  margin-top: 6px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

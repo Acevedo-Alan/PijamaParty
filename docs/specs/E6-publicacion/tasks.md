@@ -22,7 +22,7 @@
 - [ ] **T-E6-20** Prueba de rebote y queja con las direcciones de prueba del proveedor de correo (CU-17).
 - [ ] **T-E6-21** Validar con abogado y contador los requisitos de RNF-30; cargar datos del vendedor, Data Fiscal y enlace a Defensa del Consumidor en el pie, e IVA contenido en precios.
 - [ ] **T-E6-22** Inscribir la base de clientes en el Registro Nacional de Bases de Datos (AAIP) (RNF-30.5). *Trámite del negocio.*
-- [ ] **T-E6-23** `sitemap.xml`, `robots.txt`, canónicas, `noindex` en páginas privadas y datos estructurados de producto (RNF-31.1, RNF-31.2).
+- [ ] **T-E6-23** `sitemap.xml`, `robots.txt`, canónicas, `noindex` en páginas privadas y datos estructurados de producto, con el puntaje de reseñas de CU-24 (RNF-31.1, RNF-31.2).
 - [ ] **T-E6-24** Tabla de correspondencia de URLs de Treinta y redirecciones `301` (RNF-31.3).
 - [ ] **T-E6-25** Revisión de accesibilidad (WCAG 2.1 AA) y páginas 404, 500 y de mantenimiento (RNF-31.4, RNF-31.7).
 - [ ] **T-E6-26** Probar el ingreso con Google y Facebook desde los navegadores integrados de Instagram y Facebook en Android y iPhone (CU-27).

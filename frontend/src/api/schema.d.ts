@@ -1203,6 +1203,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/catalog/products/{slug}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The approved reviews of a listed product, with their average and count
+         * @description 10 per page, from page 0, newest first. average is the mean of the approved ratings with one decimal, null without approved reviews; count is their number.
+         */
+        get: operations["listReviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/catalog/filters": {
         parameters: {
             query?: never;
@@ -2079,6 +2099,21 @@ export interface components {
             priceCents?: number;
             /** Format: int32 */
             available?: number;
+        };
+        ProductReviewsResponse: {
+            /** @example 4.5 */
+            average?: number | null;
+            /** Format: int64 */
+            count?: number;
+            reviews?: components["schemas"]["PublishedReviewResponse"][];
+        };
+        PublishedReviewResponse: {
+            authorName?: string;
+            /** Format: int32 */
+            rating?: number;
+            text?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
         };
         FilterOptionsResponse: {
             sizes?: string[];
@@ -5626,6 +5661,57 @@ export interface operations {
                 };
             };
             /** @description No active category has this slug */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over the catalog limit (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listReviews: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of reviews */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductReviewsResponse"];
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No listed product has this slug */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -4,13 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
-import { answer, NO_CART, productDetail, withHeader } from '../../test/catalogApi.ts';
+import { answer, detailOrNoReviews, NO_CART, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 /** The product page of the pink M pijama (3 in stock), with this cart in the header. */
 function stubStore(currentCart: unknown = NO_CART) {
   return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
-    Promise.resolve(path === '/api/cart' ? currentCart : answer(200, productDetail()))));
+    Promise.resolve(path === '/api/cart' ? currentCart : detailOrNoReviews(path))));
 }
 
 function stubAdd(next: never) {
@@ -155,7 +155,7 @@ async function openWith(...carts: unknown[]) {
   const queue = [...carts];
   const get = vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
     if (path !== '/api/cart') {
-      return Promise.resolve(answer(200, productDetail()));
+      return Promise.resolve(detailOrNoReviews(path));
     }
     return Promise.resolve(queue.length > 1 ? queue.shift() : queue[0]);
   }));

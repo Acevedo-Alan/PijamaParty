@@ -2,6 +2,7 @@ package com.pijamaparty.store.reviews.application;
 
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.reviews.domain.ProductId;
+import com.pijamaparty.store.reviews.domain.RatingSummary;
 import com.pijamaparty.store.reviews.domain.Review;
 import com.pijamaparty.store.reviews.domain.ReviewId;
 import com.pijamaparty.store.reviews.domain.ReviewStatus;
@@ -11,9 +12,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /** Fake of the review store: one review per author and product, as the unique constraint of V37. */
-public class InMemoryReviewStore implements LoadReview, SaveReview, CustomerReviews, RemoveCustomerReviews {
+public class InMemoryReviewStore
+    implements LoadReview, SaveReview, CustomerReviews, RemoveCustomerReviews, ApprovedReviews {
 
     private record Key(UserId author, ProductId product) {}
 
@@ -50,6 +53,28 @@ public class InMemoryReviewStore implements LoadReview, SaveReview, CustomerRevi
         List<Key> own = reviews.keySet().stream().filter(key -> key.author().equals(author)).toList();
         own.forEach(reviews::remove);
         return own.size();
+    }
+
+    @Override
+    public synchronized RatingSummary summaryOf(ProductId product) {
+        List<Review> approved = approvedOf(product).toList();
+        return new RatingSummary(approved.size(),
+            approved.stream().mapToLong(review -> review.content().rating()).sum());
+    }
+
+    @Override
+    public synchronized List<PublishedReview> newestOf(ProductId product, int offset, int limit) {
+        return approvedOf(product)
+            .sorted(Comparator.comparing(Review::createdAt).thenComparing(review -> review.id().value()).reversed())
+            .skip(offset)
+            .limit(limit)
+            .map(review -> new PublishedReview(review.authorName(), review.content(), review.createdAt()))
+            .toList();
+    }
+
+    private Stream<Review> approvedOf(ProductId product) {
+        return reviews.values().stream()
+            .filter(review -> review.product().equals(product) && review.status() == ReviewStatus.APPROVED);
     }
 
     /** UC-25: the administrator's decision on a stored review. */

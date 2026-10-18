@@ -81,6 +81,24 @@ export const es = {
     addError: 'No pudimos agregar el producto. Probá de nuevo.',
   },
   reviews: {
+    /** UC-24 (T-E5-07): the approved reviews on the product page. */
+    product: {
+      title: 'Opiniones',
+      /** The average and count, e.g. "4,5 · 12 opiniones". */
+      summary: (average: string, count: number) =>
+        `${average} · ${count === 1 ? '1 opinión' : `${String(count)} opiniones`}`,
+      /** The accessible name of the average, e.g. "4,5 de 5 estrellas". */
+      stars: (average: string) => `${average} de 5 estrellas`,
+      /** The accessible name of a review's rating, e.g. "4 de 5 estrellas". */
+      rating: (count: number) => `${String(count)} de 5 estrellas`,
+      empty: 'Todavía no hay opiniones de este producto.',
+      loading: 'Cargando opiniones…',
+      loadError: 'No pudimos cargar las opiniones.',
+      retry: 'Reintentar',
+      more: 'Ver más opiniones',
+      loadingMore: 'Cargando…',
+      moreError: 'No pudimos cargar más opiniones. Probá de nuevo.',
+    },
     /** UC-24: the customer's own review on the product page. */
     mine: {
       title: 'Tu opinión',

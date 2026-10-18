@@ -163,3 +163,14 @@ export function productDetail(overrides: Partial<DetailBody> = {}): DetailBody {
     ...overrides,
   };
 }
+
+/** GET of the approved reviews below the product page (UC-24, T-E5-07). */
+export const REVIEWS_PATH = '/api/catalog/products/{slug}/reviews';
+
+/** A product without approved reviews. */
+export const NO_REVIEWS = answer(200, { average: null, count: 0, reviews: [] });
+
+/** The product page's own reads: no approved reviews below it, and {@code detail} for the product. */
+export function detailOrNoReviews(path: string, detail: unknown = answer(200, productDetail())): unknown {
+  return path === REVIEWS_PATH ? NO_REVIEWS : detail;
+}

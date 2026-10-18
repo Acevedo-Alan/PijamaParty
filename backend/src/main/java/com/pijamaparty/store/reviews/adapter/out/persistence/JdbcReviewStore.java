@@ -1,12 +1,15 @@
 package com.pijamaparty.store.reviews.adapter.out.persistence;
 
 import com.pijamaparty.store.platform.domain.UserId;
+import com.pijamaparty.store.reviews.application.ApprovedReviews;
 import com.pijamaparty.store.reviews.application.CustomerReviews;
 import com.pijamaparty.store.reviews.application.LoadReview;
+import com.pijamaparty.store.reviews.application.PublishedReview;
 import com.pijamaparty.store.reviews.application.RemoveCustomerReviews;
 import com.pijamaparty.store.reviews.application.SaveReview;
 import com.pijamaparty.store.reviews.domain.AuthorName;
 import com.pijamaparty.store.reviews.domain.ProductId;
+import com.pijamaparty.store.reviews.domain.RatingSummary;
 import com.pijamaparty.store.reviews.domain.Review;
 import com.pijamaparty.store.reviews.domain.ReviewContent;
 import com.pijamaparty.store.reviews.domain.ReviewId;
@@ -28,7 +31,7 @@ import org.springframework.stereotype.Repository;
  * actor reaches and writes (RNF-27): a customer only its own, always pending moderation.
  */
 @Repository
-class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, RemoveCustomerReviews {
+class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, RemoveCustomerReviews, ApprovedReviews {
 
     private static final String SELECT = """
         SELECT id, product_id, user_id, rating, text, author_name, status, created_at, updated_at, moderated_at
@@ -64,6 +67,22 @@ class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, Remove
     private static final String DELETE_BY_AUTHOR = """
         DELETE FROM review
         WHERE user_id = :author
+        """;
+
+    // The product page (UC-24) over the index review_product_status_idx. The status filter is explicit: a customer
+    // also reaches its own pending and rejected reviews.
+    private static final String APPROVED_SUMMARY = """
+        SELECT count(*) AS count, coalesce(sum(rating), 0) AS rating_sum
+        FROM review
+        WHERE product_id = :product AND status = :approved
+        """;
+
+    private static final String APPROVED_NEWEST = """
+        SELECT author_name, rating, text, created_at
+        FROM review
+        WHERE product_id = :product AND status = :approved
+        ORDER BY created_at DESC, id DESC
+        LIMIT :limit OFFSET :offset
         """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -103,6 +122,26 @@ class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, Remove
     @Override
     public int removeByAuthor(UserId author) {
         return jdbc.update(DELETE_BY_AUTHOR, new MapSqlParameterSource("author", author.value()));
+    }
+
+    @Override
+    public RatingSummary summaryOf(ProductId product) {
+        return jdbc.queryForObject(APPROVED_SUMMARY, approvedOf(product),
+            (row, rowNumber) -> new RatingSummary(row.getLong("count"), row.getLong("rating_sum")));
+    }
+
+    @Override
+    public List<PublishedReview> newestOf(ProductId product, int offset, int limit) {
+        return jdbc.query(APPROVED_NEWEST, approvedOf(product).addValue("offset", offset).addValue("limit", limit),
+            (row, rowNumber) -> new PublishedReview(
+                new AuthorName(row.getString("author_name")),
+                new ReviewContent(row.getInt("rating"), Optional.ofNullable(row.getString("text"))),
+                row.getObject("created_at", OffsetDateTime.class).toInstant()));
+    }
+
+    private static MapSqlParameterSource approvedOf(ProductId product) {
+        return new MapSqlParameterSource("product", product.value())
+            .addValue("approved", ReviewStatus.APPROVED.name());
     }
 
     private static Review row(ResultSet row, int rowNumber) throws SQLException {

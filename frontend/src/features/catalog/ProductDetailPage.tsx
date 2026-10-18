@@ -9,6 +9,7 @@ import type { AddAnswer } from '../cart/cartApi.ts';
 import { useAddToCart } from '../cart/useCart.ts';
 import { NotFoundPage } from '../errors/NotFoundPage.tsx';
 import { MyReviewSection } from '../reviews/MyReviewSection.tsx';
+import { ProductReviewsSection, RatingSummary } from '../reviews/ProductReviews.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
 import { productDetailKey, useProductDetail } from './useProductDetail.ts';
@@ -92,6 +93,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
       />
       <div className="pdp-info">
         <h1>{product.name}</h1>
+        <RatingSummary slug={product.slug} />
         <p className="pdp-price">
           {price.from && `${es.product.fromPrice} `}
           {formatMoney(price.cents)}
@@ -190,6 +192,7 @@ export function ProductDetailPage() {
         <>
           <title>{`${detail.data.product.name} | ${es.store.name}`}</title>
           <ProductDetailView key={detail.data.product.slug} product={detail.data.product} />
+          <ProductReviewsSection key={detail.data.product.slug} slug={detail.data.product.slug} />
           <MyReviewSection key={detail.data.product.id} productId={detail.data.product.id} />
         </>
       )}

@@ -11,6 +11,11 @@ final class CatalogRows {
 
     /** A product of its own category, published or not, without variants. */
     static void product(JdbcTemplate owner, UUID product, String name, boolean published) {
+        product(owner, product, name, "producto-" + product, published);
+    }
+
+    /** A product at {@code slug} of its own category, published or not, without variants. */
+    static void product(JdbcTemplate owner, UUID product, String name, String slug, boolean published) {
         UUID category = UUID.randomUUID();
         owner.update("""
             insert into category (id, name, slug, position, active, created_at, updated_at)
@@ -20,7 +25,7 @@ final class CatalogRows {
             insert into product (id, category_id, name, slug, description, material, season, audience, active,
                                  created_at, updated_at)
             values (?, ?, ?, ?, '', 'Algodón', 'SUMMER', 'WOMEN', ?, now(), now())
-            """, product, category, name, "producto-" + product, published);
+            """, product, category, name, slug, published);
     }
 
     /** A variant of the product, which the catalog sells or no longer sells. */

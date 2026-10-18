@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
-import { answer, NO_CART, productDetail, withHeader } from '../../test/catalogApi.ts';
+import { answer, detailOrNoReviews, NO_CART, productDetail, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 const messages = es.reviews.mine;
@@ -19,7 +19,7 @@ function stubPage(standing: unknown, account: unknown = ANA) {
     if (path === '/api/account/reviews/{productId}') {
       return Promise.resolve(standing);
     }
-    return Promise.resolve(answer(200, productDetail()));
+    return Promise.resolve(detailOrNoReviews(path));
   }, account));
 }
 

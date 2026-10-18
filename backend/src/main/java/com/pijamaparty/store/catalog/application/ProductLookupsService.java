@@ -1,9 +1,11 @@
 package com.pijamaparty.store.catalog.application;
 
+import com.pijamaparty.store.catalog.api.ListedProductIds;
 import com.pijamaparty.store.catalog.api.ProductNames;
 import com.pijamaparty.store.catalog.api.ProductVariantIds;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductId;
+import com.pijamaparty.store.catalog.domain.Slug;
 import com.pijamaparty.store.catalog.domain.Variant;
 import com.pijamaparty.store.catalog.domain.VariantId;
 import java.util.Collection;
@@ -16,13 +18,15 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** UC-24, UC-28: what the reviews module needs to know of a product, published or not. */
+/** UC-24, UC-28: what the reviews module needs to know of a product. */
 @Service
-class ProductLookupsService implements ProductVariantIds, ProductNames {
+class ProductLookupsService implements ProductVariantIds, ProductNames, ListedProductIds {
 
+    private final LoadCategories categories;
     private final LoadProducts products;
 
-    ProductLookupsService(LoadProducts products) {
+    ProductLookupsService(LoadCategories categories, LoadProducts products) {
+        this.categories = categories;
         this.products = products;
     }
 
@@ -45,5 +49,16 @@ class ProductLookupsService implements ProductVariantIds, ProductNames {
                 .ifPresent(details -> names.put(id, details.name().value()));
         }
         return Map.copyOf(names);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<UUID> listedProductId(String slug) {
+        return Slug.parse(slug)
+            .flatMap(products::findBySlug)
+            .filter(product -> categories.findById(product.details().categoryId())
+                .map(product::isListedIn)
+                .orElse(false))
+            .map(product -> product.id().value());
     }
 }

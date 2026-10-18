@@ -9,15 +9,24 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Fake of {@link ProductVariants} and {@link ProductNames}: a product exists once {@link #add} gives it. */
-public class InMemoryCatalogProducts implements ProductVariants, ProductNames {
+/**
+ * Fake of {@link ProductVariants}, {@link ProductNames} and {@link ListedProducts}: a product exists once {@link #add}
+ * gives it, and visitors see it at a slug once {@link #list} does.
+ */
+public class InMemoryCatalogProducts implements ProductVariants, ProductNames, ListedProducts {
 
     private record Product(String name, Set<UUID> variants) {}
 
     private final Map<ProductId, Product> products = new ConcurrentHashMap<>();
+    private final Map<String, ProductId> listed = new ConcurrentHashMap<>();
 
     public void add(ProductId product, String name, Set<UUID> variants) {
         products.put(product, new Product(name, Set.copyOf(variants)));
+    }
+
+    /** Visitors see the product at {@code slug}. */
+    public void list(ProductId product, String slug) {
+        listed.put(slug, product);
     }
 
     @Override
@@ -30,5 +39,10 @@ public class InMemoryCatalogProducts implements ProductVariants, ProductNames {
         Map<ProductId, String> names = new HashMap<>();
         productIds.forEach(id -> Optional.ofNullable(products.get(id)).ifPresent(p -> names.put(id, p.name())));
         return Map.copyOf(names);
+    }
+
+    @Override
+    public Optional<ProductId> bySlug(String slug) {
+        return Optional.ofNullable(listed.get(slug));
     }
 }
