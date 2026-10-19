@@ -294,7 +294,7 @@ Taken as-is from the prototype (`docs/design/prototype/index.html`, read-only re
 | `--maxw` | `1180px` | Maximum content width |
 | `--ff-display` / `--ff-body` | `'Quicksand', sans-serif` | Weights 500, 600, 700 (400 dropped in T-E6-02; text that asks for 400, like form controls, shows 500), self-hosted with `@fontsource/quicksand` (never Google Fonts: no visitor IP sent to a third party, no external dependency on the critical path) |
 
-Breakpoints of the prototype: 640, 860 and 960 px, mobile-first. Motion respects `prefers-reduced-motion`, and hover effects go inside `@media (hover: hover)`. Product photos use the prototype's blurred placeholder (`.ph`) through the `BlurredImage` component, the same idea as the blurred placeholder of UC-06. `tokens.test.ts` checks the prototype values and the contrast ratios above.
+Breakpoints of the prototype: 640, 860 and 960 px, mobile-first. Motion respects `prefers-reduced-motion`, and hover effects go inside `@media (hover: hover)`. Motion tokens (E7, D-16, `docs/use-cases/E7-storefront-design.md` "Motion"): durations `--dur-fast` 120 ms, `--dur-base` 240 ms, `--dur-panel` 320 ms, `--dur-slow` 450 ms and `--dur-entrance` 700 ms; easings `--ease-out` `cubic-bezier(.2, .7, .2, 1)` and `--ease-standard` `cubic-bezier(.4, 0, .2, 1)` (both from the prototype) and `--ease-pop` `cubic-bezier(.34, 1.56, .64, 1)`. Only `transform` and `opacity` are animated, CSS only, no animation library. Product photos use the prototype's blurred placeholder (`.ph`) through the `BlurredImage` component, the same idea as the blurred placeholder of UC-06. `tokens.test.ts` checks the prototype values and the contrast ratios above.
 
 
 ## 12. Decisions that differ from the earlier Spanish specs
