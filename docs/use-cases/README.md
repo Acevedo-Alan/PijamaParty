@@ -41,5 +41,4 @@ Every use case has the same sections:
 | `E3-checkout-and-payments.md` | E3 | UC-12 to UC-18 and UC-29 |
 | `E4-customer-account.md` | E4 | UC-19 to UC-22, UC-27 and UC-28 |
 | `E5-promotions-and-reviews.md` | E5 | UC-23 to UC-25 (and changes to UC-11 and UC-28), size guide (RNF-31.5), shopping information (RNF-31.6) |
-
-Stage E6 follows the same format and is written next.
+| `E6-hardening-and-release.md` | E6 | none (hardening, tests and release; each task is detailed when it starts) |

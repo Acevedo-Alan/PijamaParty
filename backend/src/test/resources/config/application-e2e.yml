@@ -1,0 +1,38 @@
+# T-E6-01: the profile of the end-to-end tests (E2eStoreApplication, started by e2e/playwright.config.ts). Test
+# resources only, so it never reaches the production jar. It overrides config/application.yml, which turns the
+# schedules and the rate limits off for the integration tests: the end-to-end tests run them as in production.
+store:
+  # The storefront served by vite preview (e2e/playwright.config.ts), where MercadoPago sends the buyer back and
+  # notifies the payments.
+  public-url: http://localhost:4173
+  admin:
+    # UC-04: the first administrator, enrolled by e2e/tests/admin.setup.ts
+    email: admin@pijamaparty.test
+    name: Administración E2E
+    initial-password: e2e-admin-password # gitleaks:allow
+  images:
+    uploads-dir: target/e2e-uploads
+  payments:
+    mercadopago:
+      # The MercadoPago stub of e2e/stubs (the real adapters, a fake provider)
+      base-url: http://localhost:8091
+      access-token: e2e-access-token # gitleaks:allow
+      webhook-secret: e2e-webhook-secret # gitleaks:allow
+  ordering:
+    reservation-expiry:
+      # UC-16: every 2 seconds instead of every minute, so the expiry follows the clock moved by the test soon
+      cron: "*/2 * * * * *"
+  notifications:
+    outbox:
+      # UC-17: every 2 seconds instead of every minute, so the emails reach the stub within the tests' timeouts
+      cron: "*/2 * * * * *"
+    resend:
+      # The Resend stub of e2e/stubs
+      base-url: http://localhost:8092
+      api-key: e2e-resend-key # gitleaks:allow
+  rate-limit:
+    # RNF-22: the real policies; the tests stay within them
+    enabled: true
+  e2e:
+    # E2eConfiguration: moves the adjustable clock (loopback only)
+    clock-port: 8093

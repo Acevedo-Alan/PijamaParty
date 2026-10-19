@@ -1,6 +1,6 @@
 # E6 – Tareas
 
-- [ ] **T-E6-01** Pruebas de extremo a extremo de los flujos críticos con Playwright (en TypeScript).
+- [x] **T-E6-01** Pruebas de extremo a extremo de los flujos críticos con Playwright (en TypeScript). Decidido el 2026-10-18: MercadoPago y Resend se reemplazan por stubs locales (los adaptadores reales corren sin cambios) y la compra real en sandbox queda para T-E6-11 y T-E6-15; el pago rechazado conserva la reserva hasta que vence (se corrigió la spec). En el código: el proyecto `e2e/` (Playwright, celular, Chromium) con los seis escenarios de la spec, `E2eStoreApplication` con el perfil `e2e` y un reloj ajustable solo en las fuentes de test, y el job `e2e` de CI. Ver `docs/use-cases/E6-hardening-and-release.md`. Sin migraciones.
 - [ ] **T-E6-02** Medición con Lighthouse y optimización de imágenes, caché y carga diferida.
 - [ ] **T-E6-03** Cabeceras de seguridad, límites de intentos y revisión de logs sin datos personales.
 - [ ] **T-E6-04** Backup diario de base e imágenes fuera del servidor y prueba de restauración.

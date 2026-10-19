@@ -21,7 +21,7 @@ Dejar la tienda lista para producción: probada de punta a punta, respaldada, mo
 
 **Pruebas de extremo a extremo**
 - Compra como invitado con tarjeta aprobada, de punta a punta.
-- Pago rechazado: el stock se libera.
+- Pago rechazado: el pedido conserva la reserva para reintentar el pago; al vencer la reserva, el stock se libera.
 - Última unidad comprada por dos personas a la vez: solo una compra.
 - Cupón inválido, vencido y agotado.
 - Webhook repetido: no duplica stock ni correos.

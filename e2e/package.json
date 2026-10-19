@@ -1,0 +1,20 @@
+{
+  "name": "pijamaparty-store-e2e",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "stubs": "node stubs/server.ts",
+    "typecheck": "tsc --noEmit",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "typescript": "5.9.3"
+  }
+}

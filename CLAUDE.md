@@ -58,6 +58,11 @@ Frontend (run from `frontend/`; Node >= 22.18, npm):
 - Regenerate the typed API client after an API change: run the backend tests (they write `backend/target/openapi/openapi.json`), then `npm run api:generate`
 - Production dependency audit: `npm audit --omit=dev --audit-level=high`
 
+End-to-end tests (run from `e2e/`; Node >= 22.18, Docker running, `npm ci` done in `frontend/` too):
+- Install: `npm ci`, then `npx playwright install chromium`
+- Run (Playwright starts the MercadoPago and Resend stubs, the backend with the `e2e` profile and the frontend build; outside CI it reuses servers already running): `npm test`
+- Checks: `npm run typecheck`
+
 Production stack (from the repository root, with Docker; fill `deploy/secrets/` first, see its README, and set `DOMAIN` in `.env`):
 - Build and start caddy, api, db and the one-shot Flyway `migrate` step: `docker compose -f deploy/docker-compose.yml --env-file .env up -d --build --wait`
 - Try it locally without touching ports 80/443: `DOMAIN=localhost`, `HTTP_PORT=8088`, `HTTPS_PORT=8443` in the env file, then `https://localhost:8443/api/health`
