@@ -9,9 +9,6 @@ import './account.css';
 
 const messages = es.account.verify;
 
-/** The page of the verification link; the token comes in the fragment, which never reaches a server. */
-export const VERIFY_PATH = '/cuenta/verificar';
-
 /**
  * UC-19 (T-E4-02): the link of the verification email. The token is used once, as soon as the page opens; then the
  * sign-in page says the email is verified. Verifying does not sign in.

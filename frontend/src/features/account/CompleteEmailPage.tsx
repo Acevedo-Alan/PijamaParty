@@ -8,9 +8,6 @@ import './account.css';
 
 const messages = es.account.completeEmail;
 
-/** Where the provider's return sends a visitor whose Facebook account gave no email. */
-export const COMPLETE_EMAIL_PATH = '/cuenta/completar-email';
-
 function problemOf(answer: ExternalEmailAnswer | undefined, failed: boolean): string | null {
   if (failed) {
     return messages.error;

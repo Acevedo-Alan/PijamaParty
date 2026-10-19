@@ -12,6 +12,14 @@ export const RECOVER_PATH = '/cuenta/recuperar';
 export const ADDRESSES_PATH = '/cuenta/direcciones';
 export const ORDERS_PATH = '/cuenta/pedidos';
 export const ACCOUNT_PATH = '/cuenta';
+/** The page of the verification link; the token comes in the fragment, which never reaches a server. */
+export const VERIFY_PATH = '/cuenta/verificar';
+/** The page of the reset link; the token comes in the fragment, which never reaches a server. */
+export const RESET_PATH = '/cuenta/restablecer';
+/** The page of the link confirmation link; the token comes in the fragment, which never reaches a server. */
+export const LINK_PATH = '/cuenta/vincular';
+/** Where the provider's return sends a visitor whose Facebook account gave no email. */
+export const COMPLETE_EMAIL_PATH = '/cuenta/completar-email';
 
 /**
  * The header's account entry (UC-19): "Ingresar" when signed out; the greeting, "Mis pedidos" (UC-22), "Mis

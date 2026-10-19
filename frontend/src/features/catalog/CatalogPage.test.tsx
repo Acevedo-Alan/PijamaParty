@@ -48,6 +48,21 @@ describe('catalog grid (UC-01)', () => {
       .not.toBeInTheDocument();
   });
 
+  it('given a listing, when it renders, then the first four photos load eagerly and the first two first (T-E6-02)', async () => {
+    stubCatalogApi({ listings: [listed(products(6, 'p'))] });
+
+    renderRoute('/');
+
+    await screen.findAllByRole('listitem');
+    const photos = screen.getAllByTestId('blurred-image').map((image) => within(image).getByRole('img'));
+    expect(photos.map((photo) => photo.getAttribute('loading'))).toEqual(
+      ['eager', 'eager', 'eager', 'eager', 'lazy', 'lazy'],
+    );
+    expect(photos.map((photo) => photo.getAttribute('fetchpriority'))).toEqual(
+      ['high', 'high', 'auto', 'auto', 'auto', 'auto'],
+    );
+  });
+
   it('given more than 24 matches, when the catalog opens, then 24 are shown and a button to show more', async () => {
     const get = stubCatalogApi({ listings: [listed(products(24, 'first'), true), listed(products(3, 'second'))] });
     renderRoute('/');

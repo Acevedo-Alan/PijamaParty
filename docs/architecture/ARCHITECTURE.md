@@ -292,7 +292,7 @@ Taken as-is from the prototype (`docs/design/prototype/index.html`, read-only re
 | `--danger` | `#B84332` | Errors (5.13:1 on `--bg`; 4.48:1 on `--rose-soft`, avoid small text there) |
 | `--radius-s` / `--radius-m` | `12px` / `16px` | Corners |
 | `--maxw` | `1180px` | Maximum content width |
-| `--ff-display` / `--ff-body` | `'Quicksand', sans-serif` | Weights 400, 500, 600, 700, self-hosted with `@fontsource/quicksand` (never Google Fonts: no visitor IP sent to a third party, no external dependency on the critical path) |
+| `--ff-display` / `--ff-body` | `'Quicksand', sans-serif` | Weights 500, 600, 700 (400 dropped in T-E6-02; text that asks for 400, like form controls, shows 500), self-hosted with `@fontsource/quicksand` (never Google Fonts: no visitor IP sent to a third party, no external dependency on the critical path) |
 
 Breakpoints of the prototype: 640, 860 and 960 px, mobile-first. Motion respects `prefers-reduced-motion`, and hover effects go inside `@media (hover: hover)`. Product photos use the prototype's blurred placeholder (`.ph`) through the `BlurredImage` component, the same idea as the blurred placeholder of UC-06. `tokens.test.ts` checks the prototype values and the contrast ratios above.
 

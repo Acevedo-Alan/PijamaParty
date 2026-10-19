@@ -15,10 +15,16 @@ export interface Variant {
   color: string;
 }
 
+export interface Category {
+  id: string;
+  slug: string;
+}
+
 export interface ProductForSale {
   id: string;
   name: string;
   slug: string;
+  category: Category;
   variants: Variant[];
 }
 
@@ -87,8 +93,8 @@ export class AdminApi {
   }
 
   /**
-   * UC-05, UC-06, UC-07: a published product in a new category, every size and color combination priced and with
-   * stock. The names end in a unique suffix, so tests never collide.
+   * UC-05, UC-06, UC-07: a published product in a new category (or the one given), every size and color combination
+   * priced and with stock. The names end in a unique suffix, so tests never collide.
    */
   async createProductForSale(options: {
     name: string;
@@ -96,14 +102,12 @@ export class AdminApi {
     colors: string[];
     priceCents: number;
     stock: number;
+    category?: Category;
   }): Promise<ProductForSale> {
     const suffix = randomUUID().slice(0, 8);
-    const category = await this.call<{ id: string }>(
-      'POST',
-      '/api/admin/catalog/categories',
-      { name: `Categoría ${suffix}` },
-      201,
-    );
+    const category =
+      options.category ??
+      (await this.call<Category>('POST', '/api/admin/catalog/categories', { name: `Categoría ${suffix}` }, 201));
     const created = await this.call<{ id: string }>(
       'POST',
       '/api/admin/catalog/products',
@@ -128,7 +132,35 @@ export class AdminApi {
       await this.adjustStock(variant.id, options.stock);
     }
     await this.call('POST', `/api/admin/catalog/products/${created.id}/publish`, undefined, 200);
-    return { id: created.id, name: product.name, slug: product.slug, variants: product.variants };
+    return { id: created.id, name: product.name, slug: product.slug, category, variants: product.variants };
+  }
+
+  /** UC-06: uploads a photo (the server converts it with libvips); it goes after the product's other photos. */
+  async uploadPhoto(productId: string, png: Buffer): Promise<void> {
+    const status = await this.page.evaluate(
+      async ({ path, base64, key }) => {
+        const csrf = document.cookie
+          .split(';')
+          .map((cookie) => cookie.trim())
+          .find((cookie) => cookie.startsWith('XSRF-TOKEN='));
+        const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+        const form = new FormData();
+        form.append('file', new Blob([bytes], { type: 'image/png' }), 'photo.png');
+        const response = await fetch(path, {
+          method: 'POST',
+          headers: {
+            'Idempotency-Key': key,
+            ...(csrf === undefined ? {} : { 'X-XSRF-TOKEN': decodeURIComponent(csrf.slice('XSRF-TOKEN='.length)) }),
+          },
+          body: form,
+        });
+        return response.status;
+      },
+      { path: `/api/admin/catalog/products/${productId}/images`, base64: png.toString('base64'), key: randomUUID() },
+    );
+    if (status !== 201) {
+      throw new Error(`Uploading a photo answered ${String(status)}: is libvips installed (VIPS_BIN_DIR)?`);
+    }
   }
 
   /** UC-07: adds (or with a negative quantity, removes) units. */

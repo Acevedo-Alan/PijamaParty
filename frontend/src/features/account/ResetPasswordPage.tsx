@@ -9,9 +9,6 @@ import './account.css';
 
 const messages = es.account.reset;
 
-/** The page of the reset link; the token comes in the fragment, which never reaches a server. */
-export const RESET_PATH = '/cuenta/restablecer';
-
 function problemOf(answer: ResetAnswer | undefined, failed: boolean): string | null {
   if (failed) {
     return messages.error;

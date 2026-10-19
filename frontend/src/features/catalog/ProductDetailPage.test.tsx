@@ -47,6 +47,7 @@ describe('product detail (UC-03)', () => {
     const main = screen.getByRole('img', { name: 'Pijama Luna, foto 1' });
     expect(main).toHaveAttribute('src', '/media/frente-400.webp');
     expect(main).toHaveAttribute('loading', 'eager');
+    expect(main).toHaveAttribute('fetchpriority', 'high');
     expect(get).toHaveBeenCalledWith('/api/catalog/products/{slug}', expect.objectContaining({
       params: { path: { slug: 'luna' } },
     }));

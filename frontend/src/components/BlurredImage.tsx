@@ -16,6 +16,8 @@ interface BlurredImageProps {
   className?: string;
   /** Lazy by default; the main photo of a page loads eagerly because it is the largest paint. */
   loading?: 'lazy' | 'eager';
+  /** 'high' for the photos that are likely the largest paint of the page (T-E6-02, RNF-11). */
+  fetchPriority?: 'high' | 'auto';
 }
 
 function placeholderStyle(placeholder: PlaceholderDataUrl | undefined): CSSProperties | undefined {
@@ -26,7 +28,16 @@ function placeholderStyle(placeholder: PlaceholderDataUrl | undefined): CSSPrope
 }
 
 /** Photo with the prototype's blurred placeholder (.ph): the placeholder fades out once the image has loaded. */
-export function BlurredImage({ src, alt, placeholder, srcSet, sizes, className, loading = 'lazy' }: BlurredImageProps) {
+export function BlurredImage({
+  src,
+  alt,
+  placeholder,
+  srcSet,
+  sizes,
+  className,
+  loading = 'lazy',
+  fetchPriority = 'auto',
+}: BlurredImageProps) {
   const [loaded, setLoaded] = useState(false);
   const classes = ['ph', loaded ? 'loaded' : '', className ?? ''].filter(Boolean).join(' ');
 
@@ -38,6 +49,7 @@ export function BlurredImage({ src, alt, placeholder, srcSet, sizes, className, 
         sizes={sizes}
         alt={alt}
         loading={loading}
+        fetchPriority={fetchPriority}
         decoding="async"
         onLoad={() => {
           setLoaded(true);

@@ -9,9 +9,6 @@ import './account.css';
 
 const messages = es.account.link;
 
-/** The page of the link confirmation link; the token comes in the fragment, which never reaches a server. */
-export const LINK_PATH = '/cuenta/vincular';
-
 /**
  * UC-27 (T-E4-14): the link of the link confirmation email. Opening the page uses nothing, so neither a mail scanner
  * that runs scripts nor a curious click links an account: it says what will be connected, warns whoever did not ask

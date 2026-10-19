@@ -2,36 +2,29 @@ import { Navigate, type RouteObject } from 'react-router';
 import {
   ACCOUNT_PATH,
   ADDRESSES_PATH,
+  COMPLETE_EMAIL_PATH,
+  LINK_PATH,
   ORDERS_PATH,
   RECOVER_PATH,
   REGISTER_PATH,
+  RESET_PATH,
   SIGN_IN_PATH,
+  VERIFY_PATH,
 } from './features/account/AccountLink.tsx';
-import { AddressBookPage } from './features/account/AddressBookPage.tsx';
-import { COMPLETE_EMAIL_PATH, CompleteEmailPage } from './features/account/CompleteEmailPage.tsx';
-import { ConfirmLinkPage, LINK_PATH } from './features/account/ConfirmLinkPage.tsx';
-import { MyAccountPage } from './features/account/MyAccountPage.tsx';
-import { MyOrderPage } from './features/account/MyOrderPage.tsx';
-import { MyOrdersPage } from './features/account/MyOrdersPage.tsx';
-import { RecoverPasswordPage } from './features/account/RecoverPasswordPage.tsx';
-import { RegisterPage } from './features/account/RegisterPage.tsx';
-import { RESET_PATH, ResetPasswordPage } from './features/account/ResetPasswordPage.tsx';
-import { SignInPage as CustomerSignInPage } from './features/account/SignInPage.tsx';
-import { VERIFY_PATH, VerifyEmailPage } from './features/account/VerifyEmailPage.tsx';
 import { CatalogPage } from './features/catalog/CatalogPage.tsx';
 import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
-import { CheckoutPage } from './features/checkout/CheckoutPage.tsx';
-import { CheckoutResultPage } from './features/checkout/CheckoutResultPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
 import { FAQ_PATH } from './features/help/FaqLink.tsx';
-import { FaqPage } from './features/help/FaqPage.tsx';
-import { OrderTrackingPage } from './features/orders/OrderTrackingPage.tsx';
 import { SearchPage } from './features/search/SearchPage.tsx';
 import { StoreLayout } from './features/search/StoreLayout.tsx';
 import { WITHDRAWAL_PATH } from './features/withdrawal/WithdrawalLink.tsx';
-import { WithdrawalPage } from './features/withdrawal/WithdrawalPage.tsx';
 
-/** The back office loads on demand, so shoppers never download it. */
+/**
+ * T-E6-02 (RNF-11): the main bundle holds only the pages shoppers arrive on from links (catalog, product, search).
+ * The rest loads on demand, and the back office as well, so shoppers never download it.
+ */
+const account = () => import('./features/account/accountPages.ts');
+const checkout = () => import('./features/checkout/checkoutPages.ts');
 const admin = () => import('./features/admin/adminPages.ts');
 
 /** Feature folders add their routes here (catalog, cart, checkout, account, admin: ARCHITECTURE.md section 11). */
@@ -43,22 +36,28 @@ export const routes: RouteObject[] = [
       { path: '/categoria/:categorySlug', element: <CatalogPage /> },
       { path: '/producto/:productSlug', element: <ProductDetailPage /> },
       { path: '/buscar', element: <SearchPage /> },
-      { path: '/checkout', element: <CheckoutPage /> },
-      { path: '/checkout/result', element: <CheckoutResultPage /> },
-      { path: '/pedido/:token', element: <OrderTrackingPage /> },
-      { path: WITHDRAWAL_PATH, element: <WithdrawalPage /> },
-      { path: FAQ_PATH, element: <FaqPage /> },
-      { path: REGISTER_PATH, element: <RegisterPage /> },
-      { path: SIGN_IN_PATH, element: <CustomerSignInPage /> },
-      { path: VERIFY_PATH, element: <VerifyEmailPage /> },
-      { path: RECOVER_PATH, element: <RecoverPasswordPage /> },
-      { path: RESET_PATH, element: <ResetPasswordPage /> },
-      { path: COMPLETE_EMAIL_PATH, element: <CompleteEmailPage /> },
-      { path: LINK_PATH, element: <ConfirmLinkPage /> },
-      { path: ACCOUNT_PATH, element: <MyAccountPage /> },
-      { path: ADDRESSES_PATH, element: <AddressBookPage /> },
-      { path: ORDERS_PATH, element: <MyOrdersPage /> },
-      { path: `${ORDERS_PATH}/:orderId`, element: <MyOrderPage /> },
+      { path: '/checkout', lazy: async () => ({ Component: (await checkout()).CheckoutPage }) },
+      { path: '/checkout/result', lazy: async () => ({ Component: (await checkout()).CheckoutResultPage }) },
+      {
+        path: '/pedido/:token',
+        lazy: async () => ({ Component: (await import('./features/orders/OrderTrackingPage.tsx')).OrderTrackingPage }),
+      },
+      {
+        path: WITHDRAWAL_PATH,
+        lazy: async () => ({ Component: (await import('./features/withdrawal/WithdrawalPage.tsx')).WithdrawalPage }),
+      },
+      { path: FAQ_PATH, lazy: async () => ({ Component: (await import('./features/help/FaqPage.tsx')).FaqPage }) },
+      { path: REGISTER_PATH, lazy: async () => ({ Component: (await account()).RegisterPage }) },
+      { path: SIGN_IN_PATH, lazy: async () => ({ Component: (await account()).SignInPage }) },
+      { path: VERIFY_PATH, lazy: async () => ({ Component: (await account()).VerifyEmailPage }) },
+      { path: RECOVER_PATH, lazy: async () => ({ Component: (await account()).RecoverPasswordPage }) },
+      { path: RESET_PATH, lazy: async () => ({ Component: (await account()).ResetPasswordPage }) },
+      { path: COMPLETE_EMAIL_PATH, lazy: async () => ({ Component: (await account()).CompleteEmailPage }) },
+      { path: LINK_PATH, lazy: async () => ({ Component: (await account()).ConfirmLinkPage }) },
+      { path: ACCOUNT_PATH, lazy: async () => ({ Component: (await account()).MyAccountPage }) },
+      { path: ADDRESSES_PATH, lazy: async () => ({ Component: (await account()).AddressBookPage }) },
+      { path: ORDERS_PATH, lazy: async () => ({ Component: (await account()).MyOrdersPage }) },
+      { path: `${ORDERS_PATH}/:orderId`, lazy: async () => ({ Component: (await account()).MyOrderPage }) },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

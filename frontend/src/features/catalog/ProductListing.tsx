@@ -3,10 +3,21 @@ import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { listId, trackItemList } from '../analytics/catalogEvents.ts';
 import { countFilters, type ListingCriteria } from './listingCriteria.ts';
-import { ProductCard } from './ProductCard.tsx';
+import { ProductCard, type CardPhotoPriority } from './ProductCard.tsx';
 import { useProductListing } from './useProductListing.ts';
 
 const SKELETON_CARDS = 8;
+
+/** T-E6-02 (RNF-11): the first row at four columns loads at once, and the first row on a phone comes first. */
+const EAGER_CARDS = 4;
+const HIGH_PRIORITY_CARDS = 2;
+
+function photoPriority(index: number): CardPhotoPriority {
+  if (index < HIGH_PRIORITY_CARDS) {
+    return 'high';
+  }
+  return index < EAGER_CARDS ? 'eager' : 'lazy';
+}
 
 function Skeleton() {
   return (
@@ -108,9 +119,9 @@ export function ProductListing({ category, criteria, onClearFilters, emptyState 
   return (
     <>
       <ul className="grid">
-        {products.map((product) => (
+        {products.map((product, index) => (
           <li key={product.slug}>
-            <ProductCard product={product} />
+            <ProductCard product={product} photo={photoPriority(index)} />
           </li>
         ))}
       </ul>

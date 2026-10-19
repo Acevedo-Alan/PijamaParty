@@ -3,6 +3,9 @@
  * (backend/src/test/resources/config/application-e2e.yml). Test-only credentials: nothing here is a real secret.
  */
 export const STOREFRONT_URL = 'http://localhost:4173';
+/** T-E6-02: the production Caddy image in front of the same backend, for the Lighthouse run (lighthouse/). */
+export const CADDY_HTTPS_PORT = 8443;
+export const CADDY_URL = `https://localhost:${String(CADDY_HTTPS_PORT)}`;
 export const BACKEND_URL = 'http://localhost:8080';
 export const MERCADOPAGO_STUB_PORT = 8091;
 export const RESEND_STUB_PORT = 8092;

@@ -76,11 +76,54 @@ Each task's open decisions are settled with the owner when the task starts and w
 
 ---
 
+## T-E6-02 Lighthouse, images, cache and lazy loading (RNF-11)
+
+**Decided on 2026-10-18:**
+- **The measure is a CI gate, not a one-off run.** Lighthouse (mobile, its default simulated slow 4G and mid-range phone) runs in CI on the home page, a category listing, a product page and the checkout with one product in the cart.
+- **"Loads in under 3 seconds" means Largest Contentful Paint under 3,000 ms** on each of the four pages. The same run also asserts accessibility of 90 or more, the Lighthouse criterion of RNF-31.4. The rest of T-E6-25 is unchanged.
+- **The run measures what production serves.** The production Caddy image (`deploy/caddy/Dockerfile`, with the real Caddyfile and the frontend build) sits in front of the e2e backend, so compression, HTTP/2 and the cache headers are measured too. Each product has a real uploaded photo converted by libvips, because the photo is the largest paint of the listing and the product page.
+- **Already in place, kept:** photos as WebP at 400, 800 and 1200 px with `srcset` and `sizes` (UC-06); lazy photos with the blurred placeholder; the main photo of the product page loaded eagerly; the back office in its own chunk; a one-year immutable cache for `/assets/*`.
+- **Optimizations:**
+  1. **Cache:** `/uploads/*` gets a one-year immutable cache, since every upload gets a new server-generated file name (`StorageKey`, RNF-29.4) and a file never changes. Everything else in the frontend build except `/assets/*` (that is, `index.html`) gets `no-cache`, so a deploy shows at once.
+  2. **Largest paint first:** the first four cards of a listing load their photos eagerly. The first two (the first row on a phone) and the main photo of the product page also get `fetchpriority="high"`.
+  3. **Smaller first download:** the checkout, its result page, order tracking, the withdrawal form, the FAQ and every customer account page load on demand, as the back office already does. The catalog, the product page and search stay in the main bundle, since shoppers arrive on those pages from links.
+  4. **Fonts:** `index.html` preloads the Latin file of Quicksand 500, the body text weight. The 400 weight is dropped: one back office rule asked for it and now asks for 500, and form controls, which default to 400, show 500.
+
+**Design notes**
+- **Where it lives:** the `e2e/` project, as a second Playwright configuration (`playwright.lighthouse.config.ts`, `npm run lighthouse`) with the `lighthouse` npm package. It reuses the administrator setup and `AdminApi`, and leaves `npm test` (T-E6-01) unchanged.
+- **Servers:** the e2e backend (`E2eStoreApplication`) and the Caddy image, started with `DOMAIN=localhost` on `https://localhost:8443`. The container reaches the backend on the host as `api`, and serves the backend's e2e uploads directory as `/uploads`. Caddy's local certificate is accepted only by this test browser.
+- **The photo** is a PNG the test draws itself (a gradient with noise, about as hard to compress as a real photo), uploaded through the back office API, so no binary file lives in the repository.
+- **Cold load:** before each page is measured the test clears the browser cache. It does not clear cookies, so the checkout keeps its cart.
+- **libvips:** the CI job installs it, as the backend job does. Locally the Lighthouse run needs `vips` on the PATH or `VIPS_BIN_DIR`, like `VipsImageProcessorContractTest`.
+- **Reports:** the HTML report of each page goes to `e2e/lighthouse-report/` and becomes a CI artifact on every run.
+
+**As built (2026-10-18)**
+- First local run (Windows, Docker Desktop, libvips 8.18.7), against the production Caddy image:
+
+  | Page | LCP | Accessibility | Performance |
+  |---|---|---|---|
+  | Home | 2,215 ms | 100 | 94 |
+  | Category listing | 2,206 ms | 100 | 96 |
+  | Product page | 2,413 ms | 100 | 95 |
+  | Checkout, one product | 1,865 ms | 100 | 94 |
+
+- The main bundle went from 159 KB to about 151 KB gzipped. Most of what remains is React, the router and the query library.
+- The frontend tests' `renderRoute` loads the on-demand pages up front, so page tests render synchronously. `routes.test.tsx` checks which routes are on demand and opens one by URL with the real routes.
+- `@photo file` in the Caddyfile limits the immutable header to photos that exist; a missing photo's `404` is not cached.
+
+**Acceptance criteria**
+- Given the home page, a category listing, a product page and the checkout with one product, when Lighthouse measures them in mobile mode against the production Caddy image, then each one has Largest Contentful Paint under 3,000 ms and accessibility of 90 or more.
+- Given a push to `main`, when CI runs, then the `lighthouse` job runs those measures and fails the build if any is missed.
+- Given an uploaded photo, when Caddy serves it under `/uploads/`, then it carries `Cache-Control: public, max-age=31536000, immutable`; given `index.html`, then it carries `Cache-Control: no-cache`.
+- Given a listing, when it renders, then the photos of the first four cards load eagerly and those of the first two have `fetchpriority="high"`; the rest load lazily.
+- Given a shopper who opens the home page, when the main bundle loads, then it holds no code of the checkout, order tracking, withdrawal, FAQ or account pages; those pages still work when opened directly by URL.
+
+---
+
 ## Remaining tasks
 
 Written when each one starts, with its decisions. Known inputs so far:
 
-- **T-E6-02:** Lighthouse in mobile mode on home, listing, product page and checkout; the 3-second target is RNF-11. `/assets/*` already has a one-year immutable cache (Caddyfile).
 - **T-E6-03:** HSTS, CSP, `X-Content-Type-Options`, `Referrer-Policy` and `Permissions-Policy` already exist in `deploy/caddy/Caddyfile` (RNF-29.9). The CSP still says "E3 adds the payment provider ones": check it against MercadoPago's and MODO's redirects. Sign-in rate limits exist (RNF-22). The task reviews them and audits every log statement for personal data.
 - **T-E6-06:** the texts come from the business (RNF-30, validated in T-E6-21); `store.ordering.terms-version` changes whenever they change (RNF-30.6).
 - **T-E6-07** and **T-E6-23** share one solution (RNF-31.2): prerendered product pages or a small endpoint that renders the tags. To decide when T-E6-07 starts.

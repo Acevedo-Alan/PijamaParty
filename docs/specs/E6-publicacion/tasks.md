@@ -1,7 +1,7 @@
 # E6 – Tareas
 
 - [x] **T-E6-01** Pruebas de extremo a extremo de los flujos críticos con Playwright (en TypeScript). Decidido el 2026-10-18: MercadoPago y Resend se reemplazan por stubs locales (los adaptadores reales corren sin cambios) y la compra real en sandbox queda para T-E6-11 y T-E6-15; el pago rechazado conserva la reserva hasta que vence (se corrigió la spec). En el código: el proyecto `e2e/` (Playwright, celular, Chromium) con los seis escenarios de la spec, `E2eStoreApplication` con el perfil `e2e` y un reloj ajustable solo en las fuentes de test, y el job `e2e` de CI. Ver `docs/use-cases/E6-hardening-and-release.md`. Sin migraciones.
-- [ ] **T-E6-02** Medición con Lighthouse y optimización de imágenes, caché y carga diferida.
+- [x] **T-E6-02** Medición con Lighthouse y optimización de imágenes, caché y carga diferida. Decidido el 2026-10-18: Lighthouse en modo celular corre en CI sobre inicio, listado, ficha y checkout contra la imagen de Caddy de producción, y exige "Largest Contentful Paint" menor a 3 segundos (RNF-11) y accesibilidad de 90 o más (RNF-31.4). En el código: caché de un año para `/uploads/*` y `no-cache` para `index.html`; las primeras fotos del listado y la foto principal de la ficha cargan primero; checkout, seguimiento, arrepentimiento, preguntas frecuentes y cuenta se cargan a demanda; se precarga la fuente del texto. El comando es `npm run lighthouse` en `e2e/` y el job `lighthouse` de CI. Ver `docs/use-cases/E6-hardening-and-release.md`. Sin migraciones.
 - [ ] **T-E6-03** Cabeceras de seguridad, límites de intentos y revisión de logs sin datos personales.
 - [ ] **T-E6-04** Backup diario de base e imágenes fuera del servidor y prueba de restauración.
 - [ ] **T-E6-05** Monitoreo de disponibilidad con alertas.

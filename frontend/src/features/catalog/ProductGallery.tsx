@@ -40,6 +40,7 @@ export function ProductGallery({ name, images }: ProductGalleryProps) {
         sizes={MAIN_IMAGE_SIZES}
         alt={es.product.photoAlt(name, main.color, images.indexOf(main) + 1)}
         loading="eager"
+        fetchPriority="high"
         {...(main.placeholder === undefined ? {} : { placeholder: main.placeholder })}
       />
       {images.length > 1 && (
