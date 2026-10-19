@@ -79,6 +79,8 @@ interface CatalogAnswers {
   categories?: unknown;
   /** Answer of GET /api/cart. */
   cart?: unknown;
+  /** Answer of GET /api/home/banner: none published unless told otherwise. */
+  banner?: unknown;
 }
 
 /** Serves the catalog GET calls by path, so the listing and the filter options can load in any order. */
@@ -88,6 +90,7 @@ export function stubCatalogApi({
   suggestions = suggested([]),
   categories = shopCategories([]),
   cart = NO_CART,
+  banner = answer(204),
 }: CatalogAnswers): MockInstance {
   const queue = [...listings];
   return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string, init?: { params?: { query?: { q?: string } } }) => {
@@ -104,6 +107,9 @@ export function stubCatalogApi({
     }
     if (path === '/api/cart') {
       return Promise.resolve(cart);
+    }
+    if (path === '/api/home/banner') {
+      return Promise.resolve(banner);
     }
     const next = queue.length > 1 ? queue.shift() : queue[0];
     return Promise.resolve(next);

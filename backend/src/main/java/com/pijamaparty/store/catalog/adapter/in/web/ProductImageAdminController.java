@@ -50,8 +50,8 @@ import org.springframework.web.multipart.MultipartFile;
     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
 class ProductImageAdminController {
 
-    /** The canonical text of a UUID, as the frontend's crypto.randomUUID() writes it. */
-    private static final Pattern UUID_TEXT =
+    /** The canonical text of a UUID, as the frontend's crypto.randomUUID() writes it; also for the banner photo. */
+    static final Pattern UUID_TEXT =
         Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
     /** Request texts and lists are only capped to bound them, at 4 times the domain limits (as for products). */

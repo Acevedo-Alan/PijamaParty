@@ -8,9 +8,9 @@ import org.springframework.http.HttpMethod;
 @Configuration(proxyBeanMethods = false)
 class CatalogWebConfiguration {
 
-    /** UC-01 to UC-03: anyone can read the public catalog. */
+    /** UC-01 to UC-03: anyone can read the public catalog, and the home page's banner (UC-32). */
     @Bean
     HttpAuthorizationRules catalogAuthorizationRules() {
-        return registry -> registry.requestMatchers(HttpMethod.GET, "/api/catalog/**").permitAll();
+        return registry -> registry.requestMatchers(HttpMethod.GET, "/api/catalog/**", "/api/home/banner").permitAll();
     }
 }

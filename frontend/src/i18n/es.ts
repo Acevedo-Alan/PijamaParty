@@ -370,6 +370,7 @@ export const es = {
     coupons: 'Cupones',
     reviews: 'Reseñas',
     shipping: 'Envíos',
+    home: 'Portada',
     viewStore: 'Ver tienda',
     signOut: 'Cerrar sesión',
     loading: 'Cargando…',
@@ -475,6 +476,49 @@ export const es = {
       invalidRows: 'Entre 1 y 20 talles distintos, de hasta 20 caracteres, con un valor de hasta 20 caracteres en cada columna.',
       invalidNote: 'La nota puede tener hasta 500 caracteres.',
       notFound: 'La categoría ya no existe.',
+    },
+    homeBanner: {
+      /** UC-32 (T-E7-13): the character banner of the home page. */
+      pageTitle: 'Portada',
+      intro: 'El banner de personajes se muestra en la portada de la tienda mientras está publicado.',
+      published: 'Publicado',
+      hiddenState: 'Oculto',
+      title: 'Título',
+      body: 'Texto (opcional)',
+      linkText: 'Texto del enlace',
+      linkPath: 'Destino del enlace',
+      linkPathHint: 'Una página de la tienda, empezando con /. Por ejemplo /categoria/kigurumis o /?publico=infantil.',
+      invalid: 'Revisá lo marcado.',
+      invalidFields: {
+        title: 'El título va de 1 a 60 caracteres.',
+        body: 'El texto puede tener hasta 200 caracteres.',
+        linkText: 'El texto del enlace va de 1 a 30 caracteres.',
+        linkPath: 'Tiene que ser una página de esta tienda: empieza con una sola / y tiene hasta 200 caracteres.',
+      },
+      photoTitle: 'Foto',
+      noPhoto: 'Todavía no hay foto.',
+      addPhoto: 'Subir foto (JPG, PNG o WebP)',
+      replacePhoto: 'Cambiar foto (JPG, PNG o WebP)',
+      photoHint: 'Se achica en el teléfono antes de subirse y reemplaza a la foto actual.',
+      previewTitle: 'Vista previa',
+      previewNoTitle: 'Escribí un título',
+      previewNoLink: 'Texto del enlace',
+      publish: 'Publicar',
+      hide: 'Ocultar',
+      publishHint: 'Se publica lo guardado: guardá los cambios antes de publicar.',
+      publishedNotice: 'El banner está publicado.',
+      hidden: 'El banner está oculto.',
+      parts: {
+        photo: 'la foto',
+        title: 'el título',
+        linkText: 'el texto del enlace',
+        linkPath: 'el destino del enlace',
+      },
+      /** E.g. "Para publicar falta la foto y el título." */
+      incomplete: (missing: string[]) =>
+        `Para publicar falta ${
+          missing.length <= 1 ? (missing[0] ?? '') : `${missing.slice(0, -1).join(', ')} y ${missing.at(-1) ?? ''}`
+        }.`,
     },
     couponList: {
       title: 'Cupones',

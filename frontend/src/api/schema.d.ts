@@ -64,6 +64,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/home/banner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The banner as stored, published or not
+         * @description The texts are null until first saved, the image until a photo is uploaded.
+         */
+        get: operations["get"];
+        /**
+         * Edit the banner's texts
+         * @description Replaces the title (1 to 60 characters), the text (0 to 200), the link text (1 to 30) and the link target (a path of this store: one leading /, no backslash, at most 200 characters), all trimmed. A published banner stays published. Requires the CSRF token.
+         */
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/coupons/{id}": {
         parameters: {
             query?: never;
@@ -76,7 +100,7 @@ export interface paths {
          * Edit a coupon
          * @description Replaces every field but the state and the uses, also on a used coupon; automatic is ignored. Requires the CSRF token.
          */
-        put: operations["update"];
+        put: operations["update_1"];
         post?: never;
         /**
          * Delete a coupon without uses
@@ -96,12 +120,12 @@ export interface paths {
             cookie?: never;
         };
         /** A product with its sizes, colors, variants and photos */
-        get: operations["get"];
+        get: operations["get_1"];
         /**
          * Edit the details of a product
          * @description A new name regenerates the slug. Requires the CSRF token.
          */
-        put: operations["update_1"];
+        put: operations["update_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -137,7 +161,7 @@ export interface paths {
             cookie?: never;
         };
         /** The category's name and its size guide, null without one */
-        get: operations["get_1"];
+        get: operations["get_2"];
         /**
          * Create or replace the category's size guide
          * @description Replaces the whole guide. Requires the CSRF token.
@@ -526,6 +550,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/home/banner/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Show the banner on the home page
+         * @description Needs the photo, the title, the link text and the target. Publishing a published banner changes nothing. Requires the CSRF token.
+         */
+        post: operations["publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/home/banner/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload the banner's photo, replacing the current one
+         * @description JPG, PNG or WebP up to 10 MB, recognized by its content, stored as product photos are: WebP at 400, 800 and 1200 px wide with a blurred placeholder. The old photo's files are deleted. Retrying with the same Idempotency-Key and file returns the banner unchanged. Requires the CSRF token.
+         */
+        post: operations["replacePhoto"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/home/banner/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take the banner off the home page
+         * @description Hiding a hidden banner changes nothing. Requires the CSRF token.
+         */
+        post: operations["hide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/coupons": {
         parameters: {
             query?: never;
@@ -644,7 +728,7 @@ export interface paths {
          * Publish a product
          * @description Needs an active priced variant. Requires the CSRF token.
          */
-        post: operations["publish"];
+        post: operations["publish_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -684,7 +768,7 @@ export interface paths {
          * Hide a product
          * @description Takes it out of the shop. Requires the CSRF token.
          */
-        post: operations["hide"];
+        post: operations["hide_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1188,6 +1272,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/home/banner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The published character banner of the home page
+         * @description linkPath is always a path of this store, starting with a single /.
+         */
+        get: operations["banner"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/checkout/shipping-cost": {
         parameters: {
             query?: never;
@@ -1433,7 +1537,7 @@ export interface paths {
             cookie?: never;
         };
         /** The shipping cost of every province and the free-shipping threshold */
-        get: operations["get_2"];
+        get: operations["get_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1490,7 +1594,7 @@ export interface paths {
             cookie?: never;
         };
         /** An order with its buyer, address, lines, amounts, next statuses, withdrawal and alerts */
-        get: operations["get_3"];
+        get: operations["get_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1760,6 +1864,31 @@ export interface components {
         ShipmentTrackingNumberResponse: {
             shipmentTrackingNumber?: string;
         };
+        HomeBannerRequest: {
+            title: string;
+            body?: string;
+            linkText: string;
+            linkPath: string;
+        };
+        AdminHomeBannerResponse: {
+            title?: string | null;
+            body?: string | null;
+            linkText?: string | null;
+            linkPath?: string | null;
+            image?: components["schemas"]["ListingImageResponse"];
+            published?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        FileResponse: {
+            /** Format: int32 */
+            width?: number;
+            url?: string;
+        };
+        ListingImageResponse: {
+            placeholder?: string;
+            files?: components["schemas"]["FileResponse"][];
+        };
         AdminCouponRequest: {
             code: string;
             /** @enum {string} */
@@ -1817,11 +1946,6 @@ export interface components {
             season: "SUMMER" | "MID_SEASON" | "WINTER";
             /** @enum {string} */
             audience: "WOMEN" | "MEN" | "KIDS";
-        };
-        FileResponse: {
-            /** Format: int32 */
-            width?: number;
-            url?: string;
         };
         ImageResponse: {
             /** Format: uuid */
@@ -2222,6 +2346,13 @@ export interface components {
             shipmentTrackingNumber: string | null;
             canRetryPayment?: boolean;
         };
+        HomeBannerResponse: {
+            title?: string;
+            body?: string;
+            linkText?: string;
+            linkPath?: string;
+            image?: components["schemas"]["ListingImageResponse"];
+        };
         ShippingCostResponse: {
             /** @enum {string} */
             province?: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
@@ -2236,10 +2367,6 @@ export interface components {
         };
         PaymentProvidersResponse: {
             providers?: ("MERCADOPAGO" | "MODO")[];
-        };
-        ListingImageResponse: {
-            placeholder?: string;
-            files?: components["schemas"]["FileResponse"][];
         };
         SuggestionResponse: {
             slug?: string;
@@ -2751,7 +2878,78 @@ export interface operations {
             };
         };
     };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The banner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminHomeBannerResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HomeBannerRequest"];
+            };
+        };
+        responses: {
+            /** @description The banner with its new texts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminHomeBannerResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description INVALID_BANNER with the invalid fields */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2862,7 +3060,7 @@ export interface operations {
             };
         };
     };
-    get: {
+    get_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2902,7 +3100,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3017,7 +3215,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4171,6 +4369,157 @@ export interface operations {
             };
         };
     };
+    publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The published banner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminHomeBannerResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description INCOMPLETE_BANNER with what is missing; the banner stays hidden */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    replacePhoto: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A UUID per photo, repeated on retries */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Already uploaded with this key and file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminHomeBannerResponse"];
+                };
+            };
+            /** @description Replaced */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminHomeBannerResponse"];
+                };
+            };
+            /** @description Missing or invalid Idempotency-Key, or no file */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Larger than 10 MB */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description See problem: UNSUPPORTED_FORMAT, TOO_LARGE, UNREADABLE or KEY_REUSED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Other photos are being converted; retry with the same Idempotency-Key after Retry-After seconds */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    hide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The hidden banner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminHomeBannerResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     list: {
         parameters: {
             query?: never;
@@ -4466,7 +4815,7 @@ export interface operations {
             };
         };
     };
-    publish: {
+    publish_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4621,7 +4970,7 @@ export interface operations {
             };
         };
     };
-    hide: {
+    hide_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -5901,6 +6250,44 @@ export interface operations {
             };
         };
     };
+    banner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The published banner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeBannerResponse"];
+                };
+            };
+            /** @description No banner is published: the home page shows no banner section */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description Over the catalog limit (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     shippingCost: {
         parameters: {
             query: {
@@ -6408,7 +6795,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -6519,7 +6906,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;

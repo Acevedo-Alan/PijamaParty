@@ -370,3 +370,80 @@ html:has(.filters-panel[open]) {
     animation: none;
   }
 }
+
+/* The prototype's character banner (.kigurumi-banner, UC-32): the photo above the text on phones, beside it from
+   700 px. The photo keeps its proportions inside a square, as in the prototype. */
+.character-banner {
+  display: grid;
+  grid-template-areas: 'art' 'copy';
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 36px;
+  padding: 24px 20px 32px;
+  border-radius: var(--radius-m);
+  background: var(--peach-soft);
+}
+
+.character-banner-copy {
+  grid-area: copy;
+  max-width: 38ch;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.character-banner-copy h2 {
+  font-family: var(--ff-display);
+  font-size: clamp(28px, 3.4vw, 44px);
+  line-height: 1.12;
+  font-weight: 600;
+}
+
+.character-banner-copy p {
+  margin-top: 14px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  white-space: pre-line;
+}
+
+.character-banner-link {
+  margin-top: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 4px;
+}
+
+.character-banner-art {
+  grid-area: art;
+  width: min(100%, 430px);
+  justify-self: center;
+  aspect-ratio: 1;
+  border-radius: var(--radius-m);
+}
+
+.character-banner-art img {
+  object-fit: contain;
+}
+
+@media (min-width: 700px) {
+  .character-banner {
+    grid-template-areas: 'copy art';
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 560px);
+    gap: 32px;
+    padding: 36px 20px;
+  }
+
+  .character-banner-copy {
+    margin: 0;
+    text-align: left;
+  }
+
+  .character-banner-art {
+    width: 100%;
+  }
+}

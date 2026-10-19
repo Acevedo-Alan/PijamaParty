@@ -11,7 +11,7 @@
 - [ ] **T-E7-08** Ficha: "Completá tu look" (cambios a CU-03, D-08).
 - [ ] **T-E7-09** Panel del carrito: barra de envío gratis y aviso "Agregado al carrito" (cambios a CU-08).
 - [ ] **T-E7-10** Checkout: campos de a dos por fila, nombre y apellido separados en el checkout, la API, el pedido (migración) y los correos, e "Iniciar sesión" para invitados (cambios a CU-13, D-13).
-- [ ] **T-E7-13** Banner de personajes editable: tabla y agregado `HomeBanner` (migración), endpoints públicos y del backoffice, pantalla "Portada" del backoffice y sección de la portada (CU-32).
+- [x] **T-E7-13** Banner de personajes editable: tabla y agregado `HomeBanner` (migración), endpoints públicos y del backoffice, pantalla "Portada" del backoffice y sección de la portada (CU-32).
 - [ ] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 
 **Orden:** T-E7-01 primero (sus decisiones cambian T-E7-02, T-E7-05, T-E7-07, T-E7-09 y T-E7-12), después T-E7-12 (las pantallas usan sus tokens). T-E7-13 va antes de T-E7-04 (la portada muestra el banner). T-E7-02 a T-E7-04 no esperan las fotos: usan los fondos degradados hasta que lleguen.

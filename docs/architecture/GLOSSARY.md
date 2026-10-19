@@ -31,6 +31,7 @@ The code, database and API use the English names. Spanish appears only in user-f
 | Botón de arrepentimiento | `WithdrawalRequest` | Legal right to cancel within 10 days; tracked with a code |
 | Identidad externa | `ExternalIdentity` | A Google or Facebook account linked to a `User` |
 | Guía de talles | `SizeGuide` | Measurements per category |
+| Banner de personajes | `HomeBanner` | The one editable banner of the home page (UC-32) |
 | Backoffice | `back office` | Admin area |
 
 ## Order states
