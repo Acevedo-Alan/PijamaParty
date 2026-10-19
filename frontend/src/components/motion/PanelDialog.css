@@ -1,0 +1,14 @@
+/* The overlay of a side panel fades in with it and out while it slides away (E7 motion). Opacity only. */
+.panel-dialog::backdrop {
+  transition: opacity var(--dur-panel) var(--ease-standard);
+}
+
+@starting-style {
+  .panel-dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.panel-dialog.closing::backdrop {
+  opacity: 0;
+}

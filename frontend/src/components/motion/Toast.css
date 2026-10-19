@@ -1,0 +1,30 @@
+/* A notice over the bottom of the page, centered, clear of the phone's edges */
+.toast-region {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 420px;
+  padding: 6px 6px 6px 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(74, 58, 58, 0.18);
+  pointer-events: auto;
+}
+
+.toast .icon-btn {
+  color: inherit;
+}

@@ -1,3 +1,4 @@
+import { Collapsible } from '../../components/Collapsible.tsx';
 import { es } from '../../i18n/es.ts';
 import type { SizeGuide } from './productDetailApi.ts';
 
@@ -7,8 +8,7 @@ import type { SizeGuide } from './productDetailApi.ts';
  */
 export function SizeGuideSection({ guide }: { guide: SizeGuide }) {
   return (
-    <details className="size-guide">
-      <summary>{es.product.sizeGuide}</summary>
+    <Collapsible title={es.product.sizeGuide} className="size-guide">
       <div className="size-guide-table" role="region" aria-label={es.product.sizeGuideTable} tabIndex={0}>
         <table>
           <thead>
@@ -34,6 +34,6 @@ export function SizeGuideSection({ guide }: { guide: SizeGuide }) {
         </table>
       </div>
       {guide.note !== null && <p className="size-guide-note">{guide.note}</p>}
-    </details>
+    </Collapsible>
   );
 }

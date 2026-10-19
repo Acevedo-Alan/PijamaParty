@@ -14,7 +14,7 @@
   filter: blur(18px);
   transform: scale(1.15);
   opacity: 1;
-  transition: opacity 0.5s ease;
+  transition: opacity var(--dur-slow) var(--ease-out);
 }
 
 .ph.loaded::before {
@@ -28,7 +28,7 @@
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.45s ease;
+  transition: opacity var(--dur-slow) var(--ease-out);
 }
 
 .ph.loaded img {

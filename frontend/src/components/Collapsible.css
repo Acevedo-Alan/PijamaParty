@@ -1,0 +1,54 @@
+.collapsible-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collapsible-toggle svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--dur-base) var(--ease-standard);
+}
+
+.collapsible-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+/* Closed, the content keeps no height and is hidden once the slide ends; open, it shows at once and slides down. */
+.collapsible-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--dur-base) var(--ease-standard),
+    visibility 0s linear var(--dur-base);
+}
+
+.collapsible-toggle[aria-expanded='true'] + .collapsible-panel {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.collapsible-body {
+  min-height: 0;
+  overflow: hidden;
+}

@@ -13,7 +13,11 @@ afterEach(() => {
 HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
   this.setAttribute('open', '');
 };
+// As in browsers, closing a closed dialog does nothing.
 HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+  if (!this.open) {
+    return;
+  }
   this.removeAttribute('open');
   this.dispatchEvent(new Event('close'));
 };

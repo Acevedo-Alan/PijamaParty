@@ -75,7 +75,7 @@ textarea {
   color: #fff;
   font-size: 14px;
   font-weight: 700;
-  transition: background-color 0.22s ease;
+  transition: background-color var(--dur-base) var(--ease-standard);
 }
 
 .btn:disabled {

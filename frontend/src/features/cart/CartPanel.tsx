@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState, type MouseEvent, type SubmitEvent } from 'react';
+import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
+import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { isCouponOutdone, type Cart, type CartItem, type CouponRefusal } from './cartApi.ts';
@@ -306,18 +307,6 @@ export function CartPanel() {
   const closeButton = useRef<HTMLButtonElement>(null);
   const titleId = useId();
 
-  useEffect(() => {
-    const element = dialog.current;
-    if (element === null) {
-      return;
-    }
-    if (panel.isOpen && !element.open) {
-      element.showModal();
-    } else if (!panel.isOpen && element.open) {
-      element.close();
-    }
-  }, [panel.isOpen]);
-
   // A removed item takes its focused button with it: the focus goes to the close button, not out of the dialog.
   const itemCount = cart.data?.items.length;
   useEffect(() => {
@@ -327,19 +316,15 @@ export function CartPanel() {
     }
   }, [itemCount]);
 
-  function closeOnBackdrop(event: MouseEvent<HTMLDialogElement>) {
-    if (event.target === event.currentTarget) {
-      panel.close();
-    }
-  }
-
   return (
-    <dialog
+    <PanelDialog
       ref={dialog}
+      open={panel.isOpen}
+      from="right"
       className="cart-panel"
-      aria-labelledby={titleId}
-      onClose={panel.closed}
-      onClick={closeOnBackdrop}
+      labelledBy={titleId}
+      onDismiss={panel.close}
+      onClosed={panel.closed}
     >
       <div className="cart-panel-inner">
         <header className="cart-head">
@@ -400,6 +385,6 @@ export function CartPanel() {
           </>
         )}
       </div>
-    </dialog>
+    </PanelDialog>
   );
 }

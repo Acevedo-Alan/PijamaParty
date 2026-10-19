@@ -1,8 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { m } from 'motion/react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { useActionMotion } from '../../components/motion/useActionMotion.ts';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { duration, ease } from '../../styles/motion.ts';
 import { trackAddToCart } from '../analytics/cartEvents.ts';
 import { trackItemView } from '../analytics/catalogEvents.ts';
 import type { AddAnswer } from '../cart/cartApi.ts';
@@ -41,6 +44,32 @@ function AddProblem({ answer, failed }: { answer: AddAnswer | undefined; failed:
   return null;
 }
 
+/** How long the add button says "Agregado" after a successful add (E7 motion). */
+const ADDED_FOR_MS = 1500;
+
+/** The label of the add button: what it does, that it is adding, or for a moment that it added. */
+function AddLabel({ pending, added }: { pending: boolean; added: boolean }) {
+  const check = useActionMotion({
+    hidden: { scale: 0 },
+    shown: { scale: 1 },
+    transition: { duration: duration.base, ease: ease.pop },
+  });
+  if (pending) {
+    return <>{es.product.adding}</>;
+  }
+  if (!added) {
+    return <>{es.product.addToCart}</>;
+  }
+  return (
+    <>
+      <m.svg className="add-cart-check" viewBox="0 0 24 24" aria-hidden="true" {...check}>
+        <path d="M5 12.5l4.5 4.5L19 7.5" />
+      </m.svg>
+      {es.product.added}
+    </>
+  );
+}
+
 /** Gallery, description, material, season, price, the size and color picker and the add to cart of one product. */
 function ProductDetailView({ product }: { product: ProductDetail }) {
   const [selection, setSelection] = useState(() => initialSelection(product));
@@ -51,6 +80,20 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
   const viewed = useRef<string | null>(null);
   const add = useAddToCart();
   const queryClient = useQueryClient();
+  // Successful adds on this page: each one shows "Agregado" again for ADDED_FOR_MS, then 0 hides it.
+  const [confirmed, setConfirmed] = useState(0);
+
+  useEffect(() => {
+    if (confirmed === 0) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setConfirmed(0);
+    }, ADDED_FOR_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [confirmed]);
 
   // UC-08: one unit per tap. A rejected add reloads the product, so its stock is current.
   function addPicked() {
@@ -64,6 +107,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
           void queryClient.invalidateQueries({ queryKey: productDetailKey(product.slug) });
           return;
         }
+        setConfirmed((count) => count + 1);
         // RNF-25: one add_to_cart per successful add, at the server's price.
         const added = answer.cart.items.find((item) => item.variantId === variant.id);
         trackAddToCart({
@@ -138,7 +182,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
           onClick={addPicked}
           {...(variant === undefined ? { 'aria-describedby': hintId } : {})}
         >
-          {add.isPending ? es.product.adding : es.product.addToCart}
+          <AddLabel pending={add.isPending} added={confirmed > 0} />
         </button>
         {variant === undefined && (
           <p id={hintId} className="pdp-hint">

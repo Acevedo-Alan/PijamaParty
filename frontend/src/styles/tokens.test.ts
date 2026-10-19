@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { duration, ease } from './motion.ts';
 import css from './tokens.css?raw';
 
 function token(name: string): string {
@@ -65,5 +66,37 @@ describe('design tokens', () => {
   it('given the prototype accent, when used as small text on the cream background, then it would fail AA', () => {
     // The reason --accent-text exists: keep it documented by a test.
     expect(contrast(resolve('accent'), resolve('bg'))).toBeLessThan(4.5);
+  });
+});
+
+describe('motion tokens (D-16)', () => {
+  it('given the E7 motion section, when reading the CSS tokens, then they keep its durations and easings', () => {
+    expect({
+      fast: token('dur-fast'), base: token('dur-base'), panel: token('dur-panel'), slow: token('dur-slow'),
+      entrance: token('dur-entrance'),
+      out: token('ease-out'), standard: token('ease-standard'), pop: token('ease-pop'),
+    }).toEqual({
+      fast: '120ms', base: '240ms', panel: '320ms', slow: '450ms', entrance: '700ms',
+      out: 'cubic-bezier(0.2, 0.7, 0.2, 1)', standard: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      pop: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    });
+  });
+
+  it('given motion.ts, when compared with the CSS tokens, then every duration and easing agrees', () => {
+    for (const [name, seconds] of Object.entries(duration)) {
+      expect(token(`dur-${name}`), name).toBe(`${String(Math.round(seconds * 1000))}ms`);
+    }
+    for (const [name, points] of Object.entries(ease)) {
+      expect(token(`ease-${name}`), name).toBe(`cubic-bezier(${points.join(', ')})`);
+    }
+  });
+
+  it('given the motion rules, when reading the durations, then they stay between 120 and 450 ms but the entrance', () => {
+    const { entrance, ...rest } = duration;
+    for (const seconds of Object.values(rest)) {
+      expect(seconds).toBeGreaterThanOrEqual(0.12);
+      expect(seconds).toBeLessThanOrEqual(0.45);
+    }
+    expect(entrance).toBeLessThanOrEqual(0.7);
   });
 });

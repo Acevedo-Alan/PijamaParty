@@ -1,4 +1,5 @@
-import { useId, useRef, useState, type MouseEvent, type SubmitEvent } from 'react';
+import { useId, useState, type SubmitEvent } from 'react';
+import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import type { FilterOptions } from './catalogApi.ts';
@@ -152,7 +153,7 @@ interface FilterPanelProps {
  * hides the page from screen readers. The choices apply with "Show results"; closing discards them.
  */
 export function FilterPanel({ category, filters, onApply }: FilterPanelProps) {
-  const dialog = useRef<HTMLDialogElement>(null);
+  const [isOpen, setOpen] = useState(false);
   const titleId = useId();
   const options = useFilterOptions(category);
   const [draft, setDraft] = useState(() => toDraft(filters));
@@ -168,17 +169,11 @@ export function FilterPanel({ category, filters, onApply }: FilterPanelProps) {
   function open() {
     setDraft(toDraft(filters));
     setProblem(null);
-    dialog.current?.showModal();
+    setOpen(true);
   }
 
   function close() {
-    dialog.current?.close();
-  }
-
-  function closeOnBackdrop(event: MouseEvent<HTMLDialogElement>) {
-    if (event.target === event.currentTarget) {
-      close();
-    }
+    setOpen(false);
   }
 
   function submit(event: SubmitEvent<HTMLFormElement>) {
@@ -202,7 +197,7 @@ export function FilterPanel({ category, filters, onApply }: FilterPanelProps) {
       <button type="button" className="tool-btn" aria-haspopup="dialog" onClick={open}>
         {count === 0 ? es.filters.open : es.filters.openWithCount(count)}
       </button>
-      <dialog ref={dialog} className="filters-panel" aria-labelledby={titleId} onClick={closeOnBackdrop}>
+      <PanelDialog open={isOpen} from="left" className="filters-panel" labelledBy={titleId} onDismiss={close}>
         <form className="filters-form" noValidate onSubmit={submit}>
           <header className="filters-head">
             <h2 id={titleId}>{es.filters.title}</h2>
@@ -241,7 +236,7 @@ export function FilterPanel({ category, filters, onApply }: FilterPanelProps) {
             </button>
           </footer>
         </form>
-      </dialog>
+      </PanelDialog>
     </>
   );
 }

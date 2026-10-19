@@ -21,24 +21,6 @@
   font-weight: 600;
 }
 
-.cart-badge.bump {
-  animation: bump 0.34s ease;
-}
-
-@keyframes bump {
-  0% {
-    transform: scale(1);
-  }
-
-  40% {
-    transform: scale(1.55);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
 /* The sliding panel: a modal dialog from the right edge, full height, over the dimmed page */
 html:has(.cart-panel[open]) {
   overflow: hidden;
@@ -57,22 +39,8 @@ html:has(.cart-panel[open]) {
   color: var(--ink);
 }
 
-.cart-panel[open] {
-  animation: cart-slide-in 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 .cart-panel::backdrop {
   background: rgba(58, 50, 45, 0.35);
-}
-
-@keyframes cart-slide-in {
-  from {
-    transform: translateX(100%);
-  }
-
-  to {
-    transform: translateX(0);
-  }
 }
 
 .cart-panel-inner {
@@ -293,13 +261,6 @@ html:has(.cart-panel[open]) {
 @media (hover: hover) {
   .cart-item-name:hover {
     color: var(--accent-text);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cart-badge.bump,
-  .cart-panel[open] {
-    animation: none;
   }
 }
 

@@ -37,5 +37,18 @@
   --ff-display: 'Quicksand', sans-serif;
   --ff-body: 'Quicksand', sans-serif;
 
+  /*
+   * Motion (E7, D-16): only transform and opacity move. The same values live in motion.ts for the Motion library;
+   * tokens.test.ts checks that both agree. --ease-out and --ease-standard come from the prototype.
+   */
+  --dur-fast: 120ms;
+  --dur-base: 240ms;
+  --dur-panel: 320ms;
+  --dur-slow: 450ms;
+  --dur-entrance: 700ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+
   /* Breakpoints of the prototype, for reference in media queries: 640px, 860px, 960px */
 }

@@ -43,7 +43,7 @@
   display: block;
   border-radius: var(--radius-s);
   opacity: 0.55;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-base) var(--ease-standard);
 }
 
 .pdp-thumb .ph {
@@ -131,16 +131,6 @@
   padding-top: 4px;
 }
 
-.size-guide summary {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent-text);
-  cursor: pointer;
-}
-
 /* The table scrolls sideways inside its box, never the page. */
 .size-guide-table {
   overflow-x: auto;
@@ -183,8 +173,22 @@
 }
 
 .add-cart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   width: 100%;
   margin-top: 8px;
+}
+
+.add-cart-check {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @media (min-width: 860px) {
