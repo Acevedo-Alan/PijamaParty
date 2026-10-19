@@ -2,11 +2,14 @@ package com.pijamaparty.store.catalog.adapter.in.web;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -31,6 +34,8 @@ class CatalogApiTest {
     private static final String PRODUCTS = "/api/catalog/products";
     private static final String FILTERS = "/api/catalog/filters";
     private static final String PLACEHOLDER = "data:image/webp;base64,UklGRg==";
+    /** {@code store.public-url} in the tests: the default of application.yml. */
+    private static final String STOREFRONT = "http://localhost:5173";
 
     private final MockMvc mvc;
     private final JdbcTemplate app;
@@ -230,6 +235,85 @@ class CatalogApiTest {
     }
 
     @Test
+    void givenAListedProductWithAPhotoAndTwoPrices_whenItsPreviewIsRequested_thenTheTagsCarryItsNamePricePhotoAndUrl()
+        throws Exception {
+        String description = "Pijama de algodón peinado, suave y fresco para las noches de verano. ".repeat(4).strip();
+        UUID pajama = product(summer, "Pijama rosa", "pijama-rosa", description);
+        variant(pajama, "M", "Rosa", 1_250_000, 3);
+        variant(pajama, "L", "Rosa", 1_400_050, 0);
+        String photo = image(pajama);
+        image(pajama, "Rosa", 1);
+        String summary = "Desde $ 12.500. Pijama de algodón peinado, suave y fresco para las noches de verano. Pijama "
+            + "de algodón peinado, suave y fresco para las noches de verano. Pijama de algodón peinado, suave y fresco "
+            + "para las noches de…";
+
+        mvc.perform(get(PRODUCTS + "/pijama-rosa/preview"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+            .andExpect(header().string("Cache-Control", "no-cache"))
+            .andExpect(content().string(containsString("<title>Pijama rosa | Pijama Party Santa Fe</title>")))
+            .andExpect(content().string(containsString(meta("og:title", "Pijama rosa | Pijama Party Santa Fe"))))
+            .andExpect(content().string(containsString(meta("og:site_name", "Pijama Party Santa Fe"))))
+            .andExpect(content().string(containsString(meta("og:type", "product"))))
+            .andExpect(content().string(containsString(meta("og:locale", "es_AR"))))
+            .andExpect(content().string(containsString(meta("og:description", summary))))
+            .andExpect(content().string(containsString("<meta name=\"description\" content=\"" + summary + "\">")))
+            .andExpect(content().string(containsString(meta("og:url", STOREFRONT + "/producto/pijama-rosa"))))
+            .andExpect(content().string(containsString(
+                "<link rel=\"canonical\" href=\"" + STOREFRONT + "/producto/pijama-rosa\">")))
+            .andExpect(content().string(containsString(
+                meta("og:image", STOREFRONT + "/uploads/" + photo + "-1200.webp"))))
+            .andExpect(content().string(containsString(meta("og:image:alt", "Pijama rosa"))))
+            .andExpect(content().string(containsString(meta("product:price:amount", "12500.00"))))
+            .andExpect(content().string(containsString(meta("product:price:currency", "ARS"))))
+            .andExpect(content().string(containsString(
+                "<meta name=\"twitter:card\" content=\"summary_large_image\">")));
+    }
+
+    @Test
+    void givenOnePriceAndNoPhoto_whenItsPreviewIsRequested_thenThePriceHasNoDesdeAndThereIsNoImage() throws Exception {
+        UUID nightgown = product(summer, "Camisón", "camison", "");
+        variant(nightgown, "M", "Rosa", 1_250_050, 3);
+        variant(nightgown, "L", "Rosa", 1_250_050, 3);
+
+        mvc.perform(get(PRODUCTS + "/camison/preview"))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString(meta("og:description", "$ 12.500,50"))))
+            .andExpect(content().string(containsString(meta("product:price:amount", "12500.50"))))
+            .andExpect(content().string(not(containsString("og:image"))))
+            .andExpect(content().string(containsString("<meta name=\"twitter:card\" content=\"summary\">")));
+    }
+
+    @Test
+    void givenANameAndDescriptionWithMarkup_whenTheirPreviewIsRendered_thenTheyAreEscaped() throws Exception {
+        UUID pajama = product(summer, "Pijama \"Noche\" <b>", "pijama-noche", "Talle M & L <script>alert('x')</script>");
+        variant(pajama, "M", "Rosa", 1_000_000, 3);
+
+        mvc.perform(get(PRODUCTS + "/pijama-noche/preview"))
+            .andExpect(status().isOk())
+            .andExpect(content().string(not(containsString("<b>"))))
+            .andExpect(content().string(not(containsString("<script>"))))
+            .andExpect(content().string(containsString("<h1>Pijama &quot;Noche&quot; &lt;b&gt;</h1>")))
+            .andExpect(content().string(containsString(meta("og:description",
+                "$ 10.000. Talle M &amp; L &lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;"))));
+    }
+
+    @Test
+    void givenAHiddenOrUnknownProduct_whenItsPreviewIsRequested_thenTheStoreIsPreviewedWith404() throws Exception {
+        variant(product(summer, "Oculto", "SUMMER", false), "M", "Rosa", 1000, 5);
+
+        for (String slug : new String[] {"oculto", "no-existe"}) {
+            mvc.perform(get(PRODUCTS + "/" + slug + "/preview"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                .andExpect(content().string(containsString("<title>Pijama Party Santa Fe</title>")))
+                .andExpect(content().string(containsString(meta("og:title", "Pijama Party Santa Fe"))))
+                .andExpect(content().string(containsString(meta("og:url", STOREFRONT + "/"))))
+                .andExpect(content().string(not(containsString("Oculto"))));
+        }
+    }
+
+    @Test
     void givenActiveAndInactiveCategories_whenAVisitorListsThem_thenOnlyTheActiveOnesAppear() throws Exception {
         category("invierno", true);
         category("cerrada", false);
@@ -251,15 +335,29 @@ class CatalogApiTest {
 
     /** Each product is a minute newer than the previous one. */
     private UUID product(UUID category, String name, String season, boolean active) {
-        UUID id = UUID.randomUUID();
         String slug = name.toLowerCase().replace("ó", "o").replace(' ', '-');
+        return product(category, name, slug, "", season, active);
+    }
+
+    /** An active summer product with this slug and description. */
+    private UUID product(UUID category, String name, String slug, String description) {
+        return product(category, name, slug, description, "SUMMER", true);
+    }
+
+    private UUID product(UUID category, String name, String slug, String description, String season, boolean active) {
+        UUID id = UUID.randomUUID();
         app.update("""
             insert into product (id, category_id, name, slug, description, material, season, audience, active,
                                  created_at, updated_at)
-            values (?, ?, ?, ?, '', 'Algodón', ?, 'WOMEN', ?, timestamptz '2026-10-01 12:00Z' + ? * interval '1 minute',
+            values (?, ?, ?, ?, ?, 'Algodón', ?, 'WOMEN', ?, timestamptz '2026-10-01 12:00Z' + ? * interval '1 minute',
                     now())
-            """, id, category, name, slug, season, active, minutes++);
+            """, id, category, name, slug, description, season, active, minutes++);
         return id;
+    }
+
+    /** An Open Graph tag as the preview writes it. */
+    private static String meta(String property, String content) {
+        return "<meta property=\"" + property + "\" content=\"" + content + "\">";
     }
 
     /** An active priced variant with its stock level. */

@@ -30,6 +30,23 @@
 	}
 }
 
+# The backend, for the API and the link previews.
+(api) {
+	reverse_proxy api:8080 {
+		# RNF-22: overwrite, never append, so the backend sees the real client IP and nothing a client forged.
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		# Other client-IP headers are dropped so nothing downstream can trust a forged one.
+		header_up -X-Real-IP
+		header_up -Forwarded
+		transport http {
+			# RNF-21: a refused or silently dropped connection (full Tomcat queue) fails fast instead of hanging.
+			dial_timeout 3s
+			response_header_timeout 30s
+		}
+	}
+}
+
 # One domain (E0 plan): the frontend build at /, the API at /api/*, uploaded images at /uploads/*. No CORS, and
 # cookies stay first-party. HTTPS certificates are automatic for {$DOMAIN}.
 {$DOMAIN} {
@@ -37,19 +54,7 @@
 	import security_headers
 
 	handle /api/* {
-		reverse_proxy api:8080 {
-			# RNF-22: overwrite, never append, so the backend sees the real client IP and nothing a client forged.
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			# Other client-IP headers are dropped so nothing downstream can trust a forged one.
-			header_up -X-Real-IP
-			header_up -Forwarded
-			transport http {
-				# RNF-21: a refused or silently dropped connection (full Tomcat queue) fails fast instead of hanging.
-				dial_timeout 3s
-				response_header_timeout 30s
-			}
-		}
+		import api
 	}
 
 	# Uploaded images are stored as WebP only (RNF-29.4); nothing else is served from this same-origin path. Every
@@ -61,6 +66,20 @@
 		@photo file
 		header @photo Cache-Control "public, max-age=31536000, immutable"
 		file_server
+	}
+
+	# T-E6-07 (RNF-31.2): WhatsApp, Facebook, Instagram, X and Telegram build a shared product's preview without running
+	# JavaScript, so only their bots get the API's preview page of /producto/{slug}. Instagram's previews come from
+	# facebookexternalhit; the in-app browsers of Instagram and Facebook (Instagram, FBAN, FBAV) get the store as usual.
+	# Tested against this image by e2e/lighthouse/previews.spec.ts.
+	@linkPreview {
+		path_regexp linkPreview ^/producto/([a-z0-9]+(?:-[a-z0-9]+)*)/?$
+		header_regexp User-Agent (?i)(facebookexternalhit|facebookcatalog|whatsapp|twitterbot|telegrambot)
+	}
+	header /producto/* Vary User-Agent
+	handle @linkPreview {
+		rewrite * /api/catalog/products/{re.linkPreview.1}/preview
+		import api
 	}
 
 	# The single-page app: unknown paths fall back to index.html, where the router shows its own 404 (RNF-31.7).

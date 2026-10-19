@@ -6,7 +6,7 @@
 - [ ] **T-E6-04** Backup diario de base e imágenes fuera del servidor y prueba de restauración.
 - [ ] **T-E6-05** Monitoreo de disponibilidad con alertas.
 - [ ] **T-E6-06** Páginas legales: privacidad, términos, cambios y devoluciones, y uso de cookies y analítica.
-- [ ] **T-E6-07** Resolver los previews de enlaces de producto (Open Graph).
+- [x] **T-E6-07** Resolver los previews de enlaces de producto (Open Graph). Decidido el 2026-10-19: solo los bots de vista previa (WhatsApp, Facebook, Instagram, X y Telegram, reconocidos por Caddy por su user agent) reciben una página HTML mínima con las etiquetas de la ficha; los compradores, también dentro de las apps de Instagram y Facebook, siguen recibiendo la tienda sin espera extra. Se descartó prerenderizar (quedaría desactualizado hasta el próximo despliegue) y pasar toda ficha por la API. En el código: `GET /api/catalog/products/{slug}/preview` (nombre, precio con "Desde" si los precios difieren, descripción de hasta 200 caracteres, URL canónica y la foto principal de 1200 px), la regla de Caddy sobre `/producto/{slug}` y la prueba contra la imagen de Caddy en `npm run lighthouse`. Que WhatsApp y Facebook muestren la foto WebP se verifica con el dominio real en T-E6-16. Ver `docs/use-cases/E6-hardening-and-release.md`. Sin migraciones.
 - [ ] **T-E6-08** Runbook de operación y guía de uso del backoffice.
 - [ ] **T-E6-09** Entorno de prueba para el negocio y envío de la lista de control.
 - [ ] **T-E6-10** Período de pruebas del negocio: corrección de errores informados.

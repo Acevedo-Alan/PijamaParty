@@ -1308,6 +1308,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/catalog/products/{slug}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The link preview of a listed product, for the bots of WhatsApp, Facebook, Instagram, X and Telegram
+         * @description A minimal HTML page with the Open Graph tags: name, price, description, canonical URL and first photo. Caddy sends those bots here from /producto/{slug}.
+         */
+        get: operations["preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/catalog/filters": {
         parameters: {
             query?: never;
@@ -6154,6 +6174,37 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description No listed product has this slug: the store's own preview */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
                 };
             };
         };

@@ -142,11 +142,50 @@ Each task's open decisions are settled with the owner when the task starts and w
 
 ---
 
+## T-E6-07 Link previews of products (Open Graph, RNF-31.2)
+
+**Problem:** WhatsApp, Facebook, Instagram, X and Telegram build the preview of a shared link from the page's HTML without running JavaScript. Every path of the single-page app answers the same `index.html`, so a shared product shows no name, photo or price.
+
+**Decided on 2026-10-19:**
+- **Only the link-preview bots get a different answer.** Caddy recognizes them by their user agent and sends `/producto/{slug}` to a small public endpoint of the API that answers a minimal HTML page with the tags. Shoppers keep getting the single-page app straight from Caddy, so the product page's speed (T-E6-02) does not change.
+- **Not prerendering at deploy time:** the owner edits products, prices and photos every day, and prerendered pages would be stale until the next deploy.
+- **Not every product request through the API:** it adds a backend round trip to every visit and ties the API to the frontend build's `index.html`.
+- **Google is not a preview bot.** It runs JavaScript, so it keeps getting the single-page app; the structured data of T-E6-23 is decided there.
+
+**Design notes**
+- **Endpoint:** `GET /api/catalog/products/{slug}/preview`, `text/html; charset=UTF-8`, public, under the `catalog` rate-limit policy. It reads the product through UC-03 (`GetProductDetail`), so it previews exactly what a visitor can see; the controller only translates the result into HTML.
+- **The tags** of a product visitors can see (`200`):
+  - `<title>` and `og:title`: `{name} | Pijama Party Santa Fe`; `og:site_name`: `Pijama Party Santa Fe`; `og:type`: `product`; `og:locale`: `es_AR`.
+  - `og:description` and `description`: the price, then the product's description cut at a word to at most 200 characters with `…`. The price is the lowest of the sellable variants, written as the storefront writes it (`$ 12.500`, cents only when there are some), with `Desde` in front when the variants' prices differ (as the product page shows it before a size and color are picked).
+  - `og:url` and `<link rel="canonical">`: `{store.public-url}/producto/{slug}`.
+  - `og:image`: the absolute URL of the product's first photo, in the 1200 px file (the largest one if the photo is smaller), with `og:image:alt` set to the product's name; no image tag without photos. `twitter:card` is `summary_large_image` with a photo and `summary` without one.
+  - `product:price:amount` (pesos with two decimals, `12500.00`) and `product:price:currency` `ARS`.
+  - The body has the name, the price and a link to the product's URL, for a visitor whose browser happens to carry a bot's user agent.
+- **A product visitors cannot see** (unknown, hidden, of an inactive category or unsellable; UC-03's `NotFound`): `404` with the store's name as title and `og:title`, and `og:url` of the home page, so the preview shows the store instead of an error.
+- Every text is escaped as HTML, and the Spanish texts come from `messages.properties`. No personal data is involved.
+- **Caddy** (`deploy/caddy/Caddyfile`): a path `^/producto/{slug}/?$` (the slug format of `Slug`) whose `User-Agent` holds `facebookexternalhit`, `facebookcatalog`, `WhatsApp`, `Twitterbot` or `TelegramBot` is rewritten to the endpoint and proxied like the rest of the API. Instagram's previews come from `facebookexternalhit`. The in-app browsers of Instagram and Facebook carry `Instagram`, `FBAN` or `FBAV`, not those names, so shoppers inside those apps get the store as usual. Answers under `/producto/` carry `Vary: User-Agent`.
+- **Photos are WebP only (RNF-29.4).** Whether Facebook and WhatsApp show a WebP preview is not checked here: it needs the real domain and real phones (T-E6-16). If one of them does not show it, a JPEG file only for previews is the fix, decided then.
+- **Not covered:** the home page and the category listings keep the general tags of `index.html`; the request was product links.
+
+**As built (2026-10-19)**
+- `ProductPreviewController` in `catalog.adapter.in.web`; its texts are the `catalog.preview.*` keys of `messages.properties`. The tests are in `CatalogApiTest`.
+- The Caddyfile's proxy settings moved into an `(api)` snippet, shared by `/api/*` and the previews, so the client-IP and timeout rules (RNF-21, RNF-22) stay in one place.
+- `e2e/lighthouse/previews.spec.ts` runs in `npm run lighthouse`, against the production Caddy image. It sends the user agents of Facebook's and WhatsApp's link fetchers, and of Chrome and the Instagram and Facebook in-app browsers on a phone.
+
+**Acceptance criteria**
+- Given a listed product with a photo and variants of different prices, when its preview is requested, then the answer is `200` HTML whose tags carry its name, `Desde` and the lowest price, its description cut at 200 characters at most, its canonical URL and the absolute URL of its first photo's 1200 px file.
+- Given a product whose variants share one price, when its preview is requested, then the price has no `Desde`; given a product without photos, then there is no `og:image` and `twitter:card` is `summary`.
+- Given a name or description with `<`, `>`, `&` or quotes, when the preview is rendered, then they are escaped.
+- Given a hidden or unknown product, when its preview is requested, then the answer is `404` HTML with the store's name and the home page as `og:url`.
+- Given the production Caddy image, when `/producto/{slug}` is requested with the user agent of Facebook's or WhatsApp's link fetcher, then the answer is the preview; with a phone browser's user agent or Instagram's in-app browser's, then it is the single-page app's `index.html`.
+
+---
+
 ## Remaining tasks
 
 Written when each one starts, with its decisions. Known inputs so far:
 - **T-E6-06:** the texts come from the business (RNF-30, validated in T-E6-21); `store.ordering.terms-version` changes whenever they change (RNF-30.6).
-- **T-E6-07** and **T-E6-23** share one solution (RNF-31.2): prerendered product pages or a small endpoint that renders the tags. To decide when T-E6-07 starts.
+- **T-E6-23:** RNF-31.2 asks it to share the solution of T-E6-07 (the preview endpoint, above). Google runs JavaScript and is not sent to that endpoint, so whether the structured data goes in the single-page app, in the preview or in both is decided there.
 - **T-E6-14:** k6 scripts in TypeScript, scenarios from the spec ("Prueba de carga (k6)"); the scripts can be written and tried locally before the server exists.
 - **T-E6-24:** the mapping table of Treinta URLs comes from the business.
 - **T-E6-25:** the router already has its own 404 (`NotFoundPage`); 500 and the maintenance page served by Caddy are missing (RNF-31.7).
