@@ -11,7 +11,8 @@ import { CADDY_HTTPS_PORT, CADDY_URL } from '../stubs/settings.ts';
  * global setup rather than a webServer, so the container is removed at the end on every platform.
  */
 const IMAGE = 'pijamaparty-caddy:lighthouse';
-const CONTAINER = 'pijamaparty-lighthouse-caddy';
+/** Also the network the load test's k6 runs in (load/k6.ts). */
+export const CADDY_CONTAINER = 'pijamaparty-lighthouse-caddy';
 const REPOSITORY = join(import.meta.dirname, '..', '..');
 /** The backend's e2e uploads directory (application-e2e.yml), served by Caddy as /uploads like the uploads volume. */
 const UPLOADS = join(REPOSITORY, 'backend', 'target', 'e2e-uploads');
@@ -22,7 +23,7 @@ function docker(args: string[]): void {
 }
 
 function removeContainer(): void {
-  spawnSync('docker', ['rm', '--force', CONTAINER], { stdio: 'ignore' });
+  spawnSync('docker', ['rm', '--force', CADDY_CONTAINER], { stdio: 'ignore' });
 }
 
 /** Whether Caddy answers the storefront; its certificate comes from Caddy's own local authority. */
@@ -49,7 +50,7 @@ export default async function startCaddy(): Promise<() => void> {
   removeContainer();
   docker(['build', '--tag', IMAGE, '--file', 'deploy/caddy/Dockerfile', '.']);
   docker([
-    'run', '--detach', '--rm', '--name', CONTAINER,
+    'run', '--detach', '--rm', '--name', CADDY_CONTAINER,
     '--env', 'DOMAIN=localhost',
     // Loopback only: the test store with its known admin password never reaches the local network
     '--publish', `127.0.0.1:${String(CADDY_HTTPS_PORT)}:443`,

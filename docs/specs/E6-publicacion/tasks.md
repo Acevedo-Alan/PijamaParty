@@ -13,7 +13,7 @@
 - [ ] **T-E6-11** Carga del catálogo y credenciales reales de pago; compra real de prueba.
 - [ ] **T-E6-12** Publicación, cambio de enlaces desde Treinta y entrega de accesos.
 - [ ] **T-E6-13** Acta de aceptación firmada y cierre del proyecto.
-- [ ] **T-E6-14** Prueba de carga con k6 (scripts en TypeScript) según la spec y ajuste de los valores de RNF-21 y RNF-22.
+- [ ] **T-E6-14** Prueba de carga con k6 (scripts en TypeScript) según la spec y ajuste de los valores de RNF-21 y RNF-22. Decidido el 2026-10-19: la parte del repositorio corre en local contra la imagen de Caddy de producción delante del backend e2e y de los stubs; cada comprador simulado usa su propia IP (rango de pruebas 198.18.0.0/15) llamando al backend directo, salvo la prueba de límites, que pasa por Caddy; k6 corre desde su imagen de Docker y no entra al CI. Hecho en el código: los seis escenarios de la spec en `e2e/load/k6` y `npm run load` en `e2e/`, que además verifica pedidos, stock y correos. Pendiente (necesita el servidor): correrlo allí, medir la memoria de RNF-21 y ajustar RNF-21 y RNF-22. Ver `docs/use-cases/E6-hardening-and-release.md`. Sin migraciones.
 - [ ] **T-E6-15** Verificar en el servidor real la idempotencia, los límites de tasa y la entrega de correos (SPF, DKIM y DMARC en verde).
 - [ ] **T-E6-16** Verificar la analítica con Meta Pixel Helper y DebugView de GA4, la política de seguridad de contenido y el impacto en Lighthouse (RNF-25).
 - [ ] **T-E6-17** Probar el backoffice en un Android y un iPhone reales (RNF-26).

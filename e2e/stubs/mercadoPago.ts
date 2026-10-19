@@ -11,7 +11,8 @@ import { MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_CHECKOUT_ORIGIN, MERCADOPAGO_WEBH
  * - GET /checkout is the page where the buyer pays: approve or reject. Either sends the signed Webhooks notification
  *   to the preference's notification_url, as MercadoPago does; an approved payment then sends the buyer back to the
  *   store, and a rejected one stays on the page so the buyer can try again (T-E3-07).
- * The tests drive it through /__e2e: repeat a notification, list the payments of an order.
+ * The tests drive it through /__e2e: repeat a notification, list the payments of an order, and (for the load test,
+ * T-E6-14) pay an order without notifying, getting back the signed notification for k6 to deliver.
  */
 
 interface Preference {
@@ -80,6 +81,8 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
   } else if (method === 'GET' && url.pathname === '/__e2e/payments') {
     const order = url.searchParams.get('externalReference');
     sendJson(response, 200, [...payments.values()].filter((payment) => payment.externalReference === order));
+  } else if (method === 'POST' && url.pathname === '/__e2e/payments') {
+    await payQuietly(request, response);
   } else if (method === 'POST' && /^\/__e2e\/payments\/\d+\/notify$/.test(url.pathname)) {
     const payment = payments.get(Number(url.pathname.split('/')[3]));
     if (payment === undefined) {
@@ -189,23 +192,69 @@ async function pay(request: IncomingMessage, response: ServerResponse): Promise<
   );
 }
 
-/** Sends the payment's Webhooks notification, signed as MercadoPago signs it, and returns the store's status. */
-async function notify(payment: Payment): Promise<number> {
+/** A payment's Webhooks notification, signed as MercadoPago signs it. */
+interface Notification {
+  url: URL;
+  headers: Record<string, string>;
+  body: string;
+}
+
+function notificationOf(payment: Payment): Notification {
   const preference = preferences.get(payment.preferenceId) as Preference;
   const dataId = String(payment.id);
   const requestId = randomUUID();
   const ts = String(Date.now());
   const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
   const v1 = createHmac('sha256', MERCADOPAGO_WEBHOOK_SECRET).update(manifest).digest('hex');
-  const target = new URL(preference.notificationUrl);
-  target.searchParams.set('type', 'payment');
-  target.searchParams.set('data.id', dataId);
-  const answer = await fetch(target, {
-    method: 'POST',
+  const url = new URL(preference.notificationUrl);
+  url.searchParams.set('type', 'payment');
+  url.searchParams.set('data.id', dataId);
+  return {
+    url,
     headers: { 'Content-Type': 'application/json', 'x-signature': `ts=${ts},v1=${v1}`, 'x-request-id': requestId },
     body: JSON.stringify({ action: 'payment.updated', type: 'payment', data: { id: dataId } }),
+  };
+}
+
+/** Sends the payment's Webhooks notification and returns the store's status. */
+async function notify(payment: Payment): Promise<number> {
+  const notification = notificationOf(payment);
+  const answer = await fetch(notification.url, {
+    method: 'POST',
+    headers: notification.headers,
+    body: notification.body,
   });
   return answer.status;
+}
+
+/**
+ * T-E6-14: approves a payment of the order's latest preference without notifying the store, and answers the signed
+ * notification (path and query, headers and body), which the load test delivers several times at once.
+ */
+async function payQuietly(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const { externalReference } = JSON.parse(await readBody(request)) as { externalReference?: string };
+  const preference = [...preferences.values()].findLast(
+    (candidate) => candidate.externalReference === externalReference,
+  );
+  if (preference === undefined) {
+    sendJson(response, 404, { message: 'unknown order' });
+    return;
+  }
+  const payment: Payment = {
+    id: nextPaymentId++,
+    status: 'approved',
+    externalReference: preference.externalReference,
+    amount: preference.amount,
+    preferenceId: preference.id,
+  };
+  payments.set(payment.id, payment);
+  const notification = notificationOf(payment);
+  sendJson(response, 201, {
+    paymentId: payment.id,
+    path: `${notification.url.pathname}${notification.url.search}`,
+    headers: notification.headers,
+    body: notification.body,
+  });
 }
 
 function checkoutPage(preference: Preference, message: string | null): string {

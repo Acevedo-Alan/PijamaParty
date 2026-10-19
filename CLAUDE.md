@@ -62,7 +62,8 @@ End-to-end tests (run from `e2e/`; Node >= 22.18, Docker running, `npm ci` done 
 - Install: `npm ci`, then `npx playwright install chromium`
 - Run (Playwright starts the MercadoPago and Resend stubs, the backend with the `e2e` profile and the frontend build; outside CI it reuses servers already running): `npm test`
 - Lighthouse on home, listing, product and checkout, plus the security headers, the CSP and the link previews of products (T-E6-02, T-E6-03, T-E6-07; builds the production Caddy image and runs it on `https://localhost:8443` in front of the `e2e` backend; needs libvips: `vips` on the PATH or `VIPS_BIN_DIR`; HTML reports in `lighthouse-report/`): `npm run lighthouse`
-- Checks: `npm run typecheck`
+- Load test with k6 (T-E6-14; not in CI; k6 runs from its Docker image, nothing to install; starts the stubs, the `e2e` backend and the production Caddy image as `npm run lighthouse` does, seeds the catalog and checks orders, stock and emails after each scenario; `LOAD_DURATION` shortens the 2-minute browsing): `npm run load`
+- Checks: `npm run typecheck` (also typechecks the k6 scripts of `load/k6`)
 
 Production stack (from the repository root, with Docker; fill `deploy/secrets/` first, see its README, and set `DOMAIN` in `.env`):
 - Build and start caddy, api, db and the one-shot Flyway `migrate` step: `docker compose -f deploy/docker-compose.yml --env-file .env up -d --build --wait`

@@ -9,12 +9,14 @@
   "scripts": {
     "test": "playwright test",
     "lighthouse": "playwright test --config playwright.lighthouse.config.ts",
+    "load": "playwright test --config playwright.load.config.ts",
     "stubs": "node stubs/server.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p load/k6",
     "report": "playwright show-report"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
+    "@types/k6": "2.3.0",
     "@types/node": "26.6.5",
     "lighthouse": "13.5.0",
     "typescript": "5.9.3"

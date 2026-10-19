@@ -24,5 +24,16 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["playwright.config.ts", "playwright.lighthouse.config.ts", "lighthouse", "stubs", "support", "tests"]
+  "include": [
+    "playwright.config.ts",
+    "playwright.lighthouse.config.ts",
+    "playwright.load.config.ts",
+    "lighthouse",
+    "load",
+    "stubs",
+    "support",
+    "tests"
+  ],
+  // The k6 scripts run in k6, not Node: load/k6/tsconfig.json
+  "exclude": ["load/k6"]
 }

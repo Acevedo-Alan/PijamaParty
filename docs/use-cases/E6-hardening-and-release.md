@@ -181,11 +181,64 @@ Each task's open decisions are settled with the owner when the task starts and w
 
 ---
 
+## T-E6-14 Load test with k6 (RNF-16)
+
+**Scope:** the repository part. The scripts are written and run locally now. Running them on the real server, measuring the memory budget of RNF-21 and adjusting the values of RNF-21 and RNF-22 from the results are blocked by `T-E0-07` to `T-E0-10` (task group 2), so the task stays open.
+
+**Decided on 2026-10-19:**
+- **The local run uses the Lighthouse stack:** the production Caddy image on `https://localhost:8443` in front of the e2e backend (`E2eStoreApplication`), with the MercadoPago and Resend stubs of T-E6-01. The checkout and webhook scenarios need no network, and Caddy turns a full Tomcat queue into the `503` of RNF-21.
+- **Every shopper has its own IP.** From one machine, every virtual user would share one IP, and the `catalog` limit (120 a minute per IP, RNF-22) would answer most of the 50 browsing shoppers with `429`. So the browsing, checkout, webhook and saturation scenarios call the backend directly, each shopper with its own `X-Forwarded-For` from the benchmarking range `198.18.0.0/15` (RFC 2544). The dev profile trusts that header from private addresses, as Tomcat does by default. The rate limits stay on as configured. Only the rate-limit scenario goes through Caddy, which overwrites the header, so every request it sends counts for one IP. No production code or configuration changes.
+- **k6 runs from its Docker image, pinned by digest** (`grafana/k6:2.3.0`), which runs the TypeScript scripts itself: nothing to install. **Not in CI:** shared runners make latencies noisy, and the figures that tune RNF-21 and RNF-22 come from the server.
+
+**Scenarios** (spec, "Prueba de carga (k6)"); each one is a k6 script in `e2e/load/k6`:
+1. **Browsing** (`browse.ts`): 50 shoppers at once for 2 minutes (20 seconds of ramp-up). Each one opens the home page (categories and products), a category listing with its filters (sorted by price now and then), a product with its reviews and the shipping costs, and one in four also searches (suggestions, then results). Between pages a shopper waits 1 to 3 seconds. Threshold: p95 of the catalog requests under 400 ms, and no failed request.
+2. **10 simultaneous checkouts** (`checkout.ts`): 10 buyers, each with its own IP and a cart prepared beforehand, confirm at the same moment. Each sends its confirmation twice at once with the same `Idempotency-Key`, as a double tap does (RNF-20.1, RNF-20.2). Each answer must be the order (`201`) or `409 IDEMPOTENCY_KEY_IN_USE`. The second kind is repeated after its `Retry-After`, as the storefront does, and must get the same order. Afterwards, there are exactly 10 orders awaiting payment and 10 units reserved: available stock down by 10, units on hand unchanged.
+3. **The same webhook** (`webhooks.ts`): the MercadoPago stub approves the payment of each of those 10 orders without notifying the store and hands over the signed notification. k6 delivers each one 5 times at the same moment. Every copy is answered `200`. Afterwards, the 10 orders are `PAID` and the units on hand went down by exactly 10, with available stock unchanged since the reservation. Each buyer gets exactly one confirmation email (RNF-20.3 to RNF-20.5, RNF-20.7).
+4. **The last unit** (`last-unit.ts`): 20 buyers, each with the only unit of one variant in its cart, confirm at the same moment. Exactly one gets `201`; the other 19 get `409` (`CART_NOT_READY` or `INSUFFICIENT_STOCK`). Afterwards, available stock is 0 and the unit on hand is the one reserved.
+5. **Extreme saturation** (`saturation.ts`): for 30 seconds, 300 shoppers ask the API directly for listings with no pause, each from its own IP so no rate limit stops them first. Meanwhile 50 more do the same through Caddy. A direct answer must be `200` or `503`, and a connection refused once Tomcat's queue is full is counted apart. Through Caddy, the answer must be `200`, `429` (that client's own IP limit) or `503`. Every `503` must carry `Retry-After` in problem+json: Caddy's for a refused or timed-out backend, the API's for an exhausted connection pool (RNF-21). The `503`s and refused connections are counted, not required (see *As built*). Once the queued requests have drained, `/api/health` must be up within 30 seconds and a listing must be served in under a second.
+6. **Rate limits through Caddy** (`rate-limits.ts`): one client goes over each per-minute limit a visitor reaches (coupon, checkout, cart, payment retry, tracking link, search, catalog, shipping costs, sign-in, return from Google or Facebook) and gets `429` with `Retry-After` in problem+json, within the policy's capacity. Some policies share buckets (a search also counts for the catalog), so the order of the routes makes each one reach its own limit first. The client sends a forged `X-Forwarded-For`, which Caddy replaces. Left out, with backend tests of their own (`RateLimitPoliciesTest`, `BackOfficeRateLimitTest`): the hourly policies, which would lock the IP out for an hour, and the ones keyed by a signed-in user.
+- **Memory (RNF-21):** not measured locally. The e2e backend runs without `-Xmx` and its PostgreSQL container has the image defaults, so the figures would say nothing about the server. It is measured in the server run, below.
+
+**Design notes**
+- **Where it lives:** the `e2e/` project, as a third Playwright configuration (`playwright.load.config.ts`, `npm run load`). Playwright starts the stubs, the backend and the Caddy container (reusing `lighthouse/caddy.setup.ts`), signs the administrator in (`tests/admin.setup.ts`) and seeds the catalog through the back office: three categories of six products, plus one product for the checkouts (100 units) and one with a single unit. `load/load.spec.ts` runs one k6 script per scenario, in order, and after each one checks what the database kept through the back office and the stubs: orders, stock and emails. k6 sees the answers, not the stock or the emails.
+- **k6 in Docker** (`load/k6.ts`) joins the network of the Caddy container, so Caddy is `https://localhost` and the backend is `http://api:8080`, the same address Caddy uses. A missed threshold or check makes k6 exit with a non-zero code, and the scenario fails.
+- **Cookies by hand** (`load/k6/shopper.ts`): the backend marks the cart and CSRF cookies `Secure`, and k6's own jar does not send them to the backend over plain http. So each shopper keeps its cookies and sends them itself, with the CSRF token in `X-XSRF-TOKEN` (RNF-29.1). Shoppers prepared in a script's `setup()` are handed to the virtual users with their cookies, so the confirmations really start at the same moment.
+- **The k6 scripts typecheck** with `@types/k6` and their own `load/k6/tsconfig.json` (no Node types), as part of `npm run typecheck`.
+- **The MercadoPago stub** gains `POST /__e2e/payments`: it approves the payment of an order's latest preference and answers the signed notification (path, headers, body) without sending it.
+
+**As built (2026-10-19)**
+- Local runs (Windows, Docker Desktop, the e2e backend on the host):
+
+  | Scenario | Result |
+  |---|---|
+  | Browsing, 50 shoppers, 2 minutes | 8,159 requests (53 a second); catalog p95 26 ms (max 79 ms); no failure |
+  | 10 checkouts, each sent twice | 10 orders; 9 of the 20 confirmations got `409 IDEMPOTENCY_KEY_IN_USE` and their retry got the same order; 10 units reserved |
+  | 10 notifications × 5 copies | 50 × `200`; 10 orders `PAID`, 10 units deducted, one email per buyer |
+  | Last unit, 20 buyers | 1 order, 19 × `409` |
+  | Saturation, 300 direct + 50 through Caddy, 30 s | about 23,000 requests; 11,000 refused connections, the rest `200` or `503`; served again once drained |
+  | Rate limits through Caddy | `429` with `Retry-After` on each of the 10 routes |
+
+- **Saturation, what the API does:** the listings are too fast to exhaust the 8 connections of the pool, so the API itself never answered `503` in these runs. Its `503` stays covered by `SaturationTest`. The overload shows up as Tomcat's full queue instead: direct connections are refused, and a request that got into the queue may wait up to 40 seconds for its answer. That is longer than Caddy's `response_header_timeout` of 30 seconds, so behind Caddy the shopper gets the `503` sooner. Through Caddy, the result depends on its open connections to the API. On a fresh start every request of the flood got Caddy's `503`. When Caddy already had open connections, it reused them, its requests were answered, and that one client IP got `429`. So the `503`s are counted, not required. The server run reads `saturated_503` and `refused_connections`.
+- **Refill:** the buckets refill gradually (`catalog` gets a token back every half second), so a policy may let a few requests past its capacity while the test sends them. As `RateLimitPoliciesTest` does, the `429` may come up to 10 requests late.
+- **Observed once:** in one 2-minute browsing run, 7 of about 8,000 requests timed out while connecting to the backend through Docker Desktop's host gateway, during the ramp-up. They never reached the API, and the run after it was clean. The threshold stays strict (no failed request); if this comes back on the server, it is a finding there.
+- The k6 runner hides the progress bars and sums up k6's "Request Failed" warnings (thousands under saturation) after the first five. The shoppers do not follow redirects, since an API answer is the answer.
+
+**Acceptance criteria**
+- Given 50 shoppers browsing at once, each from its own IP, when the catalog is measured, then its p95 is under 400 ms and no request fails.
+- Given 10 buyers who confirm at the same moment, each twice with one `Idempotency-Key`, when the confirmations end, then there are exactly 10 orders, one per key, and exactly 10 units reserved.
+- Given 20 buyers confirming the last unit of a variant at once, when the confirmations end, then exactly one order exists and the other 19 got `409`.
+- Given the notification of each of those 10 orders delivered 5 times at once, when they are processed, then every copy gets `200`, each order is `PAID` once, 10 units are deducted and each buyer gets one confirmation email.
+- Given a client over the limit of a per-minute route a visitor reaches, through the production Caddy image, when it sends one more request, then the answer is `429` with `Retry-After` in problem+json.
+- Given far more shoppers than the pools hold, when they flood the API, then every answer is `200`, `429` (through Caddy) or `503` with `Retry-After` in problem+json, and once the flood has drained the API is up and serves a listing in under a second.
+
+**On the server (pending, group 2):** the same scripts against the test environment of `T-E6-09`, with `docker stats` of `api` and `db` sampled during the run for the memory budget of RNF-21 (JVM about 1.1 GB, PostgreSQL about 1 GB). How the shoppers' own IPs reach the API there (Caddy overwrites the header, and the API publishes no port) is decided then. Then RNF-21 and RNF-22 are adjusted from the results.
+
+---
+
 ## Remaining tasks
 
 Written when each one starts, with its decisions. Known inputs so far:
 - **T-E6-06:** the texts come from the business (RNF-30, validated in T-E6-21); `store.ordering.terms-version` changes whenever they change (RNF-30.6).
 - **T-E6-23:** RNF-31.2 asks it to share the solution of T-E6-07 (the preview endpoint, above). Google runs JavaScript and is not sent to that endpoint, so whether the structured data goes in the single-page app, in the preview or in both is decided there.
-- **T-E6-14:** k6 scripts in TypeScript, scenarios from the spec ("Prueba de carga (k6)"); the scripts can be written and tried locally before the server exists.
 - **T-E6-24:** the mapping table of Treinta URLs comes from the business.
 - **T-E6-25:** the router already has its own 404 (`NotFoundPage`); 500 and the maintenance page served by Caddy are missing (RNF-31.7).
