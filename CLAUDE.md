@@ -61,7 +61,7 @@ Frontend (run from `frontend/`; Node >= 22.18, npm):
 End-to-end tests (run from `e2e/`; Node >= 22.18, Docker running, `npm ci` done in `frontend/` too):
 - Install: `npm ci`, then `npx playwright install chromium`
 - Run (Playwright starts the MercadoPago and Resend stubs, the backend with the `e2e` profile and the frontend build; outside CI it reuses servers already running): `npm test`
-- Lighthouse on home, listing, product and checkout (T-E6-02; builds the production Caddy image and runs it on `https://localhost:8443` in front of the `e2e` backend; needs libvips: `vips` on the PATH or `VIPS_BIN_DIR`; HTML reports in `lighthouse-report/`): `npm run lighthouse`
+- Lighthouse on home, listing, product and checkout, plus the security headers and CSP (T-E6-02, T-E6-03; builds the production Caddy image and runs it on `https://localhost:8443` in front of the `e2e` backend; needs libvips: `vips` on the PATH or `VIPS_BIN_DIR`; HTML reports in `lighthouse-report/`): `npm run lighthouse`
 - Checks: `npm run typecheck`
 
 Production stack (from the repository root, with Docker; fill `deploy/secrets/` first, see its README, and set `DOMAIN` in `.env`):

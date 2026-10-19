@@ -16,6 +16,12 @@ public class ProvidersStubConfiguration {
         return new ProvidersStub();
     }
 
+    /** Idle unless a test arms it: the whole-application tests of sign-in share this context (T-E6-03). */
+    @Bean
+    FailingSignInListener failingSignInListener() {
+        return new FailingSignInListener();
+    }
+
     @Bean
     DynamicPropertyRegistrar providersStubProperties(ProvidersStub stub) {
         return registry -> {

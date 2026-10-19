@@ -8,6 +8,7 @@ import com.pijamaparty.store.accounts.domain.ExternalAccount;
 import com.pijamaparty.store.accounts.domain.ExternalProvider;
 import com.pijamaparty.store.platform.domain.Role;
 import com.pijamaparty.store.platform.domain.UserId;
+import com.pijamaparty.store.platform.logging.Pii;
 import com.pijamaparty.store.platform.security.SessionAuthentication;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -103,8 +104,9 @@ class ExternalSignInHandlers implements AuthenticationSuccessHandler, Authentica
         } catch (ConcurrentExternalSignInException e) {
             target = FAILED;
         } catch (RuntimeException e) {
-            // A failing sign-in listener leaves no session open, as with the password; no personal data is logged.
-            log.error("Sign-in with {} failed", command.get().account().provider(), e);
+            // A failing sign-in listener leaves no session open, as with the password. The exception may quote the email
+            // (a database error): it is scrubbed (T-E6-03).
+            log.error("Sign-in with {} failed", command.get().account().provider(), Pii.scrubException(e));
             SecurityContextHolder.clearContext();
             target = FAILED;
         }
@@ -155,8 +157,8 @@ class ExternalSignInHandlers implements AuthenticationSuccessHandler, Authentica
                 case LinkExternalAccount.Result.NotFound notFound -> LINK_FAILED;
             };
         } catch (RuntimeException e) {
-            // No personal data is logged.
-            log.error("Linking {} failed", pending.provider(), e);
+            // The exception may quote the email (a database error): it is scrubbed (T-E6-03).
+            log.error("Linking {} failed", pending.provider(), Pii.scrubException(e));
             return LINK_FAILED;
         }
     }
@@ -182,8 +184,8 @@ class ExternalSignInHandlers implements AuthenticationSuccessHandler, Authentica
                 case ReauthenticateWithExternalAccount.Result.NotLinked notLinked -> REAUTHENTICATION_FAILED;
             };
         } catch (RuntimeException e) {
-            // No personal data is logged.
-            log.error("Reauthenticating with {} failed", pending.provider(), e);
+            // The exception may quote the email (a database error): it is scrubbed (T-E6-03).
+            log.error("Reauthenticating with {} failed", pending.provider(), Pii.scrubException(e));
             return REAUTHENTICATION_FAILED;
         }
     }

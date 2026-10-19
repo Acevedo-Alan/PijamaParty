@@ -120,11 +120,31 @@ Each task's open decisions are settled with the owner when the task starts and w
 
 ---
 
+## T-E6-03 Security headers, sign-in limits and logs without personal data (RNF-15)
+
+**Review (2026-10-18):**
+- **Headers:** HSTS, CSP, `X-Content-Type-Options`, `Referrer-Policy` and `Permissions-Policy` are set by Caddy on every answer, error pages included (RNF-29.9).
+- **CSP and the payment providers:** none is needed. The storefront sends the buyer to MercadoPago's and MODO's checkout with a top-level navigation (`window.location.assign`), and to Google and Facebook in the same way (UC-27). CSP does not restrict top-level navigation, and the store loads no provider script, frame or form. A provider SDK, if one is ever added, needs its domains then.
+- **Sign-in limits:** the `login-ip`, `login-account`, `account-email` and `social-sign-in` policies match RNF-22 and RNF-29.5. Nothing changes.
+- **Log statements:** all 80 were read. They log order numbers, provider ids, HTTP statuses and exception types. One exception: the three failures of `ExternalSignInHandlers` logged the exception as it was, and a database error there may quote the customer's email.
+- **Log retention:** the Docker `json-file` driver already bounds each container's logs to 5 files of 10 MB (`deploy/docker-compose.yml`).
+
+**Decided on 2026-10-18:**
+- **Logs: a safety net under every log line, not only the store's.** The console layout (`logback-spring.xml`) scrubs every message with `Pii.scrub` and every exception with `Pii.scrubException`, so Spring's, Hibernate's and Tomcat's lines go through the same masking as the store's. The three call sites above pass their exception through `Pii.scrubException` too. Addresses still cannot be detected in free text, so the rule of never logging them stays.
+- **The headers are tested against the production Caddy image**, in the Lighthouse run of T-E6-02, which already starts it: the headers on `index.html`, the API and a photo, and no CSP violation on the home page, a listing, a product page and the checkout. The 503 page of an unreachable backend is not tested there, since the run needs the backend up. The analytics domains are not exercised: the test image is built without analytics ids, and their check is T-E6-16.
+- **CSP:** unchanged; the Caddyfile's comment now says why the payment providers need no entries.
+
+**Acceptance criteria**
+- Given a response of the storefront, of the API or of a photo through Caddy, when it arrives, then it carries `Strict-Transport-Security`, the `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `Referrer-Policy` and `Permissions-Policy`, and no `Server` header.
+- Given the home page, a listing, a product page and the checkout served by Caddy, when they load, then the browser reports no CSP violation.
+- Given a log line whose message or exception (with its causes) holds an email or a national ID, when it is written, then they are masked, whichever library wrote it.
+- Given a sign-in with Google or Facebook that fails with a database error quoting the email, when it is logged, then the email is not in the log.
+
+---
+
 ## Remaining tasks
 
 Written when each one starts, with its decisions. Known inputs so far:
-
-- **T-E6-03:** HSTS, CSP, `X-Content-Type-Options`, `Referrer-Policy` and `Permissions-Policy` already exist in `deploy/caddy/Caddyfile` (RNF-29.9). The CSP still says "E3 adds the payment provider ones": check it against MercadoPago's and MODO's redirects. Sign-in rate limits exist (RNF-22). The task reviews them and audits every log statement for personal data.
 - **T-E6-06:** the texts come from the business (RNF-30, validated in T-E6-21); `store.ordering.terms-version` changes whenever they change (RNF-30.6).
 - **T-E6-07** and **T-E6-23** share one solution (RNF-31.2): prerendered product pages or a small endpoint that renders the tags. To decide when T-E6-07 starts.
 - **T-E6-14:** k6 scripts in TypeScript, scenarios from the spec ("Prueba de carga (k6)"); the scripts can be written and tried locally before the server exists.

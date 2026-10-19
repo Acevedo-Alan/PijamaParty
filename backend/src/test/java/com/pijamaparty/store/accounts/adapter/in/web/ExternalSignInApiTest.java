@@ -25,10 +25,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +52,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import({TestcontainersConfiguration.class, ResendStubConfiguration.class, ProvidersStubConfiguration.class})
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
+@ExtendWith(OutputCaptureExtension.class)
 class ExternalSignInApiTest {
 
     /** {@code store.public-url} in tests. */
@@ -63,13 +68,15 @@ class ExternalSignInApiTest {
     private final TestRestTemplate http;
     private final ObjectMapper json;
     private final ProvidersStub providers;
+    private final FailingSignInListener failingListener;
     private final ResendStub resend;
     private final SendNextEmail sendNextEmail;
     private final PasswordHasher passwords;
     private final JdbcTemplate owner;
 
-    ExternalSignInApiTest(TestRestTemplate http, ObjectMapper json, ProvidersStub providers, ResendStub resend,
-                          SendNextEmail sendNextEmail, PasswordHasher passwords, PostgreSQLContainer<?> postgres) {
+    ExternalSignInApiTest(TestRestTemplate http, ObjectMapper json, ProvidersStub providers,
+                          FailingSignInListener failingListener, ResendStub resend, SendNextEmail sendNextEmail,
+                          PasswordHasher passwords, PostgreSQLContainer<?> postgres) {
         var noRedirects = new SimpleClientHttpRequestFactory() {
             @Override
             protected void prepareConnection(HttpURLConnection connection, String method) throws IOException {
@@ -82,6 +89,7 @@ class ExternalSignInApiTest {
             .requestFactory(() -> noRedirects));
         this.json = json;
         this.providers = providers;
+        this.failingListener = failingListener;
         this.resend = resend;
         this.sendNextEmail = sendNextEmail;
         this.passwords = passwords;
@@ -92,6 +100,7 @@ class ExternalSignInApiTest {
     @AfterEach
     void cleanUp() {
         providers.reset();
+        failingListener.reset();
         resend.reset();
         owner.execute("truncate cart_item, cart, stock_movement, stock_level, product_image, variant, product, "
             + "size_guide, category, email_outbox, address, user_token, external_identity, pending_link, "
@@ -265,6 +274,21 @@ class ExternalSignInApiTest {
         assertThat(providers.tokenRequests()).as("the code is never exchanged").isZero();
         assertThat(owner.queryForObject("select count(*) from app_user", Integer.class)).isZero();
         assertThat(browser.get(ME).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void givenASignInThatFailsWithADatabaseErrorQuotingTheEmail_whenItIsLogged_thenTheEmailIsNotInTheLog(
+        CapturedOutput output) {
+        failingListener.failNextWith(new DataIntegrityViolationException(
+            "could not execute statement; Key (email)=(ana@example.com) already exists"));
+        Browser browser = new Browser(http);
+
+        ResponseEntity<String> back = signInWithGoogle(browser, ANA_AT_GOOGLE);
+
+        assertThat(page(back)).isEqualTo("/cuenta/ingresar?social=failed");
+        assertThat(browser.get(ME).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(output.getAll()).contains("Sign-in with GOOGLE failed", "DataIntegrityViolationException")
+            .doesNotContain("ana@example.com");
     }
 
     @Test

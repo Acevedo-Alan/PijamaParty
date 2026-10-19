@@ -62,7 +62,8 @@ public final class Pii {
 
     /**
      * A copy of the exception chain for logging: same types and stack traces, messages scrubbed. Exception messages
-     * often carry input values (for example a unique-constraint violation with the email).
+     * often carry input values (for example a unique-constraint violation with the email). A chain scrubbed already
+     * is returned as it is, so the log layout can scrub every exception again (T-E6-03).
      */
     public static Throwable scrubException(Throwable throwable) {
         return scrubException(throwable, 0);
@@ -71,6 +72,9 @@ public final class Pii {
     private static Throwable scrubException(Throwable throwable, int depth) {
         if (throwable == null || depth > MAX_CAUSES) {
             return null;
+        }
+        if (throwable instanceof ScrubbedException) {
+            return throwable;
         }
         String message = throwable.getClass().getName()
             + (carriesRowData(throwable) ? sqlState(throwable) : ": " + scrub(throwable.getMessage()));

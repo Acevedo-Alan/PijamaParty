@@ -16,7 +16,9 @@
 }
 
 # RNF-29.9: HSTS and the content security policy live here, not in the application. The CSP allows this origin and
-# the analytics domains of RNF-25 (loaded only after consent, T-E1-23); E3 adds the payment provider ones.
+# the analytics domains of RNF-25 (loaded only after consent, T-E1-23). MercadoPago, MODO, Google and Facebook need
+# no entry: the storefront reaches them by top-level navigation, which CSP does not restrict, and loads no script,
+# frame or form of theirs (T-E6-03). Tested against this image by e2e/lighthouse/headers.spec.ts.
 (security_headers) {
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

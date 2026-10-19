@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Spring Boot's console logging, with personal data masked in every line (T-E6-03, R-05): the message (%m) and the
+  exception go through Pii, whichever library wrote them. Production logs go to the console only; Docker bounds them
+  (deploy/docker-compose.yml).
+-->
+<configuration>
+	<conversionRule conversionWord="m" class="com.pijamaparty.store.platform.logging.PiiMessageConverter"/>
+	<conversionRule conversionWord="msg" class="com.pijamaparty.store.platform.logging.PiiMessageConverter"/>
+	<conversionRule conversionWord="message" class="com.pijamaparty.store.platform.logging.PiiMessageConverter"/>
+	<conversionRule conversionWord="piiEx" class="com.pijamaparty.store.platform.logging.PiiThrowableConverter"/>
+	<!-- Before defaults.xml, which reads it into the console pattern; it wins over logging.exception-conversion-word. -->
+	<property name="LOG_EXCEPTION_CONVERSION_WORD" value="%piiEx"/>
+	<include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+	<include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+	<root level="INFO">
+		<appender-ref ref="CONSOLE"/>
+	</root>
+</configuration>
