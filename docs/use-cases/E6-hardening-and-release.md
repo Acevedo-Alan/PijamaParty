@@ -235,6 +235,37 @@ Each task's open decisions are settled with the owner when the task starts and w
 
 ---
 
+## T-E6-18 Cross-access (IDOR) and Row Level Security tests (RNF-27)
+
+**Scope:** every route that takes an identifier or a token of something a buyer owns, tried by the people who do not own it, plus a guard over the tables. No production code changes: when a case fails, the fix goes in the use case of that route first.
+
+**Decided on 2026-10-19:**
+- **One backend test over real HTTP** (`CrossAccessApiTest`), with real sessions, the CSRF token of the SPA, Row Level Security and PostgreSQL (Testcontainers), as `CustomerOrdersApiTest` does. It runs in `./mvnw verify`, so in CI. Not in Playwright: none of it needs the storefront.
+- **Four people:** customers Ana and Bruno (password sign-in), a guest with its own cart and the tracking link of its order, and the administrator (password and second factor, enrolled in the test).
+- **"The database returns no rows" is proved with the query the application would run without its owner filter.** For each case, the test runs, as the intruder and through the application's transaction manager (`RlsPolicyTester`), a select, update or delete of the victim's row **by its identifier only**. It must touch 0 rows. So a route that forgot its filter would still leak nothing.
+- **The answers stay as they are:** another person's order, address or cart item answers `404` problem+json (the same as one that does not exist, so its existence is not revealed); a wrong tracking token answers `404 ORDER_NOT_FOUND`; not signed in on `/api/account/**` or `/api/admin/**` answers `401`; signed in with the other role answers `403`. The test makes them uniform across the routes below.
+- **A guard over the tables** (`RowLevelSecurityCoverageTest`): the tables with `ENABLE` and `FORCE ROW LEVEL SECURITY` must be exactly the protected list below, and every other table of the schema must be on the public list, each with its reason. A new table fails the build until it is put on one of the two lists on purpose.
+
+**Cases** (spec, "Seguridad de datos"):
+1. **Orders:** Ana opens Bruno's order at `/api/account/orders/{id}` → `404 ORDER_NOT_FOUND`, without any of Bruno's data; her list does not show it. The guest's order, opened by Ana by its id, is not found either. As Ana and as the guest, the database sees none of Bruno's `orders` or `order_item` rows, nor updates his order. (The checkout's token lives in `orders`; the extra tokens of `order_tracking_token` have their own test, `RepeatedCheckoutTrackingRowLevelSecurityTest`.)
+2. **Addresses:** Ana edits and deletes Bruno's address at `/api/account/addresses/{id}` → `404 ADDRESS_NOT_FOUND`, and Bruno's address is unchanged. As Ana, the database reads, updates and deletes 0 of Bruno's `address` rows.
+3. **Cart items:** Ana changes and removes an item of Bruno's cart at `/api/cart/items/{id}` → `404`, and the guest, with a cart of its own, does the same with an item of Ana's cart; every cart is unchanged. (A guest with no cart at all gets `403`: it cannot have one yet.) As the intruder, the database sees none of the victim's `cart` or `cart_item` rows.
+4. **Reviews:** Bruno has a review waiting for moderation. Ana asks for her review of that product at `/api/account/reviews/{productId}` and gets none. As Ana, the database does not see Bruno's `review` row.
+5. **Tracking link:** the guest's token opens the guest's order and no other. A well-formed token that is not the order's, on the read, the payment retry and the email correction, answers `404 ORDER_NOT_FOUND`, and the order's email is unchanged. Ana's session does not open Bruno's order without its token.
+6. **Payments and checkout keys:** as Ana, the guest and the administrator, the database sees none of the `idempotency_key` rows of the others. As Ana and the guest, none of the `payment` rows.
+7. **The two sides:** Ana and the guest on `/api/admin/orders/{id}` → `403` and `401`; the administrator on `/api/account/orders/{id}` → `403`. The administrator opens Bruno's order in the back office (`200`): reading every order is its job (RNF-27 table). As the administrator, the database sees no `cart` or `cart_item` row.
+
+**Protected tables** (`FORCE ROW LEVEL SECURITY`): the RNF-27 list (`orders`, `order_item`, `payment`, `payment_event`, `address`, `app_user`, `cart`, `cart_item`, `review`, `idempotency_key`, `email_outbox`, `email_event`, `external_identity`, `user_token`, `withdrawal_request`) plus `admin_recovery_code`, `order_tracking_token`, `payment_checkout` and `pending_link`.
+
+**Public tables, with their reason:**
+- `category`, `product`, `variant`, `product_image`, `size_guide`, `stock_level`, `shipping_zone_rate`, `shop_setting`: the catalog and the store's settings, public and without personal data (RNF-27).
+- `coupon`, `coupon_scope`, `coupon_redemption`: coupons and their uses, by order id only, without personal data.
+- `stock_movement`: quantities and the administrator's note, by variant, order and administrator id, without customer data.
+- `spring_session`, `spring_session_attributes`, `event_publication`, `event_publication_archive`: out of scope with their reasons in RNF-27.
+- `flyway_schema_history`: the application has no privilege on it (`DatabaseRolesTest`).
+
+---
+
 ## Remaining tasks
 
 Written when each one starts, with its decisions. Known inputs so far:

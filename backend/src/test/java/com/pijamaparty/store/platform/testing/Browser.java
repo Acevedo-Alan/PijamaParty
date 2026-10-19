@@ -54,6 +54,10 @@ public final class Browser {
         return exchange(HttpMethod.PUT, path, json, Map.of());
     }
 
+    public ResponseEntity<String> patch(String path, String json) {
+        return exchange(HttpMethod.PATCH, path, json, Map.of());
+    }
+
     public ResponseEntity<String> delete(String path) {
         return exchange(HttpMethod.DELETE, path, null, Map.of());
     }
