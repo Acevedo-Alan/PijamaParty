@@ -14,6 +14,8 @@ import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.WithdrawalCode;
 import com.pijamaparty.store.ordering.domain.WithdrawalStatus;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -140,13 +142,19 @@ class JdbcWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, Save
     public List<WithdrawalSummary> page(Optional<WithdrawalStatus> status, int offset, int limit) {
         var params = new MapSqlParameterSource("offset", offset).addValue("limit", limit);
         status.ifPresent(wanted -> params.addValue("status", wanted.name()));
-        return jdbc.query(status.isPresent() ? PAGE_BY_STATUS : PAGE_ALL, params, (row, n) -> new WithdrawalSummary(
+        return status.isPresent()
+            ? jdbc.query(PAGE_BY_STATUS, params, JdbcWithdrawalStore::summary)
+            : jdbc.query(PAGE_ALL, params, JdbcWithdrawalStore::summary);
+    }
+
+    private static WithdrawalSummary summary(ResultSet row, int rowNumber) throws SQLException {
+        return new WithdrawalSummary(
             row.getObject("id", UUID.class), new WithdrawalCode(row.getString("code")),
             OrderId.of(row.getObject("order_id", UUID.class)), row.getLong("number"),
             OrderStatus.valueOf(row.getString("order_status")), row.getString("customer_name"),
             row.getObject("created_at", OffsetDateTime.class).toInstant(), row.getBoolean("out_of_term"),
             WithdrawalStatus.valueOf(row.getString("status")),
-            Optional.ofNullable(row.getObject("resolved_at", OffsetDateTime.class)).map(OffsetDateTime::toInstant)));
+            Optional.ofNullable(row.getObject("resolved_at", OffsetDateTime.class)).map(OffsetDateTime::toInstant));
     }
 
     @Override

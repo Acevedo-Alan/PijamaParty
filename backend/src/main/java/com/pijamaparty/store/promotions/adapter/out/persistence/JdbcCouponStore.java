@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
@@ -191,7 +192,8 @@ class JdbcCouponStore implements LoadCoupon, LoadAutomaticCoupons, CouponUses, C
     @Override
     public SaveCoupon.Outcome add(Coupon coupon, Instant at) {
         // Ids are new UUIDs, so the only unique constraint a new row can break is the code's.
-        if (write(INSERT, parametersOf(coupon, at), DuplicateKeyException.class::isInstance).isEmpty()) {
+        if (write(() -> jdbc.update(INSERT, parametersOf(coupon, at)),
+            DuplicateKeyException.class::isInstance).isEmpty()) {
             return SaveCoupon.Outcome.CODE_ALREADY_USED;
         }
         insertScope(coupon);
@@ -201,7 +203,8 @@ class JdbcCouponStore implements LoadCoupon, LoadAutomaticCoupons, CouponUses, C
     @Override
     public SaveCoupon.Outcome update(Coupon coupon, Instant at) {
         // The id does not change, so the only unique constraint an update can break is the code's.
-        OptionalInt updated = write(UPDATE, parametersOf(coupon, at), DuplicateKeyException.class::isInstance);
+        OptionalInt updated = write(() -> jdbc.update(UPDATE, parametersOf(coupon, at)),
+            DuplicateKeyException.class::isInstance);
         if (updated.isEmpty()) {
             return SaveCoupon.Outcome.CODE_ALREADY_USED;
         }
@@ -219,7 +222,7 @@ class JdbcCouponStore implements LoadCoupon, LoadAutomaticCoupons, CouponUses, C
     @Override
     public RemoveStoredCoupon.Outcome remove(CouponId id) {
         // The only foreign key that points to coupon without deleting with it is coupon_redemption_coupon_fk.
-        OptionalInt deleted = write(DELETE, new MapSqlParameterSource("id", id.value()),
+        OptionalInt deleted = write(() -> jdbc.update(DELETE, new MapSqlParameterSource("id", id.value())),
             Savepoints::isForeignKeyViolation);
         if (deleted.isEmpty()) {
             return RemoveStoredCoupon.Outcome.HAS_USES;
@@ -231,9 +234,9 @@ class JdbcCouponStore implements LoadCoupon, LoadAutomaticCoupons, CouponUses, C
      * Runs the statement inside a savepoint of the caller's transaction. Returns the affected rows, or empty when it
      * broke an {@code expected} constraint: then only the statement is rolled back. Any other failure propagates.
      */
-    private OptionalInt write(String sql, MapSqlParameterSource parameters,
+    private OptionalInt write(IntSupplier statement,
                               Predicate<DataIntegrityViolationException> expected) {
-        return savepoints.run(() -> OptionalInt.of(jdbc.update(sql, parameters)),
+        return savepoints.run(() -> OptionalInt.of(statement.getAsInt()),
             violation -> expected.test(violation) ? Optional.of(OptionalInt.empty()) : Optional.empty());
     }
 

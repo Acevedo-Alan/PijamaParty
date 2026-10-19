@@ -17,13 +17,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import javax.sql.DataSource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -89,14 +89,15 @@ class JdbcCategoryStore implements LoadCategories, SaveCategory, RemoveCategory 
     @Override
     public SaveCategory.Outcome add(Category category) {
         // Ids are new UUIDs, so the only unique constraint a new row can break is the slug's.
-        return updateUnlessViolating(INSERT, parametersOf(category), DuplicateKeyException.class::isInstance)
+        return updateUnlessViolating(() -> jdbc.update(INSERT, parametersOf(category)),
+            DuplicateKeyException.class::isInstance)
             .isPresent() ? SaveCategory.Outcome.SAVED : SaveCategory.Outcome.SLUG_ALREADY_USED;
     }
 
     @Override
     public SaveCategory.Outcome update(Category category) {
         // The id does not change, so the only unique constraint an update can break is the slug's.
-        OptionalInt updated = updateUnlessViolating(UPDATE, parametersOf(category),
+        OptionalInt updated = updateUnlessViolating(() -> jdbc.update(UPDATE, parametersOf(category)),
             DuplicateKeyException.class::isInstance);
         if (updated.isEmpty()) {
             return SaveCategory.Outcome.SLUG_ALREADY_USED;
@@ -118,7 +119,8 @@ class JdbcCategoryStore implements LoadCategories, SaveCategory, RemoveCategory 
     @Override
     public RemoveCategory.Outcome remove(CategoryId id) {
         // The only foreign key that points to category is product_category_fk.
-        OptionalInt deleted = updateUnlessViolating(DELETE, new MapSqlParameterSource("id", id.value()),
+        OptionalInt deleted = updateUnlessViolating(
+            () -> jdbc.update(DELETE, new MapSqlParameterSource("id", id.value())),
             Savepoints::isForeignKeyViolation);
         if (deleted.isEmpty()) {
             return RemoveCategory.Outcome.HAS_PRODUCTS;
@@ -130,9 +132,9 @@ class JdbcCategoryStore implements LoadCategories, SaveCategory, RemoveCategory 
      * Runs the statement inside a savepoint of the caller's transaction. Returns the affected rows, or empty when it
      * broke an {@code expected} constraint: then only the statement is rolled back. Any other failure propagates.
      */
-    private OptionalInt updateUnlessViolating(String sql, SqlParameterSource parameters,
+    private OptionalInt updateUnlessViolating(IntSupplier statement,
                                               Predicate<DataIntegrityViolationException> expected) {
-        return savepoints.run(() -> OptionalInt.of(jdbc.update(sql, parameters)),
+        return savepoints.run(() -> OptionalInt.of(statement.getAsInt()),
             violation -> expected.test(violation) ? Optional.of(OptionalInt.empty()) : Optional.empty());
     }
 

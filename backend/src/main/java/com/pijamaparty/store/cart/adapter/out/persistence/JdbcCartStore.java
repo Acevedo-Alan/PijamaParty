@@ -94,12 +94,12 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteCart, DeleteIdleCarts {
 
     @Override
     public Optional<Cart> findByOwner(CartOwner owner) {
-        return load(SELECT_CART, owner);
+        return withItems(jdbc.query(SELECT_CART, owner(owner), JdbcCartStore::row));
     }
 
     @Override
     public Optional<Cart> lockByOwner(CartOwner owner) {
-        return load(LOCK_CART, owner);
+        return withItems(jdbc.query(LOCK_CART, owner(owner), JdbcCartStore::row));
     }
 
     @Override
@@ -133,8 +133,8 @@ class JdbcCartStore implements LoadCart, SaveCart, DeleteCart, DeleteIdleCarts {
         return jdbc.update(DELETE_IDLE_CARTS, new MapSqlParameterSource("cutoff", cutoff.atOffset(ZoneOffset.UTC)));
     }
 
-    private Optional<Cart> load(String sql, CartOwner owner) {
-        return jdbc.query(sql, owner(owner), JdbcCartStore::row).stream().findFirst()
+    private Optional<Cart> withItems(List<CartRow> rows) {
+        return rows.stream().findFirst()
             .map(row -> Cart.of(row.id(), row.owner(), items(row.id()), row.coupon(), row.createdAt(),
                 row.updatedAt()));
     }

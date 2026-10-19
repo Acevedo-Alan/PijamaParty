@@ -60,13 +60,13 @@ class JdbcSignInMethodsStore implements LoadSignInMethods, UnlinkExternalIdentit
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<SignInMethods> findByCustomer(UserId customer) {
-        return methods(customer, HAS_PASSWORD);
+        return methods(customer, jdbc.queryForList(HAS_PASSWORD, byUser(customer), Boolean.class));
     }
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<SignInMethods> lockByCustomer(UserId customer) {
-        return methods(customer, LOCK_HAS_PASSWORD);
+        return methods(customer, jdbc.queryForList(LOCK_HAS_PASSWORD, byUser(customer), Boolean.class));
     }
 
     @Override
@@ -76,13 +76,16 @@ class JdbcSignInMethodsStore implements LoadSignInMethods, UnlinkExternalIdentit
             .addValue("userId", identity.userId().value()));
     }
 
-    private Optional<SignInMethods> methods(UserId customer, String accountQuery) {
-        var parameters = new MapSqlParameterSource("userId", customer.value());
-        List<Boolean> hasPassword = jdbc.queryForList(accountQuery, parameters, Boolean.class);
+    private static MapSqlParameterSource byUser(UserId customer) {
+        return new MapSqlParameterSource("userId", customer.value());
+    }
+
+    /** {@code hasPassword}: the customer's row of the account query, none when there is no such customer. */
+    private Optional<SignInMethods> methods(UserId customer, List<Boolean> hasPassword) {
         if (hasPassword.isEmpty()) {
             return Optional.empty();
         }
-        List<ExternalIdentity> identities = jdbc.query(SELECT_IDENTITIES, parameters, (row, n) ->
+        List<ExternalIdentity> identities = jdbc.query(SELECT_IDENTITIES, byUser(customer), (row, n) ->
             new ExternalIdentity(
                 row.getObject("id", UUID.class),
                 customer,

@@ -45,6 +45,8 @@ import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.persistence.Savepoints;
 import com.pijamaparty.store.shipping.api.Province;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -476,11 +478,17 @@ class JdbcOrderStore
     public List<OrderSummary> page(Optional<OrderStatus> status, int offset, int limit) {
         var params = new MapSqlParameterSource("offset", offset).addValue("limit", limit);
         status.ifPresent(wanted -> params.addValue("status", wanted.name()));
-        return jdbc.query(status.isPresent() ? PAGE_BY_STATUS : PAGE_ALL, params, (row, n) -> new OrderSummary(
+        return status.isPresent()
+            ? jdbc.query(PAGE_BY_STATUS, params, JdbcOrderStore::summary)
+            : jdbc.query(PAGE_ALL, params, JdbcOrderStore::summary);
+    }
+
+    private static OrderSummary summary(ResultSet row, int rowNumber) throws SQLException {
+        return new OrderSummary(
             OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
             row.getObject("created_at", OffsetDateTime.class).toInstant(), OrderStatus.valueOf(row.getString("status")),
             row.getString("customer_name"), row.getString("city"), Province.valueOf(row.getString("province")),
-            Money.of(row.getLong("total_cents"))));
+            Money.of(row.getLong("total_cents")));
     }
 
     /** Its own short transaction when the caller has none, so the order and its lines are read together. */

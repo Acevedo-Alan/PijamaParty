@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.IntSupplier;
 import javax.sql.DataSource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -179,26 +180,31 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
 
     @Override
     public Optional<Product> findById(ProductId id) {
-        return load(SELECT_BY_ID, new MapSqlParameterSource("id", id.value()));
+        return withChildren(jdbc.query(SELECT_BY_ID, new MapSqlParameterSource("id", id.value()),
+            JdbcProductStore::toProductRow));
     }
 
     @Override
     public Optional<Product> findBySlug(Slug slug) {
-        return load(SELECT_BY_SLUG, new MapSqlParameterSource("slug", slug.value()));
+        return withChildren(jdbc.query(SELECT_BY_SLUG, new MapSqlParameterSource("slug", slug.value()),
+            JdbcProductStore::toProductRow));
     }
 
     @Override
     public Optional<Product> lockById(ProductId id) {
-        return load(LOCK_BY_ID, new MapSqlParameterSource("id", id.value()));
+        return withChildren(jdbc.query(LOCK_BY_ID, new MapSqlParameterSource("id", id.value()),
+            JdbcProductStore::toProductRow));
     }
 
     @Override
     public Optional<Product> lockByVariantId(VariantId id) {
-        return load(LOCK_BY_VARIANT_ID, new MapSqlParameterSource("variantId", id.value()));
+        return withChildren(jdbc.query(LOCK_BY_VARIANT_ID, new MapSqlParameterSource("variantId", id.value()),
+            JdbcProductStore::toProductRow));
     }
 
-    private Optional<Product> load(String sql, SqlParameterSource parameters) {
-        return jdbc.query(sql, parameters, JdbcProductStore::toProductRow).stream().findFirst()
+    /** The product of the first row, with its variants and photos. */
+    private Optional<Product> withChildren(List<ProductRow> rows) {
+        return rows.stream().findFirst()
             .map(row -> {
                 var productId = new MapSqlParameterSource("productId", row.id().value());
                 return row.toProduct(jdbc.query(SELECT_VARIANTS, productId, JdbcProductStore::toVariant),
@@ -214,17 +220,18 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
 
     @Override
     public SaveProduct.Outcome add(Product product) {
-        return save(product, INSERT_PRODUCT);
+        return save(product, () -> jdbc.update(INSERT_PRODUCT, parametersOf(product)));
     }
 
     @Override
     public SaveProduct.Outcome update(Product product) {
-        return save(product, UPDATE_PRODUCT);
+        return save(product, () -> jdbc.update(UPDATE_PRODUCT, parametersOf(product)));
     }
 
-    private SaveProduct.Outcome save(Product product, String productSql) {
+    /** {@code productRow} writes the product's own row and answers the rows it touched. */
+    private SaveProduct.Outcome save(Product product, IntSupplier productRow) {
         return savepoints.run(() -> {
-            if (jdbc.update(productSql, parametersOf(product)) != 1) {
+            if (productRow.getAsInt() != 1) {
                 throw new IllegalStateException("products are never deleted");
             }
             SqlParameterSource[] variants = product.variants().stream()
