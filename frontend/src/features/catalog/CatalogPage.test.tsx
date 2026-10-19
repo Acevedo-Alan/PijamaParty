@@ -15,6 +15,9 @@ import { renderRoute } from '../../test/renderRoute.tsx';
 
 const PRODUCTS = '/api/catalog/products';
 
+/** The home page's listing, apart from the other lists of the page (UC-30). */
+const listing = () => within(screen.getByRole('region', { name: es.catalog.allTitle }));
+
 describe('catalog grid (UC-01)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -48,10 +51,10 @@ describe('catalog grid (UC-01)', () => {
       .not.toBeInTheDocument();
   });
 
-  it('given a listing, when it renders, then the first four photos load eagerly and the first two first (T-E6-02)', async () => {
+  it('given a category listing, when it renders, then the first four photos load eagerly and the first two first (T-E6-02)', async () => {
     stubCatalogApi({ listings: [listed(products(6, 'p'))] });
 
-    renderRoute('/');
+    renderRoute('/categoria/verano');
 
     await screen.findAllByRole('listitem');
     const photos = screen.getAllByTestId('blurred-image').map((image) => within(image).getByRole('img'));
@@ -67,11 +70,11 @@ describe('catalog grid (UC-01)', () => {
     const get = stubCatalogApi({ listings: [listed(products(24, 'first'), true), listed(products(3, 'second'))] });
     renderRoute('/');
 
-    expect(await screen.findAllByRole('listitem')).toHaveLength(24);
+    expect(await listing().findAllByRole('listitem')).toHaveLength(24);
     await userEvent.click(screen.getByRole('button', { name: es.catalog.showMore }));
 
     await waitFor(() => {
-      expect(screen.getAllByRole('listitem')).toHaveLength(27);
+      expect(listing().getAllByRole('listitem')).toHaveLength(27);
     });
     expect(screen.queryByRole('button', { name: es.catalog.showMore })).not.toBeInTheDocument();
     expect(queriesTo(get, PRODUCTS)).toEqual([{ page: 0 }, { page: 1 }]);
@@ -84,7 +87,7 @@ describe('catalog grid (UC-01)', () => {
     await userEvent.click(await screen.findByRole('button', { name: es.catalog.showMore }));
 
     expect(await screen.findByText(es.catalog.loadMoreError)).toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')).toHaveLength(24);
+    expect(listing().getAllByRole('listitem')).toHaveLength(24);
     expect(screen.getByRole('button', { name: es.catalog.showMore })).toBeEnabled();
   });
 

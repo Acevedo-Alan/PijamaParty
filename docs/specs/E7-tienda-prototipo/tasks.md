@@ -4,7 +4,7 @@
 - [x] **T-E7-12** Animaciones: agregar Motion (versión fija) con `LazyMotion` y `MotionConfig`, los tokens en `tokens.css` y `motion.ts`, las animaciones existentes pasadas al sistema y las de respuesta (agregar al carrito, paneles, aviso, secciones desplegables). Las demás llegan con la tarea de cada pantalla (sección "Animaciones", D-16). El aviso queda listo como componente (`Toast`); T-E7-09 lo usa para "Agregado al carrito".
 - [ ] **T-E7-02** Encabezado con logo, navegación por público y temporada, menú del celular y franja de envío gratis (CU-31).
 - [ ] **T-E7-03** Pie en tres columnas y sección de contacto con email y WhatsApp (CU-31, D-09).
-- [ ] **T-E7-04** Portada: carrusel, banner de personajes y "Elegí para quién", con la grilla de CU-01 debajo (CU-30).
+- [x] **T-E7-04** Portada: carrusel, banner de personajes y "Elegí para quién", con la grilla de CU-01 debajo (CU-30).
 - [ ] **T-E7-05** API del listado: `colors`, `isNew` y `total`; tarjeta con círculos de color y "Nuevo", y contador de productos (cambios a CU-01).
 - [ ] **T-E7-06** Barra de filtros en botones y vista de cuadrícula o lista (cambios a CU-02).
 - [ ] **T-E7-07** Ficha: `category` en la API, migas de pan, galería con vista ampliada, círculos de color, cantidad, barra fija en el celular, íconos de confianza, envío por provincia y secciones desplegables (cambios a CU-03).

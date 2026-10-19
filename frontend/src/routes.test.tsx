@@ -12,12 +12,13 @@ describe('routes', () => {
     vi.restoreAllMocks();
   });
 
-  it('given the root path, when the app loads, then the whole catalog is shown', () => {
+  it('given the root path, when the app loads, then the home page welcomes with the whole catalog below', () => {
     vi.spyOn(api, 'GET').mockReturnValue(new Promise(() => undefined));
 
     renderRoute('/');
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(es.catalog.allTitle);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(es.home.title);
+    expect(screen.getByRole('heading', { level: 2, name: es.catalog.allTitle })).toBeInTheDocument();
   });
 
   it('given an unknown path, when the app loads, then the own 404 page links back to the store', () => {

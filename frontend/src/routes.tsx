@@ -12,6 +12,7 @@ import {
   VERIFY_PATH,
 } from './features/account/AccountLink.tsx';
 import { CatalogPage } from './features/catalog/CatalogPage.tsx';
+import { HomePage } from './features/catalog/HomePage.tsx';
 import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
 import { FAQ_PATH } from './features/help/FaqLink.tsx';
@@ -32,7 +33,7 @@ export const routes: RouteObject[] = [
   {
     element: <StoreLayout />,
     children: [
-      { path: '/', element: <CatalogPage /> },
+      { path: '/', element: <HomePage /> },
       { path: '/categoria/:categorySlug', element: <CatalogPage /> },
       { path: '/producto/:productSlug', element: <ProductDetailPage /> },
       { path: '/buscar', element: <SearchPage /> },

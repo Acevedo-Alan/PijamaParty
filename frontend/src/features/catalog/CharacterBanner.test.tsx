@@ -42,7 +42,7 @@ describe('character banner of the home page (UC-32)', () => {
       'srcset',
       '/uploads/banner-400.webp 400w, /uploads/banner-800.webp 800w, /uploads/banner-1200.webp 1200w',
     );
-    expect(await screen.findByRole('heading', { level: 1, name: es.catalog.allTitle })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: es.catalog.allTitle })).toBeInTheDocument();
   });
 
   it('given a hidden banner, when the home page opens, then its section is not shown', async () => {

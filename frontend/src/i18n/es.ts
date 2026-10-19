@@ -24,6 +24,26 @@ export const es = {
     noMatches: 'No encontramos productos con los filtros elegidos.',
     clearFilters: 'Limpiar filtros',
   },
+  home: {
+    /** UC-30 (T-E7-04): the fixed texts of the home page (D-03); changing them needs a deploy. */
+    carousel: {
+      label: 'Bienvenida',
+      roleDescription: 'carrusel',
+      slideRoleDescription: 'imagen',
+      /** The label of a slide, e.g. "1 de 3". */
+      slide: (position: number, total: number) => `${String(position)} de ${String(total)}`,
+      showSlide: (position: number, total: number) => `Ver imagen ${String(position)} de ${String(total)}`,
+      pause: 'Pausar carrusel',
+      resume: 'Reanudar carrusel',
+    },
+    eyebrow: 'Nueva colección · Santa Fe',
+    title: 'Noches suaves, mañanas con calma',
+    text: 'Pijamas y ropa de descanso para bajar el ritmo y sentirte bien, todos los días.',
+    discover: 'Descubrí la colección',
+    audienceTitle: 'Elegí para quién',
+    audienceText: 'Ropa cómoda para cada integrante de la familia.',
+    audiences: { WOMEN: 'Mujer', MEN: 'Hombre', KIDS: 'Niños' },
+  },
   filters: {
     open: 'Filtrar',
     /** The filter button with the number of applied filters, e.g. "Filtrar (2)". */

@@ -53,8 +53,13 @@ export function CharacterBannerView({ banner, preview = false }: ViewProps) {
   );
 }
 
+/** The published banner, shared by its section and by the page that waits for it before scrolling past it. */
+export function useHomeBanner() {
+  return useQuery({ queryKey: homeBannerKey, queryFn: ({ signal }) => fetchHomeBanner(signal) });
+}
+
 /** The home page's section (UC-30): only a published banner shows; while it loads or if it fails, nothing does. */
 export function CharacterBanner() {
-  const { data } = useQuery({ queryKey: homeBannerKey, queryFn: ({ signal }) => fetchHomeBanner(signal) });
+  const { data } = useHomeBanner();
   return data ? <CharacterBannerView banner={data} /> : null;
 }

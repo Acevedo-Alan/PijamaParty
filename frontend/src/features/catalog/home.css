@@ -1,0 +1,305 @@
+/* The prototype's home sections (UC-30): the welcome carousel (.hero) and "Elegí para quién" (.category-explorer),
+   mobile-first. Every photo place keeps its size with or without the photo, so nothing shifts when one arrives. */
+
+/* The prototype's gradient backgrounds (.ph-hero, .ph-1, .ph-3, .ph-5), shown until the photos arrive (D-15) */
+.tone-hero {
+  background: linear-gradient(120deg, #fce4e8 0%, #ffd9c7 55%, #c98782 100%);
+}
+
+.tone-rose {
+  background: linear-gradient(135deg, #f7c6cf, #e5a9b6);
+}
+
+.tone-peach {
+  background: linear-gradient(135deg, #ffd9c7, #dfaf9e);
+}
+
+.tone-cream {
+  background: linear-gradient(135deg, #fff1e8, #e7d5c8);
+}
+
+/* Welcome carousel: full width, 4:5 on phones and 16:7 from 700 px */
+.hero {
+  position: relative;
+  /* The prototype's 4:5 between 520 and 680 px tall; a height, not aspect-ratio, so min-height never widens it */
+  height: clamp(520px, 125vw, 680px);
+  overflow: hidden;
+  background: var(--ink-soft);
+  color: #fff;
+}
+
+/* The dark veil under the text keeps white text above 4.5:1 on any photo or gradient */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(0deg, rgba(74, 58, 58, 0.8), rgba(74, 58, 58, 0.7) 65%, rgba(74, 58, 58, 0.15));
+  pointer-events: none;
+}
+
+.hero-slides {
+  position: absolute;
+  inset: 0;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-standard);
+}
+
+.hero-slide.active {
+  opacity: 1;
+}
+
+.hero-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 48%;
+}
+
+.hero-copy {
+  position: absolute;
+  z-index: 2;
+  inset: auto 12px 76px;
+  padding: 0 14px;
+  max-width: 620px;
+}
+
+.hero-eyebrow {
+  margin-bottom: 12px;
+  color: var(--peach);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 12ch;
+  font-family: var(--ff-display);
+  font-weight: 600;
+  font-size: clamp(38px, 10vw, 58px);
+  line-height: 1.04;
+}
+
+.hero-copy p:not(.hero-eyebrow) {
+  max-width: 42ch;
+  margin-top: 18px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  margin-top: 26px;
+  padding: 14px 26px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color var(--dur-base) var(--ease-standard);
+}
+
+/* Pause first in tab order (D-14), at the bottom left; the slide picker at the bottom right */
+.hero-pause {
+  position: absolute;
+  z-index: 3;
+  left: 14px;
+  bottom: 14px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(74, 58, 58, 0.55);
+  color: #fff;
+}
+
+.hero-pause svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hero-dots {
+  position: absolute;
+  z-index: 3;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  gap: 4px;
+}
+
+.hero-dots button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+
+.hero-dots button::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 3px;
+  border-radius: 2px;
+  background: #fff;
+  opacity: 0.55;
+  transform: translateY(-50%);
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+
+.hero-dots button[aria-current='true']::after {
+  opacity: 1;
+}
+
+.hero :focus-visible {
+  outline-color: #fff;
+}
+
+@media (min-width: 700px) {
+  .hero {
+    height: clamp(440px, 43.75vw, 720px);
+  }
+
+  .hero::after {
+    background: linear-gradient(90deg, rgba(74, 58, 58, 0.8), rgba(74, 58, 58, 0.7) 50%, rgba(74, 58, 58, 0.12));
+  }
+
+  .hero-copy {
+    inset: 50% auto auto max(24px, calc((100vw - var(--maxw)) / 2 + 24px));
+    transform: translateY(-50%);
+    padding: 0 20px;
+  }
+
+  .hero h1 {
+    font-size: clamp(38px, 6vw, 72px);
+  }
+
+  .hero-copy p:not(.hero-eyebrow) {
+    font-size: 16px;
+  }
+
+  .hero-pause {
+    left: auto;
+    right: calc(clamp(20px, 6vw, 84px) + 3 * 48px);
+    bottom: 28px;
+  }
+
+  .hero-dots {
+    right: clamp(20px, 6vw, 84px);
+    bottom: 28px;
+  }
+}
+
+/* The sections between the carousel and the listing */
+.home-sections {
+  padding-top: 36px;
+}
+
+.home .catalog {
+  padding-top: 24px;
+}
+
+.section-sub {
+  margin: -16px 0 20px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+/* Below the sticky header when the page scrolls to it */
+.listing-heading {
+  scroll-margin-top: 88px;
+}
+
+/* "Elegí para quién": three cards in a row, 3:4 on phones and 5:4 from 700 px */
+.audience-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.audience-card {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  color: #fff;
+  text-decoration: none;
+}
+
+.audience-card img {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.audience-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(0deg, rgba(74, 58, 58, 0.78), rgba(74, 58, 58, 0.06) 72%);
+}
+
+.audience-card span {
+  position: absolute;
+  left: 12px;
+  bottom: 14px;
+  font-family: var(--ff-display);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+@media (min-width: 700px) {
+  .audience-grid {
+    gap: 16px;
+  }
+
+  .audience-card {
+    aspect-ratio: 5 / 4;
+  }
+
+  .audience-card span {
+    left: 22px;
+    bottom: 20px;
+    font-size: clamp(24px, 3vw, 36px);
+  }
+}
+
+@media (hover: hover) {
+  .hero-cta:hover {
+    background: var(--accent-hover);
+  }
+
+  .hero-pause:hover {
+    background: rgba(74, 58, 58, 0.75);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .audience-card:hover img {
+    transform: scale(1.03);
+  }
+}

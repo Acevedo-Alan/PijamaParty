@@ -111,8 +111,9 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Given the home page, a listing, a product page and the checkout, when Lighthouse measures them, then RNF-11 (LCP under 3 s) and RNF-31.4 (accessibility 90 or more) still hold.
 
 **Design notes**
-- `HomePage` (`features/catalog`) at `/`, composing `HeroCarousel`, `CharacterBanner`, `AudienceCards`, the existing listing of `CatalogPage` (extracted so both routes use it), `WithdrawalHomeBlock` and `ContactSection`. It stays in the main bundle (T-E6-02).
-- Photos in `frontend/src/assets/home/` as WebP at 640, 1280 and 1920 px, with `srcset` and `sizes`. The first slide is `fetchpriority="high"` and preloaded; the others are lazy. The carousel is a `section` with `aria-roledescription="carrusel"`, slides labeled "n de 3", and the pause button first in tab order.
+- `HomePage` (`features/catalog`) at `/`, composing `HeroCarousel`, `CharacterBanner`, `AudienceCards`, `CatalogListing` (the listing of `CatalogPage`, extracted so both routes use it), `WithdrawalHomeBlock` and `ContactSection` (added by T-E7-03). It stays in the main bundle (T-E6-02). On `/` the grid starts below the first screen, so its photos load lazily and the carousel's first photo is the only one loaded first.
+- The fixed slides and audience cards are listed in `homeContent.ts`, each with its gradient tone and, once the business sends it (D-15), its photo. Opened with filters or a sort, the page scrolls to the listing, and again once the banner has its place above it.
+- Photos in `frontend/src/assets/home/` as WebP at 640, 1280 and 1920 px, with `srcset` and `sizes`. The first slide is `fetchpriority="high"` and preloaded; the others are lazy. The carousel is a `section` with `aria-roledescription="carrusel"`, slides labeled "n de 3", and the pause button first in tab order (not shown under reduced motion, where nothing advances). The slides crossfade in CSS (`opacity` only); the welcome text enters through `useActionMotion`.
 - The banner comes from `GET /api/home/banner` (UC-32); the rest of the page needs no API change.
 
 ---
@@ -189,7 +190,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Inbound ports: `GetHomeBanner` (public query; result `Published(banner)` or `NotPublished`), `GetHomeBannerForAdmin`, `UpdateHomeBanner` (`Command(actor, title, body, linkText, linkPath)`; result `Updated`, `Invalid(fields)` or `Forbidden`), `PublishHomeBanner` / `HideHomeBanner` (result `Published`, `Incomplete(missing)`, `Hidden` or `Forbidden`), `ReplaceHomeBannerPhoto` (reuses the UC-06 `ImageProcessor` port and its libvips adapter, and the `ImageStore` files under `/uploads`; same `Idempotency-Key` rule as product photos, with only the current photo's key remembered: a retry is recognized until another photo replaces it).
 - Endpoints: `GET /api/home/banner` → `200` `{title, body, linkText, linkPath, image}` or `204` when not published (catalog rate-limit policy); `GET` and `PUT /api/admin/home/banner`, `POST /api/admin/home/banner/publish`, `POST /api/admin/home/banner/hide`, `POST /api/admin/home/banner/photo` (multipart, `Idempotency-Key`). Errors as `problem+json`; OpenAPI updated.
 - Back office: "Portada" in the menu, a form with the preview, as the product form (RNF-26: usable on a phone).
-- Storefront: `CharacterBanner` reads `GET /api/home/banner`; its link is a router `Link`, never an `<a href>` built from the text. The photo is decorative (empty alternative text): the title carries the message. Until T-E7-04 builds `HomePage`, the banner sits above "Todos los productos" on `/`.
+- Storefront: `CharacterBanner` reads `GET /api/home/banner`; its link is a router `Link`, never an `<a href>` built from the text. The photo is decorative (empty alternative text): the title carries the message. On `/` it sits between the carousel and "Elegí para quién" (UC-30).
 
 ---
 

@@ -21,3 +21,8 @@ HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
   this.removeAttribute('open');
   this.dispatchEvent(new Event('close'));
 };
+
+// jsdom has no layout: scrolling an element into view does nothing (tests spy on it).
+Element.prototype.scrollIntoView = function scrollIntoView() {
+  // Nothing to scroll.
+};

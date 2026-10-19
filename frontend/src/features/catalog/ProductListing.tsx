@@ -44,13 +44,21 @@ interface ProductListingProps {
   onClearFilters: () => void;
   /** Shown instead of the empty-shop or empty-category message when nothing matches without filters (UC-26). */
   emptyState?: ReactNode;
+  /** The grid starts below the first screen (the home page, UC-30): its photos load lazily, after the page's own. */
+  photosBelowFold?: boolean;
 }
 
 /**
  * The grid of UC-01: 24 products at a time with "Show more", and one message for an empty or unknown category.
  * With filters and no matches it offers to clear them (UC-02).
  */
-export function ProductListing({ category, criteria, onClearFilters, emptyState }: ProductListingProps) {
+export function ProductListing({
+  category,
+  criteria,
+  onClearFilters,
+  emptyState,
+  photosBelowFold = false,
+}: ProductListingProps) {
   const listing = useProductListing(category, criteria);
   const sentPages = useRef(new Set<string>());
   const pages = listing.data?.pages;
@@ -121,7 +129,7 @@ export function ProductListing({ category, criteria, onClearFilters, emptyState 
       <ul className="grid">
         {products.map((product, index) => (
           <li key={product.slug}>
-            <ProductCard product={product} photo={photoPriority(index)} />
+            <ProductCard product={product} photo={photosBelowFold ? 'lazy' : photoPriority(index)} />
           </li>
         ))}
       </ul>
