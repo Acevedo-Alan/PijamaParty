@@ -1,41 +1,42 @@
 # E7 – La tienda como el prototipo
 
-**Estado:** Borrador · **Casos de uso:** CU-30 y CU-31, y cambios a CU-01, CU-02, CU-03, CU-08 y CU-13
+**Estado:** Borrador · **Casos de uso:** CU-30, CU-31 y CU-32, y cambios a CU-01, CU-02, CU-03, CU-08 y CU-13
 
 ## Objetivo
 
 Que la tienda se vea y se recorra como el prototipo aprobado (`docs/design/prototype/index.html`). Las etapas E1 a E6 tomaron del prototipo los colores, la tipografía y algunos diseños (el checkout en dos columnas), pero no sus secciones: la portada es hoy solo la grilla de productos. Las capturas comparativas del 2026-10-19 muestran la diferencia en inicio, listado, ficha, carrito y checkout.
 
-Esta etapa **no cambia reglas de negocio** salvo donde se indica, y cada una de esas reglas está en "Decisiones pendientes". Nada del prototipo que prometa algo al comprador (cuotas, descuentos, cambios sin cargo) se muestra sin la decisión del dueño.
+Esta etapa **no cambia reglas de negocio** salvo donde se indica, y cada una de esas reglas está en "Decisiones". Nada del prototipo que prometa algo al comprador (cuotas, descuentos, cambios sin cargo) se muestra sin la decisión del dueño.
 
 ## Fuera de alcance
 
 - El código del prototipo: sus scripts en línea, Google Fonts y las fotos de Unsplash no se usan (CSP de T-E6-03, fuente propia de ARCHITECTURE.md sección 11, licencia de las fotos).
 - Favoritos (el corazón de la ficha): no hay caso de uso; queda para otra etapa.
-- Lo que el negocio carga desde el backoffice: la portada de esta etapa tiene textos y fotos fijos (ver D-03).
+- Editar desde el backoffice el carrusel, las fotos de "Elegí para quién" y el logo: son fijos en el frontend (D-03). Solo el banner de personajes se edita (CU-32).
+- Cuotas y descuento por transferencia, hasta que el dueño los decida (D-01, D-02).
 
-## Decisiones pendientes
+## Decisiones
 
-Cada una tiene una propuesta. El dueño la confirma o la cambia antes de la tarea que la usa, y se anota en `00-dominio-y-reglas.md`.
+Decididas con el dueño el 2026-10-19 y anotadas en `00-dominio-y-reglas.md`, salvo D-01 y D-02, que siguen pendientes.
 
-| ID | Tema | Propuesta |
-|---|---|---|
-| D-01 | "3 cuotas sin interés" (franja, tarjetas y ficha) | **No se muestra en v1.** Las cuotas las define MercadoPago, su costo lo paga el negocio y RNF-30.4 exige informar el costo financiero total si se muestran. |
-| D-02 | "10% OFF por transferencia" | **No se muestra.** La transferencia no es un medio de pago de la tienda (solo medios inmediatos: MercadoPago y MODO). |
-| D-03 | De dónde salen los textos y fotos de la portada | **Fijos en el frontend:** fotos propias del negocio dentro del build y textos en `es.ts`. Cambiarlos requiere un despliegue. Editarlos desde el backoffice queda para otra etapa. |
-| D-04 | Muestras de color (círculos) | **Un mapa de nombres de color a su tono en el frontend** (rosa, salvia, beige, crudo, chocolate, terracota, negro, blanco, gris, celeste, azul, rojo, bordó, verde, lila, amarillo, estampado…). Un color que no está en el mapa se muestra como hoy, con su nombre en texto. Alternativa: un campo de tono por color en el backoffice (migración). |
-| D-05 | Etiqueta "Nuevo" | Un producto creado en los **últimos 30 días**, calculado en el servidor con el reloj de la aplicación. |
-| D-06 | Botón "+" de la tarjeta | **Se quita.** No se puede agregar sin elegir talle y color, y la tarjeta ya lleva a la ficha. |
-| D-07 | Calcular el envío por código postal (ficha) | **Un selector de provincia** que muestra el costo de esa provincia. El envío se cobra por provincia (CU-12), no por código postal. |
-| D-08 | "Completá tu look" | **Hasta 4 productos de la misma categoría**, los más nuevos, sin el producto abierto. Sale del listado que ya existe, sin cambios en la API. |
-| D-09 | Sección "Contactanos" | **Email y WhatsApp como enlaces, sin formulario.** Un formulario necesitaría un endpoint, un correo al dueño, límite de intentos y guardar datos personales. El negocio da el email y el número. |
-| D-10 | Paginación numerada del prototipo | **Se mantiene "Ver más"** (CU-01). |
-| D-11 | Contador "N productos" del listado | **Se agrega:** el listado informa el total de coincidencias. |
-| D-12 | Íconos de confianza de la ficha | "Envío gratis desde $X" solo cuando hay umbral (CU-12); **"Primer cambio sin cargo" solo si el dueño lo confirma como política**; "Compra protegida" se reemplaza por "Pagá con MercadoPago". |
-| D-13 | Nombre y apellido separados en el checkout | **Se mantiene un solo campo** "Nombre y apellido" (decidido en CU-13). |
-| D-14 | Carrusel de la portada | Hasta 3 imágenes. **Pasan solas cada 6 segundos, con botón de pausa** (WCAG 2.2.2) y sin movimiento con `prefers-reduced-motion`. |
-| D-15 | Materiales del negocio | El negocio entrega el logo, las fotos de la portada (hasta 3), la del banner de personajes y las 3 de "Elegí para quién", y los enlaces de Instagram y TikTok. Sin ellas, cada lugar muestra el fondo degradado del prototipo. |
-| D-16 | Animaciones | **El sistema de la sección "Animaciones"**, solo con CSS, sin librerías. Alternativa: una librería de animación (por ejemplo Motion), que suma peso a la carga. |
+| ID | Tema | Estado | Decisión |
+|---|---|---|---|
+| D-01 | "3 cuotas sin interés" (franja, tarjetas y ficha) | Pendiente | **No se muestra hasta decidirlo.** Las cuotas las define MercadoPago, su costo lo paga el negocio y RNF-30.4 exige informar el costo financiero total si se muestran. Se vuelve a ver antes de la salida a producción. |
+| D-02 | "10% OFF por transferencia" | Pendiente | **No se muestra hasta decidirlo.** Hoy la transferencia no es un medio de pago (solo medios inmediatos: MercadoPago y MODO); sumarla sería un caso de uso nuevo. |
+| D-03 | De dónde salen los textos y fotos de la portada | Decidido | **El banner de personajes se edita desde el backoffice** (CU-32). El carrusel, las fotos de "Elegí para quién" y el logo son fijos en el frontend: fotos dentro del build y textos en `es.ts`; cambiarlos requiere un despliegue. |
+| D-04 | Muestras de color (círculos) | Decidido | **Un mapa de nombres de color a su tono en el frontend** (rosa, salvia, beige, crudo, chocolate, terracota, negro, blanco, gris, celeste, azul, rojo, bordó, verde, lila, amarillo, estampado…). Un color que no está en el mapa se muestra con su nombre en texto. |
+| D-05 | Etiqueta "Nuevo" | Decidido | Un producto creado en los **últimos 30 días**, calculado en el servidor con el reloj de la aplicación. |
+| D-06 | Botón "+" de la tarjeta | Decidido | **Se quita.** No se puede agregar sin elegir talle y color, y la tarjeta ya lleva a la ficha. |
+| D-07 | Calcular el envío por código postal (ficha) | Decidido | **Un selector de provincia** que muestra el costo de esa provincia. El envío se cobra por provincia (CU-12), no por código postal. |
+| D-08 | "Completá tu look" | Decidido | **Hasta 4 productos de la misma categoría**, los más nuevos, sin el producto abierto. Sale del listado que ya existe, sin cambios en la API. |
+| D-09 | Sección "Contactanos" | Decidido | **Email y WhatsApp como enlaces, sin formulario.** El negocio da el email y el número. |
+| D-10 | Paginación numerada del prototipo | Decidido | **Se mantiene "Ver más"** (CU-01). |
+| D-11 | Contador "N productos" del listado | Decidido | **Se agrega:** el listado informa el total de coincidencias. |
+| D-12 | Íconos de confianza de la ficha | Decidido | "Envío gratis desde $X" solo cuando hay umbral (CU-12) y "Pagá con MercadoPago". **"Primer cambio sin cargo" no se muestra:** no es una política confirmada. |
+| D-13 | Nombre y apellido en el checkout | Decidido | **Dos campos, "Nombre" y "Apellido"**, en el checkout, la API y el pedido (cambia lo decidido en CU-13; ver "Cambios a CU-13"). El saludo de los correos usa el nombre tal cual se cargó, también los compuestos ("María José"). |
+| D-14 | Carrusel de la portada | Decidido | Hasta 3 imágenes. **Pasan solas cada 6 segundos, con botón de pausa** (WCAG 2.2.2) y sin movimiento con `prefers-reduced-motion`. |
+| D-15 | Materiales del negocio | Pendiente del negocio | El negocio entrega el logo, las fotos del carrusel (hasta 3), las 3 de "Elegí para quién", la primera foto del banner de personajes (después la cambia desde el backoffice), el email y el WhatsApp de contacto y los enlaces de Instagram y TikTok. Sin ellas, cada lugar muestra el fondo degradado del prototipo. |
+| D-16 | Animaciones | Decidido | **Con la librería Motion** (`motion`, para React), cargada de forma diferida para no demorar la primera carga, sobre los tokens de la sección "Animaciones". |
 
 ## Animaciones
 
@@ -46,7 +47,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - **Un solo momento de entrada:** el texto de bienvenida de la portada aparece una vez al cargar. Las secciones no aparecen de a una al bajar.
 - **Rápido y suave:** entre 120 y 450 ms (la entrada de la portada, hasta 700 ms), con curvas que frenan al llegar.
 - **Accesible:** con `prefers-reduced-motion` no hay desplazamientos ni escalas, solo cambios de opacidad cortos; los efectos de hover solo con `@media (hover: hover)`.
-- **Sin costo de carga:** solo CSS (y la API de animaciones del navegador donde haga falta), sin librerías. Solo se anima `transform` y `opacity`, nunca el tamaño o la posición. La foto principal de la portada no se anima, para no demorar el LCP (RNF-11).
+- **Con Motion, sin demorar la carga (D-16):** las animaciones de entrada y salida, los pasos y los rebotes usan la librería Motion, que se carga después de mostrar la página; hasta entonces, todo se ve en su lugar sin animar. Los efectos simples (hover, colores) siguen en CSS. Solo se anima `transform` y `opacity`, nunca el tamaño o la posición. La foto principal de la portada no se anima, para no demorar el LCP (RNF-11).
 
 **Catálogo de animaciones**
 
@@ -80,7 +81,8 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 4. Cada tarjeta de "Elegí para quién" (Mujer, Hombre, Niños) abre el listado filtrado por ese público.
 
 **Reglas**
-- Los textos y fotos son fijos (D-03). Una foto que falta muestra el fondo degradado.
+- El carrusel y "Elegí para quién" tienen textos y fotos fijos (D-03); el banner de personajes es el que carga el administrador (CU-32). Una foto que falta muestra el fondo degradado.
+- Sin banner publicado, la portada no muestra esa sección.
 - Con filtros u orden en la URL, la portada abre directamente en "Todos los productos".
 - El listado de una categoría (`/categoria/{slug}`) no muestra las secciones de la portada.
 
@@ -112,6 +114,35 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Dado un celular, cuando se abre el menú, entonces muestra la navegación y el ingreso, se navega con teclado, y Escape lo cierra y devuelve el foco al botón.
 - Dado el enlace "Temporada Invierno", cuando se toca, entonces la grilla muestra solo productos de invierno.
 - Dado el pie, cuando se revisa, entonces el botón de arrepentimiento sigue visible (RNF-30.1).
+
+## CU-32 Editar el banner de personajes
+
+**Actor:** Administrador
+
+**Flujo principal**
+1. El administrador abre "Portada" en el backoffice.
+2. Carga o cambia la foto, el título, el texto, el texto del enlace y su destino.
+3. Ve una vista previa como en la portada y guarda.
+4. Puede publicar u ocultar el banner.
+
+**Alternativos**
+- Datos inválidos: se marcan los campos con su error y no se guarda nada.
+- Foto que no es una imagen o es demasiado grande: se rechaza con el mismo aviso que las fotos de producto (CU-06).
+
+**Reglas**
+- Hay un solo banner. Nace oculto y sin datos.
+- Título de 1 a 60 caracteres; texto de 0 a 200; texto del enlace de 1 a 30.
+- El destino es una dirección de la tienda (empieza con una sola `/`, por ejemplo `/categoria/kigurumi`), nunca otro sitio.
+- Para publicarlo hacen falta la foto, el título, el texto del enlace y el destino.
+- La foto se convierte como las de producto (CU-06): WebP en 400, 800 y 1200 px y su versión borrosa. La foto anterior se borra al reemplazarla.
+- La portada muestra el banner publicado en la próxima carga.
+
+**Criterios de aceptación**
+- Dado un banner con foto, título, texto del enlace y destino, cuando se publica, entonces la portada lo muestra.
+- Dado un banner oculto, cuando se abre la portada, entonces no aparece la sección.
+- Dado un banner sin foto, cuando se intenta publicar, entonces se rechaza y se indica que falta la foto.
+- Dado un destino `https://otro-sitio.com` o `//otro-sitio.com`, cuando se guarda, entonces se rechaza.
+- Dado un visitante, cuando pide editar el banner, entonces recibe un error y nada cambia.
 
 ## Cambios a CU-01 y CU-02 (grilla y filtros)
 
@@ -160,8 +191,13 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 **Reglas nuevas**
 - Desde 640 px, los campos cortos van de a dos por fila (DNI y teléfono; ciudad y provincia; número, piso y departamento), como en el prototipo.
 - Sin sesión, el paso 1 ofrece "¿Ya tenés una cuenta? Iniciar sesión", que vuelve al checkout después de ingresar.
-- Los campos, las validaciones y los pasos de CU-13 no cambian (D-13).
+- **"Nombre y apellido" pasa a ser dos campos, "Nombre" y "Apellido" (D-13),** cada uno de 1 a 50 caracteres, sin espacios al principio ni al final. El pedido guarda los dos por separado (R-04). Los demás campos, validaciones y pasos de CU-13 no cambian.
+- Con sesión, el checkout se completa con el nombre de la cuenta: la primera palabra en "Nombre" y el resto en "Apellido", y el cliente puede corregirlos. La cuenta sigue con un solo nombre.
+- El saludo del correo de pago confirmado y del arrepentimiento usa el "Nombre" tal cual se cargó (por ejemplo "María José"). El seguimiento y el backoffice muestran "Nombre Apellido".
 
 **Criterios de aceptación**
 - Dado un invitado en el paso 1, cuando toca "Iniciar sesión" e ingresa, entonces vuelve al checkout con su carrito.
+- Dado un comprador "María José" "Pérez", cuando paga, entonces el correo lo saluda "Hola, María José".
+- Dado un "Nombre" o "Apellido" vacío o de más de 50 caracteres, cuando avanza del paso 1, entonces se marca el campo con su error; el servidor lo rechaza con `422`.
+- Dado un cliente con la cuenta a nombre de "Ana María Gómez", cuando abre el checkout, entonces "Nombre" dice "Ana" y "Apellido" "María Gómez".
 - Dado un enlace de ingreso con una dirección de vuelta fuera de la tienda (otro dominio o `//host`), cuando el cliente ingresa, entonces va a `/`.

@@ -1,39 +1,39 @@
 # E7 – The storefront as in the prototype
 
-**Status:** Draft · **Use cases:** UC-30 and UC-31, and changes to UC-01, UC-02, UC-03, UC-08 and UC-13 · **Spanish counterpart:** `docs/specs/E7-tienda-prototipo` (spec, plan and tasks)
+**Status:** Draft · **Use cases:** UC-30, UC-31 and UC-32, and changes to UC-01, UC-02, UC-03, UC-08 and UC-13 · **Spanish counterpart:** `docs/specs/E7-tienda-prototipo` (spec, plan and tasks)
 
-**Modules involved:** `catalog` (three read changes), `shipping` (read only, unchanged); the rest is the frontend.
+**Modules involved:** `catalog` (three read changes and the home banner, UC-32), `ordering` and `notifications` (first and last name, D-13), `shipping` (read only, unchanged); the rest is the frontend.
 
 ## Goal
 
 Make the storefront look and flow like the approved prototype (`docs/design/prototype/index.html`). E1 to E6 took its tokens and a few layouts but not its sections. The side-by-side screenshots of 2026-10-19 (home, listing, product, cart, checkout; phone and desktop) show the gap.
 
-No business rule changes except the ones listed under *Open decisions*. Nothing in the prototype that promises something to the buyer (installments, discounts, free exchanges) is shown until the owner decides it.
+No business rule changes except the ones listed under *Decisions*. Nothing in the prototype that promises something to the buyer (installments, discounts, free exchanges) is shown until the owner decides it.
 
-**Out of scope:** the prototype's code (inline scripts, Google Fonts, Unsplash photos: the CSP of T-E6-03, the self-hosted font of ARCHITECTURE.md section 11, image licenses); the wishlist heart (no use case); editing the home content from the back office.
+**Out of scope:** the prototype's code (inline scripts, Google Fonts, Unsplash photos: the CSP of T-E6-03, the self-hosted font of ARCHITECTURE.md section 11, image licenses); the wishlist heart (no use case); editing the carousel, the audience photos or the logo from the back office (D-03); installments and the transfer discount until decided (D-01, D-02).
 
-## Open decisions
+## Decisions
 
-Each has a proposal. The owner confirms or changes it in `T-E7-01`, and it is written into `docs/specs/00-dominio-y-reglas.md` before the task that uses it. Nothing below that depends on one is coded until then.
+Decided with the owner on 2026-10-19 and written into `docs/specs/00-dominio-y-reglas.md`, except D-01, D-02 and D-15, still open. Nothing that depends on an open one is coded until it is settled.
 
-| ID | Topic | Proposal |
-|---|---|---|
-| D-01 | "3 cuotas sin interés" | Not shown in v1: MercadoPago sets the installments, the shop pays their cost, and RNF-30.4 requires showing the total financial cost when installments are shown. |
-| D-02 | "10% OFF por transferencia" | Not shown: bank transfer is not a payment method (immediate methods only: MercadoPago and MODO). |
-| D-03 | Source of the home texts and photos | Fixed in the frontend: the shop's own photos in the build, texts in `es.ts`. A change needs a deploy. |
-| D-04 | Color swatches | A frontend map from color name to tone; an unknown color keeps its text label. Alternative: a tone per color in the back office (migration). |
-| D-05 | "Nuevo" label | Products created in the last 30 days, computed on the server with the injected `Clock`. |
-| D-06 | The card's "+" button | Dropped: adding needs a size and a color, and the card already opens the product. |
-| D-07 | Shipping by postal code (product page) | A province select showing that province's cost: shipping is priced per province (UC-12). |
-| D-08 | "Completá tu look" | Up to 4 products of the same category, newest first, without the open product, from the existing listing. |
-| D-09 | "Contactanos" | Email and WhatsApp links, no form (a form needs an endpoint, an email to the owner, rate limiting and stored personal data). |
-| D-10 | Numbered pagination | Keep "Ver más" (UC-01). |
-| D-11 | "N productos" count | Added: the listing returns the total of matches. |
-| D-12 | Trust icons | "Envío gratis desde $X" only with a threshold; "Primer cambio sin cargo" only if the owner confirms it as policy; "Compra protegida" becomes "Pagá con MercadoPago". |
-| D-13 | First and last name split in checkout | Keep the single "Nombre y apellido" field (UC-13). |
-| D-14 | Home carousel | Up to 3 slides, auto-advancing every 6 s with a pause button (WCAG 2.2.2), no motion under `prefers-reduced-motion`. |
-| D-15 | Business materials | The owner provides the logo, up to 3 carousel photos, the character-banner photo, the 3 audience photos and the Instagram and TikTok links. Missing photos show the prototype's gradient background. |
-| D-16 | Motion | The motion system of the "Motion" section, CSS only. Alternative: an animation library (such as Motion), which adds load weight. |
+| ID | Topic | Status | Decision |
+|---|---|---|---|
+| D-01 | "3 cuotas sin interés" | Open | Not shown until decided. MercadoPago sets the installments, the shop pays their cost, and RNF-30.4 requires showing the total financial cost when installments are shown. Revisited before go-live. |
+| D-02 | "10% OFF por transferencia" | Open | Not shown until decided. Bank transfer is not a payment method today (immediate methods only: MercadoPago and MODO); adding it would be a new use case. |
+| D-03 | Source of the home texts and photos | Decided | The character banner is edited in the back office (UC-32). The carousel, the audience photos and the logo are fixed in the frontend (photos in the build, texts in `es.ts`); changing them needs a deploy. |
+| D-04 | Color swatches | Decided | A frontend map from color name to tone; an unknown color keeps its text label. |
+| D-05 | "Nuevo" label | Decided | Products created in the last 30 days, computed on the server with the injected `Clock`. |
+| D-06 | The card's "+" button | Decided | Dropped: adding needs a size and a color, and the card already opens the product. |
+| D-07 | Shipping by postal code (product page) | Decided | A province select showing that province's cost: shipping is priced per province (UC-12). |
+| D-08 | "Completá tu look" | Decided | Up to 4 products of the same category, newest first, without the open product, from the existing listing. |
+| D-09 | "Contactanos" | Decided | Email and WhatsApp links, no form. |
+| D-10 | Numbered pagination | Decided | Keep "Ver más" (UC-01). |
+| D-11 | "N productos" count | Decided | Added: the listing returns the total of matches. |
+| D-12 | Trust icons | Decided | "Envío gratis desde $X" only with a threshold, and "Pagá con MercadoPago". "Primer cambio sin cargo" is not shown: it is not a confirmed policy. |
+| D-13 | First and last name in checkout | Decided | Two fields, "Nombre" and "Apellido", through the checkout, the API and the order. This changes UC-13's decision; see *Changes to UC-13*. |
+| D-14 | Home carousel | Decided | Up to 3 slides, auto-advancing every 6 s with a pause button (WCAG 2.2.2), no auto-advance under `prefers-reduced-motion`. |
+| D-15 | Business materials | Open (owner) | The owner provides the logo, up to 3 carousel photos, the 3 audience photos, the first character-banner photo (then changed in the back office), the contact email and WhatsApp number, and the Instagram and TikTok links. Missing photos show the prototype's gradient background. |
+| D-16 | Motion | Decided | The Motion library (`motion`, its React entry `motion/react`), loaded after first paint, on the tokens of the "Motion" section. |
 
 ---
 
@@ -46,7 +46,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - **One entrance moment:** the home welcome text enters once on load. Sections do not fade in on scroll.
 - **Short and soft:** 120 to 450 ms (the home entrance up to 700 ms), easing that slows on arrival.
 - **Accessible:** movement and scaling only under `@media (prefers-reduced-motion: no-preference)`; under `reduce`, at most a short opacity change. Hover effects only under `@media (hover: hover)`.
-- **No load cost:** CSS only (the Web Animations API where a class toggle is not enough), no animation library. Only `transform` and `opacity` are animated, never layout properties. The home LCP image is never animated (RNF-11).
+- **Motion, without delaying the first load (D-16):** enter and exit animations, step changes and pops use the Motion library, loaded after first paint; until it loads, everything shows in place, unanimated. Simple effects (hover, color changes) stay in CSS. Only `transform` and `opacity` are animated, never layout properties. The home LCP image is never animated (RNF-11).
 
 **Catalog**
 
@@ -72,7 +72,10 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Design notes**
 - Tokens in `tokens.css`, listed in ARCHITECTURE.md section 11: `--dur-fast` 120 ms, `--dur-base` 240 ms, `--dur-panel` 320 ms, `--dur-slow` 450 ms, `--dur-entrance` 700 ms; `--ease-out` `cubic-bezier(.2, .7, .2, 1)`, `--ease-standard` `cubic-bezier(.4, 0, .2, 1)`, `--ease-pop` `cubic-bezier(.34, 1.56, .64, 1)`. The first two come from the prototype.
-- Closing animations finish before the `dialog` closes (`animationend`), so focus returns only after.
+- Motion setup: `motion/react` with `LazyMotion` and the `m` components, its `domAnimation` features imported on demand (`features={() => import(...)}`), so the first bundle grows by the small `m` runtime only (budget: 10 kB gzipped in the main bundle; T-E6-02 checks LCP). `MotionConfig reducedMotion="user"` turns transforms off under reduced motion and keeps opacity. The exact version is pinned when T-E7-12 adds it (CLAUDE.md: pinned, not ranges).
+- The tokens live once in CSS and once in `frontend/src/styles/motion.ts` (seconds and cubic-bezier arrays for Motion); `tokens.test.ts` checks that both agree.
+- Exits run inside `AnimatePresence`; a `dialog` closes only on `onExitComplete`, so focus returns after the animation.
+- Motion writes styles through the CSSOM (`element.style`), which the CSP of T-E6-03 allows; the CSP check of `npm run lighthouse` confirms no violation.
 - `tokens.test.ts` checks the token values; component tests check the classes under both `prefers-reduced-motion` values (`matchMedia` mocked).
 
 ---
@@ -94,7 +97,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - The URL carries filters or a sort: the page opens scrolled to "Todos los productos".
 
 **Business rules**
-- Texts and photos are fixed in the frontend (D-03).
+- The carousel and the audience cards have fixed texts and photos (D-03); the character banner is the one the administrator publishes (UC-32). Without a published banner, its section is not shown.
 - The audience cards set the UC-02 URL key `publico` (`mujer`, `hombre`, `infantil`) and keep the sort.
 - `/categoria/{slug}` keeps showing only the listing, without the home sections.
 - The carousel follows D-14.
@@ -109,7 +112,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Design notes**
 - `HomePage` (`features/catalog`) at `/`, composing `HeroCarousel`, `CharacterBanner`, `AudienceCards`, the existing listing of `CatalogPage` (extracted so both routes use it), `WithdrawalHomeBlock` and `ContactSection`. It stays in the main bundle (T-E6-02).
 - Photos in `frontend/src/assets/home/` as WebP at 640, 1280 and 1920 px, with `srcset` and `sizes`. The first slide is `fetchpriority="high"` and preloaded; the others are lazy. The carousel is a `section` with `aria-roledescription="carrusel"`, slides labeled "n de 3", and the pause button first in tab order.
-- No API change.
+- The banner comes from `GET /api/home/banner` (UC-32); the rest of the page needs no API change.
 
 ---
 
@@ -144,6 +147,48 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - `SiteHeader`, `MobileMenu` (a modal `dialog`, like the filter panel of UC-02) and `SiteFooter` replace the header and `StoreFooter` of `StoreLayout`. The back office keeps its own layout.
 - The threshold comes from `GET /api/shipping/rates` (RNF-31.6), one TanStack Query shared by the strip, the product page and the cart panel.
 - Payment provider icons from `GET /api/checkout/payment-providers`; social links from `es.ts` (D-15).
+
+---
+
+## UC-32 Edit the character banner
+
+**Actor:** Administrator · **Module:** `catalog` · **Stage:** E7
+
+**Preconditions:** the administrator is signed in to the back office (UC-04).
+
+**Main flow**
+1. The administrator opens "Portada" in the back office.
+2. Uploads or replaces the photo and edits the title, the text, the link text and the link target.
+3. Sees a preview as on the home page and saves.
+4. Publishes or hides the banner.
+
+**Alternative flows**
+- Invalid data: `422` with the failing fields; nothing is saved.
+- A file that is not a JPG, PNG or WebP, or is over 10 MB: refused as product photos are (UC-06).
+- Publishing without a photo, title, link text or target: `409` naming what is missing; the banner stays hidden.
+
+**Business rules**
+- There is one banner. It starts hidden and empty.
+- Title 1 to 60 characters; text 0 to 200; link text 1 to 30; all trimmed.
+- The target is a path of this store: it starts with exactly one `/`, has no scheme, host, backslash or control characters, and is at most 200 characters. Anything else is refused, so the banner can never send shoppers to another site.
+- Publishing needs the photo, the title, the link text and the target. Hiding needs nothing.
+- The photo goes through the UC-06 conversion: WebP at 400, 800 and 1200 px and the blurred placeholder. Replacing it deletes the old files after the new ones are saved.
+- The home page shows the published banner on its next load.
+
+**Acceptance criteria**
+- Given a banner with a photo, title, link text and target, when published, then the home page shows it.
+- Given a hidden banner, when the home page opens, then its section is not shown.
+- Given a banner without a photo, when publishing, then it is refused with `409` naming the photo.
+- Given a target `https://other.site`, `//other.site` or `/\other.site`, when saved, then it is refused with `422`.
+- Given a visitor or a customer session, when it calls the banner admin endpoints, then it gets `401` or `403` and nothing changes.
+- Given a replaced photo, when saved, then the old files are deleted and the home page shows the new one.
+
+**Design notes**
+- `catalog.domain.HomeBanner` aggregate: holds the length rules, the target rule (`StorePath` value object) and the publish invariant. One row: `home_banner` (`catalog` module, a migration; `id` fixed by a check constraint, `title`, `body`, `link_text`, `link_path`, `image_id` (nullable), `published`, `updated_at`). No Row Level Security: no personal data (RNF-27), so it joins the public list of `RowLevelSecurityCoverageTest` with that reason.
+- Inbound ports: `GetHomeBanner` (public query; result `Published(banner)` or `NotPublished`), `GetHomeBannerForAdmin`, `UpdateHomeBanner` (`Command(actor, title, body, linkText, linkPath)`; result `Updated`, `Invalid(fields)` or `Forbidden`), `PublishHomeBanner` / `HideHomeBanner` (result `Published`, `Incomplete(missing)`, `Hidden` or `Forbidden`), `ReplaceHomeBannerPhoto` (reuses the UC-06 `ImageProcessor` port and its libvips adapter; same `Idempotency-Key` rule as product photos).
+- Endpoints: `GET /api/home/banner` → `200` `{title, body, linkText, linkPath, image}` or `204` when not published (catalog rate-limit policy); `GET` and `PUT /api/admin/home/banner`, `POST /api/admin/home/banner/publish`, `POST /api/admin/home/banner/hide`, `POST /api/admin/home/banner/photo` (multipart, `Idempotency-Key`). Errors as `problem+json`; OpenAPI updated.
+- Back office: "Portada" in the menu, a form with the preview, as the product form (RNF-26: usable on a phone).
+- Storefront: `CharacterBanner` reads `GET /api/home/banner`; its link is a router `Link`, never an `<a href>` built from the text.
 
 ---
 
@@ -222,11 +267,20 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Business rules (new)**
 - From 640 px, short fields share a row: DNI and phone; city and province; number, floor and apartment.
 - Without a session, step 1 offers "¿Ya tenés una cuenta? Iniciar sesión". After signing in, the customer comes back to `/checkout` with the cart (UC-08 merges the guest cart).
-- Fields, validations and steps of UC-13 do not change (D-13).
+- **"Nombre y apellido" becomes two fields, "Nombre" and "Apellido" (D-13)**, each 1 to 50 characters, trimmed. The order keeps both (R-04). The other fields, validations and steps of UC-13 do not change.
+- Signed in, the checkout prefills them from the account name: the first word in "Nombre", the rest in "Apellido", both editable. The account keeps a single name (UC-19).
+- The paid-order and withdrawal emails greet the "Nombre" as typed ("Hola, María José"); tracking and the back office show "Nombre Apellido".
 
 **Acceptance criteria**
 - Given a guest on step 1, when they choose "Iniciar sesión" and sign in, then they return to the checkout with their cart.
 - Given a sign-in link with a return path outside the store (another origin or `//host`), when the customer signs in, then they go to `/`.
+- Given a buyer "María José" "Pérez", when the payment is approved, then the email greets "Hola, María José".
+- Given an empty "Nombre" or "Apellido", or one over 50 characters, when going on from step 1, then the field is marked with its message; the server refuses it with `422`.
+- Given a customer whose account name is "Ana María Gómez", when the checkout opens, then "Nombre" reads "Ana" and "Apellido" "María Gómez".
 
 **Design notes**
 - `SignInPage` today always goes to `/`. It gains a `volver` query key, accepted only when it is a path of this store (starts with one `/`, not `//`), so it cannot be used as an open redirect.
+- Name split (D-13), one migration in `ordering`: `orders.customer_name` becomes `customer_first_name` and `customer_last_name` (each trimmed, 1 to 50, check constraints like the old one). The store has no real orders yet (it goes live in E6), so existing rows split at the first space, and a single word goes to the first name with `-` as the last name. A view or helper gives the full name where one is shown.
+- `ordering.domain.BuyerDetails(firstName, lastName, email, phone, nationalId)`; `BuyerDetails.firstNameOf` and `OrderEmailWriter.firstName` (the first-word guess) are removed: the emails use the stored first name.
+- API: `POST /api/checkout` takes `firstName` and `lastName` instead of `name`; tracking, `ordering.api` (`PaidOrders`, `WithdrawalNotices`, `AdminOrderDetails`) and the account data export (UC-28) carry both. OpenAPI and the typed client are updated; the e2e `fillCheckout` helper fills both fields.
+- Analytics and logs never carry either name (RNF-25, CLAUDE.md).

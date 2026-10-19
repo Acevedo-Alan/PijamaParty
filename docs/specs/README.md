@@ -23,7 +23,7 @@ Este material desarrolla el *Documento de alcance y requisitos v1.2* (puntos 3 a
 | E4 | Cuenta de cliente | CU-19 a CU-22, CU-27 y CU-28 | 1 sem |
 | E5 | Promociones y reseñas | CU-23 a CU-25 | 1 sem |
 | E6 | Endurecimiento y publicación | – (técnica) | 1 sem + 7 días hábiles de pruebas del negocio |
-| E7 | La tienda como el prototipo | CU-30, CU-31 y cambios a CU-01, CU-02, CU-03, CU-08 y CU-13 | 1,5 sem (estimación inicial) |
+| E7 | La tienda como el prototipo | CU-30 a CU-32 y cambios a CU-01, CU-02, CU-03, CU-08 y CU-13 | 2 sem (estimación inicial) |
 
 Las estimaciones suman 9 semanas, una más que las 8 semanas de programación del documento de alcance: la búsqueda por texto, la analítica, el backoffice para celular y la seguridad de datos (RLS) se sumaron después. Hay que ajustar el plazo del documento a 9 semanas o absorberlo en E5, que es la etapa que mejor absorbe retrasos.
 

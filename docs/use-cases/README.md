@@ -42,4 +42,4 @@ Every use case has the same sections:
 | `E4-customer-account.md` | E4 | UC-19 to UC-22, UC-27 and UC-28 |
 | `E5-promotions-and-reviews.md` | E5 | UC-23 to UC-25 (and changes to UC-11 and UC-28), size guide (RNF-31.5), shopping information (RNF-31.6) |
 | `E6-hardening-and-release.md` | E6 | none (hardening, tests and release; each task is detailed when it starts) |
-| `E7-storefront-design.md` | E7 | UC-30 and UC-31, and changes to UC-01, UC-02, UC-03, UC-08 and UC-13 (the storefront as in the prototype) |
+| `E7-storefront-design.md` | E7 | UC-30 to UC-32, and changes to UC-01, UC-02, UC-03, UC-08 and UC-13 (the storefront as in the prototype) |

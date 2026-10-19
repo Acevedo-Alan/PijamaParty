@@ -85,7 +85,7 @@ PAGADO | PREPARANDO → CANCELADO
 | Reserva de stock | Decidido | Columna `reservado` del nivel de stock, con actualización condicional; los movimientos RESERVA, DESCUENTO y LIBERACION del pedido son el registro, y el vencimiento es `reservaVenceEn` del pedido. Sin tabla de reservas (CU-16) |
 | DNI en el pedido | Decidido | Columna sin cifrado por columna, protegida por RLS, el rol de privilegios mínimos, backups cifrados y sin logs (RNF-29.7) |
 | Costo de envío | Decidido | Uno por provincia, entre las 24 jurisdicciones; sin costo cargado no hay envío (CU-12) |
-| Datos del comprador en el pedido | Decidido | Nombre 1 a 100; email hasta 254, en minúsculas; teléfono solo dígitos, 8 a 15; DNI solo dígitos, 7 u 8; calle 1 a 100, número 1 a 10, piso y depto opcionales hasta 10, ciudad 1 a 80; código postal de 4 dígitos o CPA (`S3000ABC`) en mayúsculas (CU-13) |
+| Datos del comprador en el pedido | Decidido | Nombre 1 a 50 y apellido 1 a 50, en campos separados (cambiado en E7, D-13; antes un solo nombre de 1 a 100); email hasta 254, en minúsculas; teléfono solo dígitos, 8 a 15; DNI solo dígitos, 7 u 8; calle 1 a 100, número 1 a 10, piso y depto opcionales hasta 10, ciudad 1 a 80; código postal de 4 dígitos o CPA (`S3000ABC`) en mayúsculas (CU-13) |
 | Contexto de RLS del checkout | Decidido | La transacción del checkout corre como el comprador (invitado o cliente), atada al hash del token de seguimiento del pedido nuevo; el pago, el proveedor, el webhook y el vencimiento corren como SISTEMA (RNF-27) |
 | Versión de los términos en el pedido | Decidido | Se guarda al comprar (RNF-30.6); la marca de facturado espera la decisión de facturación (RNF-30.7) |
 | Integración con MODO | Decidido | Plan en E3, sección "MODO (E3b)" (T-E3b-01): botón de pago con redirección, sobre un gateway de tarjetas todavía sin elegir; las tarjetas siguen por MercadoPago |
@@ -123,6 +123,13 @@ PAGADO | PREPARANDO → CANCELADO
 | Al comprador solo le llega el correo de pago confirmado | Decidido | Sin correo de pedido recibido, de pedido enviado ni recordatorios |
 | Correo rebotado o mal escrito: alerta en el backoffice y corrección desde el enlace de seguimiento | Decidido | CU-17 y CU-18 |
 | Sugerencia ante dominios de email mal escritos (por ejemplo gmial.com) | Propuesto | No bloquea el avance |
+| Portada de la tienda (E7) | Decidido | El banner de personajes se edita desde el backoffice (CU-32); el carrusel, las fotos de "Elegí para quién" y el logo son fijos en el frontend (D-03)
+| Etiqueta "Nuevo" (E7) | Decidido | Productos creados en los últimos 30 días, según el reloj de la aplicación (D-05)
+| Muestras de color y "Completá tu look" (E7) | Decidido | Mapa de nombres de color en el frontend; hasta 4 productos de la misma categoría, los más nuevos (D-04, D-08)
+| Contacto y envío en la ficha (E7) | Decidido | Email y WhatsApp como enlaces, sin formulario; selector de provincia para ver el costo de envío (D-07, D-09)
+| Íconos de confianza (E7) | Decidido | "Primer cambio sin cargo" no se muestra: no es una política confirmada (D-12)
+| Animaciones (E7) | Decidido | Librería Motion cargada de forma diferida, sobre tokens de movimiento (D-16)
+| Cuotas sin interés y descuento por transferencia (E7) | Pendiente | No se muestran hasta decidirlo; se revisa antes de la salida a producción (D-01, D-02)
 | Registro e ingreso con Google y Facebook | Propuesto | CU-27; Apple en una fase posterior. La vinculación con una cuenta existente exige email verificado |
 | Eliminar cuenta y descargar datos | Propuesto | CU-28; pedidos conservados por obligación fiscal (confirmar plazo con el contador) |
 | Botón de arrepentimiento | Obligatorio | CU-29 y RNF-30.1; validar el texto y el procedimiento con un profesional |
