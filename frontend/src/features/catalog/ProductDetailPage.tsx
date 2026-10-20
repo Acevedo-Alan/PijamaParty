@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { m } from 'motion/react';
 import { useEffect, useId, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { useActionMotion } from '../../components/motion/useActionMotion.ts';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -14,12 +14,23 @@ import { NotFoundPage } from '../errors/NotFoundPage.tsx';
 import { PurchaseInfoSummary } from '../help/PurchaseInfoSummary.tsx';
 import { MyReviewSection } from '../reviews/MyReviewSection.tsx';
 import { ProductReviewsSection, RatingSummary } from '../reviews/ProductReviews.tsx';
+import { BackToCatalog, ProductBreadcrumbs } from './ProductBreadcrumbs.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
-import { SizeGuideSection } from './SizeGuideSection.tsx';
+import { ProductSections } from './ProductSections.tsx';
+import { QuantityInput } from './QuantityInput.tsx';
+import { ShippingByProvince } from './ShippingByProvince.tsx';
+import { StickyAddToCart } from './StickyAddToCart.tsx';
 import { productDetailKey, useProductDetail } from './useProductDetail.ts';
 import { VariantPicker } from './VariantPicker.tsx';
-import { findVariant, galleryFor, initialSelection, pickColor, shownPrice } from './variantSelection.ts';
+import {
+  findVariant,
+  galleryFor,
+  initialSelection,
+  pickColor,
+  shownPrice,
+  type Selection,
+} from './variantSelection.ts';
 import './catalog.css';
 import './productDetail.css';
 
@@ -70,14 +81,30 @@ function AddLabel({ pending, added }: { pending: boolean; added: boolean }) {
   );
 }
 
-/** Gallery, description, material, season, price, the size and color picker and the add to cart of one product. */
+function Price({ price }: { price: { cents: number; from: boolean } }) {
+  return (
+    <p className="pdp-price">
+      {price.from && `${es.product.fromPrice} `}
+      {formatMoney(price.cents)}
+    </p>
+  );
+}
+
+/**
+ * Gallery, description, price, the size and color picker, the quantity and the add to cart of one product, then the
+ * shipping by province, the trust icons and the collapsed sections (E7).
+ */
 function ProductDetailView({ product }: { product: ProductDetail }) {
   const [selection, setSelection] = useState(() => initialSelection(product));
+  const [quantity, setQuantity] = useState(1);
   const hintId = useId();
   const variant = findVariant(product.variants, selection);
   const price = shownPrice(product.variants, selection) ?? { cents: product.fromPriceCents, from: true };
   const canAdd = variant !== undefined && variant.available > 0;
+  // A reload after a rejected add can lower the stock below the chosen quantity.
+  const units = Math.max(1, Math.min(quantity, variant?.available ?? 1));
   const viewed = useRef<string | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
   const add = useAddToCart();
   const queryClient = useQueryClient();
   // Successful adds on this page: each one shows "Agregado" again for ADDED_FOR_MS, then 0 hides it.
@@ -95,12 +122,12 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
     };
   }, [confirmed]);
 
-  // UC-08: one unit per tap. A rejected add reloads the product, so its stock is current.
+  // UC-08 with the chosen quantity (E7). A rejected add reloads the product, so its stock is current.
   function addPicked() {
     if (variant === undefined) {
       return;
     }
-    const quantity = 1;
+    const quantity = units;
     add.mutate({ variantId: variant.id, quantity }, {
       onSuccess: (answer) => {
         if (answer.status !== 'added') {
@@ -130,6 +157,22 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
     }
   }, [product]);
 
+  function pick(next: Selection) {
+    setSelection(next);
+    setQuantity(1);
+    add.reset();
+  }
+
+  // The main button and the one of the fixed bar on phones do the same.
+  const addButtonProps = {
+    type: 'button',
+    className: 'btn add-cart',
+    disabled: !canAdd || add.isPending,
+    onClick: addPicked,
+    ...(variant === undefined ? { 'aria-describedby': hintId } : {}),
+  } as const;
+  const addLabel = <AddLabel pending={add.isPending} added={confirmed > 0} />;
+
   return (
     <div className="pdp-layout">
       <ProductGallery
@@ -140,50 +183,29 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
       <div className="pdp-info">
         <h1>{product.name}</h1>
         <RatingSummary slug={product.slug} />
-        <p className="pdp-price">
-          {price.from && `${es.product.fromPrice} `}
-          {formatMoney(price.cents)}
-        </p>
+        <Price price={price} />
         {product.description !== '' && <p className="pdp-desc">{product.description}</p>}
-        <dl className="pdp-facts">
-          {product.material !== '' && (
-            <div>
-              <dt>{es.product.material}</dt>
-              <dd>{product.material}</dd>
-            </div>
-          )}
-          <div>
-            <dt>{es.product.season}</dt>
-            <dd>{es.filters.seasons[product.season]}</dd>
-          </div>
-        </dl>
         <VariantPicker
           sizes={product.sizes}
           colors={product.colors}
           variants={product.variants}
           selection={selection}
           onPickSize={(size) => {
-            setSelection({ ...selection, size });
-            add.reset();
+            pick({ ...selection, size });
           }}
           onPickColor={(color) => {
-            setSelection(pickColor(product.variants, selection, color));
-            add.reset();
+            pick(pickColor(product.variants, selection, color));
           }}
         />
-        {product.sizeGuide !== null && <SizeGuideSection guide={product.sizeGuide} />}
         <p className="stock-note" role="status">
           <StockNote available={variant?.available} />
         </p>
-        <button
-          type="button"
-          className="btn add-cart"
-          disabled={!canAdd || add.isPending}
-          onClick={addPicked}
-          {...(variant === undefined ? { 'aria-describedby': hintId } : {})}
-        >
-          <AddLabel pending={add.isPending} added={confirmed > 0} />
-        </button>
+        <div className="pdp-purchase-row">
+          <QuantityInput value={units} max={variant?.available ?? 0} onChange={setQuantity} />
+          <button ref={addButton} {...addButtonProps}>
+            {addLabel}
+          </button>
+        </div>
         {variant === undefined && (
           <p id={hintId} className="pdp-hint">
             {es.product.pickSizeAndColor}
@@ -192,8 +214,14 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         <p className="pdp-add-error" role="alert">
           <AddProblem answer={add.data} failed={add.isError} />
         </p>
+        <ShippingByProvince />
         <PurchaseInfoSummary />
+        <ProductSections product={product} />
       </div>
+      <StickyAddToCart target={addButton}>
+        <Price price={price} />
+        <button {...addButtonProps}>{addLabel}</button>
+      </StickyAddToCart>
     </div>
   );
 }
@@ -224,9 +252,8 @@ export function ProductDetailPage() {
 
   return (
     <main className="wrap pdp">
-      <Link to="/" className="back-link">
-        {es.product.backToStore}
-      </Link>
+      <BackToCatalog />
+      {detail.data?.status === 'found' && <ProductBreadcrumbs product={detail.data.product} />}
       {detail.isPending && <Skeleton />}
       {detail.isError && (
         <div className="empty-state" role="alert">

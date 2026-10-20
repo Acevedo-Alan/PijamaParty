@@ -232,7 +232,8 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Gallery: main photo, thumbnails, and an enlarged view (the 1200 px file) when the photo is pressed.
 - Color as swatches (D-04) with the chosen color's name; sizes as square buttons; a quantity input from 1 to the available stock of the chosen variant.
 - On phones, when the add button leaves the screen, a fixed bar at the bottom shows the price and the add button.
-- Trust icons (D-12); the shipping cost by province (D-07); collapsible sections: size guide (RNF-31.5, moved from its current place), composition (material and season) and exchanges and returns (link to the FAQ).
+- Trust icons (D-12) take the place of the RNF-31.6 purchase summary below the add button, so its lines are not repeated: "Envío gratis desde $X" (only with a threshold), the delivery times, and "Pagá con …" naming the payment methods enabled now (MercadoPago, MODO), with the link to the FAQ. A line that could not be read is left out.
+- The shipping cost by province (D-07); collapsible sections: size guide (RNF-31.5, moved from its current place), composition (material and season) and exchanges and returns (link to the FAQ).
 - "Completá tu look" (D-08). Reviews (UC-24) stay below.
 - The UC-03 variant rules do not change.
 

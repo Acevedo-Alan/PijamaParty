@@ -1,4 +1,5 @@
 import { es } from '../../i18n/es.ts';
+import { colorTone } from './colorTones.ts';
 import type { DetailVariant } from './productDetailApi.ts';
 import { isColorSoldOut, isSizeAvailable, type Selection } from './variantSelection.ts';
 
@@ -11,9 +12,10 @@ interface OptionProps {
   onPick: () => void;
 }
 
-function Option({ name, value, checked, disabled = false, soldOut, onPick }: OptionProps) {
+/** A size as a square button (E7); the real radio stays in the page for keyboards and screen readers. */
+function SizeOption({ name, value, checked, disabled = false, soldOut, onPick }: OptionProps) {
   return (
-    <label className={soldOut ? 'chip sold-out' : 'chip'}>
+    <label className={soldOut ? 'chip size-option sold-out' : 'chip size-option'}>
       <input
         type="radio"
         name={name}
@@ -28,6 +30,36 @@ function Option({ name, value, checked, disabled = false, soldOut, onPick }: Opt
   );
 }
 
+/** A color as a swatch (D-04), or by its name when the map has no tone for it. */
+function ColorOption({ name, value, checked, soldOut, onPick }: OptionProps) {
+  const tone = colorTone(value);
+  const classes = ['swatch-option', soldOut ? 'sold-out' : '', tone === undefined ? 'named' : ''].filter(Boolean);
+  return (
+    <label className={classes.join(' ')} title={value}>
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onPick}
+        {...(soldOut ? { 'aria-label': es.product.soldOutOption(value) } : {})}
+      />
+      {tone === undefined ? (
+        value
+      ) : (
+        <>
+          <span
+            className={tone.outlined ? 'swatch outlined' : 'swatch'}
+            style={{ background: tone.background }}
+            aria-hidden="true"
+          />
+          <span className="visually-hidden">{value}</span>
+        </>
+      )}
+    </label>
+  );
+}
+
 interface VariantPickerProps {
   sizes: string[];
   colors: string[];
@@ -38,17 +70,26 @@ interface VariantPickerProps {
 }
 
 /**
- * Color and size as two radio groups (UC-03). A size without stock in the picked color is disabled. A color stays
- * selectable to see its photos, but shows as sold out when it has no stock in the picked size.
+ * Color and size as two radio groups (UC-03): colors as swatches with the picked color's name, sizes as square
+ * buttons (E7). A size without stock in the picked color is disabled. A color stays selectable to see its photos,
+ * but shows as sold out when it has no stock in the picked size.
  */
 export function VariantPicker({ sizes, colors, variants, selection, onPickSize, onPickColor }: VariantPickerProps) {
   return (
     <>
       <fieldset className="option-group">
-        <legend>{es.product.color}</legend>
-        <div className="chips">
+        <legend>
+          {es.product.color}
+          {/* The checked radio already tells screen readers; this is for the eyes, as swatches carry no text. */}
+          {selection.color !== null && (
+            <span className="option-picked" aria-hidden="true">
+              : {selection.color}
+            </span>
+          )}
+        </legend>
+        <div className="swatches">
           {colors.map((color) => (
-            <Option
+            <ColorOption
               key={color}
               name="color"
               value={color}
@@ -67,7 +108,7 @@ export function VariantPicker({ sizes, colors, variants, selection, onPickSize, 
           {sizes.map((size) => {
             const available = isSizeAvailable(variants, size, selection.color);
             return (
-              <Option
+              <SizeOption
                 key={size}
                 name="size"
                 value={size}

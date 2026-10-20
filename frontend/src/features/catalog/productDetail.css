@@ -124,14 +124,7 @@
   cursor: not-allowed;
 }
 
-/* RNF-31.5: the category's size guide, collapsed below the size picker. */
-.size-guide {
-  margin-top: 14px;
-  border-top: 1px solid var(--line);
-  padding-top: 4px;
-}
-
-/* The table scrolls sideways inside its box, never the page. */
+/* RNF-31.5: the category's size guide, the first collapsed section (E7). The table scrolls sideways inside its box, never the page. */
 .size-guide-table {
   overflow-x: auto;
 }
@@ -213,4 +206,369 @@
   .pdp-thumb:hover {
     opacity: 1;
   }
+}
+
+/* E7: "Volver al catálogo" and the breadcrumbs Inicio / category / product. */
+.back-link {
+  gap: 6px;
+  color: var(--ink-soft);
+}
+
+.back-link svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.breadcrumbs {
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.breadcrumbs ol {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.breadcrumbs li + li::before {
+  content: '/';
+  margin-right: 6px;
+  color: var(--line-strong);
+}
+
+.breadcrumbs a {
+  color: var(--ink-soft);
+}
+
+.breadcrumbs [aria-current='page'] {
+  color: var(--ink);
+}
+
+/* E7: the main photo opens the enlarged view; the icon sits in its corner. */
+.pdp-image-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+}
+
+.pdp-zoom {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  padding: 12px;
+  cursor: zoom-in;
+}
+
+.pdp-zoom svg {
+  width: 44px;
+  height: 44px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pdp-zoom:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -4px;
+}
+
+.product-lightbox {
+  max-width: min(92vw, 680px);
+  max-height: 92vh;
+  margin: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--bg);
+}
+
+.product-lightbox::backdrop {
+  background: rgba(58, 50, 45, 0.72);
+}
+
+.product-lightbox img {
+  display: block;
+  width: min(82vw, 620px);
+  max-height: 80vh;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-s);
+}
+
+.product-lightbox-close {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  background: var(--surface);
+}
+
+/* E7 (D-04): colors as swatches with the picked one's name; sizes as square buttons. */
+.option-picked {
+  font-weight: 500;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.swatch-option {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.swatch-option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.swatch.outlined {
+  border-color: var(--line-strong);
+}
+
+/* The selection ring: it grows in (E7 motion) from the swatch's edge. */
+.swatch-option::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.swatch-option:has(input:checked)::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .swatch-option::after {
+    transition:
+      opacity var(--dur-fast) var(--ease-pop),
+      transform var(--dur-fast) var(--ease-pop);
+  }
+}
+
+.swatch-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A color without a tone keeps its name, as a chip. */
+.swatch-option.named {
+  padding: 8px 16px;
+  border: 1px solid var(--line-strong);
+  font-size: 13px;
+}
+
+.swatch-option.named::after {
+  inset: -1px;
+  border-radius: 999px;
+}
+
+.swatch-option.sold-out .swatch {
+  opacity: 0.45;
+}
+
+.swatch-option.sold-out.named {
+  color: var(--ink-soft);
+  border-style: dashed;
+  text-decoration: line-through;
+}
+
+.chip.size-option {
+  justify-content: center;
+  min-width: 46px;
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+  font-size: 13px;
+}
+
+/* E7: the quantity next to the add button. */
+.pdp-purchase-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.pdp-purchase-row .add-cart {
+  margin-top: 0;
+  max-width: none;
+}
+
+@media (min-width: 860px) {
+  .pdp-purchase-row {
+    max-width: 420px;
+  }
+}
+
+.quantity-control {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+}
+
+.quantity-control button {
+  height: 100%;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.quantity-control button:disabled {
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
+.quantity-control input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font: 500 14px var(--ff-body);
+  color: var(--ink);
+  appearance: textfield;
+}
+
+.quantity-control input::-webkit-inner-spin-button,
+.quantity-control input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* E7, phones: the price and the add button fixed at the bottom once the main button scrolled away. */
+.pdp-sticky-cta {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+}
+
+.pdp-sticky-cta .pdp-price {
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.pdp-sticky-cta .add-cart {
+  flex: 1;
+  width: auto;
+  max-width: 260px;
+  margin-top: 0;
+}
+
+@media (max-width: 859px) {
+  .pdp {
+    padding-bottom: 120px;
+  }
+}
+
+@media (min-width: 860px) {
+  .pdp-sticky-cta {
+    display: none;
+  }
+}
+
+/* E7 (D-07): the shipping cost of one province. */
+.shipping-estimator {
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: rgba(255, 255, 255, 0.48);
+  font-size: 13px;
+}
+
+.shipping-estimator label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.shipping-estimator select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  font: inherit;
+  color: var(--ink);
+}
+
+.shipping-result {
+  min-height: 1.5em;
+  margin-top: 9px;
+  color: var(--ink-soft);
+}
+
+/* E7: the collapsed sections, one line apart. */
+.pdp-sections {
+  margin-top: 14px;
+}
+
+.pdp-section {
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+}
+
+.pdp-section p {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pdp-section a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.pdp-section .pdp-facts {
+  padding-bottom: 12px;
 }

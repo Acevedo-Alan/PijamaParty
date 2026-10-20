@@ -28,6 +28,8 @@ export interface SizeGuide {
 /** A photo of the gallery: of one color, or of the whole product when the color is null. */
 export interface DetailImage extends ListingImage {
   color: string | null;
+  /** The largest file (1200 px), for the enlarged view (E7). */
+  largeSrc: string;
 }
 
 export interface ProductDetail {
@@ -35,6 +37,8 @@ export interface ProductDetail {
   id: string;
   slug: string;
   name: string;
+  /** What the breadcrumbs and "Completá tu look" link to (E7). */
+  category: { slug: string; name: string };
   description: string;
   material: string;
   season: Season;
@@ -76,18 +80,27 @@ function toSizeGuide({ columns, rows, note }: SizeGuideResponse): SizeGuide {
 }
 
 function toDetail(data: DetailResponse): ProductDetail {
-  const { id, slug, name, season, fromPriceCents } = data;
+  const { id, slug, name, category, season, fromPriceCents } = data;
   if (id === undefined || slug === undefined || name === undefined || season === undefined || fromPriceCents === undefined) {
     throw new Error('Incomplete product detail');
   }
+  if (category?.slug === undefined || category.name === undefined) {
+    throw new Error('Incomplete category of the product detail');
+  }
   const images = (data.images ?? []).flatMap((image) => {
     const photo = toImage(image);
-    return photo === null ? [] : [{ ...photo, color: image.color ?? null }];
+    const largest = (image.files ?? []).reduce<{ width: number; url: string } | undefined>(
+      (best, { width, url }) =>
+        width === undefined || url === undefined || (best !== undefined && best.width >= width) ? best : { width, url },
+      undefined,
+    );
+    return photo === null ? [] : [{ ...photo, color: image.color ?? null, largeSrc: largest?.url ?? photo.src }];
   });
   return {
     id,
     slug,
     name,
+    category: { slug: category.slug, name: category.name },
     description: data.description ?? '',
     material: data.material ?? '',
     season,

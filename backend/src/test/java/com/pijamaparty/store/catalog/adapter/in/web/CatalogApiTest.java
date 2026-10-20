@@ -229,6 +229,8 @@ class CatalogApiTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.slug").value("pijama-rosa"))
             .andExpect(jsonPath("$.name").value("Pijama rosa"))
+            .andExpect(jsonPath("$.category.slug").value("verano"))
+            .andExpect(jsonPath("$.category.name").value("verano"))
             .andExpect(jsonPath("$.material").value("Algodón"))
             .andExpect(jsonPath("$.season").value("SUMMER"))
             .andExpect(jsonPath("$.audience").value("WOMEN"))

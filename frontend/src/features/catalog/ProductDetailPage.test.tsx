@@ -1,17 +1,21 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
+import { formatMoney } from '../../i18n/formatMoney.ts';
+import { cart, cartItem } from '../../test/cartApi.ts';
 import {
   answer,
   detailImage,
   detailVariant,
   NO_CART,
   NO_REVIEWS,
+  NO_SHIPPING_RATES,
   productDetail,
   purchaseInfo,
   REVIEWS_PATH,
+  SHIPPING_RATES_PATH,
   withHeader,
 } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
@@ -28,6 +32,9 @@ function stubDetail(...answers: never[]) {
 }
 
 const addToCart = () => screen.getByRole('button', { name: es.product.addToCart });
+
+/** An amount as Testing Library reads it: the non-breaking space after the sign becomes a plain one. */
+const shown = (cents: number) => formatMoney(cents).replace(/\s/g, ' ');
 
 describe('product detail (UC-03)', () => {
   afterEach(() => {
@@ -186,5 +193,241 @@ describe('size guide on the product page (RNF-31.5)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' })).toBeInTheDocument();
     expect(screen.queryByText(es.product.sizeGuide)).not.toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+});
+
+/** The product page with these shipping rates and this product. */
+function stubPage(rates: unknown = NO_SHIPPING_RATES, detail = productDetail()) {
+  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
+    if (path === '/api/cart') {
+      return Promise.resolve(NO_CART);
+    }
+    if (path === SHIPPING_RATES_PATH) {
+      return Promise.resolve(rates);
+    }
+    return Promise.resolve(path === REVIEWS_PATH ? NO_REVIEWS : (purchaseInfo(path) ?? answer(200, detail)));
+  }));
+}
+
+/** Replaces IntersectionObserver; the returned function tells every observer where the add button is. */
+function stubIntersections() {
+  const callbacks: IntersectionObserverCallback[] = [];
+  vi.stubGlobal('IntersectionObserver', class {
+    constructor(callback: IntersectionObserverCallback) {
+      callbacks.push(callback);
+    }
+
+    observe() {
+      // The test reports the intersections.
+    }
+
+    disconnect() {
+      // Nothing to release.
+    }
+  });
+  return ({ isIntersecting, top }: { isIntersecting: boolean; top: number }) => {
+    act(() => {
+      for (const callback of callbacks) {
+        callback([{ isIntersecting, boundingClientRect: { top } }] as never, {} as never);
+      }
+    });
+  };
+}
+
+const stickyBar = () => document.querySelector<HTMLElement>('.pdp-sticky-cta');
+
+describe('product page as in the prototype (E7, changes to UC-03)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('given a product, when it opens, then the breadcrumbs lead home and to its category and end at the product', async () => {
+    stubPage();
+
+    renderRoute('/producto/luna');
+
+    const crumbs = within(await screen.findByRole('navigation', { name: es.product.breadcrumbs }));
+    expect(crumbs.getByRole('link', { name: es.product.home })).toHaveAttribute('href', '/');
+    expect(crumbs.getByRole('link', { name: 'Pijamas largos' })).toHaveAttribute('href', '/categoria/pijamas-largos');
+    expect(crumbs.getByText('Pijama Luna')).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('given a product opened from a shared link, when "Volver al catálogo" is pressed, then the home page opens', async () => {
+    stubPage();
+    const { router } = renderRoute('/producto/luna');
+
+    await userEvent.click(await screen.findByRole('link', { name: es.product.backToCatalog }));
+
+    expect(router.state.location.pathname).toBe('/');
+  });
+
+  it('given a product opened from another store page, when "Volver al catálogo" is pressed, then that page opens again', async () => {
+    stubPage();
+    const { router } = renderRoute('/preguntas-frecuentes?desde=tienda');
+    await act(() => router.navigate('/producto/luna'));
+
+    await userEvent.click(await screen.findByRole('link', { name: es.product.backToCatalog }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/preguntas-frecuentes');
+    });
+    expect(router.state.location.search).toBe('?desde=tienda');
+  });
+
+  it('given the main photo, when pressed, then the enlarged view shows its 1200 px file and closes again', async () => {
+    stubPage();
+    renderRoute('/producto/luna');
+
+    await userEvent.click(await screen.findByRole('button', { name: es.product.enlargePhoto }));
+
+    const view = within(screen.getByRole('dialog', { name: es.product.enlarged }));
+    expect(view.getByRole('img', { name: 'Pijama Luna, foto 1' })).toHaveAttribute('src', '/media/frente-1200.webp');
+    await userEvent.click(view.getByRole('button', { name: es.product.closeEnlarged }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: es.product.enlarged })).not.toBeInTheDocument();
+    });
+  });
+
+  it('given colors with a tone, when one is picked, then they show as swatches and its name shows next to "Color"', async () => {
+    stubPage();
+    renderRoute('/producto/luna');
+
+    const colors = await screen.findByRole('group', { name: es.product.color });
+    await userEvent.click(within(colors).getByRole('radio', { name: 'Rosa' }));
+
+    expect(colors.querySelectorAll('.swatch')).toHaveLength(2);
+    expect(within(colors).getByText(': Rosa')).toBeInTheDocument();
+  });
+
+  it('given a product page, when quantity 2 is chosen and added, then the cart gets 2 units of that variant', async () => {
+    stubPage();
+    const post = vi.spyOn(api, 'POST').mockResolvedValue(cart([cartItem({ quantity: 2 })]));
+    renderRoute('/producto/luna');
+    await userEvent.click(await screen.findByRole('radio', { name: 'Rosa' }));
+
+    await userEvent.click(screen.getByRole('button', { name: es.product.moreUnits }));
+    await userEvent.click(addToCart());
+
+    expect(post).toHaveBeenCalledWith('/api/cart/items', { body: { variantId: 'M-Rosa', quantity: 2 } });
+  });
+
+  it('given the available stock, when the quantity is raised or typed past it, then it stops at the stock', async () => {
+    stubPage();
+    renderRoute('/producto/luna');
+    await userEvent.click(await screen.findByRole('radio', { name: 'Rosa' }));
+    const more = screen.getByRole('button', { name: es.product.moreUnits });
+
+    await userEvent.click(more);
+    await userEvent.click(more);
+
+    const field = screen.getByRole('spinbutton', { name: es.product.quantity });
+    expect(field).toHaveValue(3);
+    expect(more).toBeDisabled();
+    await userEvent.clear(field);
+    await userEvent.type(field, '9');
+    await userEvent.tab();
+    expect(field).toHaveValue(3);
+  });
+
+  it('given a quantity above the available stock, when added, then the UC-08 stock message shows', async () => {
+    stubPage();
+    vi.spyOn(api, 'POST').mockResolvedValue(
+      answer(409, { problem: 'INSUFFICIENT_STOCK', variantId: 'M-Rosa', available: 1 }),
+    );
+    renderRoute('/producto/luna');
+    await userEvent.click(await screen.findByRole('radio', { name: 'Rosa' }));
+
+    await userEvent.click(screen.getByRole('button', { name: es.product.moreUnits }));
+    await userEvent.click(addToCart());
+
+    expect(await screen.findByText(es.product.onlyLeft(1))).toBeInTheDocument();
+  });
+
+  it('given a new color, when picked, then the quantity starts again at 1', async () => {
+    stubPage(NO_SHIPPING_RATES, productDetail({
+      variants: [detailVariant('M', 'Rosa', 3), detailVariant('M', 'Celeste', 2)],
+    }));
+    renderRoute('/producto/luna');
+    await userEvent.click(await screen.findByRole('radio', { name: 'Rosa' }));
+    await userEvent.click(screen.getByRole('button', { name: es.product.moreUnits }));
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Celeste' }));
+
+    expect(screen.getByRole('spinbutton', { name: es.product.quantity })).toHaveValue(1);
+  });
+
+  it('given a phone, when scrolled until the add button is off screen, then the fixed bar shows the price and adds as the main button', async () => {
+    const intersect = stubIntersections();
+    stubPage();
+    const post = vi.spyOn(api, 'POST').mockResolvedValue(cart([cartItem()]));
+    renderRoute('/producto/luna');
+    await userEvent.click(await screen.findByRole('radio', { name: 'Rosa' }));
+    expect(stickyBar()).toBeNull();
+
+    intersect({ isIntersecting: false, top: -120 });
+
+    const bar = stickyBar();
+    expect(bar).not.toBeNull();
+    const sticky = within(bar ?? document.body);
+    expect(sticky.getByText(/^\$\s25\.000$/)).toBeInTheDocument();
+    await userEvent.click(sticky.getByRole('button', { name: es.product.addToCart }));
+    expect(post).toHaveBeenCalledWith('/api/cart/items', { body: { variantId: 'M-Rosa', quantity: 1 } });
+  });
+
+  it('given the add button below the screen or back in view, when observed, then there is no fixed bar', async () => {
+    const intersect = stubIntersections();
+    stubPage();
+    renderRoute('/producto/luna');
+    await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' });
+
+    intersect({ isIntersecting: false, top: 900 });
+    expect(stickyBar()).toBeNull();
+
+    intersect({ isIntersecting: false, top: -120 });
+    expect(stickyBar()).not.toBeNull();
+    intersect({ isIntersecting: true, top: 200 });
+    await waitFor(() => {
+      expect(stickyBar()).toBeNull();
+    });
+  });
+
+  it('given provinces with and without shipping, when each is chosen, then the cost, free shipping or no shipping shows', async () => {
+    stubPage(answer(200, {
+      zones: [{ province: 'SANTA_FE', costCents: 0 }, { province: 'CORDOBA', costCents: 650_000 }],
+      freeShippingThresholdCents: null,
+    }));
+    renderRoute('/producto/luna');
+    const province = await screen.findByRole('combobox', { name: es.product.shipping });
+
+    await userEvent.selectOptions(province, 'CORDOBA');
+    expect(screen.getByText(es.product.shippingTo('Córdoba', shown(650_000)))).toBeInTheDocument();
+
+    await userEvent.selectOptions(province, 'SANTA_FE');
+    expect(screen.getByText(es.product.freeShippingTo('Santa Fe'))).toBeInTheDocument();
+
+    await userEvent.selectOptions(province, 'JUJUY');
+    expect(screen.getByText(es.product.noShippingTo)).toBeInTheDocument();
+  });
+
+  it('given the shipping costs fail to load, when a product opens, then there is no province select', async () => {
+    stubPage(answer(500));
+
+    renderRoute('/producto/luna');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: es.product.shipping })).not.toBeInTheDocument();
+  });
+
+  it('given a product, when its sections open, then the composition has material and season and the returns link to the FAQ', async () => {
+    stubPage();
+    renderRoute('/producto/luna');
+
+    await userEvent.click(await screen.findByRole('button', { name: es.product.composition }));
+    expect(screen.getByText('Algodón')).toBeVisible();
+    expect(screen.getByText(es.filters.seasons.WINTER)).toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', { name: es.product.returns }));
+    expect(screen.getByRole('link', { name: es.product.returnsLink })).toHaveAttribute('href', '/preguntas-frecuentes');
   });
 });

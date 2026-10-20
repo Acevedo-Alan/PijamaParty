@@ -172,6 +172,7 @@ export function productDetail(overrides: Partial<DetailBody> = {}): DetailBody {
     id: '7d1c2e4a-5b6f-4c3d-8e9f-0a1b2c3d4e5f',
     slug: 'luna',
     name: 'Pijama Luna',
+    category: { slug: 'pijamas-largos', name: 'Pijamas largos' },
     description: 'Pijama largo de algodón.',
     material: 'Algodón',
     season: 'WINTER',

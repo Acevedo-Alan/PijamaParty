@@ -1,5 +1,6 @@
 package com.pijamaparty.store.catalog.application;
 
+import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.Slug;
 import com.pijamaparty.store.catalog.domain.Variant;
@@ -26,17 +27,14 @@ class GetProductDetailService implements GetProductDetail {
     @Override
     @Transactional(readOnly = true)
     public Result execute(Query query) {
-        Optional<Product> listed = Slug.parse(query.slug())
-            .flatMap(products::findBySlug)
-            .filter(product -> categories.findById(product.details().categoryId())
-                .map(product::isListedIn)
-                .orElse(false));
-        if (listed.isEmpty()) {
+        Optional<Product> found = Slug.parse(query.slug()).flatMap(products::findBySlug);
+        Optional<Category> category = found.flatMap(product -> categories.findById(product.details().categoryId()));
+        if (found.isEmpty() || category.isEmpty() || !found.get().isListedIn(category.get())) {
             return new Result.NotFound();
         }
-        Product product = listed.get();
+        Product product = found.get();
         var stock = availability.availableOf(product.sellableVariants().stream().map(Variant::id).toList());
         var sizeGuide = sizeGuides.findByCategory(product.details().categoryId()).map(SizeGuideView::of);
-        return new Result.Found(ProductDetail.of(product, stock, sizeGuide));
+        return new Result.Found(ProductDetail.of(product, category.get(), stock, sizeGuide));
     }
 }

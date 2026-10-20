@@ -7,7 +7,7 @@ import './PanelDialog.css';
 interface PanelDialogProps {
   open: boolean;
   /** The edge the panel slides from. */
-  from: 'left' | 'right';
+  from: 'left' | 'right' | 'bottom';
   className: string;
   labelledBy: string;
   /** The dialog element, for a caller that needs it while the panel is open. */
@@ -43,10 +43,9 @@ interface OpenPanelProps extends Omit<PanelDialogProps, 'open' | 'ref'> {
 
 function OpenPanel({ dialog, from, className, labelledBy, onDismiss, onClosed, children }: OpenPanelProps) {
   const isPresent = useIsPresent();
-  const offset = from === 'right' ? '100%' : '-100%';
   const motion = useActionMotion({
-    hidden: { x: offset },
-    shown: { x: 0 },
+    hidden: from === 'bottom' ? { y: '100%' } : { x: from === 'right' ? '100%' : '-100%' },
+    shown: from === 'bottom' ? { y: 0 } : { x: 0 },
     transition: { duration: duration.panel, ease: ease.standard },
   });
 

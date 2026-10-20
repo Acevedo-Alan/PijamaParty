@@ -3,12 +3,12 @@ import { es } from '../../i18n/es.ts';
 import type { SizeGuide } from './productDetailApi.ts';
 
 /**
- * RNF-31.5: the size guide of the product's category, collapsed right below the size picker. The table scrolls
- * sideways inside its box when it does not fit, never the page.
+ * RNF-31.5: the size guide of the product's category, the first of the collapsed sections of the page (E7). The
+ * table scrolls sideways inside its box when it does not fit, never the page.
  */
 export function SizeGuideSection({ guide }: { guide: SizeGuide }) {
   return (
-    <Collapsible title={es.product.sizeGuide} className="size-guide">
+    <Collapsible title={es.product.sizeGuide} className="pdp-section size-guide">
       <div className="size-guide-table" role="region" aria-label={es.product.sizeGuideTable} tabIndex={0}>
         <table>
           <thead>

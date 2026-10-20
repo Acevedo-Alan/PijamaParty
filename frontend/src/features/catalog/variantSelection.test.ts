@@ -14,7 +14,7 @@ function variant(size: string, color: string, available: number, priceCents = 1_
 }
 
 function image(src: string, color: string | null): DetailImage {
-  return { src, srcSet: `${src} 400w`, color };
+  return { src, srcSet: `${src} 400w`, color, largeSrc: src };
 }
 
 function detail(overrides: Partial<ProductDetail>): ProductDetail {
@@ -22,6 +22,7 @@ function detail(overrides: Partial<ProductDetail>): ProductDetail {
     id: 'product-1',
     slug: 'luna',
     name: 'Pijama Luna',
+    category: { slug: 'pijamas-largos', name: 'Pijamas largos' },
     description: '',
     material: '',
     season: 'WINTER',

@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.application;
 
 import com.pijamaparty.store.catalog.domain.Audience;
+import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.Color;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductId;
@@ -21,16 +22,17 @@ import java.util.stream.Collectors;
  * What a visitor sees of a product (UC-03): only its sellable variants, each with its price and available stock, the
  * sizes and colors of those variants in display order, and the photos of the whole product and of those colors by
  * position. {@code fromPrice} is the lowest of their prices, as in the grid. {@code id} is what the customer's
- * review of the product refers to (UC-24). {@code sizeGuide} is the guide of the product's category, if it has one
- * (RNF-31.5).
+ * review of the product refers to (UC-24). {@code category} is what the breadcrumbs and "Completá tu look" link to
+ * (E7). {@code sizeGuide} is the guide of the product's category, if it has one (RNF-31.5).
  */
-public record ProductDetail(ProductId id, String slug, String name, String description, String material,
-                            Season season, Audience audience, Money fromPrice, List<String> sizes,
+public record ProductDetail(ProductId id, String slug, String name, CategoryRef category, String description,
+                            String material, Season season, Audience audience, Money fromPrice, List<String> sizes,
                             List<String> colors, List<VariantDetail> variants, List<ProductView.ImageView> images,
                             Optional<SizeGuideView> sizeGuide) {
 
     public ProductDetail {
         Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(category, "category");
         Objects.requireNonNull(fromPrice, "fromPrice");
         sizes = List.copyOf(sizes);
         colors = List.copyOf(colors);
@@ -40,14 +42,16 @@ public record ProductDetail(ProductId id, String slug, String name, String descr
     }
 
     /** {@code available} by variant; a variant missing from it has nothing available. */
-    static ProductDetail of(Product product, Map<VariantId, Integer> available, Optional<SizeGuideView> sizeGuide) {
+    static ProductDetail of(Product product, Category category, Map<VariantId, Integer> available,
+                            Optional<SizeGuideView> sizeGuide) {
         List<Variant> sellable = product.sellableVariants();
         if (sellable.isEmpty()) {
             throw new IllegalArgumentException("the product has nothing to sell");
         }
         Set<Color> colors = sellable.stream().map(Variant::color).collect(Collectors.toSet());
         var details = product.details();
-        return new ProductDetail(product.id(), product.slug().value(), details.name().value(), details.description().value(),
+        return new ProductDetail(product.id(), product.slug().value(), details.name().value(),
+            new CategoryRef(category.slug().value(), category.name().value()), details.description().value(),
             details.material().value(), details.season(), details.audience(),
             sellable.stream().map(variant -> variant.price().orElseThrow()).min(Comparator.naturalOrder()).orElseThrow(),
             product.sizes().stream().filter(size -> sellable.stream().anyMatch(v -> v.size().equals(size)))
@@ -59,6 +63,9 @@ public record ProductDetail(ProductId id, String slug, String name, String descr
                 .map(ProductView.ImageView::of).toList(),
             sizeGuide);
     }
+
+    /** The product's category, by the slug and name the shop shows. */
+    public record CategoryRef(String slug, String name) {}
 
     /** A sellable variant by size and then color position. */
     public record VariantDetail(VariantId id, String sku, String size, String color, Money price, int available) {

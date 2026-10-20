@@ -84,7 +84,10 @@ export const es = {
     audiences: { WOMEN: 'Mujer', MEN: 'Hombre', KIDS: 'Infantil' },
   },
   product: {
-    backToStore: 'Volver a la tienda',
+    /** E7: back in history when the visitor came from the store, otherwise to the home page. */
+    backToCatalog: 'Volver al catálogo',
+    breadcrumbs: 'Ruta de navegación',
+    home: 'Inicio',
     loading: 'Cargando producto…',
     loadError: 'No pudimos cargar el producto.',
     retry: 'Reintentar',
@@ -97,8 +100,16 @@ export const es = {
       color === null ? `${name}, foto ${String(position)}` : `${name}, ${color}, foto ${String(position)}`,
     showPhoto: (position: number) => `Ver foto ${String(position)}`,
     noPhoto: 'Sin fotos',
+    /** E7: the enlarged view of the main photo. */
+    enlargePhoto: 'Ampliar foto',
+    enlarged: 'Foto ampliada',
+    closeEnlarged: 'Cerrar foto ampliada',
     size: 'Talle',
     color: 'Color',
+    /** The units to add (E7), from 1 to the available stock of the picked variant. */
+    quantity: 'Cantidad',
+    lessUnits: 'Restar una unidad',
+    moreUnits: 'Sumar una unidad',
     /** The name of a size or color without stock, e.g. "Celeste, agotado". */
     soldOutOption: (value: string) => `${value}, agotado`,
     /** The exact available stock of the picked size and color (UC-03). */
@@ -114,11 +125,22 @@ export const es = {
       count === 0 ? 'Sin stock' : count === 1 ? 'Solo queda 1' : `Solo quedan ${String(count)}`,
     noLongerAvailable: 'Este producto ya no está disponible.',
     addError: 'No pudimos agregar el producto. Probá de nuevo.',
-    /** RNF-31.5: the collapsed size guide of the category, below the size picker. */
-    sizeGuide: 'Ver guía de talles',
+    /** RNF-31.5: the collapsed size guide of the category, among the sections of the page (E7). */
+    sizeGuide: 'Guía de talles',
     sizeGuideTable: 'Tabla de talles',
     /** A blank value of the size guide. */
     noMeasure: '–',
+    /** E7: the collapsed sections below the add button. */
+    composition: 'Composición',
+    returns: 'Cambios y devoluciones',
+    returnsText: 'Tenés 10 días corridos desde que recibiste tu compra para arrepentirte, sin costo para vos.',
+    returnsLink: 'Cómo cambiar o devolver un producto',
+    /** E7 (D-07): the shipping cost of one province, the same the checkout charges (UC-12). */
+    shipping: 'Calculá el envío',
+    chooseProvince: 'Elegí tu provincia',
+    shippingTo: (province: string, cost: string) => `Envío a ${province}: ${cost}`,
+    freeShippingTo: (province: string) => `Envío gratis a ${province}`,
+    noShippingTo: 'No hacemos envíos a esa provincia',
   },
   reviews: {
     /** UC-24 (T-E5-07): the approved reviews on the product page. */

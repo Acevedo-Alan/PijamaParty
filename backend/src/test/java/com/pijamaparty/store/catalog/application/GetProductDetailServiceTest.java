@@ -53,13 +53,14 @@ class GetProductDetailServiceTest {
     }
 
     @Test
-    void givenAProduct_whenTheDetailOpens_thenItShowsItsDetailsAndEachVariantHasItsOwnPrice() {
+    void givenAProduct_whenTheDetailOpens_thenItShowsItsDetailsCategoryAndEachVariantHasItsOwnPrice() {
         saved(product(summer.id(), "Pijama de seda", 0, List.of("S", "M"), List.of("Rosa"), 5000,
             p -> p.material("Seda").price("M", "Rosa", 5600)));
 
         ProductDetail found = found("pijama-de-seda");
 
         assertThat(found.name()).isEqualTo("Pijama de seda");
+        assertThat(found.category()).isEqualTo(new ProductDetail.CategoryRef(summer.slug().value(), "Verano"));
         assertThat(found.material()).isEqualTo("Seda");
         assertThat(found.fromPrice()).isEqualTo(Money.of(5000));
         assertThat(found.sizes()).containsExactly("S", "M");

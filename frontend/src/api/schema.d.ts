@@ -2402,6 +2402,7 @@ export interface components {
             id?: string;
             slug?: string;
             name?: string;
+            category?: components["schemas"]["ShopCategoryResponse"];
             description?: string;
             material?: string;
             /** @enum {string} */
@@ -2415,6 +2416,10 @@ export interface components {
             variants?: components["schemas"]["VariantDetailResponse"][];
             images?: components["schemas"]["DetailImageResponse"][];
             sizeGuide?: components["schemas"]["SizeGuideResponse"];
+        };
+        ShopCategoryResponse: {
+            slug?: string;
+            name?: string;
         };
         SizeGuideResponse: {
             columns?: string[];
@@ -2460,10 +2465,6 @@ export interface components {
         };
         ShopCategoriesResponse: {
             items?: components["schemas"]["ShopCategoryResponse"][];
-        };
-        ShopCategoryResponse: {
-            slug?: string;
-            name?: string;
         };
         WithdrawalPageResponse: {
             items?: components["schemas"]["WithdrawalSummaryResponse"][];
