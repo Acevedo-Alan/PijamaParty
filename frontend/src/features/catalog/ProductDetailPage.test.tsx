@@ -9,23 +9,35 @@ import {
   answer,
   detailImage,
   detailVariant,
+  listed,
   NO_CART,
   NO_REVIEWS,
   NO_SHIPPING_RATES,
+  product,
   productDetail,
   purchaseInfo,
+  queriesTo,
   REVIEWS_PATH,
   SHIPPING_RATES_PATH,
   withHeader,
 } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
-/** Answers the product detail calls in order; the header's cart is empty and the product has no reviews. */
+/** The listing of UC-01, which "Completá tu look" reads (D-08). */
+const LISTING_PATH = '/api/catalog/products';
+
+/**
+ * Answers the product detail calls in order; the header's cart is empty, the product has no reviews and its category
+ * no other product.
+ */
 function stubDetail(...answers: never[]) {
   const queue: unknown[] = [...answers];
   return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
     if (path === '/api/cart') {
       return Promise.resolve(NO_CART);
+    }
+    if (path === LISTING_PATH) {
+      return Promise.resolve(listed([]));
     }
     return Promise.resolve(path === REVIEWS_PATH ? NO_REVIEWS : (purchaseInfo(path) ?? queue.shift()));
   }));
@@ -196,11 +208,14 @@ describe('size guide on the product page (RNF-31.5)', () => {
   });
 });
 
-/** The product page with these shipping rates and this product. */
-function stubPage(rates: unknown = NO_SHIPPING_RATES, detail = productDetail()) {
+/** The product page with these shipping rates, this product and this first page of its category. */
+function stubPage(rates: unknown = NO_SHIPPING_RATES, detail = productDetail(), category: unknown = listed([])) {
   return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
     if (path === '/api/cart') {
       return Promise.resolve(NO_CART);
+    }
+    if (path === LISTING_PATH) {
+      return Promise.resolve(category);
     }
     if (path === SHIPPING_RATES_PATH) {
       return Promise.resolve(rates);
@@ -429,5 +444,54 @@ describe('product page as in the prototype (E7, changes to UC-03)', () => {
 
     await userEvent.click(screen.getByRole('button', { name: es.product.returns }));
     expect(screen.getByRole('link', { name: es.product.returnsLink })).toHaveAttribute('href', '/preguntas-frecuentes');
+  });
+});
+
+describe('"Completá tu look" on the product page (E7, D-08)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** The first page of the category, newest first, with the open product third. */
+  const category = (others: number) => {
+    const items = Array.from({ length: others }, (_, index) => product(`otro-${String(index)}`));
+    items.splice(2, 0, product('luna'));
+    return listed(items);
+  };
+
+  it('given a category with 6 other products, when a product page opens, then it shows the 4 newest without the open product', async () => {
+    const get = stubPage(NO_SHIPPING_RATES, productDetail(), category(6));
+
+    renderRoute('/producto/luna');
+
+    const related = within(await screen.findByRole('region', { name: es.product.related }));
+    expect(related.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
+      '/producto/otro-0',
+      '/producto/otro-1',
+      '/producto/otro-2',
+      '/producto/otro-3',
+    ]);
+    expect(queriesTo(get, LISTING_PATH)).toEqual([{ category: 'pijamas-largos', page: 0 }]);
+  });
+
+  it('given a category with no other products, when a product page opens, then "Completá tu look" is not shown', async () => {
+    const get = stubPage(NO_SHIPPING_RATES, productDetail(), category(0));
+
+    renderRoute('/producto/luna');
+
+    await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' });
+    await waitFor(() => {
+      expect(queriesTo(get, LISTING_PATH)).toHaveLength(1);
+    });
+    expect(screen.queryByRole('heading', { name: es.product.related })).not.toBeInTheDocument();
+  });
+
+  it('given the category listing fails, when a product page opens, then the product shows without "Completá tu look"', async () => {
+    stubPage(NO_SHIPPING_RATES, productDetail(), answer(500));
+
+    renderRoute('/producto/luna');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: es.product.related })).not.toBeInTheDocument();
   });
 });

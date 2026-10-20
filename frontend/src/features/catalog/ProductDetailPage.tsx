@@ -19,6 +19,7 @@ import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
 import { ProductSections } from './ProductSections.tsx';
 import { QuantityInput } from './QuantityInput.tsx';
+import { RelatedProducts } from './RelatedProducts.tsx';
 import { ShippingByProvince } from './ShippingByProvince.tsx';
 import { StickyAddToCart } from './StickyAddToCart.tsx';
 import { productDetailKey, useProductDetail } from './useProductDetail.ts';
@@ -267,6 +268,7 @@ export function ProductDetailPage() {
         <>
           <title>{`${detail.data.product.name} | ${es.store.name}`}</title>
           <ProductDetailView key={detail.data.product.slug} product={detail.data.product} />
+          <RelatedProducts category={detail.data.product.category.slug} slug={detail.data.product.slug} />
           <ProductReviewsSection key={detail.data.product.slug} slug={detail.data.product.slug} />
           <MyReviewSection key={detail.data.product.id} productId={detail.data.product.id} />
         </>

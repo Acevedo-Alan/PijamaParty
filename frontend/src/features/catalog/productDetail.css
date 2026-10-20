@@ -572,3 +572,15 @@
 .pdp-section .pdp-facts {
   padding-bottom: 12px;
 }
+
+/* E7 (D-08): "Completá tu look", the listing grid below the product. */
+.related {
+  margin-top: 56px;
+}
+
+.related-title {
+  font-family: var(--ff-display);
+  font-size: 19px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
