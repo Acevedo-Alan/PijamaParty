@@ -7,8 +7,8 @@ import { renderRoute } from '../../test/renderRoute.tsx';
 
 const PRODUCTS = '/api/catalog/products';
 
-async function openFilters() {
-  await userEvent.click(await screen.findByRole('button', { name: /^Filtrar/ }));
+async function openFilters(button: string = es.filters.size) {
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(`^${button}`) }));
   return screen.getByRole('dialog', { name: es.filters.title });
 }
 
@@ -38,7 +38,8 @@ describe('catalog filters and sort (UC-02)', () => {
     expect(queriesTo(get, PRODUCTS)).toEqual([{ page: 0 }, { size: ['M'], season: ['SUMMER'], page: 0 }]);
     expect(router.state.location.search).toBe('?talle=M&temporada=verano');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: es.filters.openWithCount(2) })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: es.filters.groupWithCount(es.filters.size, 1) })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: es.filters.groupWithCount(es.filters.season, 1) })).toBeInTheDocument();
   });
 
   it('given an applied filter, when the URL is shared, then whoever opens it sees the same filters', async () => {
@@ -113,7 +114,7 @@ describe('catalog filters and sort (UC-02)', () => {
       expect(queriesTo(get, PRODUCTS)).toContainEqual({ minPrice: 1_500_000, maxPrice: 3_000_000, page: 0 });
     });
     expect(router.state.location.search).toBe('?precio-desde=15000&precio-hasta=30000');
-    expect(screen.getByRole('button', { name: es.filters.openWithCount(1) })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: es.filters.groupWithCount(es.filters.price, 1) })).toBeInTheDocument();
   });
 
   it('given a minimum above the maximum, when applied, then the panel refuses it and nothing is requested', async () => {
@@ -192,5 +193,70 @@ describe('catalog filters and sort (UC-02)', () => {
     const panel = await openFilters();
 
     expect(within(group(panel, es.filters.size)).getByRole('checkbox', { name: 'XXL' })).toBeChecked();
+  });
+});
+
+describe('filter bar (T-E7-06, changes to UC-02)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const bar = () => within(screen.getByRole('group', { name: es.filters.bar }));
+
+  it('given the "Talle" button, when pressed, then the filter panel opens with the focus on the size group', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+    renderRoute('/');
+
+    const panel = await openFilters(es.filters.size);
+
+    await waitFor(() => {
+      expect(within(group(panel, es.filters.size)).getByRole('checkbox', { name: 'S' })).toHaveFocus();
+    });
+  });
+
+  it('given the "Precio" button, when pressed, then the focus goes to the minimum price', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+    renderRoute('/');
+
+    const panel = await openFilters(es.filters.price);
+
+    await waitFor(() => {
+      expect(within(panel).getByRole('spinbutton', { name: es.filters.minPrice })).toHaveFocus();
+    });
+  });
+
+  it('given the filter options, when the bar shows, then it has a button per group in order, without empty groups', async () => {
+    stubCatalogApi({
+      listings: [listed([product('rosa')])],
+      filters: filterOptions({ materials: [], minPriceCents: null, maxPriceCents: null }),
+    });
+    renderRoute('/');
+
+    await waitFor(() => {
+      expect(bar().getAllByRole('button').map((button) => button.textContent)).toEqual([
+        es.filters.audience,
+        es.filters.size,
+        es.filters.color,
+        es.filters.season,
+      ]);
+    });
+  });
+
+  it('given values chosen in two groups, when the bar shows, then each of those buttons says how many', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+    renderRoute('/?talle=S&talle=M&publico=mujer');
+
+    await waitFor(() => {
+      expect(bar().getByRole('button', { name: 'Talle (2)' })).toBeInTheDocument();
+    });
+    expect(bar().getByRole('button', { name: 'Público (1)' })).toBeInTheDocument();
+    expect(bar().getByRole('button', { name: es.filters.color })).toBeInTheDocument();
+  });
+
+  it('given a shared value in a group without options, when the bar shows, then its button stays to remove it', async () => {
+    stubCatalogApi({ listings: [listed([])], filters: filterOptions({ materials: [] }) });
+    renderRoute('/?material=Polar');
+
+    expect(await screen.findByRole('button', { name: 'Material (1)' })).toBeInTheDocument();
   });
 });

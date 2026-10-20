@@ -30,7 +30,7 @@ describe('search results page (UC-26)', () => {
     await screen.findByRole('link', { name: /Pijama luna/ });
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: es.sort.label }), 'NEWEST');
-    await userEvent.click(screen.getByRole('button', { name: /^Filtrar/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Talle/ }));
     const panel = screen.getByRole('dialog', { name: es.filters.title });
     const sizes = within(panel).getByRole('group', { name: es.filters.size });
     await userEvent.click(within(sizes).getByRole('checkbox', { name: 'M' }));

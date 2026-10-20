@@ -4,6 +4,7 @@ import { es } from '../../i18n/es.ts';
 import { listId, trackItemList } from '../analytics/catalogEvents.ts';
 import { countFilters, type ListingCriteria } from './listingCriteria.ts';
 import { ProductCard, type CardPhotoPriority } from './ProductCard.tsx';
+import type { ListingView } from './useListingView.ts';
 import { useProductListing } from './useProductListing.ts';
 
 const SKELETON_CARDS = 8;
@@ -19,13 +20,17 @@ function photoPriority(index: number): CardPhotoPriority {
   return index < EAGER_CARDS ? 'eager' : 'lazy';
 }
 
-function Skeleton() {
+function gridClass(view: ListingView): string {
+  return view === 'list' ? 'grid list-view' : 'grid';
+}
+
+function Skeleton({ view }: { view: ListingView }) {
   return (
     <>
       <p className="visually-hidden" role="status">
         {es.catalog.loading}
       </p>
-      <ul className="grid" aria-hidden="true">
+      <ul className={gridClass(view)} aria-hidden="true">
         {Array.from({ length: SKELETON_CARDS }, (_, index) => (
           <li key={index} className="skeleton-card">
             <div className="skeleton-ph" />
@@ -46,6 +51,7 @@ interface ProductListingProps {
   emptyState?: ReactNode;
   /** The grid starts below the first screen (the home page, UC-30): its photos load lazily, after the page's own. */
   photosBelowFold?: boolean;
+  view?: ListingView;
 }
 
 /**
@@ -58,6 +64,7 @@ export function ProductListing({
   onClearFilters,
   emptyState,
   photosBelowFold = false,
+  view = 'grid',
 }: ProductListingProps) {
   const listing = useProductListing(category, criteria);
   const sentPages = useRef(new Set<string>());
@@ -82,7 +89,7 @@ export function ProductListing({
   }, [pages, category, criteria]);
 
   if (listing.isPending) {
-    return <Skeleton />;
+    return <Skeleton view={view} />;
   }
   // A failed "Show more" keeps the loaded pages; only a failed first load replaces the grid.
   if (listing.isLoadingError) {
@@ -132,10 +139,10 @@ export function ProductListing({
       <p className="result-count" role="status">
         {es.catalog.productCount(total)}
       </p>
-      <ul className="grid">
+      <ul className={gridClass(view)}>
         {products.map((product, index) => (
           <li key={product.slug}>
-            <ProductCard product={product} photo={photosBelowFold ? 'lazy' : photoPriority(index)} />
+            <ProductCard product={product} photo={photosBelowFold ? 'lazy' : photoPriority(index)} view={view} />
           </li>
         ))}
       </ul>

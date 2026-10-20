@@ -178,7 +178,7 @@ describe('catalog grid (UC-01)', () => {
     expect(await screen.findByText(es.catalog.emptyCategory)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: es.catalog.seeAll })).toHaveAttribute('href', '/');
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: es.filters.open })).not.toBeInTheDocument();
+      expect(screen.queryByRole('group', { name: es.filters.bar })).not.toBeInTheDocument();
     });
   });
 
@@ -199,5 +199,41 @@ describe('catalog grid (UC-01)', () => {
     await userEvent.click(await screen.findByRole('button', { name: es.catalog.retry }));
 
     expect(await screen.findByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
+  });
+});
+
+describe('grid or list view (T-E7-06, changes to UC-01)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    sessionStorage.clear();
+  });
+
+  const toggle = () => within(screen.getByRole('group', { name: es.catalog.view }));
+
+  it('given the grid, when "list" is chosen, then the products show as a list and the URL does not change', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+    const { router } = renderRoute('/categoria/pijamas?talle=M');
+    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    expect(toggle().getByRole('button', { name: es.catalog.gridView })).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(toggle().getByRole('button', { name: es.catalog.listView }));
+
+    expect(toggle().getByRole('button', { name: es.catalog.listView })).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle().getByRole('button', { name: es.catalog.gridView })).toHaveAttribute('aria-pressed', 'false');
+    expect(card.closest('ul')).toHaveClass('list-view');
+    expect(router.state.location.pathname + router.state.location.search).toBe('/categoria/pijamas?talle=M');
+  });
+
+  it('given the list chosen, when another listing opens in the same visit, then it shows as a list too', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')]), listed([product('rosa')])] });
+    const first = renderRoute('/categoria/pijamas');
+    await userEvent.click(await screen.findByRole('button', { name: es.catalog.listView }));
+    first.unmount();
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    expect(card.closest('ul')).toHaveClass('list-view');
+    expect(toggle().getByRole('button', { name: es.catalog.listView })).toHaveAttribute('aria-pressed', 'true');
   });
 });

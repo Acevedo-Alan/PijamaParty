@@ -151,7 +151,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 
 **Reglas nuevas**
 - La tarjeta muestra los colores con stock del producto como círculos (D-04), hasta 5 y "+N" si hay más, y la etiqueta "Nuevo" (D-05).
-- Los filtros se abren desde una barra de botones (Público, Talle, Color, Material, Temporada, Precio). Cada botón abre el panel de filtros de CU-02 en ese grupo; las reglas de CU-02 no cambian. Un botón con valores elegidos lo indica.
+- Los filtros se abren desde una barra de botones (Público, Talle, Color, Material, Temporada, Precio). Cada botón abre el panel de filtros de CU-02 en ese grupo; las reglas de CU-02 no cambian. Un botón con valores elegidos lo indica. Un grupo sin opciones no tiene botón, salvo que un enlace compartido haya elegido un valor en él.
 - El listado muestra la cantidad de productos que coinciden (D-11).
 - El visitante puede ver la grilla en cuadrícula o en lista. La elección no cambia la URL.
 

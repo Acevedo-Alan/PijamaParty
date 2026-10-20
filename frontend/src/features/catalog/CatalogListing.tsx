@@ -4,6 +4,8 @@ import { NO_FILTERS, withoutText } from './listingCriteria.ts';
 import { ProductListing } from './ProductListing.tsx';
 import { SortSelect } from './SortSelect.tsx';
 import { useListingCriteria } from './useListingCriteria.ts';
+import { useListingView } from './useListingView.ts';
+import { ViewToggle } from './ViewToggle.tsx';
 import './catalog.css';
 
 interface CatalogListingProps {
@@ -16,35 +18,38 @@ interface CatalogListingProps {
 }
 
 /**
- * The listing of UC-01 with the filters and sort of UC-02, read from and written to the URL. The home page and a
- * category page share it (UC-30).
+ * The listing of UC-01 with the filters and sort of UC-02, read from and written to the URL, and the grid or list
+ * view of the visit. The home page and a category page share it (UC-30).
  */
 export function CatalogListing({ category, heading, photosBelowFold = false }: CatalogListingProps) {
   const [urlCriteria, setCriteria] = useListingCriteria();
   const criteria = withoutText(urlCriteria);
+  const [view, setView] = useListingView();
 
   return (
     <>
       {heading}
+      <FilterPanel
+        category={category}
+        filters={criteria.filters}
+        onApply={(filters) => {
+          setCriteria({ ...criteria, filters });
+        }}
+      />
       <div className="catalog-tools">
-        <FilterPanel
-          category={category}
-          filters={criteria.filters}
-          onApply={(filters) => {
-            setCriteria({ ...criteria, filters });
-          }}
-        />
         <SortSelect
           value={criteria.sort}
           onChange={(sort) => {
             setCriteria({ ...criteria, sort });
           }}
         />
+        <ViewToggle value={view} onChange={setView} />
       </div>
       <ProductListing
         category={category}
         criteria={criteria}
         photosBelowFold={photosBelowFold}
+        view={view}
         onClearFilters={() => {
           setCriteria({ filters: NO_FILTERS, sort: criteria.sort });
         }}

@@ -8,6 +8,8 @@ import { NO_FILTERS } from '../catalog/listingCriteria.ts';
 import { ProductListing } from '../catalog/ProductListing.tsx';
 import { SortSelect } from '../catalog/SortSelect.tsx';
 import { useListingCriteria } from '../catalog/useListingCriteria.ts';
+import { useListingView } from '../catalog/useListingView.ts';
+import { ViewToggle } from '../catalog/ViewToggle.tsx';
 import { fetchShopCategories } from './searchApi.ts';
 import { isSearchable } from './useSuggestions.ts';
 import '../catalog/catalog.css';
@@ -41,6 +43,7 @@ function NoResults({ text }: { text: string }) {
 /** The results of a search at /buscar?q= (UC-26), with the filters and sorts of UC-02 and relevance first. */
 export function SearchPage() {
   const [criteria, setCriteria] = useListingCriteria();
+  const [view, setView] = useListingView();
   const { text } = criteria;
   const searched = useRef<string | null>(null);
 
@@ -67,14 +70,14 @@ export function SearchPage() {
     <main className="wrap catalog">
       <title>{`${title} | ${es.store.name}`}</title>
       <h1 className="section-title">{title}</h1>
+      <FilterPanel
+        category={undefined}
+        filters={criteria.filters}
+        onApply={(filters) => {
+          setCriteria({ ...criteria, filters });
+        }}
+      />
       <div className="catalog-tools">
-        <FilterPanel
-          category={undefined}
-          filters={criteria.filters}
-          onApply={(filters) => {
-            setCriteria({ ...criteria, filters });
-          }}
-        />
         <SortSelect
           searching
           value={criteria.sort}
@@ -82,10 +85,12 @@ export function SearchPage() {
             setCriteria({ ...criteria, sort });
           }}
         />
+        <ViewToggle value={view} onChange={setView} />
       </div>
       <ProductListing
         category={undefined}
         criteria={criteria}
+        view={view}
         emptyState={<NoResults text={text} />}
         onClearFilters={() => {
           setCriteria({ filters: NO_FILTERS, sort: criteria.sort, text });

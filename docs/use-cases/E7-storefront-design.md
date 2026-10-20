@@ -206,7 +206,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Business rules (new)**
 - A card shows the product's colors with available stock as swatches (D-04), at most 5 plus "+N", and the "Nuevo" label (D-05). The "Sold out" label of UC-01 stays.
-- The filters open from a bar of buttons (Público, Talle, Color, Material, Temporada, Precio). Each button opens the UC-02 panel at its group; a button whose group has values chosen says how many. The UC-02 rules, panel and URL keys do not change. Buttons of groups without options are not shown.
+- The filters open from a bar of buttons (Público, Talle, Color, Material, Temporada, Precio). Each button opens the UC-02 panel at its group; a button whose group has values chosen says how many. The UC-02 rules, panel and URL keys do not change. Buttons of groups without options are not shown, unless a shared link chose a value in that group (the panel keeps it to uncheck, UC-02).
 - The listing shows the number of matches (D-11): "1 producto" or "N productos".
 - The visitor can switch between grid and list views. The choice is per visit and does not change the URL.
 - "Ver más" stays (D-10).
@@ -221,7 +221,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - `ProductListingItem` gains `colors: List<String>` (active priced variants with available stock, in display order, the same rule as the UC-02 color filter) and `isNew: boolean`. `Product.isNew(Instant now)` holds the 30-day rule in `catalog.domain`; `ListProducts` and `SearchProducts` read `now` from the injected `Clock`.
 - `ProductListingQuery` and `ProductSearchQuery` gain `count`: a `count(*)` over the same constant SQL conditions as the page (one shared `matching` part, RNF-28), in the same read-only transaction. The use case skips it when the page is the last one and not past the end: its offset plus its size is the total.
 - Endpoint: `GET /api/catalog/products`, with or without `q` (UC-26) → `200` `{items, hasMore, total}`, each item adding `colors` and `isNew`. OpenAPI and the typed client are updated.
-- Frontend: `ColorSwatches` (shared with UC-03), `FilterBar`, the view toggle. The color map normalizes names (lowercase, no accents) and is unit tested, including the swatch border contrast against the card background (3:1).
+- Frontend: `ColorSwatches` (shared with UC-03), `FilterBar`, the view toggle (`ViewToggle`; the view is kept in `sessionStorage` for the visit, grid when storage is refused). The color map normalizes names (lowercase, no accents) and is unit tested, including the swatch border contrast against the card background (3:1).
 
 ---
 

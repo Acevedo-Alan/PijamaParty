@@ -6,7 +6,7 @@
 - [x] **T-E7-03** Pie en tres columnas y sección de contacto con email y WhatsApp (CU-31, D-09). El email, el WhatsApp y las redes quedan vacíos en `storeContact.ts` hasta que el negocio los pase (D-15); mientras tanto no se muestran.
 - [x] **T-E7-04** Portada: carrusel, banner de personajes y "Elegí para quién", con la grilla de CU-01 debajo (CU-30).
 - [x] **T-E7-05** API del listado: `colors`, `isNew` y `total`; tarjeta con círculos de color y "Nuevo", y contador de productos (cambios a CU-01).
-- [ ] **T-E7-06** Barra de filtros en botones y vista de cuadrícula o lista (cambios a CU-02).
+- [x] **T-E7-06** Barra de filtros en botones y vista de cuadrícula o lista (cambios a CU-02).
 - [ ] **T-E7-07** Ficha: `category` en la API, migas de pan, galería con vista ampliada, círculos de color, cantidad, barra fija en el celular, íconos de confianza, envío por provincia y secciones desplegables (cambios a CU-03).
 - [ ] **T-E7-08** Ficha: "Completá tu look" (cambios a CU-03, D-08).
 - [ ] **T-E7-09** Panel del carrito: barra de envío gratis y aviso "Agregado al carrito" (cambios a CU-08).

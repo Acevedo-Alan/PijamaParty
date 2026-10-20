@@ -1,8 +1,9 @@
-import { useId, useState, type SubmitEvent } from 'react';
+import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
 import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import type { FilterOptions } from './catalogApi.ts';
+import { FilterBar, type FilterGroup } from './FilterBar.tsx';
 import { CENTS_PER_PESO, countFilters, NO_FILTERS, WHOLE_PESOS, type ProductFilters } from './listingCriteria.ts';
 import { useFilterOptions } from './useFilterOptions.ts';
 
@@ -47,6 +48,7 @@ function fromDraft({ minPesos, maxPesos, ...values }: Draft): ProductFilters | N
 }
 
 interface CheckboxGroupProps<T extends string> {
+  group: FilterGroup;
   legend: string;
   options: readonly T[];
   selected: readonly T[];
@@ -55,13 +57,20 @@ interface CheckboxGroupProps<T extends string> {
 }
 
 /** Several values of one filter combine with OR. A value applied from a shared link stays visible to uncheck it. */
-function CheckboxGroup<T extends string>({ legend, options, selected, label, onChange }: CheckboxGroupProps<T>) {
+function CheckboxGroup<T extends string>({
+  group,
+  legend,
+  options,
+  selected,
+  label,
+  onChange,
+}: CheckboxGroupProps<T>) {
   const values = [...options, ...selected.filter((value) => !options.includes(value))];
   if (values.length === 0) {
     return null;
   }
   return (
-    <fieldset className="filter-group">
+    <fieldset className="filter-group" data-group={group}>
       <legend>{legend}</legend>
       <div className="chips">
         {values.map((value) => (
@@ -96,7 +105,7 @@ function PriceGroup({ range, draft, problem, onChange }: PriceGroupProps) {
   const errorId = `${id}-error`;
   const invalid = problem !== null;
   return (
-    <fieldset className="filter-group">
+    <fieldset className="filter-group" data-group="price">
       <legend>{es.filters.price}</legend>
       {range !== null && (
         <p className="filter-hint">{es.filters.priceHint(formatMoney(range.minCents), formatMoney(range.maxCents))}</p>
@@ -149,30 +158,46 @@ interface FilterPanelProps {
 }
 
 /**
- * The "Filter" button and its sliding panel (UC-02). A modal dialog keeps the focus inside, closes with Escape and
- * hides the page from screen readers. The choices apply with "Show results"; closing discards them.
+ * The bar of filter buttons and the sliding panel (UC-02). Each button opens the panel at its group. A modal dialog
+ * keeps the focus inside, closes with Escape and hides the page from screen readers. The choices apply with "Show
+ * results"; closing discards them.
  */
 export function FilterPanel({ category, filters, onApply }: FilterPanelProps) {
   const [isOpen, setOpen] = useState(false);
   const titleId = useId();
+  const dialog = useRef<HTMLDialogElement>(null);
+  /** The group to focus once the panel shows it: at once, or when the options arrive. */
+  const focusGroup = useRef<FilterGroup | null>(null);
   const options = useFilterOptions(category);
   const [draft, setDraft] = useState(() => toDraft(filters));
   const [problem, setProblem] = useState<PriceProblem>(null);
+
+  // After the panel's showModal, which focuses its first button: the focus moves to the group's first field.
+  useEffect(() => {
+    if (!isOpen || focusGroup.current === null) {
+      return;
+    }
+    const field = dialog.current?.querySelector<HTMLElement>(`[data-group="${focusGroup.current}"] input`);
+    if (field !== null && field !== undefined) {
+      field.focus();
+      focusGroup.current = null;
+    }
+  });
 
   // An unknown or inactive category has nothing to filter; the grid shows its message.
   if (options.data?.status === 'unknownCategory') {
     return null;
   }
 
-  const count = countFilters(filters);
-
-  function open() {
+  function open(group: FilterGroup) {
     setDraft(toDraft(filters));
     setProblem(null);
+    focusGroup.current = group;
     setOpen(true);
   }
 
   function close() {
+    focusGroup.current = null;
     setOpen(false);
   }
 
@@ -194,10 +219,19 @@ export function FilterPanel({ category, filters, onApply }: FilterPanelProps) {
 
   return (
     <>
-      <button type="button" className="tool-btn" aria-haspopup="dialog" onClick={open}>
-        {count === 0 ? es.filters.open : es.filters.openWithCount(count)}
-      </button>
-      <PanelDialog open={isOpen} from="left" className="filters-panel" labelledBy={titleId} onDismiss={close}>
+      <FilterBar
+        options={options.data?.status === 'found' ? options.data.options : undefined}
+        filters={filters}
+        onOpen={open}
+      />
+      <PanelDialog
+        open={isOpen}
+        ref={dialog}
+        from="left"
+        className="filters-panel"
+        labelledBy={titleId}
+        onDismiss={close}
+      >
         <form className="filters-form" noValidate onSubmit={submit}>
           <header className="filters-head">
             <h2 id={titleId}>{es.filters.title}</h2>
@@ -258,6 +292,7 @@ function FilterGroups({ options, draft, problem, onChange }: FilterGroupsProps) 
     <>
       <PriceGroup range={options.priceRange} draft={draft} problem={problem} onChange={onChange} />
       <CheckboxGroup
+        group="sizes"
         legend={es.filters.size}
         options={options.sizes}
         selected={draft.sizes}
@@ -266,6 +301,7 @@ function FilterGroups({ options, draft, problem, onChange }: FilterGroupsProps) 
         }}
       />
       <CheckboxGroup
+        group="colors"
         legend={es.filters.color}
         options={options.colors}
         selected={draft.colors}
@@ -274,6 +310,7 @@ function FilterGroups({ options, draft, problem, onChange }: FilterGroupsProps) 
         }}
       />
       <CheckboxGroup
+        group="materials"
         legend={es.filters.material}
         options={options.materials}
         selected={draft.materials}
@@ -282,6 +319,7 @@ function FilterGroups({ options, draft, problem, onChange }: FilterGroupsProps) 
         }}
       />
       <CheckboxGroup
+        group="seasons"
         legend={es.filters.season}
         options={options.seasons}
         selected={draft.seasons}
@@ -291,6 +329,7 @@ function FilterGroups({ options, draft, problem, onChange }: FilterGroupsProps) 
         }}
       />
       <CheckboxGroup
+        group="audiences"
         legend={es.filters.audience}
         options={options.audiences}
         selected={draft.audiences}

@@ -31,6 +31,10 @@ export const es = {
     retry: 'Reintentar',
     noMatches: 'No encontramos productos con los filtros elegidos.',
     clearFilters: 'Limpiar filtros',
+    /** T-E7-06: the grid or the list, kept for the visit. */
+    view: 'Vista del listado',
+    gridView: 'Ver en cuadrícula',
+    listView: 'Ver en lista',
   },
   home: {
     /** UC-30 (T-E7-04): the fixed texts of the home page (D-03); changing them needs a deploy. */
@@ -53,9 +57,10 @@ export const es = {
     audiences: { WOMEN: 'Mujer', MEN: 'Hombre', KIDS: 'Niños' },
   },
   filters: {
-    open: 'Filtrar',
-    /** The filter button with the number of applied filters, e.g. "Filtrar (2)". */
-    openWithCount: (count: number) => `Filtrar (${String(count)})`,
+    /** The bar of buttons that open the panel at one group (T-E7-06). */
+    bar: 'Filtrar por',
+    /** A group's button with the number of its chosen values, e.g. "Talle (2)". */
+    groupWithCount: (group: string, count: number) => (count === 0 ? group : `${group} (${String(count)})`),
     title: 'Filtros',
     close: 'Cerrar filtros',
     apply: 'Ver resultados',
