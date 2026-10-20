@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { FilterPanel } from './FilterPanel.tsx';
 import { NO_FILTERS, withoutText } from './listingCriteria.ts';
-import { ProductListing } from './ProductListing.tsx';
+import { ProductListing, ResultCount } from './ProductListing.tsx';
 import { SortSelect } from './SortSelect.tsx';
 import { useListingCriteria } from './useListingCriteria.ts';
 import { useListingView } from './useListingView.ts';
@@ -35,6 +35,7 @@ export function CatalogListing({ category, heading, photosBelowFold = false }: C
         onApply={(filters) => {
           setCriteria({ ...criteria, filters });
         }}
+        count={<ResultCount category={category} criteria={criteria} />}
       />
       <div className="catalog-tools">
         <SortSelect

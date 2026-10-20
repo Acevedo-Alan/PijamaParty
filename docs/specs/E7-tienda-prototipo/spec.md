@@ -83,8 +83,11 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 **Reglas**
 - El carrusel y "Elegí para quién" tienen textos y fotos fijos (D-03); el banner de personajes es el que carga el administrador (CU-32). Una foto que falta muestra el fondo degradado.
 - Sin banner publicado, la portada no muestra esa sección.
+- Mientras el banner carga, su lugar muestra el fondo degradado del tamaño del banner, para que las secciones de abajo no se muevan cuando llega. Si no hay banner publicado o no se puede cargar, ese lugar se cierra.
 - El email o el WhatsApp que el negocio todavía no pasó (D-15) no se muestra; sin ninguno de los dos, la portada no muestra "Contactanos".
 - Con filtros u orden en la URL, la portada abre directamente en "Todos los productos".
+- "Todos los productos" lleva debajo del título la línea "Filtrá por talle, color, temporada y más.", como en el prototipo.
+- El banner de personajes ocupa todo el ancho de la página como una franja, con su contenido al ancho de la página, como en el prototipo.
 - El listado de una categoría (`/categoria/{slug}`) no muestra las secciones de la portada.
 
 **Criterios de aceptación**
@@ -152,7 +155,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 **Reglas nuevas**
 - La tarjeta muestra los colores con stock del producto como círculos (D-04), hasta 5 y "+N" si hay más, y la etiqueta "Nuevo" (D-05).
 - Los filtros se abren desde una barra de botones (Público, Talle, Color, Material, Temporada, Precio). Cada botón abre el panel de filtros de CU-02 en ese grupo; las reglas de CU-02 no cambian. Un botón con valores elegidos lo indica. Un grupo sin opciones no tiene botón, salvo que un enlace compartido haya elegido un valor en él.
-- El listado muestra la cantidad de productos que coinciden (D-11).
+- El listado muestra la cantidad de productos que coinciden (D-11), a la derecha de la barra de filtros, como en el prototipo. En el celular queda a la vista mientras los botones se desplazan.
 - El visitante puede ver la grilla en cuadrícula o en lista. La elección no cambia la URL.
 
 **Criterios de aceptación**
@@ -169,7 +172,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - En el celular, cuando el botón de agregar sale de la pantalla, una barra fija abajo muestra el precio y el botón.
 - Íconos de confianza (D-12), que reemplazan al resumen de envíos y pagos de RNF-31.6 debajo del botón para no repetirlo: "Envío gratis desde $X" (solo con umbral), los plazos de entrega y "Pagá con …" con los medios de pago habilitados (MercadoPago, MODO), con el enlace a preguntas frecuentes.
 - El costo de envío por provincia (D-07) y secciones desplegables: guía de talles (RNF-31.5), composición (material y temporada) y cambios y devoluciones (enlace a preguntas frecuentes).
-- "Completá tu look" (D-08). Las opiniones (CU-24) se mantienen.
+- "Completá tu look" (D-08), en la columna de la información, debajo de las secciones desplegables, como en el prototipo. Las opiniones (CU-24) se mantienen debajo.
 
 **Criterios de aceptación**
 - Dada una ficha, cuando se elige cantidad 2 y se agrega, entonces el carrito suma 2 unidades de esa variante.
@@ -204,4 +207,5 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Dado un comprador "María José" "Pérez", cuando paga, entonces el correo lo saluda "Hola, María José".
 - Dado un "Nombre" o "Apellido" vacío o de más de 50 caracteres, cuando avanza del paso 1, entonces se marca el campo con su error; el servidor lo rechaza con `422`.
 - Dado un cliente con la cuenta a nombre de "Ana María Gómez", cuando abre el checkout, entonces "Nombre" dice "Ana" y "Apellido" "María Gómez".
+- Dado el checkout con un producto, cuando se mide con Lighthouse, entonces el "Cumulative Layout Shift" queda debajo de 0,1: mientras carga el carrito, el pie no aparece en la primera pantalla ni salta cuando llega el formulario.
 - Dado un enlace de ingreso con una dirección de vuelta fuera de la tienda (otro dominio o `//host`), cuando el cliente ingresa, entonces va a `/`.

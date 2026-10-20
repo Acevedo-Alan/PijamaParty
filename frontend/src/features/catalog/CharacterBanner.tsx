@@ -13,9 +13,10 @@ interface ViewProps {
 }
 
 /**
- * The character banner as the home page shows it (UC-32): the text beside the photo from 700 px, the photo above it
- * below. The photo is decorative (the title carries the message), so its alternative text is empty. Its link is a
- * router link to a path of the store, never an address built from the text.
+ * The character banner as the home page shows it (UC-32): a band across the page with its content at the page width
+ * (T-E7-11), the text beside the photo from 700 px, the photo above it below. The photo is decorative (the title
+ * carries the message), so its alternative text is empty. Its link is a router link to a path of the store, never an
+ * address built from the text.
  */
 export function CharacterBannerView({ banner, preview = false }: ViewProps) {
   const titleId = useId();
@@ -24,31 +25,33 @@ export function CharacterBannerView({ banner, preview = false }: ViewProps) {
 
   return (
     <section className="character-banner" aria-labelledby={titleId}>
-      <div className="character-banner-copy">
-        <h2 id={titleId}>{title}</h2>
-        {body !== '' && <p>{body}</p>}
-        {preview || !isStorePath(linkPath) ? (
-          <span className="character-banner-link">
-            {linkText} {arrow}
-          </span>
+      <div className="character-banner-inner">
+        <div className="character-banner-copy">
+          <h2 id={titleId}>{title}</h2>
+          {body !== '' && <p>{body}</p>}
+          {preview || !isStorePath(linkPath) ? (
+            <span className="character-banner-link">
+              {linkText} {arrow}
+            </span>
+          ) : (
+            <Link className="character-banner-link" to={linkPath}>
+              {linkText} {arrow}
+            </Link>
+          )}
+        </div>
+        {image === null ? (
+          <div className="ph character-banner-art" />
         ) : (
-          <Link className="character-banner-link" to={linkPath}>
-            {linkText} {arrow}
-          </Link>
+          <BlurredImage
+            className="character-banner-art"
+            src={image.src}
+            srcSet={image.srcSet}
+            sizes="(min-width: 700px) 560px, 100vw"
+            alt=""
+            {...(image.placeholder === undefined ? {} : { placeholder: image.placeholder })}
+          />
         )}
       </div>
-      {image === null ? (
-        <div className="ph character-banner-art" />
-      ) : (
-        <BlurredImage
-          className="character-banner-art"
-          src={image.src}
-          srcSet={image.srcSet}
-          sizes="(min-width: 700px) 560px, 100vw"
-          alt=""
-          {...(image.placeholder === undefined ? {} : { placeholder: image.placeholder })}
-        />
-      )}
     </section>
   );
 }
@@ -58,8 +61,21 @@ export function useHomeBanner() {
   return useQuery({ queryKey: homeBannerKey, queryFn: ({ signal }) => fetchHomeBanner(signal) });
 }
 
-/** The home page's section (UC-30): only a published banner shows; while it loads or if it fails, nothing does. */
+/**
+ * The home page's section (UC-30): only a published banner shows. While it loads, a gradient of its size holds the
+ * place, so the sections below do not move when it arrives (T-E7-11); unpublished or failed, the place closes.
+ */
 export function CharacterBanner() {
-  const { data } = useHomeBanner();
+  const { data, isPending } = useHomeBanner();
+  if (isPending) {
+    return (
+      <div className="character-banner character-banner-pending" aria-hidden="true">
+        <div className="character-banner-inner">
+          <div className="character-banner-copy" />
+          <div className="ph character-banner-art" />
+        </div>
+      </div>
+    );
+  }
   return data ? <CharacterBannerView banner={data} /> : null;
 }

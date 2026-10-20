@@ -44,6 +44,8 @@ describe('home page (UC-30)', () => {
       expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(es.home.title);
+    expect(within(screen.getByRole('region', { name: es.catalog.allTitle })).getByText(es.home.listingText))
+      .toBeInTheDocument();
   });
 
   it('given "Mujer" in "Elegí para quién", when chosen, then the grid is filtered by audience WOMEN and the URL has publico=mujer, keeping the sort', async () => {

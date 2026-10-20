@@ -10,10 +10,13 @@ import { CADDY_URL } from '../stubs/settings.ts';
  * T-E6-02 (RNF-11, RNF-31.4): Lighthouse in mobile mode (its default slow 4G and mid-range phone) on the pages
  * shoppers land on and the checkout. Each one must paint its largest element in under 3 seconds and score 90 or
  * more in accessibility. The pages are measured cold: the browser cache is cleared first, the cookies are kept.
+ * T-E7-11 (UC-30, UC-13): on the new design, with the home page's character banner published, none of them shifts its
+ * layout by 0.1 or more.
  */
 
 const LCP_BUDGET_MS = 3_000;
 const MIN_ACCESSIBILITY = 0.9;
+const CLS_BUDGET = 0.1;
 const DEBUGGING_PORT = 9333;
 const REPORTS = 'lighthouse-report';
 /** Enough for the first rows of a listing on a phone and on a computer. */
@@ -52,6 +55,8 @@ test.beforeAll(async ({ browser: adminBrowser }) => {
   for (const [index, product] of products.entries()) {
     await admin.uploadPhoto(product.id, photoPng(index + 1));
   }
+  // The banner sits above the grid, the 5:4 shape it has on a computer.
+  await admin.publishHomeBanner(photoPng(PRODUCTS + 1, 1500, 1200));
   await context.close();
 
   mkdirSync(REPORTS, { recursive: true });
@@ -68,6 +73,7 @@ test.afterAll(async () => {
 
 interface Measure {
   largestContentfulPaintMs: number;
+  cumulativeLayoutShift: number;
   accessibility: number;
 }
 
@@ -99,9 +105,11 @@ async function measure(path: string, report: string): Promise<Measure> {
   }
   const measured = {
     largestContentfulPaintMs: lhr.audits['largest-contentful-paint']?.numericValue ?? Number.POSITIVE_INFINITY,
+    cumulativeLayoutShift: lhr.audits['cumulative-layout-shift']?.numericValue ?? Number.POSITIVE_INFINITY,
     accessibility: lhr.categories['accessibility']?.score ?? 0,
   };
   console.log(`${report}: LCP ${String(Math.round(measured.largestContentfulPaintMs))} ms, `
+    + `CLS ${measured.cumulativeLayoutShift.toFixed(3)}, `
     + `accessibility ${String(Math.round(measured.accessibility * 100))}, `
     + `performance ${String(Math.round((lhr.categories['performance']?.score ?? 0) * 100))}`);
   return measured;
@@ -110,6 +118,7 @@ async function measure(path: string, report: string): Promise<Measure> {
 function expectWithinBudget(measured: Measure): void {
   expect(measured.largestContentfulPaintMs).toBeLessThan(LCP_BUDGET_MS);
   expect(measured.accessibility).toBeGreaterThanOrEqual(MIN_ACCESSIBILITY);
+  expect(measured.cumulativeLayoutShift).toBeLessThan(CLS_BUDGET);
 }
 
 test('photos are kept a year and index.html is checked on every visit', async () => {

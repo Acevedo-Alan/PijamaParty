@@ -1,5 +1,8 @@
 /* UC-13 (T-E3-11): the checkout. One column, mobile first; from 900 px the summary is a sticky second column. */
 .checkout {
+  /* At least a screen tall: while the cart loads, the footer stays below the first screen and does not jump when the
+     form arrives (T-E7-11) */
+  min-height: 100svh;
   padding-top: 24px;
   padding-bottom: 80px;
 }

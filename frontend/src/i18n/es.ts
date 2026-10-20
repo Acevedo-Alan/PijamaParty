@@ -54,6 +54,8 @@ export const es = {
     discover: 'Descubrí la colección',
     audienceTitle: 'Elegí para quién',
     audienceText: 'Ropa cómoda para cada integrante de la familia.',
+    /** T-E7-11: below "Todos los productos" on the home page, as in the prototype. */
+    listingText: 'Filtrá por talle, color, temporada y más.',
     audiences: { WOMEN: 'Mujer', MEN: 'Hombre', KIDS: 'Niños' },
   },
   filters: {

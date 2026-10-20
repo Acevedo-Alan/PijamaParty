@@ -95,11 +95,13 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Alternative flows**
 - A photo is missing (D-15): its place shows the gradient background, with the same size, so nothing shifts.
+- The character banner is still loading: its place shows the gradient background at the banner's size, so the sections below do not move when it arrives. If none is published, or it cannot be loaded, the place closes (T-E7-11).
 - The contact email or WhatsApp number has not been sent yet (D-15): its link is not shown; with neither, there is no "Contactanos" section.
 - The URL carries filters or a sort: the page opens scrolled to "Todos los productos".
 
 **Business rules**
 - The carousel and the audience cards have fixed texts and photos (D-03); the character banner is the one the administrator publishes (UC-32). Without a published banner, its section is not shown.
+- "Todos los productos" carries the line "Filtrá por talle, color, temporada y más." below its heading, as in the prototype (T-E7-11).
 - The audience cards set the UC-02 URL key `publico` (`mujer`, `hombre`, `infantil`) and keep the sort.
 - `/categoria/{slug}` keeps showing only the listing, without the home sections.
 - The carousel follows D-14.
@@ -107,6 +109,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Acceptance criteria**
 - Given the home page on a phone, when it loads, then the carousel, the character banner, "Elegí para quién", the grid, the withdrawal block and the contact section appear in that order.
 - Given the home page, when "Mujer" is chosen in "Elegí para quién", then the grid is filtered by audience `WOMEN` and the URL has `publico=mujer`.
+- Given the character banner still loading, when the home page shows, then its place holds the banner's size, without texts or link.
 - Given a visitor with reduced motion, when the home page opens, then the carousel does not advance by itself.
 - Given the carousel advancing, when the pause button is pressed, then it stops; pressing it again resumes it.
 - Given the home page, a listing, a product page and the checkout, when Lighthouse measures them, then RNF-11 (LCP under 3 s) and RNF-31.4 (accessibility 90 or more) still hold.
@@ -198,7 +201,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Inbound ports: `GetHomeBanner` (public query; result `Published(banner)` or `NotPublished`), `GetHomeBannerForAdmin`, `UpdateHomeBanner` (`Command(actor, title, body, linkText, linkPath)`; result `Updated`, `Invalid(fields)` or `Forbidden`), `PublishHomeBanner` / `HideHomeBanner` (result `Published`, `Incomplete(missing)`, `Hidden` or `Forbidden`), `ReplaceHomeBannerPhoto` (reuses the UC-06 `ImageProcessor` port and its libvips adapter, and the `ImageStore` files under `/uploads`; same `Idempotency-Key` rule as product photos, with only the current photo's key remembered: a retry is recognized until another photo replaces it).
 - Endpoints: `GET /api/home/banner` → `200` `{title, body, linkText, linkPath, image}` or `204` when not published (catalog rate-limit policy); `GET` and `PUT /api/admin/home/banner`, `POST /api/admin/home/banner/publish`, `POST /api/admin/home/banner/hide`, `POST /api/admin/home/banner/photo` (multipart, `Idempotency-Key`). Errors as `problem+json`; OpenAPI updated.
 - Back office: "Portada" in the menu, a form with the preview, as the product form (RNF-26: usable on a phone).
-- Storefront: `CharacterBanner` reads `GET /api/home/banner`; its link is a router `Link`, never an `<a href>` built from the text. The photo is decorative (empty alternative text): the title carries the message. On `/` it sits between the carousel and "Elegí para quién" (UC-30).
+- Storefront: `CharacterBanner` reads `GET /api/home/banner`; its link is a router `Link`, never an `<a href>` built from the text. The photo is decorative (empty alternative text): the title carries the message. On `/` it sits between the carousel and "Elegí para quién" (UC-30), as a band across the whole page width with its content at the page width, as in the prototype (T-E7-11).
 
 ---
 
@@ -207,7 +210,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Business rules (new)**
 - A card shows the product's colors with available stock as swatches (D-04), at most 5 plus "+N", and the "Nuevo" label (D-05). The "Sold out" label of UC-01 stays.
 - The filters open from a bar of buttons (Público, Talle, Color, Material, Temporada, Precio). Each button opens the UC-02 panel at its group; a button whose group has values chosen says how many. The UC-02 rules, panel and URL keys do not change. Buttons of groups without options are not shown, unless a shared link chose a value in that group (the panel keeps it to uncheck, UC-02).
-- The listing shows the number of matches (D-11): "1 producto" or "N productos".
+- The listing shows the number of matches (D-11): "1 producto" or "N productos", at the right end of the filter bar row, as in the prototype. On phones it stays in view while the buttons scroll (T-E7-11).
 - The visitor can switch between grid and list views. The choice is per visit and does not change the URL.
 - "Ver más" stays (D-10).
 
@@ -234,7 +237,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - On phones, when the add button leaves the screen, a fixed bar at the bottom shows the price and the add button.
 - Trust icons (D-12) take the place of the RNF-31.6 purchase summary below the add button, so its lines are not repeated: "Envío gratis desde $X" (only with a threshold), the delivery times, and "Pagá con …" naming the payment methods enabled now (MercadoPago, MODO), with the link to the FAQ. A line that could not be read is left out.
 - The shipping cost by province (D-07); collapsible sections: size guide (RNF-31.5, moved from its current place), composition (material and season) and exchanges and returns (link to the FAQ).
-- "Completá tu look" (D-08). Reviews (UC-24) stay below.
+- "Completá tu look" (D-08), in the info column below the collapsible sections, as in the prototype (T-E7-11). Reviews (UC-24) stay below the page layout.
 - The UC-03 variant rules do not change.
 
 **Alternative flows**
@@ -289,8 +292,10 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Given a buyer "María José" "Pérez", when the payment is approved, then the email greets "Hola, María José".
 - Given an empty "Nombre" or "Apellido", or one over 50 characters, when going on from step 1, then the field is marked with its message; the server refuses it with `422`.
 - Given a customer whose account name is "Ana María Gómez", when the checkout opens, then "Nombre" reads "Ana" and "Apellido" "María Gómez".
+- Given the checkout with one product, when Lighthouse measures it, then Cumulative Layout Shift stays under 0.1 (T-E7-11).
 
 **Design notes**
+- The checkout page is at least one screen tall, so the footer starts below the first screen while the cart loads and does not jump when the form arrives (T-E7-11).
 - `SignInPage` today always goes to `/`. It gains a `volver` query key, accepted only when it is a path of this store (starts with one `/`, not `//`), so it cannot be used as an open redirect.
 - Name split (D-13), one migration in `ordering`: `orders.customer_name` becomes `customer_first_name` and `customer_last_name` (each trimmed, 1 to 50, check constraints like the old one). The store has no real orders yet (it goes live in E6), so existing rows split at the first space, and a single word goes to the first name with `-` as the last name. A view or helper gives the full name where one is shown.
 - `ordering.domain.BuyerDetails(firstName, lastName, email, phone, nationalId)`; `BuyerDetails.firstNameOf` and `OrderEmailWriter.firstName` (the first-word guess) are removed: the emails use the stored first name.

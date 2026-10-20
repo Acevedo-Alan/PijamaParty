@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { es } from '../../i18n/es.ts';
 import type { FilterOptions } from './catalogApi.ts';
 import type { ProductFilters } from './listingCriteria.ts';
@@ -34,37 +35,42 @@ interface FilterBarProps {
   options: FilterOptions | undefined;
   filters: ProductFilters;
   onOpen: (group: FilterGroup) => void;
+  /** At the end of the row, outside the scrolling buttons: the number of matches (D-11, T-E7-11). */
+  trailing?: ReactNode;
 }
 
 /**
  * The buttons that open the filters panel at one group (changes to UC-02). A button says how many values of its
- * group are chosen; a group without options has no button, unless a shared link chose a value in it.
+ * group are chosen; a group without options has no button, unless a shared link chose a value in it. On phones the
+ * buttons scroll sideways while the trailing count stays in view.
  */
-export function FilterBar({ options, filters, onOpen }: FilterBarProps) {
+export function FilterBar({ options, filters, onOpen, trailing }: FilterBarProps) {
   const groups = BAR_GROUPS.filter(
     (group) => options === undefined || hasOptions(group, options) || chosen(group, filters) > 0,
   );
-  if (groups.length === 0) {
-    return null;
-  }
   return (
-    <div className="filters-bar" role="group" aria-label={es.filters.bar}>
-      {groups.map((group) => {
-        const count = chosen(group, filters);
-        return (
-          <button
-            key={group}
-            type="button"
-            className={count === 0 ? 'filter-btn' : 'filter-btn active'}
-            aria-haspopup="dialog"
-            onClick={() => {
-              onOpen(group);
-            }}
-          >
-            {es.filters.groupWithCount(LABELS[group], count)}
-          </button>
-        );
-      })}
+    <div className="filters-row">
+      {groups.length > 0 && (
+        <div className="filters-bar" role="group" aria-label={es.filters.bar}>
+          {groups.map((group) => {
+            const count = chosen(group, filters);
+            return (
+              <button
+                key={group}
+                type="button"
+                className={count === 0 ? 'filter-btn' : 'filter-btn active'}
+                aria-haspopup="dialog"
+                onClick={() => {
+                  onOpen(group);
+                }}
+              >
+                {es.filters.groupWithCount(LABELS[group], count)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {trailing}
     </div>
   );
 }

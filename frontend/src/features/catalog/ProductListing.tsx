@@ -55,8 +55,28 @@ interface ProductListingProps {
 }
 
 /**
- * The grid of UC-01: the number of matches (D-11), 24 products at a time with "Show more", and one message for an
- * empty or unknown category. With filters and no matches it offers to clear them (UC-02).
+ * D-11: how many products match, for the end of the filter bar row (T-E7-11). It reads the listing's own query, so it
+ * shows once the grid has products and never asks the server twice.
+ */
+export function ResultCount({ category, criteria }: { category: string | undefined; criteria: ListingCriteria }) {
+  const listing = useProductListing(category, criteria);
+  const pages = listing.data?.pages ?? [];
+  const products = pages.reduce((count, page) => count + (page.status === 'listed' ? page.items.length : 0), 0);
+  if (products === 0) {
+    return null;
+  }
+  // Every page says how many match; the latest one is the freshest.
+  const total = pages.findLast((page) => page.status === 'listed')?.total ?? products;
+  return (
+    <p className="result-count" role="status">
+      {es.catalog.productCount(total)}
+    </p>
+  );
+}
+
+/**
+ * The grid of UC-01: 24 products at a time with "Show more", and one message for an empty or unknown category. With
+ * filters and no matches it offers to clear them (UC-02). The number of matches is ResultCount.
  */
 export function ProductListing({
   category,
@@ -131,14 +151,8 @@ export function ProductListing({
     );
   }
 
-  // D-11: every page says how many match; the latest one is the freshest.
-  const total = listing.data.pages.findLast((page) => page.status === 'listed')?.total ?? products.length;
-
   return (
     <>
-      <p className="result-count" role="status">
-        {es.catalog.productCount(total)}
-      </p>
       <ul className={gridClass(view)}>
         {products.map((product, index) => (
           <li key={product.slug}>

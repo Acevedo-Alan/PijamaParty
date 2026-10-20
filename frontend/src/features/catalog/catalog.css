@@ -132,11 +132,14 @@
   color: var(--ink-soft);
 }
 
-/* D-11: "N productos" above the grid. */
+/* D-11: "N productos" at the end of the filter bar row, as in the prototype (T-E7-11). */
 .result-count {
+  flex: none;
+  margin-left: auto;
+  padding-left: 10px;
   font-size: 13px;
   color: var(--ink-soft);
-  margin-bottom: 12px;
+  white-space: nowrap;
 }
 
 .skeleton-card {
@@ -204,13 +207,28 @@
 }
 
 /* T-E7-06: the bar of filter buttons, one row that scrolls sideways on a phone */
-.filters-bar {
+/* The buttons scroll sideways on phones; the count beside them stays in view. */
+.filters-row {
   display: flex;
-  gap: 10px;
+  align-items: center;
   margin-bottom: 18px;
-  padding: 14px 0;
+  padding: 8px 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+}
+
+.filters-row:empty {
+  display: none;
+}
+
+.filters-bar {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+  /* Room for the focus ring (2 px at 3 px), which the scrolling box would clip; the buttons stay in line */
+  margin: 0 -6px;
+  padding: 6px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -570,16 +588,20 @@ html:has(.filters-panel[open]) {
 }
 
 /* The prototype's character banner (.kigurumi-banner, UC-32): the photo above the text on phones, beside it from
-   700 px. The photo keeps its proportions inside a square, as in the prototype. */
+   700 px. The photo keeps its proportions inside a square, as in the prototype. A band across the page, its content
+   at the page width (T-E7-11). */
 .character-banner {
+  background: var(--peach-soft);
+}
+
+.character-banner-inner {
   display: grid;
   grid-template-areas: 'art' 'copy';
   gap: 12px;
   align-items: center;
-  margin-bottom: 36px;
+  max-width: var(--maxw);
+  margin: 0 auto;
   padding: 24px 20px 32px;
-  border-radius: var(--radius-m);
-  background: var(--peach-soft);
 }
 
 .character-banner-copy {
@@ -628,8 +650,14 @@ html:has(.filters-panel[open]) {
   object-fit: contain;
 }
 
+/* While the banner loads: the photo's square exactly, the texts at a title, two lines and the link (T-E7-11) */
+.character-banner-pending .character-banner-copy {
+  width: 100%;
+  min-height: 140px;
+}
+
 @media (min-width: 700px) {
-  .character-banner {
+  .character-banner-inner {
     grid-template-areas: 'copy art';
     grid-template-columns: minmax(0, 1fr) minmax(320px, 560px);
     gap: 32px;

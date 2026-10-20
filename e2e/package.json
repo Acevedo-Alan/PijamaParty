@@ -10,6 +10,7 @@
     "test": "playwright test",
     "lighthouse": "playwright test --config playwright.lighthouse.config.ts",
     "load": "playwright test --config playwright.load.config.ts",
+    "screenshots": "playwright test --config playwright.screenshots.config.ts",
     "stubs": "node stubs/server.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p load/k6",
     "report": "playwright show-report"

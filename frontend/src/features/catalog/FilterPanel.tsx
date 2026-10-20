@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode, type SubmitEvent } from 'react';
 import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -155,6 +155,8 @@ interface FilterPanelProps {
   category: string | undefined;
   filters: ProductFilters;
   onApply: (filters: ProductFilters) => void;
+  /** Shown at the end of the bar's row: the number of matches (D-11). */
+  count?: ReactNode;
 }
 
 /**
@@ -162,7 +164,7 @@ interface FilterPanelProps {
  * keeps the focus inside, closes with Escape and hides the page from screen readers. The choices apply with "Show
  * results"; closing discards them.
  */
-export function FilterPanel({ category, filters, onApply }: FilterPanelProps) {
+export function FilterPanel({ category, filters, onApply, count }: FilterPanelProps) {
   const [isOpen, setOpen] = useState(false);
   const titleId = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -223,6 +225,7 @@ export function FilterPanel({ category, filters, onApply }: FilterPanelProps) {
         options={options.data?.status === 'found' ? options.data.options : undefined}
         filters={filters}
         onOpen={open}
+        trailing={count}
       />
       <PanelDialog
         open={isOpen}

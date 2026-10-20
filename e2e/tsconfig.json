@@ -28,8 +28,10 @@
     "playwright.config.ts",
     "playwright.lighthouse.config.ts",
     "playwright.load.config.ts",
+    "playwright.screenshots.config.ts",
     "lighthouse",
     "load",
+    "screenshots",
     "stubs",
     "support",
     "tests"

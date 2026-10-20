@@ -584,3 +584,9 @@
   font-weight: 600;
   margin-bottom: 16px;
 }
+
+/* Small cards in the info column, as in the prototype (T-E7-11) */
+.related .card .card-title,
+.related .card .price {
+  font-size: 12.5px;
+}

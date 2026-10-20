@@ -33,11 +33,22 @@ export function newBuyer(): Buyer {
   };
 }
 
+/**
+ * Picks an option of the product page as a shopper does, on its label: the radio itself is a dot under the swatch or
+ * the size button (E7), which on a computer covers it.
+ */
+async function pickOption(page: Page, group: 'Talle' | 'Color', name: string): Promise<void> {
+  const options = page.getByRole('group', { name: group });
+  const radio = page.getByRole('radio', { name, exact: true });
+  await options.locator('label').filter({ has: radio }).click();
+  await expect(options.getByRole('radio', { name, exact: true })).toBeChecked();
+}
+
 /** UC-03, UC-08: picks the variant on the product page and adds it; the cart panel opens to confirm. */
 export async function addToCart(page: Page, product: ProductForSale, variant: Variant): Promise<void> {
   await page.goto(`/producto/${product.slug}`);
-  await page.getByRole('group', { name: 'Talle' }).getByRole('radio', { name: variant.size, exact: true }).check();
-  await page.getByRole('group', { name: 'Color' }).getByRole('radio', { name: variant.color, exact: true }).check();
+  await pickOption(page, 'Talle', variant.size);
+  await pickOption(page, 'Color', variant.color);
   await page.getByRole('button', { name: 'Agregar al carrito' }).click();
   await expect(page.getByRole('dialog', { name: 'Mi carrito' })).toBeVisible();
 }
@@ -46,6 +57,9 @@ export async function addToCart(page: Page, product: ProductForSale, variant: Va
 export async function fillCheckout(page: Page, buyer: Buyer): Promise<void> {
   await page.getByRole('button', { name: 'Iniciar compra' }).click();
   await expect(page.getByRole('heading', { name: 'Finalizar compra' })).toBeVisible();
+  // The cart panel slides out over the checkout and stays a modal dialog until it closes: until then the page behind
+  // is inert and what is typed into it is lost (E7 motion, PanelDialog).
+  await expect(page.getByRole('dialog', { name: 'Mi carrito' })).toBeHidden();
 
   await page.getByLabel('Nombre', { exact: true }).fill(buyer.firstName);
   await page.getByLabel('Apellido', { exact: true }).fill(buyer.lastName);

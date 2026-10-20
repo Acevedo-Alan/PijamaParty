@@ -60,17 +60,20 @@ export function HomePage() {
     <main className="home">
       <title>{`${es.catalog.allTitle} | ${es.store.name}`}</title>
       <HeroCarousel onDiscover={showListing} />
+      <CharacterBanner />
       <div className="wrap home-sections">
-        <CharacterBanner />
         <AudienceCards sort={criteria.sort} onChoose={showListing} />
       </div>
       <section className="wrap catalog" aria-labelledby="todos-los-productos">
         <CatalogListing
           photosBelowFold
           heading={
-            <h2 className="section-title listing-heading" id="todos-los-productos" ref={listingHeading} tabIndex={-1}>
-              {es.catalog.allTitle}
-            </h2>
+            <>
+              <h2 className="section-title listing-heading" id="todos-los-productos" ref={listingHeading} tabIndex={-1}>
+                {es.catalog.allTitle}
+              </h2>
+              <p className="section-sub">{es.home.listingText}</p>
+            </>
           }
         />
         <WithdrawalHomeBlock />

@@ -218,6 +218,8 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         <ShippingByProvince />
         <PurchaseInfoSummary />
         <ProductSections product={product} />
+        {/* In the info column, as in the prototype (T-E7-11) */}
+        <RelatedProducts category={product.category.slug} slug={product.slug} />
       </div>
       <StickyAddToCart target={addButton}>
         <Price price={price} />
@@ -268,7 +270,6 @@ export function ProductDetailPage() {
         <>
           <title>{`${detail.data.product.name} | ${es.store.name}`}</title>
           <ProductDetailView key={detail.data.product.slug} product={detail.data.product} />
-          <RelatedProducts category={detail.data.product.category.slug} slug={detail.data.product.slug} />
           <ProductReviewsSection key={detail.data.product.slug} slug={detail.data.product.slug} />
           <MyReviewSection key={detail.data.product.id} productId={detail.data.product.id} />
         </>

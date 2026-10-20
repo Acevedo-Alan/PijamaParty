@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
 import { answer, listed, product, stubCatalogApi } from '../../test/catalogApi.ts';
@@ -52,6 +52,28 @@ describe('character banner of the home page (UC-32)', () => {
 
     expect(await screen.findByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 2, name: BANNER.title })).not.toBeInTheDocument();
+  });
+
+  it('given the banner still loading, when the home page shows, then its place holds the banner size without texts or link', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])], banner: new Promise(() => {}) });
+
+    const { container } = renderRoute('/');
+
+    expect(await screen.findByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
+    const place = container.querySelector('.character-banner');
+    expect(place).toHaveAttribute('aria-hidden', 'true');
+    expect(place?.querySelector('.ph.character-banner-art')).not.toBeNull();
+    expect(place).toHaveTextContent('');
+  });
+
+  it('given a hidden banner, when the home page has its answer, then the held place closes', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])], banner: answer(204) });
+
+    const { container } = renderRoute('/');
+
+    await waitFor(() => {
+      expect(container.querySelector('.character-banner')).toBeNull();
+    });
   });
 
   it('given a category page, when it opens, then it shows only the listing and never asks for the banner', async () => {

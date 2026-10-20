@@ -103,6 +103,17 @@ describe('catalog grid (UC-01)', () => {
     expect(listing().getByRole('status')).toHaveTextContent('30 productos');
   });
 
+  it('given matches, when the listing opens, then the count ends the filter bar row, after the buttons (T-E7-11)', async () => {
+    stubCatalogApi({ listings: [listed(products(3, 'p'), false, 3)] });
+
+    renderRoute('/');
+
+    const count = await listing().findByText('3 productos');
+    const bar = listing().getByRole('group', { name: es.filters.bar });
+    expect(count.parentElement).toBe(bar.parentElement);
+    expect(bar.compareDocumentPosition(count) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('given one match, when the listing opens, then it reads "1 producto"', async () => {
     stubCatalogApi({ listings: [listed([product('solo')])] });
 

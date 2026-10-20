@@ -5,7 +5,7 @@ import { es } from '../../i18n/es.ts';
 import { trackSearch } from '../analytics/catalogEvents.ts';
 import { FilterPanel } from '../catalog/FilterPanel.tsx';
 import { NO_FILTERS } from '../catalog/listingCriteria.ts';
-import { ProductListing } from '../catalog/ProductListing.tsx';
+import { ProductListing, ResultCount } from '../catalog/ProductListing.tsx';
 import { SortSelect } from '../catalog/SortSelect.tsx';
 import { useListingCriteria } from '../catalog/useListingCriteria.ts';
 import { useListingView } from '../catalog/useListingView.ts';
@@ -76,6 +76,7 @@ export function SearchPage() {
         onApply={(filters) => {
           setCriteria({ ...criteria, filters });
         }}
+        count={<ResultCount category={undefined} criteria={criteria} />}
       />
       <div className="catalog-tools">
         <SortSelect

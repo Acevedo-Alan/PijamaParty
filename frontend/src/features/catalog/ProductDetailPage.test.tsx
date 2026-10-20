@@ -474,6 +474,16 @@ describe('"Completá tu look" on the product page (E7, D-08)', () => {
     expect(queriesTo(get, LISTING_PATH)).toEqual([{ category: 'pijamas-largos', page: 0 }]);
   });
 
+  it('given related products, when a product page opens, then "Completá tu look" sits in the info column (T-E7-11)', async () => {
+    stubPage(NO_SHIPPING_RATES, productDetail(), category(2));
+
+    renderRoute('/producto/luna');
+
+    const related = await screen.findByRole('region', { name: es.product.related });
+    const info = screen.getByRole('heading', { level: 1, name: 'Pijama Luna' }).parentElement;
+    expect(info?.contains(related)).toBe(true);
+  });
+
   it('given a category with no other products, when a product page opens, then "Completá tu look" is not shown', async () => {
     const get = stubPage(NO_SHIPPING_RATES, productDetail(), category(0));
 

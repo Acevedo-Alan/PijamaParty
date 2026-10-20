@@ -92,6 +92,11 @@ export class AdminApi {
     await this.call('PUT', '/api/admin/shipping/zones', { zones: [{ province, costCents }] }, 200);
   }
 
+  /** UC-12: the order total from which shipping is free, in cents; null removes it. */
+  async setFreeShippingThreshold(thresholdCents: number | null): Promise<void> {
+    await this.call('PUT', '/api/admin/shipping/free-shipping', { thresholdCents }, 200);
+  }
+
   /**
    * UC-05, UC-06, UC-07: a published product in a new category (or the one given), every size and color combination
    * priced and with stock. The names end in a unique suffix, so tests never collide.
@@ -137,6 +142,28 @@ export class AdminApi {
 
   /** UC-06: uploads a photo (the server converts it with libvips); it goes after the product's other photos. */
   async uploadPhoto(productId: string, png: Buffer): Promise<void> {
+    await this.upload(`/api/admin/catalog/products/${productId}/images`, png);
+  }
+
+  /** UC-32: gives the home page's character banner its texts and photo, and publishes it. */
+  async publishHomeBanner(png: Buffer): Promise<void> {
+    await this.call(
+      'PUT',
+      '/api/admin/home/banner',
+      {
+        title: 'Kigurumis',
+        body: 'Tus personajes favoritos, para dormir abrigado.',
+        linkText: 'Ver kigurumis',
+        linkPath: '/',
+      },
+      200,
+    );
+    await this.upload('/api/admin/home/banner/photo', png);
+    await this.call('POST', '/api/admin/home/banner/publish', undefined, 200);
+  }
+
+  /** A photo sent as the back office sends it: multipart, with an Idempotency-Key. */
+  private async upload(path: string, png: Buffer): Promise<void> {
     const status = await this.page.evaluate(
       async ({ path, base64, key }) => {
         const csrf = document.cookie
@@ -156,7 +183,7 @@ export class AdminApi {
         });
         return response.status;
       },
-      { path: `/api/admin/catalog/products/${productId}/images`, base64: png.toString('base64'), key: randomUUID() },
+      { path, base64: png.toString('base64'), key: randomUUID() },
     );
     if (status !== 201) {
       throw new Error(`Uploading a photo answered ${String(status)}: is libvips installed (VIPS_BIN_DIR)?`);
