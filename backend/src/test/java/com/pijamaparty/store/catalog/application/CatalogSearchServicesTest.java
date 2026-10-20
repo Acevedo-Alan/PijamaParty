@@ -3,12 +3,15 @@ package com.pijamaparty.store.catalog.application;
 import static com.pijamaparty.store.catalog.application.ListingFixture.category;
 import static com.pijamaparty.store.catalog.application.ListingFixture.product;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.CategoryId;
 import com.pijamaparty.store.catalog.domain.CategoryName;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductSort;
+import com.pijamaparty.store.platform.testing.MovableClock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -22,7 +25,8 @@ class CatalogSearchServicesTest {
     private final InMemoryProductStore products = new InMemoryProductStore(categories);
     private final InMemoryProductListing listing = new InMemoryProductListing(categories, products);
     private final InMemoryProductSearch index = new InMemoryProductSearch(categories, products, listing);
-    private final SearchProducts search = new SearchProductsService(categories, index);
+    private final MovableClock clock = new MovableClock(ListingFixture.T0.plus(Duration.ofDays(40)));
+    private final SearchProducts search = new SearchProductsService(categories, index, clock);
     private final SuggestProducts suggest = new SuggestProductsService(index);
     private final RefreshSearchVector refresh = new RefreshSearchVectorService(index);
 
@@ -39,8 +43,25 @@ class CatalogSearchServicesTest {
 
         assertThat(first.products()).hasSize(SearchProducts.PAGE_SIZE);
         assertThat(first.hasMore()).isTrue();
+        assertThat(first.total()).isEqualTo(SearchProducts.PAGE_SIZE + 1);
         assertThat(second.products()).extracting(ProductListingItem::name).containsExactly("Pijama 0");
         assertThat(second.hasMore()).isFalse();
+        assertThat(second.total()).isEqualTo(SearchProducts.PAGE_SIZE + 1);
+    }
+
+    @Test
+    void givenProductsCreated10And40DaysAgo_whenSearched_thenOnlyTheFirstIsNewAndColorsComeWithStock() {
+        indexed(product(summer.id(), "Pijama viejo", 0, List.of("M"), List.of("Rosa"), 1000));
+        indexed(product(summer.id(), "Pijama reciente", (int) Duration.ofDays(30).toMinutes(), List.of("M"),
+            List.of("Rosa", "Beige"), 1000));
+
+        var listed = (SearchProducts.Result.Listed) search.execute(query("pijama", Optional.empty(), List.of(), 0));
+
+        assertThat(listed.products())
+            .extracting(ProductListingItem::name, ProductListingItem::isNew, ProductListingItem::colors)
+            .containsExactlyInAnyOrder(
+                tuple("Pijama reciente", true, List.of("Rosa", "Beige")),
+                tuple("Pijama viejo", false, List.of("Rosa")));
     }
 
     @Test

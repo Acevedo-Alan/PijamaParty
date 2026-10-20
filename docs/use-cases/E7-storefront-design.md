@@ -219,8 +219,8 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Design notes**
 - `ProductListingItem` gains `colors: List<String>` (active priced variants with available stock, in display order, the same rule as the UC-02 color filter) and `isNew: boolean`. `Product.isNew(Instant now)` holds the 30-day rule in `catalog.domain`; `ListProducts` and `SearchProducts` read `now` from the injected `Clock`.
-- `ProductListingQuery` returns the total with the page: a `count(*)` over the same constant SQL conditions (RNF-28), in the same read-only transaction.
-- Endpoints: `GET /api/catalog/products` and `GET /api/catalog/search` → `200` `{items, hasMore, total}`, each item adding `colors` and `isNew`. OpenAPI and the typed client are updated.
+- `ProductListingQuery` and `ProductSearchQuery` gain `count`: a `count(*)` over the same constant SQL conditions as the page (one shared `matching` part, RNF-28), in the same read-only transaction. The use case skips it when the page is the last one and not past the end: its offset plus its size is the total.
+- Endpoint: `GET /api/catalog/products`, with or without `q` (UC-26) → `200` `{items, hasMore, total}`, each item adding `colors` and `isNew`. OpenAPI and the typed client are updated.
 - Frontend: `ColorSwatches` (shared with UC-03), `FilterBar`, the view toggle. The color map normalizes names (lowercase, no accents) and is unit tested, including the swatch border contrast against the card background (3:1).
 
 ---

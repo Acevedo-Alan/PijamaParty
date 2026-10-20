@@ -23,11 +23,18 @@ export interface ListedProduct {
   image: ListingImage | null;
   fromPriceCents: number;
   soldOut: boolean;
+  /** The colors with stock, in display order (D-04). */
+  colors: string[];
+  /** Created in the last 30 days (D-05). */
+  isNew: boolean;
 }
 
-/** One page of GET /api/catalog/products. An unknown or inactive category is an expected answer, not an error. */
+/**
+ * One page of GET /api/catalog/products, with how many products match in all (D-11). An unknown or inactive
+ * category is an expected answer, not an error.
+ */
 export type ListingPage =
-  | { status: 'listed'; items: ListedProduct[]; hasMore: boolean }
+  | { status: 'listed'; items: ListedProduct[]; hasMore: boolean; total: number }
   | { status: 'unknownCategory' };
 
 interface ImageFile {
@@ -58,7 +65,15 @@ function toProduct(item: ListItemResponse): ListedProduct {
   if (slug === undefined || name === undefined || fromPriceCents === undefined) {
     throw new Error('Incomplete product in the catalog listing');
   }
-  return { slug, name, image: toImage(item.image), fromPriceCents, soldOut: item.soldOut === true };
+  return {
+    slug,
+    name,
+    image: toImage(item.image),
+    fromPriceCents,
+    soldOut: item.soldOut === true,
+    colors: item.colors ?? [],
+    isNew: item.isNew === true,
+  };
 }
 
 /** The API query of a listing or search page: empty filters and the default sort are left out. */
@@ -94,7 +109,8 @@ export async function fetchProductPage(
   if (data === undefined) {
     throw new Error(`Catalog listing failed with status ${String(response.status)}`);
   }
-  return { status: 'listed', items: (data.items ?? []).map(toProduct), hasMore: data.hasMore === true };
+  const items = (data.items ?? []).map(toProduct);
+  return { status: 'listed', items, hasMore: data.hasMore === true, total: data.total ?? items.length };
 }
 
 /** What the filters panel offers (UC-02): the values of the listed products, not narrowed by the other filters. */

@@ -51,6 +51,66 @@ describe('catalog grid (UC-01)', () => {
       .not.toBeInTheDocument();
   });
 
+  it('given a product with stock only in pink, when listed, then its card shows only the pink swatch (D-04)', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa', { colors: ['Rosa'] }), product('agotado', { soldOut: true })])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    expect(within(card).getAllByTestId('swatch')).toHaveLength(1);
+    expect(within(card).getByTestId('swatch')).toHaveAttribute('title', 'Rosa');
+    expect(within(card).getByText('Color: Rosa')).toBeInTheDocument();
+    expect(within(screen.getByRole('link', { name: /Pijama agotado/ })).queryByTestId('swatch')).not.toBeInTheDocument();
+  });
+
+  it('given 7 colors, one unknown to the map, when listed, then 5 show, the unknown one by name, and "+2"', async () => {
+    const colors = ['Rosa', 'Unicornio', 'Beige', 'Salvia', 'Negro', 'Celeste', 'Lila'];
+    stubCatalogApi({ listings: [listed([product('muchos', { colors })])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama muchos/ });
+    expect(within(card).getAllByTestId('swatch').map((swatch) => swatch.getAttribute('title')))
+      .toEqual(['Rosa', 'Beige', 'Salvia', 'Negro']);
+    expect(within(card).getByText('Unicornio')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(card).getByText('+2')).toBeInTheDocument();
+    expect(within(card).getByText('Colores: Rosa, Unicornio, Beige, Salvia, Negro, Celeste y Lila'))
+      .toBeInTheDocument();
+  });
+
+  it('given a new and an older product, when listed, then only the new one says "Nuevo" (D-05)', async () => {
+    stubCatalogApi({ listings: [listed([product('nuevo', { isNew: true }), product('viejo')])] });
+
+    renderRoute('/');
+
+    const fresh = await screen.findByRole('link', { name: /Pijama nuevo/ });
+    expect(within(fresh).getByText(es.catalog.isNew)).toBeInTheDocument();
+    expect(within(screen.getByRole('link', { name: /Pijama viejo/ })).queryByText(es.catalog.isNew))
+      .not.toBeInTheDocument();
+  });
+
+  it('given 30 matches, when the listing opens, then it reads "30 productos" with 24 cards and "Ver más" (D-11)', async () => {
+    stubCatalogApi({ listings: [listed(products(24, 'p'), true, 30), listed(products(6, 'q'), false, 30)] });
+
+    renderRoute('/');
+
+    expect(await listing().findAllByRole('listitem')).toHaveLength(24);
+    expect(listing().getByRole('status')).toHaveTextContent('30 productos');
+    await userEvent.click(screen.getByRole('button', { name: es.catalog.showMore }));
+    await waitFor(() => {
+      expect(listing().getAllByRole('listitem')).toHaveLength(30);
+    });
+    expect(listing().getByRole('status')).toHaveTextContent('30 productos');
+  });
+
+  it('given one match, when the listing opens, then it reads "1 producto"', async () => {
+    stubCatalogApi({ listings: [listed([product('solo')])] });
+
+    renderRoute('/categoria/verano');
+
+    expect(await screen.findByText('1 producto')).toHaveAttribute('role', 'status');
+  });
+
   it('given a category listing, when it renders, then the first four photos load eagerly and the first two first (T-E6-02)', async () => {
     stubCatalogApi({ listings: [listed(products(6, 'p'))] });
 

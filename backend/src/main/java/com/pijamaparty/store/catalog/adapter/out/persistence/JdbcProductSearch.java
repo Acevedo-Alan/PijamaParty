@@ -1,6 +1,6 @@
 package com.pijamaparty.store.catalog.adapter.out.persistence;
 
-import com.pijamaparty.store.catalog.application.ProductListingItem;
+import com.pijamaparty.store.catalog.application.ListedProduct;
 import com.pijamaparty.store.catalog.application.ProductSearchQuery;
 import com.pijamaparty.store.catalog.application.ProductSuggestion;
 import com.pijamaparty.store.catalog.application.SearchVectors;
@@ -62,11 +62,17 @@ class JdbcProductSearch implements ProductSearchQuery, SearchVectors {
     }
 
     @Override
-    public List<ProductListingItem> search(SearchText text, ProductFilter filter, Optional<ProductSort> sort,
-                                           int offset, int limit) {
+    public List<ListedProduct> search(SearchText text, ProductFilter filter, Optional<ProductSort> sort,
+                                      int offset, int limit) {
         String order = sort.map(ProductSort::name).orElse(ListedProductsSql.RELEVANCE);
         return jdbc.query(ListedProductsSql.LIST, ListedProductsSql.parameters(text.value(), filter, order, offset,
-            limit), ListedProductsSql::toItem);
+            limit), ListedProductsSql::toListed);
+    }
+
+    @Override
+    public long count(SearchText text, ProductFilter filter) {
+        return jdbc.queryForObject(ListedProductsSql.COUNT, ListedProductsSql.parameters(text.value(), filter),
+            Long.class);
     }
 
     @Override

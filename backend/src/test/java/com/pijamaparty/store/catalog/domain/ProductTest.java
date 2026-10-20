@@ -7,6 +7,7 @@ import com.pijamaparty.store.catalog.domain.Product.MatrixOutcome;
 import com.pijamaparty.store.catalog.domain.Product.PublishOutcome;
 import com.pijamaparty.store.catalog.domain.Product.VariantOutcome;
 import com.pijamaparty.store.platform.domain.Money;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,16 @@ class ProductTest {
         assertThat(product.variants()).isEmpty();
         assertThat(product.slug()).isEqualTo(new Slug("pijama-de-algodon"));
         assertThat(product.createdAt()).isEqualTo(CREATED);
+    }
+
+    @Test
+    void givenAProductCreated10Or40DaysAgo_whenAskedIfNew_thenOnlyTheFirstIs() {
+        Product product = product("Pijama");
+
+        assertThat(product.isNew(CREATED.plus(Duration.ofDays(10)))).isTrue();
+        assertThat(product.isNew(CREATED.plus(Duration.ofDays(30)).minusSeconds(1))).isTrue();
+        assertThat(product.isNew(CREATED.plus(Duration.ofDays(30)))).isFalse();
+        assertThat(product.isNew(CREATED.plus(Duration.ofDays(40)))).isFalse();
     }
 
     @Test

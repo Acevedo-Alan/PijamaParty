@@ -11,5 +11,8 @@ import java.util.List;
 public interface ProductListingQuery {
 
     /** The listed products that match {@code filter}, in {@code sort} order, skipping {@code offset}. */
-    List<ProductListingItem> list(ProductFilter filter, ProductSort sort, int offset, int limit);
+    List<ListedProduct> list(ProductFilter filter, ProductSort sort, int offset, int limit);
+
+    /** How many listed products match {@code filter} (D-11). */
+    long count(ProductFilter filter);
 }

@@ -75,21 +75,68 @@
   margin-top: 2px;
 }
 
-.badge {
+.card-badges {
   position: absolute;
   top: 10px;
   left: 10px;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.badge {
   font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 999px;
 }
 
+.badge.new {
+  background: var(--rose);
+  color: var(--ink);
+}
+
 .badge.sold-out {
   background: var(--surface);
   color: var(--ink-soft);
   border: 1px solid var(--line);
+}
+
+/* D-04: the colors with stock as small circles; light tones get the strong border (3:1, colorTones.ts). */
+.swatches-mini {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.dot.outlined {
+  border-color: var(--line-strong);
+}
+
+.swatch-name,
+.dot-more {
+  font-size: 11px;
+  line-height: 13px;
+  color: var(--ink-soft);
+}
+
+/* D-11: "N productos" above the grid. */
+.result-count {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
 }
 
 .skeleton-card {

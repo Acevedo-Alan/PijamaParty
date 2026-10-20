@@ -11,6 +11,7 @@ import com.pijamaparty.store.catalog.domain.ProductFilter;
 import com.pijamaparty.store.catalog.domain.ProductSort;
 import com.pijamaparty.store.catalog.domain.SearchText;
 import com.pijamaparty.store.catalog.domain.Size;
+import com.pijamaparty.store.platform.domain.Money;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -156,9 +157,23 @@ public abstract class ProductSearchContractTest<T extends ProductSearchQuery & S
         persistAndForget();
 
         assertThat(subject.search(text("pijama"), ProductFilter.none(), Optional.empty(), 0, 2))
-            .extracting(ProductListingItem::name).containsExactly("Pijama 5", "Pijama 4");
+            .extracting(ListedProduct::name).containsExactly("Pijama 5", "Pijama 4");
         assertThat(subject.search(text("pijama"), ProductFilter.none(), Optional.empty(), 4, 2))
-            .extracting(ProductListingItem::name).containsExactly("Pijama 1");
+            .extracting(ListedProduct::name).containsExactly("Pijama 1");
+    }
+
+    @Test
+    void givenMatchesAndAFilter_whenCounting_thenEveryMatchCountsWhateverThePage() {
+        for (int i = 1; i <= 3; i++) {
+            indexed(product(summer.id(), "Pijama " + i, i, M, ROSA, 1000L * i));
+        }
+        indexed(product(summer.id(), "Camisón", 4, M, ROSA, 1000));
+        persistAndForget();
+
+        assertThat(subject.count(text("pijama"), ProductFilter.none())).isEqualTo(3);
+        assertThat(subject.count(text("pijama"), new ProductFilter(Optional.empty(), Set.of(), Set.of(), Set.of(),
+            Set.of(), Set.of(), Optional.of(Money.of(2000)), Optional.empty()))).isEqualTo(2);
+        assertThat(subject.count(text("seda"), ProductFilter.none())).isZero();
     }
 
     @Test
@@ -201,7 +216,7 @@ public abstract class ProductSearchContractTest<T extends ProductSearchQuery & S
     }
 
     private List<String> names(String text, ProductFilter filter, Optional<ProductSort> sort) {
-        return subject.search(text(text), filter, sort, 0, 100).stream().map(ProductListingItem::name).toList();
+        return subject.search(text(text), filter, sort, 0, 100).stream().map(ListedProduct::name).toList();
     }
 
     private List<String> suggestions(String text) {

@@ -1,6 +1,6 @@
 package com.pijamaparty.store.catalog.adapter.out.persistence;
 
-import com.pijamaparty.store.catalog.application.ProductListingItem;
+import com.pijamaparty.store.catalog.application.ListedProduct;
 import com.pijamaparty.store.catalog.application.ProductListingQuery;
 import com.pijamaparty.store.catalog.application.ProductListingQueryContractTest;
 import com.pijamaparty.store.catalog.domain.Category;
@@ -61,8 +61,13 @@ class JdbcProductListingQueryContractTest
         implements ProductListingQuery {
 
         @Override
-        public List<ProductListingItem> list(ProductFilter filter, ProductSort sort, int offset, int limit) {
+        public List<ListedProduct> list(ProductFilter filter, ProductSort sort, int offset, int limit) {
             return transactions.execute(status -> adapter.list(filter, sort, offset, limit));
+        }
+
+        @Override
+        public long count(ProductFilter filter) {
+            return transactions.execute(status -> adapter.count(filter));
         }
     }
 }

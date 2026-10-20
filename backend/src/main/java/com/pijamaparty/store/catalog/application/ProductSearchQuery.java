@@ -17,8 +17,11 @@ public interface ProductSearchQuery {
      * The listed products that match {@code text} (web search syntax) and {@code filter}, skipping {@code offset}:
      * most relevant first when {@code sort} is empty, ties newest first.
      */
-    List<ProductListingItem> search(SearchText text, ProductFilter filter, Optional<ProductSort> sort, int offset,
-                                    int limit);
+    List<ListedProduct> search(SearchText text, ProductFilter filter, Optional<ProductSort> sort, int offset,
+                               int limit);
+
+    /** How many listed products match {@code text} and {@code filter} (D-11). */
+    long count(SearchText text, ProductFilter filter);
 
     /** Listed products whose texts hold every word of {@code text}, the last one as a prefix, most relevant first. */
     List<ProductSuggestion> suggest(SearchText text, int limit);

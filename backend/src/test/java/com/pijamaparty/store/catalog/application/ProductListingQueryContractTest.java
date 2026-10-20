@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.application;
 
 import static com.pijamaparty.store.catalog.application.ListingFixture.PLACEHOLDER;
+import static com.pijamaparty.store.catalog.application.ListingFixture.T0;
 import static com.pijamaparty.store.catalog.application.ListingFixture.product;
 import static com.pijamaparty.store.catalog.application.ListingFixture.variant;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,12 +59,45 @@ public abstract class ProductListingQueryContractTest<T extends ProductListingQu
         givenAvailable(variant(product, "M", "Rosa"), 2);
         persistAndForget();
 
-        ProductListingItem item = list(ProductFilter.none(), ProductSort.NEWEST).getFirst();
+        ListedProduct item = list(ProductFilter.none(), ProductSort.NEWEST).getFirst();
 
         assertThat(item.slug()).isEqualTo("pijama");
         assertThat(item.name()).isEqualTo("Pijama");
         assertThat(item.fromPrice()).isEqualTo(Money.of(4000));
         assertThat(item.soldOut()).isFalse();
+        assertThat(item.createdAt()).isEqualTo(T0);
+    }
+
+    @Test
+    void givenStockInSomeColors_whenListing_thenTheColorsAreThoseOfActivePricedVariantsWithStockInDisplayOrder() {
+        Product product = stored(product(summer, "Pijama", 0, List.of("S", "M"),
+            List.of("Celeste", "Beige", "Rosa", "Lila"), 1000, p -> p.inactive("M", "Lila").unpriced("S", "Lila")));
+        givenAvailable(variant(product, "S", "Rosa"), 3);
+        givenAvailable(variant(product, "M", "Rosa"), 1);
+        givenAvailable(variant(product, "S", "Celeste"), 2);
+        givenAvailable(variant(product, "M", "Lila"), 5);
+        givenAvailable(variant(product, "S", "Lila"), 5);
+        stored(product(summer, "Agotado", 1, M, ROSA, 1000));
+        persistAndForget();
+
+        assertThat(list(ProductFilter.none(), ProductSort.NEWEST))
+            .extracting(ListedProduct::name, ListedProduct::colors)
+            .containsExactly(
+                tuple("Agotado", List.of()),
+                tuple("Pijama", List.of("Celeste", "Rosa")));
+    }
+
+    @Test
+    void givenFilters_whenCounting_thenEveryListedMatchCountsWhateverThePage() {
+        for (int i = 1; i <= 5; i++) {
+            stocked(product(summer, "Pijama " + i, i, M, ROSA, 1000L * i), 1);
+        }
+        stocked(product(summer, "Oculto", 6, M, ROSA, 1000, p -> p.hidden()), 1);
+        persistAndForget();
+
+        assertThat(subject.count(ProductFilter.none())).isEqualTo(5);
+        assertThat(subject.count(filter(f -> f.minPrice(3000)))).isEqualTo(3);
+        assertThat(subject.count(filter(f -> f.sizes(Set.of(new Size("S")))))).isZero();
     }
 
     @Test
@@ -76,7 +110,7 @@ public abstract class ProductListingQueryContractTest<T extends ProductListingQu
         persistAndForget();
 
         assertThat(list(ProductFilter.none(), ProductSort.NEWEST))
-            .extracting(ProductListingItem::name, ProductListingItem::soldOut)
+            .extracting(ListedProduct::name, ListedProduct::soldOut)
             .containsExactly(
                 tuple("Sin stock cargado", true),
                 tuple("Inactiva con stock", true));
@@ -156,9 +190,9 @@ public abstract class ProductListingQueryContractTest<T extends ProductListingQu
         persistAndForget();
 
         assertThat(subject.list(ProductFilter.none(), ProductSort.NEWEST, 0, 2))
-            .extracting(ProductListingItem::name).containsExactly("Pijama 5", "Pijama 4");
+            .extracting(ListedProduct::name).containsExactly("Pijama 5", "Pijama 4");
         assertThat(subject.list(ProductFilter.none(), ProductSort.NEWEST, 4, 2))
-            .extracting(ProductListingItem::name).containsExactly("Pijama 1");
+            .extracting(ListedProduct::name).containsExactly("Pijama 1");
     }
 
     @Test
@@ -167,7 +201,7 @@ public abstract class ProductListingQueryContractTest<T extends ProductListingQu
         stocked(product(summer, "Sin fotos", 1, M, ROSA, 1000), 1);
         persistAndForget();
 
-        List<ProductListingItem> items = list(ProductFilter.none(), ProductSort.NEWEST);
+        List<ListedProduct> items = list(ProductFilter.none(), ProductSort.NEWEST);
 
         assertThat(items.get(0).image()).isEmpty();
         var first = withPhotos.images().getFirst();
@@ -176,7 +210,7 @@ public abstract class ProductListingQueryContractTest<T extends ProductListingQu
         assertThat(items.get(1).image().orElseThrow().placeholder()).isEqualTo(PLACEHOLDER);
     }
 
-    private List<ProductListingItem> list(ProductFilter filter, ProductSort sort) {
+    private List<ListedProduct> list(ProductFilter filter, ProductSort sort) {
         return subject.list(filter, sort, 0, 100);
     }
 
@@ -185,7 +219,7 @@ public abstract class ProductListingQueryContractTest<T extends ProductListingQu
     }
 
     private List<String> names(ProductFilter filter, ProductSort sort) {
-        return list(filter, sort).stream().map(ProductListingItem::name).toList();
+        return list(filter, sort).stream().map(ListedProduct::name).toList();
     }
 
     private static ProductFilter filter(UnaryOperator<FilterBuilder> changes) {

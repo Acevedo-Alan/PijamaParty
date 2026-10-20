@@ -1,6 +1,6 @@
 package com.pijamaparty.store.catalog.adapter.out.persistence;
 
-import com.pijamaparty.store.catalog.application.ProductListingItem;
+import com.pijamaparty.store.catalog.application.ListedProduct;
 import com.pijamaparty.store.catalog.application.ProductSearchContractTest;
 import com.pijamaparty.store.catalog.application.ProductSearchQuery;
 import com.pijamaparty.store.catalog.application.ProductSuggestion;
@@ -71,9 +71,14 @@ class JdbcProductSearchContractTest extends ProductSearchContractTest<JdbcProduc
         implements ProductSearchQuery, SearchVectors {
 
         @Override
-        public List<ProductListingItem> search(SearchText text, ProductFilter filter, Optional<ProductSort> sort,
-                                               int offset, int limit) {
+        public List<ListedProduct> search(SearchText text, ProductFilter filter, Optional<ProductSort> sort,
+                                          int offset, int limit) {
             return transactions.execute(status -> adapter.search(text, filter, sort, offset, limit));
+        }
+
+        @Override
+        public long count(SearchText text, ProductFilter filter) {
+            return transactions.execute(status -> adapter.count(text, filter));
         }
 
         @Override

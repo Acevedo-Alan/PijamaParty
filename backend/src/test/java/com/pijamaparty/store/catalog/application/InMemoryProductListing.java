@@ -38,7 +38,7 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
     }
 
     @Override
-    public List<ProductListingItem> list(ProductFilter filter, ProductSort sort, int offset, int limit) {
+    public List<ListedProduct> list(ProductFilter filter, ProductSort sort, int offset, int limit) {
         Comparator<Product> newestFirst = Comparator.comparing(Product::createdAt)
             .thenComparing(product -> product.id().value().toString())
             .reversed();
@@ -53,8 +53,13 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
             .sorted(order)
             .skip(offset)
             .limit(limit)
-            .map(this::toItem)
+            .map(this::toListed)
             .toList();
+    }
+
+    @Override
+    public long count(ProductFilter filter) {
+        return listed(filter.category()).stream().filter(product -> matches(product, filter)).count();
     }
 
     @Override
@@ -97,11 +102,14 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
             && filter.maxPrice().map(max -> !from.isGreaterThan(max)).orElse(true);
     }
 
-    private ProductListingItem toItem(Product product) {
-        return new ProductListingItem(product.slug().value(), product.details().name().value(),
+    private ListedProduct toListed(Product product) {
+        List<Variant> inStock = sellable(product).stream().filter(this::hasStock).toList();
+        return new ListedProduct(product.slug().value(), product.details().name().value(),
             product.images().stream().findFirst()
                 .map(image -> ProductListingItem.ListingImage.of(image.storageKey(), image.placeholder())),
-            fromPrice(product), sellable(product).stream().noneMatch(this::hasStock));
+            fromPrice(product), inStock.isEmpty(),
+            byPositionThenText(inStock, variant -> variant.color().value(), Variant::colorPosition),
+            product.createdAt());
     }
 
     private boolean hasStock(Variant variant) {

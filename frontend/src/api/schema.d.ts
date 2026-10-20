@@ -2383,10 +2383,14 @@ export interface components {
             /** Format: int64 */
             fromPriceCents?: number;
             soldOut?: boolean;
+            colors?: string[];
+            isNew?: boolean;
         };
         ProductListPageResponse: {
             items?: components["schemas"]["ProductListItemResponse"][];
             hasMore?: boolean;
+            /** Format: int64 */
+            total?: number;
         };
         DetailImageResponse: {
             color?: string | null;

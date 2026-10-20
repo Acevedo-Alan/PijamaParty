@@ -2,7 +2,7 @@ package com.pijamaparty.store.catalog.adapter.out.persistence;
 
 import com.pijamaparty.store.catalog.application.FilterOptions;
 import com.pijamaparty.store.catalog.application.FilterOptionsQuery;
-import com.pijamaparty.store.catalog.application.ProductListingItem;
+import com.pijamaparty.store.catalog.application.ListedProduct;
 import com.pijamaparty.store.catalog.application.ProductListingQuery;
 import com.pijamaparty.store.catalog.domain.Audience;
 import com.pijamaparty.store.catalog.domain.CategoryId;
@@ -67,9 +67,14 @@ class JdbcProductListingQuery implements ProductListingQuery, FilterOptionsQuery
     }
 
     @Override
-    public List<ProductListingItem> list(ProductFilter filter, ProductSort sort, int offset, int limit) {
+    public List<ListedProduct> list(ProductFilter filter, ProductSort sort, int offset, int limit) {
         return jdbc.query(ListedProductsSql.LIST, ListedProductsSql.parameters(null, filter, sort.name(), offset, limit),
-            ListedProductsSql::toItem);
+            ListedProductsSql::toListed);
+    }
+
+    @Override
+    public long count(ProductFilter filter) {
+        return jdbc.queryForObject(ListedProductsSql.COUNT, ListedProductsSql.parameters(null, filter), Long.class);
     }
 
     @Override

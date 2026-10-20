@@ -49,8 +49,8 @@ interface ProductListingProps {
 }
 
 /**
- * The grid of UC-01: 24 products at a time with "Show more", and one message for an empty or unknown category.
- * With filters and no matches it offers to clear them (UC-02).
+ * The grid of UC-01: the number of matches (D-11), 24 products at a time with "Show more", and one message for an
+ * empty or unknown category. With filters and no matches it offers to clear them (UC-02).
  */
 export function ProductListing({
   category,
@@ -124,8 +124,14 @@ export function ProductListing({
     );
   }
 
+  // D-11: every page says how many match; the latest one is the freshest.
+  const total = listing.data.pages.findLast((page) => page.status === 'listed')?.total ?? products.length;
+
   return (
     <>
+      <p className="result-count" role="status">
+        {es.catalog.productCount(total)}
+      </p>
       <ul className="grid">
         {products.map((product, index) => (
           <li key={product.slug}>

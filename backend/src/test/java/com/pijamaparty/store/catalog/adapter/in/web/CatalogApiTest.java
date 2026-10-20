@@ -97,10 +97,39 @@ class CatalogApiTest {
         mvc.perform(get(PRODUCTS))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items", hasSize(24)))
-            .andExpect(jsonPath("$.hasMore").value(true));
+            .andExpect(jsonPath("$.hasMore").value(true))
+            .andExpect(jsonPath("$.total").value(25));
         mvc.perform(get(PRODUCTS).param("page", "1"))
             .andExpect(jsonPath("$.items[*].name", contains("Pijama 0")))
-            .andExpect(jsonPath("$.hasMore").value(false));
+            .andExpect(jsonPath("$.hasMore").value(false))
+            .andExpect(jsonPath("$.total").value(25));
+        mvc.perform(get(PRODUCTS).param("size", "S"))
+            .andExpect(jsonPath("$.items", hasSize(0)))
+            .andExpect(jsonPath("$.total").value(0));
+    }
+
+    @Test
+    void givenColorsWithAndWithoutStockAndCreationDates_whenListed_thenEachItemHasItsColorsInStockAndWhetherItIsNew()
+        throws Exception {
+        UUID recent = product(summer, "Reciente", "SUMMER", true);
+        variant(recent, "M", "Rosa", 1000, 2);
+        variant(recent, "L", "Beige", 1000, 0);
+        UUID old = product(summer, "Viejo", "SUMMER", true);
+        variant(old, "M", "Rosa", 1000, 1);
+        app.update("update product set created_at = now() - interval '10 days' where id = ?", recent);
+        app.update("update product set created_at = now() - interval '40 days' where id = ?", old);
+        app.update("update product set search_vector = product_search_vector(id) where id = ?", recent);
+
+        mvc.perform(get(PRODUCTS))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[*].name", contains("Reciente", "Viejo")))
+            .andExpect(jsonPath("$.items[0].colors", contains("Rosa")))
+            .andExpect(jsonPath("$.items[0].isNew").value(true))
+            .andExpect(jsonPath("$.items[1].isNew").value(false));
+        mvc.perform(get(PRODUCTS).param("q", "reciente"))
+            .andExpect(jsonPath("$.items[0].colors", contains("Rosa")))
+            .andExpect(jsonPath("$.items[0].isNew").value(true))
+            .andExpect(jsonPath("$.total").value(1));
     }
 
     @Test

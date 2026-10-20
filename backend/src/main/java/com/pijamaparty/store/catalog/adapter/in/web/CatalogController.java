@@ -119,7 +119,7 @@ class CatalogController {
             Optional.ofNullable(minPrice), Optional.ofNullable(maxPrice), sort == null ? ProductSort.NEWEST : sort,
             page);
         return switch (listProducts.execute(query)) {
-            case ListProducts.Result.Listed listed -> page(listed.products(), listed.hasMore());
+            case ListProducts.Result.Listed listed -> page(listed.products(), listed.hasMore(), listed.total());
             case ListProducts.Result.UnknownCategory unknown -> unknownCategory();
             case ListProducts.Result.InvalidFilter invalid -> invalidFilter();
         };
@@ -132,7 +132,7 @@ class CatalogController {
             texts(parameters, "color"), texts(parameters, "material"), seasons, audiences,
             Optional.ofNullable(minPrice), Optional.ofNullable(maxPrice), Optional.ofNullable(sort), page);
         return switch (searchProducts.execute(query)) {
-            case SearchProducts.Result.Listed listed -> page(listed.products(), listed.hasMore());
+            case SearchProducts.Result.Listed listed -> page(listed.products(), listed.hasMore(), listed.total());
             case SearchProducts.Result.UnknownCategory unknown -> unknownCategory();
             case SearchProducts.Result.InvalidFilter invalid -> invalidFilter();
             case SearchProducts.Result.TextTooShort tooShort -> problem(HttpStatus.BAD_REQUEST, "Search text too short",
@@ -190,9 +190,10 @@ class CatalogController {
         return parameters.getOrDefault(name, List.of());
     }
 
-    private static ResponseEntity<ProductListPageResponse> page(List<ProductListingItem> products, boolean hasMore) {
+    private static ResponseEntity<ProductListPageResponse> page(List<ProductListingItem> products, boolean hasMore,
+                                                                long total) {
         return ResponseEntity.ok(new ProductListPageResponse(products.stream().map(ProductListItemResponse::of).toList(),
-            hasMore));
+            hasMore, total));
     }
 
     private static ResponseEntity<ProblemDetail> invalidFilter() {
@@ -211,15 +212,20 @@ class CatalogController {
         return ResponseEntity.status(status).body(problem);
     }
 
-    record ProductListPageResponse(List<ProductListItemResponse> items, boolean hasMore) {}
+    /** {@code total} counts every matching product, not only this page. */
+    record ProductListPageResponse(List<ProductListItemResponse> items, boolean hasMore, long total) {}
 
-    /** {@code image} is the product's first photo, null when it has none. */
+    /**
+     * {@code image} is the product's first photo, null when it has none; {@code colors} are those with available
+     * stock, in display order; {@code isNew} says it was created in the last 30 days.
+     */
     record ProductListItemResponse(String slug, String name, @Schema(nullable = true) ListingImageResponse image,
-                                   long fromPriceCents, boolean soldOut) {
+                                   long fromPriceCents, boolean soldOut, List<String> colors, boolean isNew) {
 
         static ProductListItemResponse of(ProductListingItem item) {
             return new ProductListItemResponse(item.slug(), item.name(),
-                item.image().map(ListingImageResponse::of).orElse(null), item.fromPrice().cents(), item.soldOut());
+                item.image().map(ListingImageResponse::of).orElse(null), item.fromPrice().cents(), item.soldOut(),
+                item.colors(), item.isNew());
         }
     }
 

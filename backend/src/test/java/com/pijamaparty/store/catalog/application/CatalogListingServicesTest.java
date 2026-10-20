@@ -1,14 +1,18 @@
 package com.pijamaparty.store.catalog.application;
 
+import static com.pijamaparty.store.catalog.application.ListingFixture.T0;
 import static com.pijamaparty.store.catalog.application.ListingFixture.category;
 import static com.pijamaparty.store.catalog.application.ListingFixture.product;
 import static com.pijamaparty.store.catalog.application.ListingFixture.variant;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductSort;
 import com.pijamaparty.store.catalog.domain.Season;
+import com.pijamaparty.store.platform.testing.MovableClock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -20,7 +24,8 @@ class CatalogListingServicesTest {
     private final InMemoryCategoryStore categories = new InMemoryCategoryStore();
     private final InMemoryProductStore products = new InMemoryProductStore(categories);
     private final InMemoryProductListing listing = new InMemoryProductListing(categories, products);
-    private final ListProducts list = new ListProductsService(categories, listing);
+    private final MovableClock clock = new MovableClock(T0.plus(Duration.ofDays(40)));
+    private final ListProducts list = new ListProductsService(categories, listing, clock);
     private final GetFilterOptions options = new GetFilterOptionsService(categories, listing);
 
     private final Category summer = saved(category("Verano", true));
@@ -38,6 +43,46 @@ class CatalogListingServicesTest {
         assertThat(first.hasMore()).isTrue();
         assertThat(second.products()).extracting(ProductListingItem::name).containsExactly("Pijama 0");
         assertThat(second.hasMore()).isFalse();
+    }
+
+    @Test
+    void given30Matches_whenTheCatalogOpens_thenTheTotalIs30With24ShownAndEveryPageSaysSo() {
+        for (int i = 0; i < 30; i++) {
+            stocked(product(summer.id(), "Pijama " + i, i, List.of("M"), List.of("Rosa"), 1000));
+        }
+
+        var first = (ListProducts.Result.Listed) list.execute(query(Optional.empty(), List.of(), Set.of(), 0));
+        var second = (ListProducts.Result.Listed) list.execute(query(Optional.empty(), List.of(), Set.of(), 1));
+        var pastTheEnd = (ListProducts.Result.Listed) list.execute(query(Optional.empty(), List.of(), Set.of(), 5));
+
+        assertThat(first.products()).hasSize(24);
+        assertThat(first.hasMore()).isTrue();
+        assertThat(first.total()).isEqualTo(30);
+        assertThat(second.total()).isEqualTo(30);
+        assertThat(pastTheEnd.products()).isEmpty();
+        assertThat(pastTheEnd.total()).isEqualTo(30);
+    }
+
+    @Test
+    void givenProductsCreated10And40DaysAgo_whenListed_thenOnlyTheFirstIsNew() {
+        stocked(product(summer.id(), "Viejo", 0, List.of("M"), List.of("Rosa"), 1000));
+        stocked(product(summer.id(), "Reciente", (int) Duration.ofDays(30).toMinutes(), List.of("M"),
+            List.of("Rosa"), 1000));
+
+        var listed = (ListProducts.Result.Listed) list.execute(query(Optional.empty(), List.of(), Set.of(), 0));
+
+        assertThat(listed.products()).extracting(ProductListingItem::name, ProductListingItem::isNew)
+            .containsExactly(tuple("Reciente", true), tuple("Viejo", false));
+    }
+
+    @Test
+    void givenStockInPinkAndNoneInBeige_whenListed_thenTheItemShowsOnlyPink() {
+        Product product = saved(product(summer.id(), "Pijama", 0, List.of("M"), List.of("Rosa", "Beige"), 1000));
+        listing.setAvailable(variant(product, "M", "Rosa"), 2);
+
+        var listed = (ListProducts.Result.Listed) list.execute(query(Optional.empty(), List.of(), Set.of(), 0));
+
+        assertThat(listed.products().getFirst().colors()).containsExactly("Rosa");
     }
 
     @Test

@@ -28,6 +28,8 @@ export function product(slug: string, overrides: Partial<ListItem> = {}): ListIt
     },
     fromPriceCents: 1_234_500,
     soldOut: false,
+    colors: [],
+    isNew: false,
     ...overrides,
   };
 }
@@ -36,8 +38,9 @@ export function products(count: number, prefix: string): ListItem[] {
   return Array.from({ length: count }, (_, index) => product(`${prefix}-${String(index)}`));
 }
 
-export function listed(items: ListItem[], hasMore = false) {
-  return answer(200, { items, hasMore });
+/** A page of the listing; without a total, the page holds every match. */
+export function listed(items: ListItem[], hasMore = false, total = items.length) {
+  return answer(200, { items, hasMore, total });
 }
 
 export function filterOptions(overrides: Partial<FilterOptionsBody> = {}) {

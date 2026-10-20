@@ -41,7 +41,8 @@ public interface ListProducts {
 
     sealed interface Result {
 
-        record Listed(List<ProductListingItem> products, boolean hasMore) implements Result {
+        /** {@code total} counts every match, not only this page (D-11). */
+        record Listed(List<ProductListingItem> products, boolean hasMore, long total) implements Result {
 
             public Listed {
                 products = List.copyOf(products);

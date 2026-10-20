@@ -49,18 +49,26 @@ public class InMemoryProductSearch implements ProductSearchQuery, SearchVectors 
     }
 
     @Override
-    public List<ProductListingItem> search(SearchText text, ProductFilter filter, Optional<ProductSort> sort,
-                                           int offset, int limit) {
+    public List<ListedProduct> search(SearchText text, ProductFilter filter, Optional<ProductSort> sort,
+                                      int offset, int limit) {
         List<String> terms = terms(text.words());
-        Stream<ProductListingItem> matching = listing.list(filter, sort.orElse(ProductSort.NEWEST), 0, Integer.MAX_VALUE)
-            .stream()
-            .filter(item -> rank(item.slug(), terms, false) > 0);
+        Stream<ListedProduct> matching = matching(terms, filter, sort.orElse(ProductSort.NEWEST));
         if (sort.isEmpty()) {
             // Stable: ties keep the newest-first order of the listing.
             matching = matching.sorted(Comparator.comparingDouble(
-                (ProductListingItem item) -> rank(item.slug(), terms, false)).reversed());
+                (ListedProduct item) -> rank(item.slug(), terms, false)).reversed());
         }
         return matching.skip(offset).limit(limit).toList();
+    }
+
+    @Override
+    public long count(SearchText text, ProductFilter filter) {
+        return matching(terms(text.words()), filter, ProductSort.NEWEST).count();
+    }
+
+    private Stream<ListedProduct> matching(List<String> terms, ProductFilter filter, ProductSort sort) {
+        return listing.list(filter, sort, 0, Integer.MAX_VALUE).stream()
+            .filter(item -> rank(item.slug(), terms, false) > 0);
     }
 
     @Override
@@ -73,7 +81,7 @@ public class InMemoryProductSearch implements ProductSearchQuery, SearchVectors 
         return listing.list(ProductFilter.none(), ProductSort.NEWEST, 0, Integer.MAX_VALUE).stream()
             .filter(item -> rank(item.slug(), terms, isPrefix(words)) > 0)
             .sorted(Comparator.comparingDouble(
-                (ProductListingItem item) -> rank(item.slug(), terms, isPrefix(words))).reversed())
+                (ListedProduct item) -> rank(item.slug(), terms, isPrefix(words))).reversed())
             .limit(limit)
             .map(item -> new ProductSuggestion(item.slug(), item.name(), item.image()))
             .toList();

@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.domain;
 
 import com.pijamaparty.store.platform.domain.Money;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -22,6 +23,9 @@ public final class Product {
 
     /** UC-06 (proposed): the most photos a product has. */
     public static final int MAX_IMAGES = 8;
+
+    /** D-05: how long a product carries the "Nuevo" label after it is created. */
+    public static final Duration NEW_FOR = Duration.ofDays(30);
 
     private static final Comparator<Variant> DISPLAY_ORDER =
         Comparator.comparingInt(Variant::sizePosition).thenComparingInt(Variant::colorPosition);
@@ -289,6 +293,16 @@ public final class Product {
 
     public Instant createdAt() {
         return createdAt;
+    }
+
+    /** D-05: created less than {@link #NEW_FOR} before {@code now}. */
+    public boolean isNew(Instant now) {
+        return isNew(createdAt, now);
+    }
+
+    /** D-05 for a product read without its aggregate, such as a row of the public grid. */
+    public static boolean isNew(Instant createdAt, Instant now) {
+        return createdAt.isAfter(now.minus(NEW_FOR));
     }
 
     public Instant updatedAt() {

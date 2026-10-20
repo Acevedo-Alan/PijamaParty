@@ -1,5 +1,6 @@
 package com.pijamaparty.store.catalog.adapter.out.persistence;
 
+import com.pijamaparty.store.catalog.application.ListedProduct;
 import com.pijamaparty.store.catalog.application.ProductListingItem;
 import com.pijamaparty.store.catalog.domain.Audience;
 import com.pijamaparty.store.catalog.domain.CategoryId;
@@ -14,7 +15,9 @@ import com.pijamaparty.store.platform.domain.Money;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -31,8 +34,9 @@ final class ListedProductsSql {
 
     // A listed product: published, of an active category, with an active priced variant. Its "from" price is the
     // lowest price of those variants, and it is sold out when none of them has available stock. With a text, it must
-    // match its search vector (web search syntax, spanish configuration, accents ignored).
-    static final String LIST = """
+    // match its search vector (web search syntax, spanish configuration, accents ignored). "matching" holds the
+    // listed products that pass every filter; LIST and COUNT read it, so both apply the same conditions.
+    private static final String MATCHING = """
         WITH search AS (
             SELECT websearch_to_tsquery('spanish', unaccent(CAST(:q AS text))) AS query
         ),
@@ -51,31 +55,51 @@ final class ListedProductsSql {
               AND (cardinality(CAST(:seasons AS text[])) = 0 OR p.season = ANY (CAST(:seasons AS text[])))
               AND (cardinality(CAST(:audiences AS text[])) = 0 OR p.audience = ANY (CAST(:audiences AS text[])))
             GROUP BY p.id
+        ),
+        matching AS (
+            SELECT l.*
+            FROM listed l
+            WHERE (CAST(:minPriceCents AS bigint) IS NULL OR l.from_price_cents >= CAST(:minPriceCents AS bigint))
+              AND (CAST(:maxPriceCents AS bigint) IS NULL OR l.from_price_cents <= CAST(:maxPriceCents AS bigint))
+              AND (cardinality(CAST(:sizes AS text[])) = 0 AND cardinality(CAST(:colors AS text[])) = 0
+                   OR EXISTS (
+                       SELECT 1
+                       FROM variant v
+                       JOIN v_variant_availability a ON a.variant_id = v.id
+                       WHERE v.product_id = l.id AND v.active AND v.price_cents IS NOT NULL AND a.available > 0
+                         AND (cardinality(CAST(:sizes AS text[])) = 0 OR v.size = ANY (CAST(:sizes AS text[])))
+                         AND (cardinality(CAST(:colors AS text[])) = 0 OR v.color = ANY (CAST(:colors AS text[])))))
         )
-        SELECT l.slug, l.name, l.from_price_cents, l.sold_out, i.storage_key, i.placeholder
-        FROM listed l
+        """;
+
+    // One page of the matching products with their first photo and the colors of their active priced variants with
+    // available stock, in display order (D-04, the rule of the color filter).
+    static final String LIST = MATCHING + """
+        SELECT m.slug, m.name, m.from_price_cents, m.sold_out, m.created_at, i.storage_key, i.placeholder,
+               ARRAY(SELECT v.color
+                     FROM variant v
+                     JOIN v_variant_availability a ON a.variant_id = v.id AND a.available > 0
+                     WHERE v.product_id = m.id AND v.active AND v.price_cents IS NOT NULL
+                     GROUP BY v.color
+                     ORDER BY min(v.color_position), v.color COLLATE "C") AS colors
+        FROM matching m
         LEFT JOIN LATERAL (
             SELECT storage_key, placeholder
             FROM product_image
-            WHERE product_id = l.id
+            WHERE product_id = m.id
             ORDER BY position, id
             LIMIT 1
         ) i ON true
-        WHERE (CAST(:minPriceCents AS bigint) IS NULL OR l.from_price_cents >= CAST(:minPriceCents AS bigint))
-          AND (CAST(:maxPriceCents AS bigint) IS NULL OR l.from_price_cents <= CAST(:maxPriceCents AS bigint))
-          AND (cardinality(CAST(:sizes AS text[])) = 0 AND cardinality(CAST(:colors AS text[])) = 0
-               OR EXISTS (
-                   SELECT 1
-                   FROM variant v
-                   JOIN v_variant_availability a ON a.variant_id = v.id
-                   WHERE v.product_id = l.id AND v.active AND v.price_cents IS NOT NULL AND a.available > 0
-                     AND (cardinality(CAST(:sizes AS text[])) = 0 OR v.size = ANY (CAST(:sizes AS text[])))
-                     AND (cardinality(CAST(:colors AS text[])) = 0 OR v.color = ANY (CAST(:colors AS text[])))))
-        ORDER BY CASE WHEN :sort = 'RELEVANCE' THEN ts_rank(l.search_vector, (SELECT query FROM search)) END DESC,
-                 CASE WHEN :sort = 'PRICE_ASC' THEN l.from_price_cents END ASC,
-                 CASE WHEN :sort = 'PRICE_DESC' THEN l.from_price_cents END DESC,
-                 l.created_at DESC, l.id DESC
+        ORDER BY CASE WHEN :sort = 'RELEVANCE' THEN ts_rank(m.search_vector, (SELECT query FROM search)) END DESC,
+                 CASE WHEN :sort = 'PRICE_ASC' THEN m.from_price_cents END ASC,
+                 CASE WHEN :sort = 'PRICE_DESC' THEN m.from_price_cents END DESC,
+                 m.created_at DESC, m.id DESC
         LIMIT :limit OFFSET :offset
+        """;
+
+    // D-11: how many products match, with the parameters of LIST (its sort, offset and limit are ignored).
+    static final String COUNT = MATCHING + """
+        SELECT count(*) FROM matching
         """;
 
     private ListedProductsSql() {
@@ -98,9 +122,16 @@ final class ListedProductsSql {
             .addValue("limit", limit);
     }
 
-    static ProductListingItem toItem(ResultSet row, int rowNumber) throws SQLException {
-        return new ProductListingItem(row.getString("slug"), row.getString("name"), image(row),
-            Money.of(row.getLong("from_price_cents")), row.getBoolean("sold_out"));
+    /** The parameters of {@link #COUNT}. */
+    static MapSqlParameterSource parameters(String text, ProductFilter filter) {
+        return parameters(text, filter, RELEVANCE, 0, 0);
+    }
+
+    static ListedProduct toListed(ResultSet row, int rowNumber) throws SQLException {
+        return new ListedProduct(row.getString("slug"), row.getString("name"), image(row),
+            Money.of(row.getLong("from_price_cents")), row.getBoolean("sold_out"),
+            List.of((String[]) row.getArray("colors").getArray()),
+            row.getObject("created_at", OffsetDateTime.class).toInstant());
     }
 
     /** The first photo from the columns {@code storage_key} and {@code placeholder}, if the product has one. */

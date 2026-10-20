@@ -12,6 +12,14 @@ export const es = {
     categoryTitle: 'Productos',
     fromPrice: 'Desde',
     soldOut: 'Agotado',
+    /** D-05: a product created in the last 30 days. */
+    isNew: 'Nuevo',
+    /** D-04: what a screen reader hears for the swatches of a card, e.g. "Colores: Rosa, Beige y Salvia". */
+    colors: (colors: readonly string[]) =>
+      `${colors.length === 1 ? 'Color' : 'Colores'}: ${new Intl.ListFormat('es', { type: 'conjunction' }).format(colors)}`,
+    /** D-11: the number of products that match, e.g. "1 producto" or "1.250 productos". */
+    productCount: (count: number) =>
+      `${count.toLocaleString('es-AR')} ${count === 1 ? 'producto' : 'productos'}`,
     showMore: 'Ver más',
     loading: 'Cargando productos…',
     loadingMore: 'Cargando…',
