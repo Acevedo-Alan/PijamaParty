@@ -159,7 +159,7 @@ public abstract class CustomerOrdersContractTest<
     protected NewOrder placed(Optional<UserId> customer, Instant at, Optional<AppliedCoupon> coupon) {
         Money discount = coupon.isPresent() ? Money.of(500_000) : Money.zero();
         var order = new NewOrder(OrderId.of(UUID.randomUUID()), subject.next(), newToken().hash(), customer,
-            new BuyerDetails("Ana María Pérez", "ana@example.com", "3425551234", "12345678"), ADDRESS,
+            new BuyerDetails("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"), ADDRESS,
             Province.SANTA_FE, LINES, OrderAmounts.of(Money.of(5_000_000), discount, Money.of(300_000)), coupon,
             PaymentProvider.MERCADOPAGO, "2026-10", at, StockHold.expiryOf(at));
         subject.insert(order);

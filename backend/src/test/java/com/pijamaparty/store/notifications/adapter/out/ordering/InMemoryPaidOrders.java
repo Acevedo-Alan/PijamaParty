@@ -20,7 +20,7 @@ class InMemoryPaidOrders implements PaidOrders, TrackingLinks {
     private final AtomicInteger sequence = new AtomicInteger();
 
     /**
-     * Test arrangement: order 1001 of Ana María Pérez, 2 "Pijama Luna" at $ 20.000 and 1 "Camisón <Sol>" at
+     * Test arrangement: order 1001 of María José Pérez, 2 "Pijama Luna" at $ 20.000 and 1 "Camisón <Sol>" at
      * $ 10.000, coupon VERANO10 ($ 5.000 off), shipping $ 3.000, total $ 48.000, to San Martín 1234, 3rd floor,
      * apartment B, Santa Fe.
      */
@@ -30,7 +30,7 @@ class InMemoryPaidOrders implements PaidOrders, TrackingLinks {
 
     PaidOrder paid(Money shipping, Optional<String> couponCode, Money discount) {
         Money subtotal = Money.of(5_000_000);
-        var order = new PaidOrder(UUID.randomUUID(), 1001, "Ana María Pérez", "ana@example.com",
+        var order = new PaidOrder(UUID.randomUUID(), 1001, "María José", "Pérez", "ana@example.com",
             List.of(new Line("Pijama Luna", "M", "Rosa", 2, Money.of(2_000_000), Money.of(4_000_000)),
                 new Line("Camisón <Sol>", "S", "Gris", 1, Money.of(1_000_000), Money.of(1_000_000))),
             subtotal, discount, couponCode, shipping, subtotal.minus(discount).plus(shipping),

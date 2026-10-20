@@ -281,7 +281,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Without a session, step 1 offers "¿Ya tenés una cuenta? Iniciar sesión". After signing in, the customer comes back to `/checkout` with the cart (UC-08 merges the guest cart).
 - **"Nombre y apellido" becomes two fields, "Nombre" and "Apellido" (D-13)**, each 1 to 50 characters, trimmed. The order keeps both (R-04). The other fields, validations and steps of UC-13 do not change.
 - Signed in, the checkout prefills them from the account name: the first word in "Nombre", the rest in "Apellido", both editable. The account keeps a single name (UC-19).
-- The paid-order and withdrawal emails greet the "Nombre" as typed ("Hola, María José"); tracking and the back office show "Nombre Apellido".
+- The paid-order and withdrawal emails greet the "Nombre" as typed ("Hola, María José"). Tracking keeps showing the first name only (UC-14: the link can be forwarded), now the "Nombre" as typed; the back office shows "Nombre Apellido".
 
 **Acceptance criteria**
 - Given a guest on step 1, when they choose "Iniciar sesión" and sign in, then they return to the checkout with their cart.
@@ -294,5 +294,5 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - `SignInPage` today always goes to `/`. It gains a `volver` query key, accepted only when it is a path of this store (starts with one `/`, not `//`), so it cannot be used as an open redirect.
 - Name split (D-13), one migration in `ordering`: `orders.customer_name` becomes `customer_first_name` and `customer_last_name` (each trimmed, 1 to 50, check constraints like the old one). The store has no real orders yet (it goes live in E6), so existing rows split at the first space, and a single word goes to the first name with `-` as the last name. A view or helper gives the full name where one is shown.
 - `ordering.domain.BuyerDetails(firstName, lastName, email, phone, nationalId)`; `BuyerDetails.firstNameOf` and `OrderEmailWriter.firstName` (the first-word guess) are removed: the emails use the stored first name.
-- API: `POST /api/checkout` takes `firstName` and `lastName` instead of `name`; tracking, `ordering.api` (`PaidOrders`, `WithdrawalNotices`, `AdminOrderDetails`) and the account data export (UC-28) carry both. OpenAPI and the typed client are updated; the e2e `fillCheckout` helper fills both fields.
+- API: `POST /api/checkout` takes `firstName` and `lastName` instead of `name`; tracking keeps `buyerFirstName` (now the stored first name, never the last name); `ordering.api` (`PaidOrders`, `WithdrawalNotices`, `AdminOrderDetails`) and the account data export (UC-28) carry both. OpenAPI and the typed client are updated; the e2e `fillCheckout` helper fills both fields.
 - Analytics and logs never carry either name (RNF-25, CLAUDE.md).

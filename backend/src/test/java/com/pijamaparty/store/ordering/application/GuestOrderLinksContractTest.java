@@ -135,7 +135,7 @@ public abstract class GuestOrderLinksContractTest<
         var token = new TrackingToken(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes));
         tokenIssued(token);
         var order = new NewOrder(OrderId.of(UUID.randomUUID()), subject.next(), token.hash(), customer,
-            new BuyerDetails("Ana María Pérez", email, "3425551234", "12345678"), ADDRESS, Province.SANTA_FE, LINES,
+            new BuyerDetails("Ana María", "Pérez", email, "3425551234", "12345678"), ADDRESS, Province.SANTA_FE, LINES,
             OrderAmounts.of(Money.of(2_000_000), Money.zero(), Money.of(300_000)), Optional.empty(),
             PaymentProvider.MERCADOPAGO, "2026-10", NOW, StockHold.expiryOf(NOW));
         subject.insert(order);

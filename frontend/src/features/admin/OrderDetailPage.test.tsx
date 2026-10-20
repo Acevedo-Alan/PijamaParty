@@ -22,7 +22,7 @@ function order(overrides: Partial<OrderBody> = {}): OrderBody {
     createdAt: '2026-10-13T18:00:00Z',
     updatedAt: '2026-10-13T18:05:00Z',
     deliveredAt: null,
-    buyer: { name: 'Ana Pérez', email: 'ana@example.com', phone: '3425551234', nationalId: '12345678' },
+    buyer: { firstName: 'Ana', lastName: 'Pérez', email: 'ana@example.com', phone: '3425551234', nationalId: '12345678' },
     address: {
       street: 'San Martín',
       number: '1234',

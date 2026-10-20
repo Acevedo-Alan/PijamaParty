@@ -25,12 +25,12 @@ import org.testcontainers.containers.PostgreSQLContainer;
 class OrderingSchemaTest {
 
     private static final String INSERT_ORDER = """
-        insert into orders (id, number, user_id, tracking_token_hash, status, customer_name, customer_email,
-                            customer_phone, national_id, street, street_number, floor, apartment, city, province,
-                            postal_code, subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_id,
-                            coupon_code, payment_provider, terms_version, reservation_expires_at,
+        insert into orders (id, number, user_id, tracking_token_hash, status, customer_first_name, customer_last_name,
+                            customer_email, customer_phone, national_id, street, street_number, floor, apartment,
+                            city, province, postal_code, subtotal_cents, discount_cents, shipping_cents, total_cents,
+                            coupon_id, coupon_code, payment_provider, terms_version, reservation_expires_at,
                             shipment_tracking_number, created_at, updated_at, delivered_at)
-        values (?, nextval('order_number_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        values (?, nextval('order_number_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 'MERCADOPAGO', '2026-10', now() + interval '30 minutes', ?, now(), now(), ?)
         """;
     private static final String INSERT_ITEM = """
@@ -67,8 +67,12 @@ class OrderingSchemaTest {
         rejects(row -> row.withNationalId("123456"), "orders_national_id_ck");
         rejects(row -> row.withNationalId("123456789"), "orders_national_id_ck");
         rejects(row -> row.withEmail("Ana@Example.com"), "orders_customer_email_ck");
-        rejects(row -> row.withName(" Ana"), "orders_customer_name_ck");
-        rejects(row -> row.withName("x".repeat(101)), "orders_customer_name_ck");
+        rejects(row -> row.withFirstName(" Ana"), "orders_customer_first_name_ck");
+        rejects(row -> row.withFirstName(""), "orders_customer_first_name_ck");
+        rejects(row -> row.withFirstName("x".repeat(51)), "orders_customer_first_name_ck");
+        rejects(row -> row.withLastName("Pérez "), "orders_customer_last_name_ck");
+        rejects(row -> row.withLastName(""), "orders_customer_last_name_ck");
+        rejects(row -> row.withLastName("x".repeat(51)), "orders_customer_last_name_ck");
         rejects(row -> row.withPostalCode("s3000abc"), "orders_postal_code_ck");
         rejects(row -> row.withPostalCode("300"), "orders_postal_code_ck");
         rejects(row -> row.withProvince("SANTA FE"), "orders_province_ck");
@@ -82,6 +86,14 @@ class OrderingSchemaTest {
             .withFloor(null));
 
         assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isEqualTo(2);
+    }
+
+    @Test
+    void givenACompoundFirstAndLastName_whenStored_thenEachIsKeptAsTyped() {
+        var id = store(Row.guest().withFirstName("María José").withLastName("Pérez Gómez"));
+
+        assertThat(owner.queryForMap("select customer_first_name, customer_last_name from orders where id = ?", id))
+            .containsEntry("customer_first_name", "María José").containsEntry("customer_last_name", "Pérez Gómez");
     }
 
     @Test
@@ -126,82 +138,87 @@ class OrderingSchemaTest {
     }
 
     /** One order row with valid defaults: a guest's order of the test tracking token, awaiting payment. */
-    private record Row(UUID id, UUID userId, String trackingHash, String status, String name, String email,
-                       String phone, String nationalId, String floor, String province, String postalCode,
-                       long subtotal, long discount, long shipping, long total, UUID couponId, String couponCode,
-                       String shipmentTrackingNumber) {
+    private record Row(UUID id, UUID userId, String trackingHash, String status, Buyer buyer, String floor,
+                       String province, String postalCode, long subtotal, long discount, long shipping, long total,
+                       UUID couponId, String couponCode, String shipmentTrackingNumber) {
 
         static Row guest() {
-            return new Row(UUID.randomUUID(), null, GUEST_TRACKING.hash(), "AWAITING_PAYMENT", "Ana Pérez",
-                "ana@example.com", "3425551234", "30123456", "2", "SANTA_FE", "S3000ABC", 2_000_000, 200_000,
-                300_000, 2_100_000, null, null, null);
+            return new Row(UUID.randomUUID(), null, GUEST_TRACKING.hash(), "AWAITING_PAYMENT",
+                new Buyer("Ana", "Pérez", "ana@example.com", "3425551234", "30123456"), "2", "SANTA_FE", "S3000ABC",
+                2_000_000, 200_000, 300_000, 2_100_000, null, null, null);
         }
 
         Object[] params() {
-            return new Object[] {id, userId, trackingHash, status, name, email, phone, nationalId, "San Martín",
-                "1234", floor, "B", "Santa Fe", province, postalCode, subtotal, discount, shipping, total, couponId,
-                couponCode, shipmentTrackingNumber, null};
+            return new Object[] {id, userId, trackingHash, status, buyer.firstName(), buyer.lastName(), buyer.email(),
+                buyer.phone(), buyer.nationalId(), "San Martín", "1234", floor, "B", "Santa Fe", province, postalCode,
+                subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber, null};
         }
 
         Row withTrackingHash(String value) {
-            return new Row(id, userId, value, status, name, email, phone, nationalId, floor, province, postalCode,
-                subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber);
+            return new Row(id, userId, value, status, buyer, floor, province, postalCode, subtotal, discount,
+                shipping, total, couponId, couponCode, shipmentTrackingNumber);
         }
 
         Row withStatus(String value) {
-            return new Row(id, userId, trackingHash, value, name, email, phone, nationalId, floor, province,
-                postalCode, subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber);
+            return new Row(id, userId, trackingHash, value, buyer, floor, province, postalCode, subtotal, discount,
+                shipping, total, couponId, couponCode, shipmentTrackingNumber);
         }
 
-        Row withName(String value) {
-            return new Row(id, userId, trackingHash, status, value, email, phone, nationalId, floor, province,
-                postalCode, subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber);
+        Row withFirstName(String value) {
+            return withBuyer(new Buyer(value, buyer.lastName(), buyer.email(), buyer.phone(), buyer.nationalId()));
+        }
+
+        Row withLastName(String value) {
+            return withBuyer(new Buyer(buyer.firstName(), value, buyer.email(), buyer.phone(), buyer.nationalId()));
         }
 
         Row withEmail(String value) {
-            return new Row(id, userId, trackingHash, status, name, value, phone, nationalId, floor, province,
-                postalCode, subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber);
+            return withBuyer(new Buyer(buyer.firstName(), buyer.lastName(), value, buyer.phone(), buyer.nationalId()));
         }
 
         Row withPhone(String value) {
-            return new Row(id, userId, trackingHash, status, name, email, value, nationalId, floor, province,
-                postalCode, subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber);
+            return withBuyer(new Buyer(buyer.firstName(), buyer.lastName(), buyer.email(), value, buyer.nationalId()));
         }
 
         Row withNationalId(String value) {
-            return new Row(id, userId, trackingHash, status, name, email, phone, value, floor, province, postalCode,
-                subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber);
+            return withBuyer(new Buyer(buyer.firstName(), buyer.lastName(), buyer.email(), buyer.phone(), value));
+        }
+
+        private Row withBuyer(Buyer value) {
+            return new Row(id, userId, trackingHash, status, value, floor, province, postalCode, subtotal, discount,
+                shipping, total, couponId, couponCode, shipmentTrackingNumber);
         }
 
         Row withFloor(String value) {
-            return new Row(id, userId, trackingHash, status, name, email, phone, nationalId, value, province,
-                postalCode, subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber);
+            return new Row(id, userId, trackingHash, status, buyer, value, province, postalCode, subtotal, discount,
+                shipping, total, couponId, couponCode, shipmentTrackingNumber);
         }
 
         Row withProvince(String value) {
-            return new Row(id, userId, trackingHash, status, name, email, phone, nationalId, floor, value,
-                postalCode, subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber);
+            return new Row(id, userId, trackingHash, status, buyer, floor, value, postalCode, subtotal, discount,
+                shipping, total, couponId, couponCode, shipmentTrackingNumber);
         }
 
         Row withPostalCode(String value) {
-            return new Row(id, userId, trackingHash, status, name, email, phone, nationalId, floor, province, value,
-                subtotal, discount, shipping, total, couponId, couponCode, shipmentTrackingNumber);
+            return new Row(id, userId, trackingHash, status, buyer, floor, province, value, subtotal, discount,
+                shipping, total, couponId, couponCode, shipmentTrackingNumber);
         }
 
         Row withAmounts(long newSubtotal, long newDiscount, long newShipping, long newTotal) {
-            return new Row(id, userId, trackingHash, status, name, email, phone, nationalId, floor, province,
-                postalCode, newSubtotal, newDiscount, newShipping, newTotal, couponId, couponCode,
-                shipmentTrackingNumber);
+            return new Row(id, userId, trackingHash, status, buyer, floor, province, postalCode, newSubtotal,
+                newDiscount, newShipping, newTotal, couponId, couponCode, shipmentTrackingNumber);
         }
 
         Row withCoupon(UUID newCouponId, String newCouponCode) {
-            return new Row(id, userId, trackingHash, status, name, email, phone, nationalId, floor, province,
-                postalCode, subtotal, discount, shipping, total, newCouponId, newCouponCode, shipmentTrackingNumber);
+            return new Row(id, userId, trackingHash, status, buyer, floor, province, postalCode, subtotal, discount,
+                shipping, total, newCouponId, newCouponCode, shipmentTrackingNumber);
         }
 
         Row withShipmentTrackingNumber(String value) {
-            return new Row(id, userId, trackingHash, status, name, email, phone, nationalId, floor, province,
-                postalCode, subtotal, discount, shipping, total, couponId, couponCode, value);
+            return new Row(id, userId, trackingHash, status, buyer, floor, province, postalCode, subtotal, discount,
+                shipping, total, couponId, couponCode, value);
         }
     }
+
+    private record Buyer(String firstName, String lastName, String email, String phone, String nationalId) {}
 }

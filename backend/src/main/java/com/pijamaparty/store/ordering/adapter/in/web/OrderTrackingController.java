@@ -204,7 +204,7 @@ class OrderTrackingController {
         static TrackedOrderResponse of(GetTrackedOrder.Result.Found found) {
             TrackedOrder order = found.order();
             var amounts = order.amounts();
-            return new TrackedOrderResponse(order.number(), order.status(), order.createdAt(), found.buyerFirstName(),
+            return new TrackedOrderResponse(order.number(), order.status(), order.createdAt(), order.buyerFirstName(),
                 order.lines().stream().map(TrackedItemResponse::of).toList(), amounts.subtotal().cents(),
                 amounts.discount().cents(), order.couponCode().orElse(null), amounts.shipping().cents(),
                 amounts.total().cents(), order.city(), order.province(), order.reservationExpiresAt(),

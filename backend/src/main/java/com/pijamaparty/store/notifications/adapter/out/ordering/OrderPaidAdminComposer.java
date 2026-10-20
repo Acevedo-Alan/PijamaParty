@@ -52,7 +52,8 @@ class OrderPaidAdminComposer implements EmailComposer {
         String subject = writer.message("notifications.order-paid.admin.subject", number);
         writer.heading(subject)
             .paragraph(writer.message("notifications.order-paid.admin.intro", number))
-            .block(writer.message("notifications.order-paid.admin.buyer"), List.of(order.buyerName()))
+            .block(writer.message("notifications.order-paid.admin.buyer"),
+                List.of(order.buyerFirstName() + " " + order.buyerLastName()))
             .block(writer.message("notifications.order-paid.admin.destination"),
                 List.of(order.address().city() + ", " + writer.province(order.address().province())))
             .summary(order)

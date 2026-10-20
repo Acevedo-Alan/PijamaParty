@@ -20,13 +20,14 @@ public interface PaidOrders {
      *
      * @param lines in the cart's order
      */
-    record PaidOrder(UUID orderId, long number, String buyerName, String buyerEmail, List<Line> lines,
-                     Money subtotal, Money discount, Optional<String> couponCode, Money shipping, Money total,
-                     Address address) {
+    record PaidOrder(UUID orderId, long number, String buyerFirstName, String buyerLastName, String buyerEmail,
+                     List<Line> lines, Money subtotal, Money discount, Optional<String> couponCode, Money shipping,
+                     Money total, Address address) {
 
         public PaidOrder {
             Objects.requireNonNull(orderId, "orderId");
-            Objects.requireNonNull(buyerName, "buyerName");
+            Objects.requireNonNull(buyerFirstName, "buyerFirstName");
+            Objects.requireNonNull(buyerLastName, "buyerLastName");
             Objects.requireNonNull(buyerEmail, "buyerEmail");
             lines = List.copyOf(lines);
             Objects.requireNonNull(subtotal, "subtotal");

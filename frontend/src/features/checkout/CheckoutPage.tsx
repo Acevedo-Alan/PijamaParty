@@ -5,6 +5,7 @@ import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { ADDRESSES_KEY, fetchAddresses, type SavedAddress } from '../account/addressBookApi.ts';
+import { signInBackTo } from '../account/returnPath.ts';
 import { useCustomer } from '../account/useCustomer.ts';
 import { trackAddPaymentInfo, trackBeginCheckout, type CheckoutForAnalytics } from '../analytics/checkoutEvents.ts';
 import { isCouponOutdone, type Cart, type CartItem } from '../cart/cartApi.ts';
@@ -588,7 +589,6 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 toPayment();
               }}
             >
-              <Field field="name" {...fieldProps} autoComplete="name" maxLength={100} />
               <Field
                 field="email"
                 {...fieldProps}
@@ -619,7 +619,17 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                   )}
                 </p>
               </Field>
+              {customer === null && (
+                <p className="checkout-sign-in">
+                  {es.checkout.haveAccount} <Link to={signInBackTo('/checkout')}>{es.checkout.signIn}</Link>
+                </p>
+              )}
               <div className="checkout-row">
+                <Field field="firstName" {...fieldProps} autoComplete="given-name" maxLength={50} />
+                <Field field="lastName" {...fieldProps} autoComplete="family-name" maxLength={50} />
+              </div>
+              <div className="checkout-row">
+                <Field field="nationalId" {...fieldProps} inputMode="numeric" autoComplete="off" maxLength={12} />
                 <Field
                   field="phone"
                   {...fieldProps}
@@ -629,7 +639,6 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                   maxLength={25}
                   hint={es.checkout.phoneHint}
                 />
-                <Field field="nationalId" {...fieldProps} inputMode="numeric" autoComplete="off" maxLength={12} />
               </div>
               {savedAddresses.length > 0 && (
                 <fieldset className="checkout-addresses">
@@ -678,19 +687,15 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
               )}
               {typingAddress && (
                 <>
-                  <div className="checkout-row checkout-row-street">
-                    <Field field="street" {...fieldProps} autoComplete="address-line1" maxLength={100} />
+                  <Field field="street" {...fieldProps} autoComplete="address-line1" maxLength={100} />
+                  <div className="checkout-row checkout-row-three">
                     <Field field="number" {...fieldProps} autoComplete="off" maxLength={10} />
-                  </div>
-                  <div className="checkout-row">
                     <Field field="floor" {...fieldProps} autoComplete="off" maxLength={10} required={false} />
                     <Field field="apartment" {...fieldProps} autoComplete="off" maxLength={10} required={false} />
                   </div>
                   <div className="checkout-row">
                     <Field field="city" {...fieldProps} autoComplete="address-level2" maxLength={80} />
-                    <Field field="postalCode" {...fieldProps} autoComplete="postal-code" maxLength={8} />
-                  </div>
-                  <div className={provinceInvalid || noShipping ? 'checkout-field error' : 'checkout-field'}>
+                    <div className={provinceInvalid || noShipping ? 'checkout-field error' : 'checkout-field'}>
                     <label htmlFor={provinceId}>{es.checkout.fields.province}</label>
                     <select
                       id={provinceId}
@@ -713,6 +718,10 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                       {provinceInvalid ? es.checkout.errors.province : noShipping ? es.checkout.noShipping : null}
                     </p>
                     {shippingNotes}
+                    </div>
+                  </div>
+                  <div className="checkout-row">
+                    <Field field="postalCode" {...fieldProps} autoComplete="postal-code" maxLength={8} />
                   </div>
                 </>
               )}
@@ -800,7 +809,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 goTo(1);
               }}
             >
-              <p>{form.name.trim()}</p>
+              <p>{`${form.firstName.trim()} ${form.lastName.trim()}`}</p>
               <p>{form.email.trim()}</p>
               <p>{form.phone.trim()}</p>
               <p>{es.checkout.nationalIdLine(form.nationalId.trim())}</p>

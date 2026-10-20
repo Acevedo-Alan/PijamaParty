@@ -51,12 +51,13 @@ class OrderingPurchasedProductsContractTest
         RANDOM.nextBytes(token);
         boolean shipped = status.equals("SHIPPED") || status.equals("DELIVERED");
         owner.update("""
-            insert into orders (id, number, user_id, tracking_token_hash, status, customer_name, customer_email,
+            insert into orders (id, number, user_id, tracking_token_hash, status, customer_first_name,
+                                customer_last_name, customer_email,
                                 customer_phone, national_id, street, street_number, city, province, postal_code,
                                 subtotal_cents, discount_cents, shipping_cents, total_cents, payment_provider,
                                 terms_version, reservation_expires_at, shipment_tracking_number, delivered_at,
                                 created_at, updated_at)
-            values (?, nextval('order_number_seq'), ?, ?, ?, 'Ana Pérez', 'ana@example.com', '3425551234',
+            values (?, nextval('order_number_seq'), ?, ?, ?, 'Ana', 'Pérez', 'ana@example.com', '3425551234',
                     '30123456', 'San Martín', '1234', 'Santa Fe', 'SANTA_FE', '3000', 1500000, 0, 300000, 1800000,
                     'MERCADOPAGO', '2026-10', now() + interval '30 minutes', ?,
                     case when ? then now() end, now(), now())

@@ -18,13 +18,14 @@ public interface WithdrawalNotices {
      *
      * @param buyerEmail the order's email now, where the code goes
      */
-    record WithdrawalNotice(UUID requestId, String code, long orderNumber, String buyerName, String buyerEmail,
-                            boolean outOfTerm) {
+    record WithdrawalNotice(UUID requestId, String code, long orderNumber, String buyerFirstName,
+                            String buyerLastName, String buyerEmail, boolean outOfTerm) {
 
         public WithdrawalNotice {
             Objects.requireNonNull(requestId, "requestId");
             Objects.requireNonNull(code, "code");
-            Objects.requireNonNull(buyerName, "buyerName");
+            Objects.requireNonNull(buyerFirstName, "buyerFirstName");
+            Objects.requireNonNull(buyerLastName, "buyerLastName");
             Objects.requireNonNull(buyerEmail, "buyerEmail");
         }
 

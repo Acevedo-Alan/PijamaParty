@@ -49,7 +49,7 @@ export default function checkout(carts: CookieState[]): void {
   const n = exec.vu.idInTest;
   const shopper = new Shopper(carts[n - 1] as CookieState);
   const key = uuid();
-  const body = checkoutBody(`Carga ${RUN} ${String(n)}`, `carga.${RUN}.${String(n)}@pijamaparty.test`);
+  const body = checkoutBody('Carga', `${RUN} ${String(n)}`, `carga.${RUN}.${String(n)}@pijamaparty.test`);
   const request = shopper.batchPost('/api/checkout', body, { 'Idempotency-Key': key }, { name: 'checkout' });
 
   const answers = http.batch([request, request]) as Answer[];

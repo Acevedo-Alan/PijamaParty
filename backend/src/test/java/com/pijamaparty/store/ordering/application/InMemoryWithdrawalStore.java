@@ -25,7 +25,8 @@ import java.util.UUID;
 public class InMemoryWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, SaveWithdrawals,
     WithdrawalNoticeDetails, WithdrawalPages, ActiveWithdrawalViews, WithdrawalResolutions {
 
-    public static final String BUYER_NAME = "Ana Pérez";
+    public static final String BUYER_FIRST_NAME = "Ana";
+    public static final String BUYER_LAST_NAME = "Pérez";
     public static final String BUYER_EMAIL = "ana@example.com";
 
     private final Map<Long, WithdrawableOrder> orders = new LinkedHashMap<>();
@@ -40,7 +41,7 @@ public class InMemoryWithdrawalStore implements WithdrawableOrders, ActiveWithdr
         }
     }
 
-    /** An order of {@link #BUYER_NAME} and {@link #BUYER_EMAIL}; answers it with its number. */
+    /** An order of {@link #BUYER_FIRST_NAME} {@link #BUYER_LAST_NAME}, {@link #BUYER_EMAIL}; answers it with its number. */
     public synchronized WithdrawableOrder place(OrderStatus status, Instant createdAt, Optional<Instant> deliveredAt) {
         var order = new WithdrawableOrder(OrderId.of(UUID.randomUUID()), nextNumber++, status, createdAt, deliveredAt);
         orders.put(order.number(), order);
@@ -77,7 +78,7 @@ public class InMemoryWithdrawalStore implements WithdrawableOrders, ActiveWithdr
     public synchronized Optional<WithdrawalNotice> noticeOf(UUID requestId) {
         return Optional.ofNullable(requests.get(requestId)).map(Stored::withdrawal).map(withdrawal ->
             new WithdrawalNotice(withdrawal.id(), withdrawal.code().value(), orderOf(withdrawal.order()).number(),
-                BUYER_NAME, BUYER_EMAIL, withdrawal.outOfTerm()));
+                BUYER_FIRST_NAME, BUYER_LAST_NAME, BUYER_EMAIL, withdrawal.outOfTerm()));
     }
 
     @Override
@@ -92,8 +93,8 @@ public class InMemoryWithdrawalStore implements WithdrawableOrders, ActiveWithdr
                 NewWithdrawal withdrawal = stored.withdrawal();
                 WithdrawableOrder order = orderOf(withdrawal.order());
                 return new WithdrawalSummary(withdrawal.id(), withdrawal.code(), order.id(), order.number(),
-                    order.status(), BUYER_NAME, withdrawal.createdAt(), withdrawal.outOfTerm(), stored.status(),
-                    stored.resolvedAt());
+                    order.status(), BUYER_FIRST_NAME + " " + BUYER_LAST_NAME, withdrawal.createdAt(),
+                    withdrawal.outOfTerm(), stored.status(), stored.resolvedAt());
             })
             .toList();
     }

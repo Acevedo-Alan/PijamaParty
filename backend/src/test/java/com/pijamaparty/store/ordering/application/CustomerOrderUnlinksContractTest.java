@@ -90,7 +90,7 @@ public abstract class CustomerOrderUnlinksContractTest<
         var token = new TrackingToken(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes));
         tokenIssued(token);
         var order = new NewOrder(OrderId.of(UUID.randomUUID()), subject.next(), token.hash(), customer,
-            new BuyerDetails("Ana María Pérez", email, "3425551234", "12345678"),
+            new BuyerDetails("Ana María", "Pérez", email, "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.empty(), Optional.empty(), "Santa Fe", "3000"),
             Province.SANTA_FE,
             List.of(new OrderLine(UUID.randomUUID(), "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 1)),

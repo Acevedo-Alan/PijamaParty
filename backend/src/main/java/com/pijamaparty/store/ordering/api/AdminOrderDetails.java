@@ -77,10 +77,11 @@ public interface AdminOrderDetails {
     }
 
     /** Who placed the order. Personal data (R-05): {@link #toString()} never prints it. */
-    record Buyer(String name, String email, String phone, String nationalId) {
+    record Buyer(String firstName, String lastName, String email, String phone, String nationalId) {
 
         public Buyer {
-            Objects.requireNonNull(name, "name");
+            Objects.requireNonNull(firstName, "firstName");
+            Objects.requireNonNull(lastName, "lastName");
             Objects.requireNonNull(email, "email");
             Objects.requireNonNull(phone, "phone");
             Objects.requireNonNull(nationalId, "nationalId");

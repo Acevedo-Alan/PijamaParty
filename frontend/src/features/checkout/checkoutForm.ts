@@ -39,7 +39,8 @@ export function isProvince(value: string): value is Province {
 
 /** Step 1 as typed. The server normalizes and validates it again (RNF-28), so it goes as typed. */
 export interface ShippingForm {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   nationalId: string;
@@ -56,7 +57,8 @@ export interface ShippingForm {
 export type FormField = keyof ShippingForm;
 
 export const EMPTY_FORM: ShippingForm = {
-  name: '',
+  firstName: '',
+  lastName: '',
   email: '',
   phone: '',
   nationalId: '',
@@ -71,10 +73,11 @@ export const EMPTY_FORM: ShippingForm = {
 
 /** The fields in the order of the form, so the first failing one takes the focus. */
 export const FORM_FIELDS: readonly FormField[] = [
-  'name',
   'email',
-  'phone',
+  'firstName',
+  'lastName',
   'nationalId',
+  'phone',
   'street',
   'number',
   'floor',
@@ -95,11 +98,21 @@ export const ADDRESS_FIELDS: readonly FormField[] = [
   'postalCode',
 ];
 
+/**
+ * D-13: the account keeps one name; its first word goes to "Nombre" and the rest to "Apellido", both editable.
+ */
+export function splitName(name: string): { firstName: string; lastName: string } {
+  const [firstName = '', ...rest] = name.trim().split(/\s+/);
+  return { firstName, lastName: rest.join(' ') };
+}
+
 /** UC-21: the customer's name, email and phone, only into the fields still empty. */
 export function withContactOf(form: ShippingForm, customer: Customer): ShippingForm {
+  const { firstName, lastName } = splitName(customer.name);
   return {
     ...form,
-    name: form.name === '' ? customer.name : form.name,
+    firstName: form.firstName === '' ? firstName : form.firstName,
+    lastName: form.lastName === '' ? lastName : form.lastName,
     email: form.email === '' ? customer.email : form.email,
     phone: form.phone === '' ? (customer.phone ?? '') : form.phone,
   };
@@ -150,7 +163,8 @@ export function isEmail(value: string): boolean {
 }
 
 const RULES: Record<FormField, (value: string) => boolean> = {
-  name: (value) => within(value, 1, 100),
+  firstName: (value) => within(value, 1, 50),
+  lastName: (value) => within(value, 1, 50),
   email: isEmail,
   phone: (value) => PHONE.test(value.replace(PHONE_SEPARATORS, '')),
   nationalId: (value) => NATIONAL_ID.test(value.replace(NATIONAL_ID_SEPARATORS, '')),
@@ -186,9 +200,9 @@ export function toPlaceOrderRequest(
   acceptedTerms: boolean,
   saveAddress: boolean,
 ): PlaceOrderRequest {
-  const { name, email, phone, nationalId, street, number, floor, apartment, city, postalCode } = form;
+  const { firstName, lastName, email, phone, nationalId, street, number, floor, apartment, city, postalCode } = form;
   return {
-    buyer: { name, email, phone, nationalId },
+    buyer: { firstName, lastName, email, phone, nationalId },
     address: {
       street,
       number,

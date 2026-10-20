@@ -44,7 +44,7 @@ public record ExportedOrder(OrderId id, long number, OrderStatus status, Instant
     }
 
     /** The order's copy of the buyer's data. */
-    public record Buyer(String name, String email, String phone, String nationalId) {
+    public record Buyer(String firstName, String lastName, String email, String phone, String nationalId) {
 
         @Override
         public String toString() {

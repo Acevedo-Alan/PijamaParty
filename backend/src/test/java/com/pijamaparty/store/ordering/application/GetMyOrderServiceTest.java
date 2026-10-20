@@ -76,7 +76,7 @@ class GetMyOrderServiceTest {
     private NewOrder placed(Optional<UserId> customer) {
         var order = new NewOrder(OrderId.of(UUID.randomUUID()), orders.next(),
             new TrackingToken("token-" + UUID.randomUUID()).hash(), customer,
-            new BuyerDetails("Ana María Pérez", "ana@example.com", "3425551234", "12345678"),
+            new BuyerDetails("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.of("3"), Optional.of("B"), "Santa Fe", "S3000ABC"),
             Province.SANTA_FE,
             List.of(new OrderLine(UUID.randomUUID(), "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 1)),

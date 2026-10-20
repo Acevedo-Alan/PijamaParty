@@ -5,7 +5,8 @@ import type { ProductForSale, Variant } from './admin.ts';
 /** The storefront steps a buyer takes, through the UI and its Spanish texts (frontend/src/i18n/es.ts). */
 
 export interface Buyer {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   nationalId: string;
@@ -19,7 +20,8 @@ export interface Buyer {
 /** A guest in Santa Fe with a unique email, so the emails each test counts are its own. */
 export function newBuyer(): Buyer {
   return {
-    name: 'Ana Pérez',
+    firstName: 'María José',
+    lastName: 'Pérez',
     email: `ana.${randomUUID().slice(0, 8)}@pijamaparty.test`,
     phone: '3424567890',
     nationalId: '30123456',
@@ -45,7 +47,8 @@ export async function fillCheckout(page: Page, buyer: Buyer): Promise<void> {
   await page.getByRole('button', { name: 'Iniciar compra' }).click();
   await expect(page.getByRole('heading', { name: 'Finalizar compra' })).toBeVisible();
 
-  await page.getByLabel('Nombre y apellido').fill(buyer.name);
+  await page.getByLabel('Nombre', { exact: true }).fill(buyer.firstName);
+  await page.getByLabel('Apellido', { exact: true }).fill(buyer.lastName);
   await page.getByLabel('Email').fill(buyer.email);
   await page.getByLabel('Teléfono').fill(buyer.phone);
   await page.getByLabel('DNI').fill(buyer.nationalId);

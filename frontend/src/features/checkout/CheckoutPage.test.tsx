@@ -73,7 +73,8 @@ const suggesting = (email: string) => new RegExp(`^${escaped(es.checkout.emailSu
 
 async function fillShipping(overrides: Partial<Record<string, string>> = {}) {
   const values: Record<string, string> = {
-    [es.checkout.fields.name]: 'Ana Pérez',
+    [es.checkout.fields.firstName]: 'Ana',
+    [es.checkout.fields.lastName]: 'Pérez',
     [es.checkout.fields.email]: 'ana@example.com',
     [es.checkout.fields.phone]: '342 456 7890',
     [es.checkout.fields.nationalId]: '30123456',
@@ -152,6 +153,22 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     expect(street).toHaveAttribute('aria-invalid', 'true');
     expect(street).toHaveAccessibleDescription(es.checkout.errors.street);
     expect(street).toHaveFocus();
+    expect(screen.queryByRole('heading', { name: es.checkout.paymentTitle })).not.toBeInTheDocument();
+  });
+
+  it('given an empty first name and a blank last name (D-13), when trying to go on, then each is marked', async () => {
+    stubGets();
+    renderRoute('/checkout');
+    await screen.findByRole('heading', { name: es.checkout.shippingTitle });
+
+    await fillShipping({ [es.checkout.fields.firstName]: '', [es.checkout.fields.lastName]: ' ' });
+    await chooseProvince('SANTA_FE');
+    await userEvent.click(next());
+
+    const firstName = field(es.checkout.fields.firstName);
+    expect(firstName).toHaveAccessibleDescription(es.checkout.errors.firstName);
+    expect(firstName).toHaveFocus();
+    expect(field(es.checkout.fields.lastName)).toHaveAccessibleDescription(es.checkout.errors.lastName);
     expect(screen.queryByRole('heading', { name: es.checkout.paymentTitle })).not.toBeInTheDocument();
   });
 
@@ -285,7 +302,13 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     expect(post).toHaveBeenCalledWith('/api/checkout', {
       params: { header: { 'Idempotency-Key': expect.stringMatching(UUID) as unknown } },
       body: {
-        buyer: { name: 'Ana Pérez', email: 'ana@example.com', phone: '342 456 7890', nationalId: '30123456' },
+        buyer: {
+          firstName: 'Ana',
+          lastName: 'Pérez',
+          email: 'ana@example.com',
+          phone: '342 456 7890',
+          nationalId: '30123456',
+        },
         address: { street: 'San Martín', number: '1234', city: 'Santa Fe', province: 'SANTA_FE', postalCode: '3000' },
         paymentProvider: 'MERCADOPAGO',
         acceptedTerms: true,
@@ -498,7 +521,12 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
   });
 });
 
-const ANA = { id: '00000000-0000-0000-0000-000000000001', email: 'ana@example.com', name: 'Ana Pérez', phone: '3424567890' };
+const ANA = {
+  id: '00000000-0000-0000-0000-000000000001',
+  email: 'ana@example.com',
+  name: 'Ana María Gómez',
+  phone: '3424567890',
+};
 
 function savedAddress(id: number, street: string, primary: boolean) {
   return {
@@ -566,7 +594,8 @@ describe('checkout with prefilled data (UC-21, T-E4-06)', { timeout: 30_000 }, (
     });
     expect(addressChoice(/^Rivadavia 1234/)).not.toBeChecked();
     expect(addressChoice(es.checkout.otherAddress)).not.toBeChecked();
-    expect(field(es.checkout.fields.name)).toHaveValue('Ana Pérez');
+    expect(field(es.checkout.fields.firstName)).toHaveValue('Ana');
+    expect(field(es.checkout.fields.lastName)).toHaveValue('María Gómez');
     expect(field(es.checkout.fields.email)).toHaveValue('ana@example.com');
     expect(field(es.checkout.fields.phone)).toHaveValue('3424567890');
     expect(field(es.checkout.fields.nationalId)).toHaveValue('');
@@ -589,7 +618,13 @@ describe('checkout with prefilled data (UC-21, T-E4-06)', { timeout: 30_000 }, (
       expect(post).toHaveBeenCalledWith('/api/checkout', {
         params: { header: { 'Idempotency-Key': expect.stringMatching(UUID) as unknown } },
         body: {
-          buyer: { name: 'Ana Pérez', email: 'ana@example.com', phone: '3424567890', nationalId: '30123456' },
+          buyer: {
+            firstName: 'Ana',
+            lastName: 'María Gómez',
+            email: 'ana@example.com',
+            phone: '3424567890',
+            nationalId: '30123456',
+          },
           address: {
             street: 'San Martín',
             number: '1234',
@@ -631,7 +666,13 @@ describe('checkout with prefilled data (UC-21, T-E4-06)', { timeout: 30_000 }, (
       expect(post).toHaveBeenCalledWith('/api/checkout', {
         params: { header: { 'Idempotency-Key': expect.stringMatching(UUID) as unknown } },
         body: {
-          buyer: { name: 'Ana Pérez', email: 'ana@example.com', phone: '3424567890', nationalId: '30123456' },
+          buyer: {
+            firstName: 'Ana',
+            lastName: 'María Gómez',
+            email: 'ana@example.com',
+            phone: '3424567890',
+            nationalId: '30123456',
+          },
           address: { street: 'Rivadavia', number: '550', city: 'Rosario', province: 'SANTA_FE', postalCode: '2000' },
           paymentProvider: 'MERCADOPAGO',
           acceptedTerms: true,
@@ -646,7 +687,8 @@ describe('checkout with prefilled data (UC-21, T-E4-06)', { timeout: 30_000 }, (
     renderRoute('/checkout');
 
     expect(await screen.findByLabelText(es.checkout.saveAddress)).not.toBeChecked();
-    expect(field(es.checkout.fields.name)).toHaveValue('Ana Pérez');
+    expect(field(es.checkout.fields.firstName)).toHaveValue('Ana');
+    expect(field(es.checkout.fields.lastName)).toHaveValue('María Gómez');
     expect(field(es.checkout.fields.phone)).toHaveValue('');
     expect(screen.queryByRole('group', { name: es.checkout.savedAddresses })).not.toBeInTheDocument();
     expect(field(es.checkout.fields.street)).toHaveValue('');
@@ -671,8 +713,26 @@ describe('checkout with prefilled data (UC-21, T-E4-06)', { timeout: 30_000 }, (
 
     await screen.findByRole('heading', { name: es.checkout.shippingTitle });
 
-    expect(field(es.checkout.fields.name)).toHaveValue('');
+    expect(field(es.checkout.fields.firstName)).toHaveValue('');
+    expect(field(es.checkout.fields.lastName)).toHaveValue('');
     expect(screen.queryByRole('group', { name: es.checkout.savedAddresses })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(es.checkout.saveAddress)).not.toBeInTheDocument();
+  });
+
+  it('given a guest on step 1 (T-E7-10), when it looks for its account, then it can sign in and come back', async () => {
+    stubGets();
+    renderRoute('/checkout');
+
+    const signIn = await screen.findByRole('link', { name: es.checkout.signIn });
+
+    expect(signIn).toHaveAttribute('href', '/cuenta/ingresar?volver=%2Fcheckout');
+  });
+
+  it('given a signed-in customer, when it opens the checkout, then it is not offered to sign in', async () => {
+    stubCustomerGets([]);
+    renderRoute('/checkout');
+
+    expect(await screen.findByLabelText(es.checkout.saveAddress)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: es.checkout.signIn })).not.toBeInTheDocument();
   });
 });

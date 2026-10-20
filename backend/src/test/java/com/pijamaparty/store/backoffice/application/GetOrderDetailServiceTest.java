@@ -98,7 +98,7 @@ class GetOrderDetailServiceTest {
     private static AdminOrder order(boolean paidAfterClosing) {
         return new AdminOrder(UUID.randomUUID(), 1001, paidAfterClosing ? Status.EXPIRED : Status.PAID,
             paidAfterClosing ? List.of() : List.of(Status.PREPARING, Status.CANCELLED), NOW, NOW, Optional.empty(),
-            new Buyer("Ana María Pérez", "ana@example.com", "3425551234", "12345678"),
+            new Buyer("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new Address("San Martín", "1234", Optional.empty(), Optional.empty(), "Santa Fe", "SANTA_FE", "S3000ABC"),
             List.of(new Line("Pijama Luna", "M", "Rosa", 1, Money.of(2_000_000), Money.of(2_000_000))),
             Money.of(2_000_000), Money.zero(), Optional.empty(), Money.of(300_000), Money.of(2_300_000),

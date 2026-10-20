@@ -88,7 +88,7 @@ public abstract class WithdrawalStoreContractTest<T extends WithdrawableOrders &
 
         assertThat(subject.codeOf(order.id())).contains(new WithdrawalCode("ARR-7K2M9QXZ"));
         assertThat(subject.noticeOf(withdrawal.id())).contains(new WithdrawalNotice(withdrawal.id(), "ARR-7K2M9QXZ",
-            order.number(), "Ana Pérez", "ana@example.com", true));
+            order.number(), "Ana", "Pérez", "ana@example.com", true));
     }
 
     @Test

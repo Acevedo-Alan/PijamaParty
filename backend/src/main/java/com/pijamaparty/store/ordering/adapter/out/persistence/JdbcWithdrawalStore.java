@@ -57,14 +57,16 @@ class JdbcWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, Save
         """;
 
     private static final String NOTICE = """
-        SELECT w.id, w.code, w.out_of_term, o.number, o.customer_name, o.customer_email
+        SELECT w.id, w.code, w.out_of_term, o.number, o.customer_first_name, o.customer_last_name,
+               o.customer_email
         FROM withdrawal_request w JOIN orders o ON o.id = w.order_id
         WHERE w.id = :id
         """;
 
     // T-E3-26: the back-office list. A small table (fewer than 20 orders a day), so no index of its own.
     private static final String PAGE_ALL = """
-        SELECT w.id, w.code, w.order_id, o.number, o.status AS order_status, o.customer_name, w.created_at,
+        SELECT w.id, w.code, w.order_id, o.number, o.status AS order_status,
+               o.customer_first_name || ' ' || o.customer_last_name AS customer_full_name, w.created_at,
                w.out_of_term, w.status, w.resolved_at
         FROM withdrawal_request w JOIN orders o ON o.id = w.order_id
         ORDER BY w.created_at DESC, w.code
@@ -72,7 +74,8 @@ class JdbcWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, Save
         """;
 
     private static final String PAGE_BY_STATUS = """
-        SELECT w.id, w.code, w.order_id, o.number, o.status AS order_status, o.customer_name, w.created_at,
+        SELECT w.id, w.code, w.order_id, o.number, o.status AS order_status,
+               o.customer_first_name || ' ' || o.customer_last_name AS customer_full_name, w.created_at,
                w.out_of_term, w.status, w.resolved_at
         FROM withdrawal_request w JOIN orders o ON o.id = w.order_id
         WHERE w.status = :status
@@ -133,8 +136,8 @@ class JdbcWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, Save
     public Optional<WithdrawalNotice> noticeOf(UUID requestId) {
         return jdbc.query(NOTICE, new MapSqlParameterSource("id", requestId), (row, n) ->
                 new WithdrawalNotice(row.getObject("id", UUID.class), row.getString("code"), row.getLong("number"),
-                    row.getString("customer_name"), row.getString("customer_email"),
-                    row.getBoolean("out_of_term")))
+                    row.getString("customer_first_name"), row.getString("customer_last_name"),
+                    row.getString("customer_email"), row.getBoolean("out_of_term")))
             .stream().findFirst();
     }
 
@@ -151,7 +154,7 @@ class JdbcWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, Save
         return new WithdrawalSummary(
             row.getObject("id", UUID.class), new WithdrawalCode(row.getString("code")),
             OrderId.of(row.getObject("order_id", UUID.class)), row.getLong("number"),
-            OrderStatus.valueOf(row.getString("order_status")), row.getString("customer_name"),
+            OrderStatus.valueOf(row.getString("order_status")), row.getString("customer_full_name"),
             row.getObject("created_at", OffsetDateTime.class).toInstant(), row.getBoolean("out_of_term"),
             WithdrawalStatus.valueOf(row.getString("status")),
             Optional.ofNullable(row.getObject("resolved_at", OffsetDateTime.class)).map(OffsetDateTime::toInstant));

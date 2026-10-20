@@ -278,8 +278,12 @@ export const es = {
     savedAddresses: 'Dirección de envío',
     otherAddress: 'Otra dirección',
     saveAddress: 'Guardar en mis direcciones',
+    /** D-13 (T-E7-10): a guest on step 1 may sign in and come back to the checkout with the cart. */
+    haveAccount: '¿Ya tenés una cuenta?',
+    signIn: 'Iniciar sesión',
     fields: {
-      name: 'Nombre y apellido',
+      firstName: 'Nombre',
+      lastName: 'Apellido',
       email: 'Email',
       phone: 'Teléfono',
       nationalId: 'DNI',
@@ -296,7 +300,8 @@ export const es = {
     chooseProvince: 'Elegí tu provincia',
     /** What each field needs, shown when it is empty or breaks a rule of UC-13. */
     errors: {
-      name: 'Ingresá tu nombre y apellido.',
+      firstName: 'Ingresá tu nombre, de hasta 50 caracteres.',
+      lastName: 'Ingresá tu apellido, de hasta 50 caracteres.',
       email: 'Ingresá un email válido.',
       phone: 'Ingresá un teléfono con código de área, de 8 a 15 números.',
       nationalId: 'Ingresá un DNI de 7 u 8 números, sin puntos.',

@@ -18,20 +18,11 @@ public interface GetTrackedOrder {
 
     sealed interface Result {
 
-        /**
-         * @param buyerFirstName the only part of the buyer's name the page shows
-         * @param payable        whether the payment can be retried now (still awaiting it, reservation not over)
-         */
-        record Found(TrackedOrder order, String buyerFirstName, boolean payable) implements Result {
+        /** @param payable whether the payment can be retried now (still awaiting it, reservation not over) */
+        record Found(TrackedOrder order, boolean payable) implements Result {
 
             public Found {
                 Objects.requireNonNull(order, "order");
-                Objects.requireNonNull(buyerFirstName, "buyerFirstName");
-            }
-
-            @Override
-            public String toString() {
-                return "Found[order=" + order + ", buyerFirstName=***, payable=" + payable + "]";
             }
         }
 

@@ -53,7 +53,7 @@ public abstract class TrackedOrdersContractTest<T extends SaveOrders & OrderNumb
         persistAndForget();
 
         assertThat(subject.find(token)).contains(new TrackedOrder(order.id(), order.number(),
-            OrderStatus.AWAITING_PAYMENT, NOW, "Ana María Pérez", "Santa Fe", Province.SANTA_FE, LINES,
+            OrderStatus.AWAITING_PAYMENT, NOW, "Ana María", "Santa Fe", Province.SANTA_FE, LINES,
             OrderAmounts.of(Money.of(5_000_000), Money.of(500_000), Money.of(300_000)), Optional.of("VERANO10"),
             StockHold.expiryOf(NOW), Optional.empty()));
     }
@@ -115,7 +115,7 @@ public abstract class TrackedOrdersContractTest<T extends SaveOrders & OrderNumb
     protected NewOrder newOrder(TrackingToken token, Optional<UserId> userId, Optional<AppliedCoupon> coupon) {
         Money discount = coupon.isPresent() ? Money.of(500_000) : Money.zero();
         return new NewOrder(OrderId.of(UUID.randomUUID()), subject.next(), token.hash(), userId,
-            new BuyerDetails("Ana María Pérez", "ana@example.com", "3425551234", "12345678"),
+            new BuyerDetails("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.of("3"), Optional.of("B"), "Santa Fe", "S3000ABC"),
             Province.SANTA_FE, LINES, OrderAmounts.of(Money.of(5_000_000), discount, Money.of(300_000)), coupon,
             PaymentProvider.MERCADOPAGO, "2026-10", NOW, StockHold.expiryOf(NOW));

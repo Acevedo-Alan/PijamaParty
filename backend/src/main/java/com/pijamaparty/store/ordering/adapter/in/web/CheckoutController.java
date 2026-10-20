@@ -205,7 +205,8 @@ class CheckoutController {
 
     private static String fieldName(CheckoutForm.Field field) {
         return switch (field) {
-            case NAME -> "name";
+            case FIRST_NAME -> "firstName";
+            case LAST_NAME -> "lastName";
             case EMAIL -> "email";
             case PHONE -> "phone";
             case NATIONAL_ID -> "nationalId";
@@ -270,16 +271,18 @@ class CheckoutController {
         }
 
         CheckoutForm toForm() {
-            return new CheckoutForm(buyer.name(), buyer.email(), buyer.phone(), buyer.nationalId(), address.street(),
-                address.number(), address.floor(), address.apartment(), address.city(), address.postalCode());
+            return new CheckoutForm(buyer.firstName(), buyer.lastName(), buyer.email(), buyer.phone(),
+                buyer.nationalId(), address.street(), address.number(), address.floor(), address.apartment(),
+                address.city(), address.postalCode());
         }
     }
 
     /**
      * As typed: the server trims and normalizes. {@code phone} may carry spaces, '+', '-' and parentheses, and
-     * {@code nationalId} dots and spaces.
+     * {@code nationalId} dots and spaces. {@code firstName} and {@code lastName} are kept apart (D-13).
      */
-    record BuyerRequest(@NotNull @Size(max = MAX_TEXT) String name, @NotNull @Size(max = MAX_TEXT) String email,
+    record BuyerRequest(@NotNull @Size(max = MAX_TEXT) String firstName,
+                        @NotNull @Size(max = MAX_TEXT) String lastName, @NotNull @Size(max = MAX_TEXT) String email,
                         @NotNull @Size(max = MAX_TEXT) String phone,
                         @NotNull @Size(max = MAX_TEXT) String nationalId) {}
 

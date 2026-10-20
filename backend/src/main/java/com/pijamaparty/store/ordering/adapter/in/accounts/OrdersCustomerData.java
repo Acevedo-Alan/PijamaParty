@@ -49,7 +49,7 @@ class OrdersCustomerData implements CustomerDataContributor {
             var buyer = order.buyer();
             return new OrderRecord(order.id().value(), order.number(), order.status(), order.createdAt(),
                 order.deliveredAt().orElse(null),
-                new BuyerRecord(buyer.name(), buyer.email(), buyer.phone(), buyer.nationalId()),
+                new BuyerRecord(buyer.firstName(), buyer.lastName(), buyer.email(), buyer.phone(), buyer.nationalId()),
                 new AddressRecord(address.street(), address.number(), address.floor().orElse(null),
                     address.apartment().orElse(null), address.city(), order.province(), address.postalCode()),
                 order.lines().stream().map(ItemRecord::of).toList(), amounts.subtotal().cents(),
@@ -63,7 +63,7 @@ class OrdersCustomerData implements CustomerDataContributor {
         }
     }
 
-    record BuyerRecord(String name, String email, String phone, String nationalId) {
+    record BuyerRecord(String firstName, String lastName, String email, String phone, String nationalId) {
 
         @Override
         public String toString() {

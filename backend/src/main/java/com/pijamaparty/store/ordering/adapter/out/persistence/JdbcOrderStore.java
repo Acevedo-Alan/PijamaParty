@@ -98,15 +98,15 @@ class JdbcOrderStore
 
     // UC-14: the buyer creates its own order, awaiting payment and bound to its tracking token (orders_*_insert).
     private static final String INSERT_ORDER = """
-        INSERT INTO orders (id, number, user_id, tracking_token_hash, status, customer_name, customer_email,
-                            customer_phone, national_id, street, street_number, floor, apartment, city, province,
-                            postal_code, subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_id,
-                            coupon_code, payment_provider, terms_version, reservation_expires_at, created_at,
-                            updated_at)
-        VALUES (:id, :number, :userId, :trackingTokenHash, 'AWAITING_PAYMENT', :customerName, :customerEmail,
-                :customerPhone, :nationalId, :street, :streetNumber, :floor, :apartment, :city, :province,
-                :postalCode, :subtotalCents, :discountCents, :shippingCents, :totalCents, :couponId, :couponCode,
-                :paymentProvider, :termsVersion, :reservationExpiresAt, :createdAt, :createdAt)
+        INSERT INTO orders (id, number, user_id, tracking_token_hash, status, customer_first_name, customer_last_name,
+                            customer_email, customer_phone, national_id, street, street_number, floor, apartment,
+                            city, province, postal_code, subtotal_cents, discount_cents, shipping_cents,
+                            total_cents, coupon_id, coupon_code, payment_provider, terms_version,
+                            reservation_expires_at, created_at, updated_at)
+        VALUES (:id, :number, :userId, :trackingTokenHash, 'AWAITING_PAYMENT', :customerFirstName, :customerLastName,
+                :customerEmail, :customerPhone, :nationalId, :street, :streetNumber, :floor, :apartment, :city,
+                :province, :postalCode, :subtotalCents, :discountCents, :shippingCents, :totalCents, :couponId,
+                :couponCode, :paymentProvider, :termsVersion, :reservationExpiresAt, :createdAt, :createdAt)
         """;
 
     private static final String INSERT_ITEM = """
@@ -117,7 +117,8 @@ class JdbcOrderStore
 
     // UC-14: the buyer reads its own order (orders_tracking_select, orders_customer_select).
     private static final String SELECT_TO_PAY = """
-        SELECT id, number, status, total_cents, payment_provider, customer_name, customer_email,
+        SELECT id, number, status, total_cents, payment_provider, customer_email,
+               customer_first_name || ' ' || customer_last_name AS customer_full_name,
                reservation_expires_at
         FROM orders WHERE id = :id
         """;
@@ -126,7 +127,7 @@ class JdbcOrderStore
     // confirmation email (T-E3-09). Filtering by the hash too keeps a customer, who also reads its other orders, to
     // this one.
     private static final String SELECT_TRACKED = """
-        SELECT id, number, status, created_at, customer_name, city, province, subtotal_cents, discount_cents,
+        SELECT id, number, status, created_at, customer_first_name, city, province, subtotal_cents, discount_cents,
                shipping_cents, total_cents, coupon_code, reservation_expires_at, shipment_tracking_number
         FROM orders o
         WHERE o.tracking_token_hash = :hash
@@ -148,8 +149,9 @@ class JdbcOrderStore
 
     // UC-17 (T-E3-09): the system reads the order a payment-confirmed email tells about (orders_staff_select).
     private static final String SELECT_PAID = """
-        SELECT id, number, customer_name, customer_email, street, street_number, floor, apartment, city, province,
-               postal_code, subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code
+        SELECT id, number, customer_first_name, customer_last_name, customer_email, street, street_number, floor,
+               apartment, city, province, postal_code, subtotal_cents, discount_cents, shipping_cents, total_cents,
+               coupon_code
         FROM orders WHERE id = :id
         """;
 
@@ -209,23 +211,27 @@ class JdbcOrderStore
 
     // UC-18: newest first, over orders_created_idx (V20); the number breaks ties between orders of the same instant.
     private static final String PAGE_ALL = """
-        SELECT id, number, created_at, status, customer_name, city, province, total_cents FROM orders
+        SELECT id, number, created_at, status, customer_first_name || ' ' || customer_last_name AS customer_full_name,
+               city, province, total_cents
+        FROM orders
         ORDER BY created_at DESC, number DESC
         LIMIT :limit OFFSET :offset
         """;
 
     // UC-18: by status, over orders_status_created_idx (V14).
     private static final String PAGE_BY_STATUS = """
-        SELECT id, number, created_at, status, customer_name, city, province, total_cents FROM orders
+        SELECT id, number, created_at, status, customer_first_name || ' ' || customer_last_name AS customer_full_name,
+               city, province, total_cents
+        FROM orders
         WHERE status = :status
         ORDER BY created_at DESC, number DESC
         LIMIT :limit OFFSET :offset
         """;
 
     private static final String SELECT_ADMIN_VIEW = """
-        SELECT id, number, status, created_at, updated_at, delivered_at, customer_name, customer_email,
-               customer_phone, national_id, street, street_number, floor, apartment, city, province, postal_code,
-               subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code, payment_provider,
+        SELECT id, number, status, created_at, updated_at, delivered_at, customer_first_name, customer_last_name,
+               customer_email, customer_phone, national_id, street, street_number, floor, apartment, city, province,
+               postal_code, subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code, payment_provider,
                shipment_tracking_number, paid_after_closing_at
         FROM orders WHERE id = :id
         """;
@@ -248,9 +254,10 @@ class JdbcOrderStore
     // UC-28 (T-E4-16): every order of a customer for its data download, newest first, over orders_user_created_idx. As
     // PAGE_OF_CUSTOMER, orders_customer_select limits a customer to its own and the filter keeps out a tracked order.
     private static final String SELECT_CUSTOMER_EXPORT = """
-        SELECT id, number, status, created_at, delivered_at, customer_name, customer_email, customer_phone, national_id,
-               street, street_number, floor, apartment, city, province, postal_code, subtotal_cents, discount_cents,
-               shipping_cents, total_cents, coupon_code, payment_provider, shipment_tracking_number
+        SELECT id, number, status, created_at, delivered_at, customer_first_name, customer_last_name, customer_email,
+               customer_phone, national_id, street, street_number, floor, apartment, city, province, postal_code,
+               subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code, payment_provider,
+               shipment_tracking_number
         FROM orders
         WHERE user_id = :userId
         ORDER BY created_at DESC, number DESC
@@ -315,7 +322,8 @@ class JdbcOrderStore
             .addValue("number", order.number())
             .addValue("userId", order.userId().map(UserId::value).orElse(null), Types.OTHER)
             .addValue("trackingTokenHash", order.trackingTokenHash())
-            .addValue("customerName", buyer.name())
+            .addValue("customerFirstName", buyer.firstName())
+            .addValue("customerLastName", buyer.lastName())
             .addValue("customerEmail", buyer.email())
             .addValue("customerPhone", buyer.phone())
             .addValue("nationalId", buyer.nationalId())
@@ -350,7 +358,7 @@ class JdbcOrderStore
         return jdbc.query(SELECT_TO_PAY, new MapSqlParameterSource("id", order.value()), (row, n) -> new OrderToPay(
                 OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
                 OrderStatus.valueOf(row.getString("status")), Money.of(row.getLong("total_cents")),
-                PaymentProvider.valueOf(row.getString("payment_provider")), row.getString("customer_name"),
+                PaymentProvider.valueOf(row.getString("payment_provider")), row.getString("customer_full_name"),
                 row.getString("customer_email"),
                 row.getObject("reservation_expires_at", OffsetDateTime.class).toInstant()))
             .stream().findFirst();
@@ -363,7 +371,7 @@ class JdbcOrderStore
         return jdbc.query(SELECT_TRACKED, new MapSqlParameterSource("hash", token.hash()), (row, n) -> {
                 OrderId id = OrderId.of(row.getObject("id", UUID.class));
                 return new TrackedOrder(id, row.getLong("number"), OrderStatus.valueOf(row.getString("status")),
-                    row.getObject("created_at", OffsetDateTime.class).toInstant(), row.getString("customer_name"),
+                    row.getObject("created_at", OffsetDateTime.class).toInstant(), row.getString("customer_first_name"),
                     row.getString("city"), Province.valueOf(row.getString("province")), linesOf(id),
                     new OrderAmounts(Money.of(row.getLong("subtotal_cents")), Money.of(row.getLong("discount_cents")),
                         Money.of(row.getLong("shipping_cents")), Money.of(row.getLong("total_cents"))),
@@ -398,8 +406,9 @@ class JdbcOrderStore
                     .map(line -> new Line(line.productName(), line.size(), line.color(), line.quantity(),
                         line.unitPrice(), line.amount()))
                     .toList();
-                return new PaidOrder(id.value(), row.getLong("number"), row.getString("customer_name"),
-                    row.getString("customer_email"), lines, Money.of(row.getLong("subtotal_cents")),
+                return new PaidOrder(id.value(), row.getLong("number"), row.getString("customer_first_name"),
+                    row.getString("customer_last_name"), row.getString("customer_email"), lines,
+                    Money.of(row.getLong("subtotal_cents")),
                     Money.of(row.getLong("discount_cents")), Optional.ofNullable(row.getString("coupon_code")),
                     Money.of(row.getLong("shipping_cents")), Money.of(row.getLong("total_cents")),
                     new Address(row.getString("street"), row.getString("street_number"),
@@ -487,7 +496,7 @@ class JdbcOrderStore
         return new OrderSummary(
             OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
             row.getObject("created_at", OffsetDateTime.class).toInstant(), OrderStatus.valueOf(row.getString("status")),
-            row.getString("customer_name"), row.getString("city"), Province.valueOf(row.getString("province")),
+            row.getString("customer_full_name"), row.getString("city"), Province.valueOf(row.getString("province")),
             Money.of(row.getLong("total_cents")));
     }
 
@@ -506,8 +515,9 @@ class JdbcOrderStore
                     row.getObject("updated_at", OffsetDateTime.class).toInstant(),
                     Optional.ofNullable(row.getObject("delivered_at", OffsetDateTime.class))
                         .map(OffsetDateTime::toInstant),
-                    new Buyer(row.getString("customer_name"), row.getString("customer_email"),
-                        row.getString("customer_phone"), row.getString("national_id")),
+                    new Buyer(row.getString("customer_first_name"), row.getString("customer_last_name"),
+                        row.getString("customer_email"), row.getString("customer_phone"),
+                        row.getString("national_id")),
                     new Address(row.getString("street"), row.getString("street_number"),
                         Optional.ofNullable(row.getString("floor")), Optional.ofNullable(row.getString("apartment")),
                         row.getString("city"), row.getString("province"), row.getString("postal_code")),
@@ -566,8 +576,8 @@ class JdbcOrderStore
             return new ExportedOrder(id, row.getLong("number"), OrderStatus.valueOf(row.getString("status")),
                 row.getObject("created_at", OffsetDateTime.class).toInstant(),
                 Optional.ofNullable(row.getObject("delivered_at", OffsetDateTime.class)).map(OffsetDateTime::toInstant),
-                new ExportedOrder.Buyer(row.getString("customer_name"), row.getString("customer_email"),
-                    row.getString("customer_phone"), row.getString("national_id")),
+                new ExportedOrder.Buyer(row.getString("customer_first_name"), row.getString("customer_last_name"),
+                    row.getString("customer_email"), row.getString("customer_phone"), row.getString("national_id")),
                 new ShippingAddress(row.getString("street"), row.getString("street_number"),
                     Optional.ofNullable(row.getString("floor")), Optional.ofNullable(row.getString("apartment")),
                     row.getString("city"), row.getString("postal_code")),

@@ -59,7 +59,7 @@ public abstract class PaidOrderDetailsContractTest<
         persistAndForget();
 
         assertThat(subject.detailsOf(order.id())).contains(new PaidOrder(order.id().value(), order.number(),
-            "Ana María Pérez", "ana@example.com",
+            "Ana María", "Pérez", "ana@example.com",
             List.of(new Line("Pijama Luna", "M", "Rosa", 2, Money.of(2_000_000), Money.of(4_000_000)),
                 new Line("Camisón Sol", "S", "Gris", 1, Money.of(1_000_000), Money.of(1_000_000))),
             Money.of(5_000_000), Money.of(500_000), Optional.of("VERANO10"), Money.of(300_000), Money.of(4_800_000),
@@ -154,7 +154,7 @@ public abstract class PaidOrderDetailsContractTest<
         checkoutTokens.put(token.hash(), token);
         Money discount = coupon.isPresent() ? Money.of(500_000) : Money.zero();
         return new NewOrder(OrderId.of(UUID.randomUUID()), subject.next(), token.hash(), Optional.empty(),
-            new BuyerDetails("Ana María Pérez", "ana@example.com", "3425551234", "12345678"),
+            new BuyerDetails("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", floor, apartment, "Santa Fe", "S3000ABC"),
             Province.SANTA_FE, LINES, OrderAmounts.of(Money.of(5_000_000), discount, Money.of(300_000)), coupon,
             PaymentProvider.MERCADOPAGO, "2026-10", NOW, StockHold.expiryOf(NOW));

@@ -313,6 +313,8 @@ class OrderAdminApiTest {
             .andExpect(jsonPath("$.status").value("PAID"))
             .andExpect(jsonPath("$.nextStatuses", contains("PREPARING", "CANCELLED")))
             .andExpect(jsonPath("$.alerts", contains("BUYER_EMAIL_FAILED")))
+            .andExpect(jsonPath("$.buyer.firstName").value("Ana"))
+            .andExpect(jsonPath("$.buyer.lastName").value("Pérez"))
             .andExpect(jsonPath("$.buyer.phone").value("3425551234"))
             .andExpect(jsonPath("$.buyer.nationalId").value("12345678"))
             .andExpect(jsonPath("$.address.city").value("Santa Fe"))
@@ -426,7 +428,8 @@ class OrderAdminApiTest {
             .andExpect(status().isOk());
         ObjectNode body = json.createObjectNode();
         body.putObject("buyer")
-            .put("name", "Ana Pérez")
+            .put("firstName", "Ana")
+            .put("lastName", "Pérez")
             .put("email", "ana@example.com")
             .put("phone", "342 555-1234")
             .put("nationalId", "12.345.678");

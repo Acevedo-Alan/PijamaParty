@@ -13,23 +13,34 @@ import org.junit.jupiter.params.provider.ValueSource;
 /** UC-13: the buyer data and the address, normalized and validated by the domain (RNF-28). */
 class CheckoutFormTest {
 
-    private static final CheckoutForm VALID = new CheckoutForm("Ana Pérez", "ana@example.com", "342 555-1234",
+    private static final CheckoutForm VALID = new CheckoutForm("Ana", "Pérez", "ana@example.com", "342 555-1234",
         "12.345.678", "San Martín", "1234", null, null, "Santa Fe", "3000");
 
     @Test
     void givenDataAsTyped_whenValidated_thenItIsTrimmedAndNormalized() {
-        var form = new CheckoutForm("  Ana Pérez ", " Ana@Example.COM ", "+54 (342) 555-1234", "12.345.678",
+        var form = new CheckoutForm("  Ana ", " Pérez  ", " Ana@Example.COM ", "+54 (342) 555-1234", "12.345.678",
             " San Martín ", " 1234 ", " 3 ", " B ", " Santa Fe ", " s3000abc ");
 
         assertThat(form.validate()).isEqualTo(new Outcome.Valid(
-            new BuyerDetails("Ana Pérez", "ana@example.com", "543425551234", "12345678"),
+            new BuyerDetails("Ana", "Pérez", "ana@example.com", "543425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.of("3"), Optional.of("B"), "Santa Fe", "S3000ABC")));
     }
 
     @Test
+    void givenACompoundFirstName_whenValidated_thenItIsKeptAsTyped() {
+        var form = new CheckoutForm("María José", "Pérez Gómez", "ana@example.com", "3425551234", "12345678",
+            "San Martín", "1234", null, null, "Santa Fe", "3000");
+
+        var valid = (Outcome.Valid) form.validate();
+
+        assertThat(valid.buyer().firstName()).isEqualTo("María José");
+        assertThat(valid.buyer().lastName()).isEqualTo("Pérez Gómez");
+    }
+
+    @Test
     void givenBlankFloorAndApartment_whenValidated_thenTheAddressHasNone() {
-        var form = new CheckoutForm("Ana", "ana@example.com", "3425551234", "1234567", "Rivadavia", "10", "  ", "",
-            "Rosario", "2000");
+        var form = new CheckoutForm("Ana", "Pérez", "ana@example.com", "3425551234", "1234567", "Rivadavia", "10",
+            "  ", "", "Rosario", "2000");
 
         var valid = (Outcome.Valid) form.validate();
 
@@ -40,10 +51,10 @@ class CheckoutFormTest {
 
     @Test
     void givenEveryRequiredFieldEmpty_whenValidated_thenEachIsNamed() {
-        var form = new CheckoutForm(" ", "", null, "", "", " ", null, null, "", "");
+        var form = new CheckoutForm(" ", null, "", null, "", "", " ", null, null, "", "");
 
-        assertThat(form.validate()).isEqualTo(new Outcome.Invalid(Set.of(Field.NAME, Field.EMAIL, Field.PHONE,
-            Field.NATIONAL_ID, Field.STREET, Field.NUMBER, Field.CITY, Field.POSTAL_CODE)));
+        assertThat(form.validate()).isEqualTo(new Outcome.Invalid(Set.of(Field.FIRST_NAME, Field.LAST_NAME,
+            Field.EMAIL, Field.PHONE, Field.NATIONAL_ID, Field.STREET, Field.NUMBER, Field.CITY, Field.POSTAL_CODE)));
     }
 
     @ParameterizedTest
@@ -83,29 +94,30 @@ class CheckoutFormTest {
 
     @Test
     void givenTextsAtTheirLimits_whenValidated_thenTheyAreAcceptedAndOneMoreCharacterIsNot() {
-        var atLimits = new CheckoutForm("n".repeat(100), "ana@example.com", "3425551234", "12345678",
+        var atLimits = new CheckoutForm("n".repeat(50), "l".repeat(50), "ana@example.com", "3425551234", "12345678",
             "s".repeat(100), "1".repeat(10), "f".repeat(10), "a".repeat(10), "c".repeat(80), "3000");
-        var overLimits = new CheckoutForm("n".repeat(101), "ana@example.com", "3425551234", "12345678",
-            "s".repeat(101), "1".repeat(11), "f".repeat(11), "a".repeat(11), "c".repeat(81), "3000");
+        var overLimits = new CheckoutForm("n".repeat(51), "l".repeat(51), "ana@example.com", "3425551234",
+            "12345678", "s".repeat(101), "1".repeat(11), "f".repeat(11), "a".repeat(11), "c".repeat(81), "3000");
 
         assertThat(atLimits.validate()).isInstanceOf(Outcome.Valid.class);
-        assertThat(overLimits.validate()).isEqualTo(new Outcome.Invalid(Set.of(Field.NAME, Field.STREET,
-            Field.NUMBER, Field.FLOOR, Field.APARTMENT, Field.CITY)));
+        assertThat(overLimits.validate()).isEqualTo(new Outcome.Invalid(Set.of(Field.FIRST_NAME, Field.LAST_NAME,
+            Field.STREET, Field.NUMBER, Field.FLOOR, Field.APARTMENT, Field.CITY)));
     }
 
     @Test
     void givenPersonalData_whenPrinted_thenNoneOfItShows() {
         var valid = (Outcome.Valid) VALID.validate();
 
-        assertThat(VALID.toString()).doesNotContain("Ana", "12.345.678", "San Martín");
-        assertThat(valid.buyer().toString()).doesNotContain("Ana", "12345678", "example");
+        assertThat(VALID.toString()).doesNotContain("Ana", "Pérez", "12.345.678", "San Martín");
+        assertThat(valid.buyer().toString()).doesNotContain("Ana", "Pérez", "12345678", "example");
         assertThat(valid.address().toString()).doesNotContain("San Martín", "1234", "3000");
     }
 
     /** {@link #VALID} with {@code value} in {@code field}. */
     private static CheckoutForm with(String value, Field field) {
         return new CheckoutForm(
-            field == Field.NAME ? value : VALID.name(),
+            field == Field.FIRST_NAME ? value : VALID.firstName(),
+            field == Field.LAST_NAME ? value : VALID.lastName(),
             field == Field.EMAIL ? value : VALID.email(),
             field == Field.PHONE ? value : VALID.phone(),
             field == Field.NATIONAL_ID ? value : VALID.nationalId(),

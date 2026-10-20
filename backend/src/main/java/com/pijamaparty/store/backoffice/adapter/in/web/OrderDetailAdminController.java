@@ -81,7 +81,8 @@ class OrderDetailAdminController {
             var buyer = order.buyer();
             return new AdminOrderResponse(order.orderId(), order.number(), order.status(), order.nextStatuses(),
                 order.createdAt(), order.updatedAt(), order.deliveredAt().orElse(null),
-                new AdminOrderBuyerResponse(buyer.name(), buyer.email(), buyer.phone(), buyer.nationalId()),
+                new AdminOrderBuyerResponse(buyer.firstName(), buyer.lastName(), buyer.email(), buyer.phone(),
+                    buyer.nationalId()),
                 AdminOrderAddressResponse.of(order.address()),
                 order.lines().stream().map(AdminOrderLineResponse::of).toList(), order.subtotal().cents(),
                 order.discount().cents(), order.couponCode().orElse(null), order.shipping().cents(),
@@ -104,7 +105,8 @@ class OrderDetailAdminController {
         }
     }
 
-    record AdminOrderBuyerResponse(String name, String email, String phone, String nationalId) {
+    record AdminOrderBuyerResponse(String firstName, String lastName, String email, String phone,
+                                   String nationalId) {
 
         @Override
         public String toString() {

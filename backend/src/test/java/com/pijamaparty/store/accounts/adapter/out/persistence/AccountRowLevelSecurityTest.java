@@ -72,11 +72,12 @@ class AccountRowLevelSecurityTest {
         values (?, ?, ?, ?, now(), now() + interval '24 hours')
         """;
     private static final String INSERT_ORDER = """
-        insert into orders (id, number, user_id, tracking_token_hash, status, customer_name, customer_email,
+        insert into orders (id, number, user_id, tracking_token_hash, status, customer_first_name,
+                            customer_last_name, customer_email,
                             customer_phone, national_id, street, street_number, city, province, postal_code,
                             subtotal_cents, discount_cents, shipping_cents, total_cents, payment_provider,
                             terms_version, reservation_expires_at, created_at, updated_at)
-        values (?, nextval('order_number_seq'), ?, ?, 'AWAITING_PAYMENT', 'Ana Pérez', 'a@example.com', '3425551234',
+        values (?, nextval('order_number_seq'), ?, ?, 'AWAITING_PAYMENT', 'Ana', 'Pérez', 'a@example.com', '3425551234',
                 '30123456', 'San Martín', '1234', 'Santa Fe', 'SANTA_FE', '3000', 2000000, 0, 300000, 2300000,
                 'MERCADOPAGO', '2026-10', now() + interval '30 minutes', now(), now())
         """;

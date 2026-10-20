@@ -64,7 +64,7 @@ public abstract class CustomerOrderExportsContractTest<T extends SaveOrders & Or
         assertThat(first.status()).isEqualTo(OrderStatus.AWAITING_PAYMENT);
         assertThat(first.createdAt()).isEqualTo(NOW);
         assertThat(first.deliveredAt()).isEmpty();
-        assertThat(first.buyer()).isEqualTo(new ExportedOrder.Buyer("Ana María Pérez", "ana@example.com",
+        assertThat(first.buyer()).isEqualTo(new ExportedOrder.Buyer("Ana María", "Pérez", "ana@example.com",
             "3425551234", "12345678"));
         assertThat(first.address()).isEqualTo(ADDRESS);
         assertThat(first.province()).isEqualTo(Province.SANTA_FE);
@@ -90,7 +90,7 @@ public abstract class CustomerOrderExportsContractTest<T extends SaveOrders & Or
         var token = new TrackingToken(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes));
         tokenIssued(token);
         var order = new NewOrder(OrderId.of(UUID.randomUUID()), subject.next(), token.hash(), Optional.of(customer),
-            new BuyerDetails("Ana María Pérez", "ana@example.com", "3425551234", "12345678"), ADDRESS,
+            new BuyerDetails("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"), ADDRESS,
             Province.SANTA_FE, LINES, OrderAmounts.of(Money.of(5_500_000), Money.zero(), Money.of(300_000)),
             Optional.empty(), PaymentProvider.MERCADOPAGO, "2026-10", at, StockHold.expiryOf(at));
         subject.insert(order);

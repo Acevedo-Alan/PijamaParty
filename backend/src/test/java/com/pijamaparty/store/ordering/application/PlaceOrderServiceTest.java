@@ -44,7 +44,7 @@ class PlaceOrderServiceTest {
         new OrderLine(PIJAMA, "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 2);
     private static final OrderLine CAMISONES =
         new OrderLine(CAMISON, "CS-S-GRIS", "Camisón Sol", "S", "Gris", Money.of(1_000_000), 1);
-    private static final CheckoutForm FORM = new CheckoutForm(" Ana Pérez ", "Ana@Example.com", "342 555-1234",
+    private static final CheckoutForm FORM = new CheckoutForm(" Ana ", " Pérez", "Ana@Example.com", "342 555-1234",
         "12.345.678", "San Martín", "1234", "3", null, "Santa Fe", "s3000abc");
 
     private final InMemoryCheckoutCarts carts = new InMemoryCheckoutCarts();
@@ -77,7 +77,7 @@ class PlaceOrderServiceTest {
         assertThat(order.number()).isEqualTo(1001);
         assertThat(order.trackingTokenHash()).isEqualTo(TRACKING.hash());
         assertThat(order.userId()).isEmpty();
-        assertThat(order.buyer()).isEqualTo(new BuyerDetails("Ana Pérez", "ana@example.com", "3425551234",
+        assertThat(order.buyer()).isEqualTo(new BuyerDetails("Ana", "Pérez", "ana@example.com", "3425551234",
             "12345678"));
         assertThat(order.address()).isEqualTo(new ShippingAddress("San Martín", "1234", Optional.of("3"),
             Optional.empty(), "Santa Fe", "S3000ABC"));
@@ -231,8 +231,8 @@ class PlaceOrderServiceTest {
 
     @Test
     void givenAnEmptyRequiredFieldAndAnInvalidNationalId_whenTheBuyerConfirms_thenEachIsNamedAndNothingHappens() {
-        var form = new CheckoutForm("Ana", "ana@example.com", "3425551234", "12345", "San Martín", "1234", null, null,
-            " ", "3000");
+        var form = new CheckoutForm("Ana", "Pérez", "ana@example.com", "3425551234", "12345", "San Martín", "1234",
+            null, null, " ", "3000");
 
         assertThat(placeOrder.execute(command(GUEST, form, true))).isEqualTo(
             new PlaceOrder.Result.InvalidBuyerData(Set.of(CheckoutForm.Field.NATIONAL_ID, CheckoutForm.Field.CITY)));

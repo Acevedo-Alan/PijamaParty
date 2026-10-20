@@ -136,7 +136,7 @@ class CorrectOrderEmailServiceTest {
     /** An order of {@link #token} with a misspelled email, placed and then taken to {@code status}. */
     private NewOrder placed(OrderStatus status) {
         NewOrder order = new NewOrder(OrderId.of(UUID.randomUUID()), orders.next(), token.hash(), Optional.empty(),
-            new BuyerDetails("Ana Pérez", "ana.perez@gmial.com", "3425551234", "12345678"),
+            new BuyerDetails("Ana", "Pérez", "ana.perez@gmial.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.empty(), Optional.empty(), "Santa Fe", "3000"),
             Province.SANTA_FE,
             List.of(new OrderLine(UUID.randomUUID(), "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 1)),

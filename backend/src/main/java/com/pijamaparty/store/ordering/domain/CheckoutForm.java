@@ -14,8 +14,9 @@ import java.util.regex.Pattern;
  * @param floor null or blank for none
  * @param apartment null or blank for none
  */
-public record CheckoutForm(String name, String email, String phone, String nationalId, String street, String number,
-                           String floor, String apartment, String city, String postalCode) {
+public record CheckoutForm(String firstName, String lastName, String email, String phone, String nationalId,
+                           String street, String number, String floor, String apartment, String city,
+                           String postalCode) {
 
     private static final Pattern PHONE_SEPARATORS = Pattern.compile("[\\s+\\-()]");
     private static final Pattern PHONE = Pattern.compile("[0-9]{8,15}");
@@ -31,8 +32,10 @@ public record CheckoutForm(String name, String email, String phone, String natio
     /** Every field that breaks a rule, or the normalized data when none does. */
     public Outcome validate() {
         Set<Field> invalid = EnumSet.noneOf(Field.class);
-        String trimmedName = trimmed(name);
-        check(trimmedName, 1, 100, Field.NAME, invalid);
+        String trimmedFirstName = trimmed(firstName);
+        check(trimmedFirstName, 1, 50, Field.FIRST_NAME, invalid);
+        String trimmedLastName = trimmed(lastName);
+        check(trimmedLastName, 1, 50, Field.LAST_NAME, invalid);
         Optional<String> normalizedEmail = BuyerEmail.normalize(email);
         if (normalizedEmail.isEmpty()) {
             invalid.add(Field.EMAIL);
@@ -64,7 +67,8 @@ public record CheckoutForm(String name, String email, String phone, String natio
             return new Outcome.Invalid(invalid);
         }
         return new Outcome.Valid(
-            new BuyerDetails(trimmedName, normalizedEmail.orElseThrow(), digitsOfPhone, digitsOfNationalId),
+            new BuyerDetails(trimmedFirstName, trimmedLastName, normalizedEmail.orElseThrow(), digitsOfPhone,
+                digitsOfNationalId),
             new ShippingAddress(trimmedStreet, trimmedNumber, optionalFloor, optionalApartment, trimmedCity,
                 normalizedPostalCode));
     }
@@ -86,7 +90,8 @@ public record CheckoutForm(String name, String email, String phone, String natio
 
     /** The fields of the form, as UC-13 names them. */
     public enum Field {
-        NAME,
+        FIRST_NAME,
+        LAST_NAME,
         EMAIL,
         PHONE,
         NATIONAL_ID,

@@ -234,7 +234,8 @@ class OrderTrackingApiTest {
     private JsonNode placeOrder() throws Exception {
         ObjectNode body = json.createObjectNode();
         body.putObject("buyer")
-            .put("name", "Ana Pérez")
+            .put("firstName", "Ana")
+            .put("lastName", "Pérez")
             .put("email", "ana@example.com")
             .put("phone", "342 555-1234")
             .put("nationalId", "12.345.678");

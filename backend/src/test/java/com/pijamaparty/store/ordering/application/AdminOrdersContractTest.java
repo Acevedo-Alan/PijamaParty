@@ -60,7 +60,7 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
 
         assertThat(subject.adminViewOf(order.id())).contains(new AdminOrder(order.id().value(), order.number(),
             Status.AWAITING_PAYMENT, List.of(), NOW, NOW, Optional.empty(),
-            new Buyer("Ana María Pérez", "ana@example.com", "3425551234", "12345678"),
+            new Buyer("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new Address("San Martín", "1234", Optional.of("3"), Optional.of("B"), "Santa Fe", "SANTA_FE", "S3000ABC"),
             List.of(new Line("Pijama Luna", "M", "Rosa", 2, Money.of(2_000_000), Money.of(4_000_000)),
                 new Line("Camisón Sol", "S", "Gris", 1, Money.of(1_000_000), Money.of(1_000_000))),
@@ -201,7 +201,7 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
         tokenIssued(token);
         Money discount = coupon.isPresent() ? Money.of(500_000) : Money.zero();
         NewOrder order = new NewOrder(OrderId.of(UUID.randomUUID()), subject.next(), token.hash(), Optional.empty(),
-            new BuyerDetails("Ana María Pérez", "ana@example.com", "3425551234", "12345678"),
+            new BuyerDetails("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.of("3"), Optional.of("B"), "Santa Fe", "S3000ABC"),
             Province.SANTA_FE, LINES, OrderAmounts.of(Money.of(5_000_000), discount, Money.of(300_000)), coupon,
             PaymentProvider.MERCADOPAGO, "2026-10", createdAt, StockHold.expiryOf(createdAt));

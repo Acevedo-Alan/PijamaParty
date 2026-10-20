@@ -39,8 +39,7 @@ class WithdrawalCustomerComposer implements EmailComposer {
         String number = Long.toString(notice.orderNumber());
         var writer = new OrderEmailWriter(messages);
         String subject = writer.message("notifications.withdrawal.customer.subject", number);
-        writer.heading(writer.message("notifications.withdrawal.customer.greeting", number,
-                OrderEmailWriter.firstName(notice.buyerName())))
+        writer.heading(writer.message("notifications.withdrawal.customer.greeting", number, notice.buyerFirstName()))
             .paragraph(writer.message("notifications.withdrawal.customer.intro", number))
             .block(writer.message("notifications.withdrawal.customer.code"), List.of(notice.code()))
             .paragraph(writer.message("notifications.withdrawal.customer.next"))

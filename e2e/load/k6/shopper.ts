@@ -122,10 +122,10 @@ export function problemOf(answer: Answer): string | undefined {
   }
 }
 
-/** A guest buyer in Santa Fe; `name` tells the load test's orders apart in the back office. */
-export function checkoutBody(name: string, email: string) {
+/** A guest buyer in Santa Fe; its full name tells the load test's orders apart in the back office. */
+export function checkoutBody(firstName: string, lastName: string, email: string) {
   return {
-    buyer: { name, email, phone: '3424567890', nationalId: '30123456' },
+    buyer: { firstName, lastName, email, phone: '3424567890', nationalId: '30123456' },
     address: { street: 'San Martín', number: '1234', city: 'Santa Fe', province: 'SANTA_FE', postalCode: '3000' },
     paymentProvider: 'MERCADOPAGO',
     acceptedTerms: true,

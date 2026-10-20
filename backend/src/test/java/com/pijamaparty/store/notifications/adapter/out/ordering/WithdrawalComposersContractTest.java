@@ -45,7 +45,7 @@ class WithdrawalComposersContractTest {
             assertThat(message.to()).isEqualTo("ana@example.com");
             assertThat(message.subject()).isEqualTo("Recibimos tu solicitud de arrepentimiento - Pedido #1001");
             for (String body : new String[] {message.text(), message.html()}) {
-                assertThat(body).contains("¡Hola, Ana!", "pedido #1001", "ARR-7K2M9QXZ", "no tiene costo");
+                assertThat(body).contains("¡Hola, María José!", "pedido #1001", "ARR-7K2M9QXZ", "no tiene costo");
                 assertThat(body).doesNotContain("fuera del plazo");
             }
         }

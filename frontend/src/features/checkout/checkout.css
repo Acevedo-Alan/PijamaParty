@@ -150,9 +150,21 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .checkout-row-street {
-    grid-template-columns: 2fr 1fr;
+  /* Number, floor and apartment (T-E7-10). */
+  .checkout-row-three {
+    grid-template-columns: 1fr 1fr 1fr;
   }
+}
+
+/* T-E7-10: a guest may sign in and come back, as in the prototype, under the email. */
+.checkout-sign-in {
+  margin: -8px 0 16px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.checkout-sign-in a {
+  color: var(--accent-text);
 }
 
 .checkout-next {

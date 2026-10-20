@@ -122,8 +122,8 @@ class JdbcNewOrdersContractTest extends NewOrdersContractTest<JdbcNewOrdersContr
         UUID userId = row.getObject("user_id", UUID.class);
         return new SaveOrders.NewOrder(OrderId.of(row.getObject("id", UUID.class)), row.getLong("number"),
             row.getString("tracking_token_hash"), Optional.ofNullable(userId).map(UserId::of),
-            new BuyerDetails(row.getString("customer_name"), row.getString("customer_email"),
-                row.getString("customer_phone"), row.getString("national_id")),
+            new BuyerDetails(row.getString("customer_first_name"), row.getString("customer_last_name"),
+                row.getString("customer_email"), row.getString("customer_phone"), row.getString("national_id")),
             new ShippingAddress(row.getString("street"), row.getString("street_number"),
                 Optional.ofNullable(row.getString("floor")), Optional.ofNullable(row.getString("apartment")),
                 row.getString("city"), row.getString("postal_code")),

@@ -114,9 +114,10 @@ class IdempotentPlaceOrder implements PlaceOrder {
     static String requestHashOf(Command command) {
         CheckoutForm form = command.form();
         var canonical = new StringBuilder();
-        for (String field : new String[] {form.name(), form.email(), form.phone(), form.nationalId(), form.street(),
-            form.number(), form.floor(), form.apartment(), form.city(), form.postalCode(), command.province().name(),
-            command.paymentProvider().name(), Boolean.toString(command.acceptedTerms())}) {
+        for (String field : new String[] {form.firstName(), form.lastName(), form.email(), form.phone(),
+            form.nationalId(), form.street(), form.number(), form.floor(), form.apartment(), form.city(),
+            form.postalCode(), command.province().name(), command.paymentProvider().name(),
+            Boolean.toString(command.acceptedTerms())}) {
             if (field == null) {
                 canonical.append("-;");
             } else {

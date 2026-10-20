@@ -151,6 +151,23 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
     expect(screen.getByRole('button', { name: es.account.signOut })).toBeInTheDocument();
   });
 
+  it.each([
+    ['/checkout', '/checkout'],
+    ['//evil.example/checkout', '/'],
+    ['/\\evil.example', '/'],
+    ['https://evil.example/checkout', '/'],
+  ])('given a sign-in link back to %j (T-E7-10), when the customer signs in, then it goes to %j', async (back, to) => {
+    stubStore();
+    stubPost(answer(200, ANA));
+    const { router } = renderRoute(`/cuenta/ingresar?${new URLSearchParams({ volver: back }).toString()}`);
+
+    await fillSignIn();
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(to);
+    });
+  });
+
   it('given a guest cart, when the customer signs in, then the header shows the account cart it joined (T-E4-04)', async () => {
     let signedIn = false;
     vi.spyOn(api, 'GET').mockImplementation(withHeader((path) =>

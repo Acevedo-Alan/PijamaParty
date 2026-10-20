@@ -55,7 +55,7 @@ class OrderPaidCustomerComposerContractTest extends EmailComposerContractTest<Or
         EmailMessage message = compose(orders.paid());
 
         for (String body : new String[] {message.text(), message.html()}) {
-            assertThat(body).contains("¡Hola, Ana!", "pedido #1001",
+            assertThat(body).contains("¡Hola, María José!", "pedido #1001",
                 "Pijama Luna - Talle M - Rosa x 2", "$ 40.000,00", "Talle S - Gris x 1", "$ 10.000,00",
                 "Subtotal", "$ 50.000,00", "Descuento (VERANO10)", "- $ 5.000,00", "Envío", "$ 3.000,00",
                 "Total", "$ 48.000,00",

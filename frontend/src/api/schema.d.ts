@@ -2081,7 +2081,8 @@ export interface components {
             postalCode: string;
         };
         BuyerRequest: {
-            name: string;
+            firstName: string;
+            lastName: string;
             email: string;
             phone: string;
             nationalId: string;
@@ -2545,7 +2546,8 @@ export interface components {
             postalCode?: string;
         };
         AdminOrderBuyerResponse: {
-            name?: string;
+            firstName?: string;
+            lastName?: string;
             email?: string;
             phone?: string;
             nationalId?: string;

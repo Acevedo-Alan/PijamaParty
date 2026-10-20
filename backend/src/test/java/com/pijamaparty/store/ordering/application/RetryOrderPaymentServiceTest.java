@@ -96,7 +96,7 @@ class RetryOrderPaymentServiceTest {
 
     private NewOrder placed() {
         var order = new NewOrder(OrderId.of(UUID.randomUUID()), orders.next(), token.hash(), Optional.empty(),
-            new BuyerDetails("Ana Pérez", "ana@example.com", "3425551234", "12345678"),
+            new BuyerDetails("Ana", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.empty(), Optional.empty(), "Santa Fe", "S3000ABC"),
             Province.SANTA_FE,
             List.of(new OrderLine(UUID.randomUUID(), "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 2)),

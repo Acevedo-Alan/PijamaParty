@@ -22,19 +22,22 @@ public interface TrackedOrders {
 
     /**
      * What the tracking page may show, and the id to pay it with: never the national ID, the email, the phone or the
-     * street. {@link #toString()} hides the buyer's name and city (R-05).
+     * street, nor the last name, since the link can be forwarded. {@link #toString()} hides the buyer's first name and
+     * city (R-05).
      *
+     * @param buyerFirstName as the buyer typed it (D-13)
      * @param lines in the cart's order
      */
-    record TrackedOrder(OrderId id, long number, OrderStatus status, Instant createdAt, String buyerName, String city,
-                        Province province, List<OrderLine> lines, OrderAmounts amounts, Optional<String> couponCode,
-                        Instant reservationExpiresAt, Optional<String> shipmentTrackingNumber) {
+    record TrackedOrder(OrderId id, long number, OrderStatus status, Instant createdAt, String buyerFirstName,
+                        String city, Province province, List<OrderLine> lines, OrderAmounts amounts,
+                        Optional<String> couponCode, Instant reservationExpiresAt,
+                        Optional<String> shipmentTrackingNumber) {
 
         public TrackedOrder {
             Objects.requireNonNull(id, "id");
             Objects.requireNonNull(status, "status");
             Objects.requireNonNull(createdAt, "createdAt");
-            Objects.requireNonNull(buyerName, "buyerName");
+            Objects.requireNonNull(buyerFirstName, "buyerFirstName");
             Objects.requireNonNull(city, "city");
             Objects.requireNonNull(province, "province");
             lines = List.copyOf(lines);

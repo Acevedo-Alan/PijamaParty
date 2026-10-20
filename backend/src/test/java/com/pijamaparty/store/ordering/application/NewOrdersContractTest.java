@@ -130,7 +130,7 @@ public abstract class NewOrdersContractTest<T extends SaveOrders & OrderNumbers 
             new OrderLine(UUID.randomUUID(), "CS-S-GRIS", "Camisón Sol", "S", "Gris", Money.of(1_000_000), 1));
         Money discount = coupon.isPresent() ? Money.of(500_000) : Money.zero();
         return new NewOrder(OrderId.of(UUID.randomUUID()), number, token.hash(), userId,
-            new BuyerDetails("Ana Pérez", "ana@example.com", "3425551234", "12345678"),
+            new BuyerDetails("Ana", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", floor, apartment, "Santa Fe", "S3000ABC"), Province.SANTA_FE,
             lines, OrderAmounts.of(Money.of(5_000_000), discount, Money.of(300_000)), coupon,
             PaymentProvider.MERCADOPAGO, "2026-10", NOW, StockHold.expiryOf(NOW));

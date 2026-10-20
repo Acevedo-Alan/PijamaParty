@@ -197,7 +197,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Sin sesión, el paso 1 ofrece "¿Ya tenés una cuenta? Iniciar sesión", que vuelve al checkout después de ingresar.
 - **"Nombre y apellido" pasa a ser dos campos, "Nombre" y "Apellido" (D-13),** cada uno de 1 a 50 caracteres, sin espacios al principio ni al final. El pedido guarda los dos por separado (R-04). Los demás campos, validaciones y pasos de CU-13 no cambian.
 - Con sesión, el checkout se completa con el nombre de la cuenta: la primera palabra en "Nombre" y el resto en "Apellido", y el cliente puede corregirlos. La cuenta sigue con un solo nombre.
-- El saludo del correo de pago confirmado y del arrepentimiento usa el "Nombre" tal cual se cargó (por ejemplo "María José"). El seguimiento y el backoffice muestran "Nombre Apellido".
+- El saludo del correo de pago confirmado y del arrepentimiento usa el "Nombre" tal cual se cargó (por ejemplo "María José"). El seguimiento sigue mostrando solo el nombre (CU-14: el enlace se puede reenviar), ahora el "Nombre" tal cual se cargó; el backoffice muestra "Nombre Apellido".
 
 **Criterios de aceptación**
 - Dado un invitado en el paso 1, cuando toca "Iniciar sesión" e ingresa, entonces vuelve al checkout con su carrito.

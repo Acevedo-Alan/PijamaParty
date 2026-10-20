@@ -202,7 +202,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
             .skip(offset)
             .limit(limit)
             .map(order -> new OrderSummary(order.id(), order.number(), order.createdAt(),
-                orders.get(order.id()).status(), order.buyer().name(), order.address().city(), order.province(),
+                orders.get(order.id()).status(), fullNameOf(order), order.address().city(), order.province(),
                 order.amounts().total()))
             .toList();
     }
@@ -214,8 +214,8 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
             placedOrder.number(), Status.valueOf(orders.get(order).status().name()), List.of(),
             placedOrder.createdAt(), updatedAt.getOrDefault(order, placedOrder.createdAt()),
             Optional.ofNullable(deliveredAt.get(order)),
-            new Buyer(placedOrder.buyer().name(), buyerEmailOf(placedOrder), placedOrder.buyer().phone(),
-                placedOrder.buyer().nationalId()),
+            new Buyer(placedOrder.buyer().firstName(), placedOrder.buyer().lastName(), buyerEmailOf(placedOrder),
+                placedOrder.buyer().phone(), placedOrder.buyer().nationalId()),
             new Address(placedOrder.address().street(), placedOrder.address().number(),
                 placedOrder.address().floor(), placedOrder.address().apartment(), placedOrder.address().city(),
                 placedOrder.province().name(), placedOrder.address().postalCode()),
@@ -251,7 +251,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     public synchronized Optional<OrderToPay> find(OrderId order) {
         return Optional.ofNullable(placed.get(order)).map(placedOrder -> new OrderToPay(order, placedOrder.number(),
             orders.get(order).status(), placedOrder.amounts().total(), placedOrder.paymentProvider(),
-            placedOrder.buyer().name(), buyerEmailOf(placedOrder), placedOrder.reservationExpiresAt()));
+            fullNameOf(placedOrder), buyerEmailOf(placedOrder), placedOrder.reservationExpiresAt()));
     }
 
     /** Only the orders the checkout placed carry a tracking token. */
@@ -262,7 +262,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
                 || order.id().equals(trackingLinks.get(token.hash())))
             .findFirst()
             .map(order -> new TrackedOrder(order.id(), order.number(), orders.get(order.id()).status(),
-                order.createdAt(), order.buyer().name(), order.address().city(), order.province(), order.lines(),
+                order.createdAt(), order.buyer().firstName(), order.address().city(), order.province(), order.lines(),
                 order.amounts(), order.coupon().map(AppliedCoupon::code), order.reservationExpiresAt(),
                 Optional.ofNullable(shipmentTrackingNumbers.get(order.id()))));
     }
@@ -271,7 +271,8 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     @Override
     public synchronized Optional<PaidOrder> detailsOf(OrderId order) {
         return Optional.ofNullable(placed.get(order)).map(placedOrder -> new PaidOrder(order.value(),
-            placedOrder.number(), placedOrder.buyer().name(), buyerEmailOf(placedOrder),
+            placedOrder.number(), placedOrder.buyer().firstName(), placedOrder.buyer().lastName(),
+            buyerEmailOf(placedOrder),
             placedOrder.lines().stream().map(line -> new Line(line.productName(), line.size(), line.color(),
                 line.quantity(), line.unitPrice(), line.amount())).toList(),
             placedOrder.amounts().subtotal(), placedOrder.amounts().discount(),
@@ -364,8 +365,8 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
             .sorted(Comparator.comparing(NewOrder::createdAt).thenComparing(NewOrder::number).reversed())
             .map(order -> new ExportedOrder(order.id(), order.number(), orders.get(order.id()).status(),
                 order.createdAt(), Optional.ofNullable(deliveredAt.get(order.id())),
-                new ExportedOrder.Buyer(order.buyer().name(), buyerEmailOf(order), order.buyer().phone(),
-                    order.buyer().nationalId()),
+                new ExportedOrder.Buyer(order.buyer().firstName(), order.buyer().lastName(), buyerEmailOf(order),
+                    order.buyer().phone(), order.buyer().nationalId()),
                 order.address(), order.province(), order.lines(), order.amounts(),
                 order.coupon().map(AppliedCoupon::code), order.paymentProvider().name(),
                 Optional.ofNullable(shipmentTrackingNumbers.get(order.id()))))
@@ -395,6 +396,11 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
 
     private String buyerEmailOf(NewOrder order) {
         return correctedEmails.getOrDefault(order.id(), order.buyer().email());
+    }
+
+    /** "Nombre Apellido", as the queries of JdbcOrderStore join them. */
+    private static String fullNameOf(NewOrder order) {
+        return order.buyer().firstName() + " " + order.buyer().lastName();
     }
 
     private record Row(long number, OrderStatus status, Instant reservationExpiresAt, Optional<UUID> couponId) {

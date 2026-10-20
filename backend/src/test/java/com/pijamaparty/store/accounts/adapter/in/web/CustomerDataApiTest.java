@@ -113,10 +113,12 @@ class CustomerDataApiTest {
         assertThat(count("select count(*) from address where user_id = ?", ana)).isZero();
         assertThat(count("select count(*) from cart where user_id = ?", ana)).isZero();
         Map<String, Object> kept = owner.queryForMap(
-            "select user_id, unlinked_at, customer_name, national_id from orders where id = ?", order);
+            "select user_id, unlinked_at, customer_first_name, customer_last_name, national_id from orders where id = ?",
+            order);
         assertThat(kept.get("user_id")).as("without a link to the account").isNull();
         assertThat(kept.get("unlinked_at")).isNotNull();
-        assertThat(kept).containsEntry("customer_name", "Ana Pérez").containsEntry("national_id", "30123456");
+        assertThat(kept).containsEntry("customer_first_name", "Ana").containsEntry("customer_last_name", "Pérez")
+            .containsEntry("national_id", "30123456");
     }
 
     @Test
@@ -142,6 +144,8 @@ class CustomerDataApiTest {
         assertThat(data.get("addresses")).hasSize(1);
         assertThat(data.get("orders")).hasSize(1);
         JsonNode order = data.get("orders").get(0);
+        assertThat(order.get("buyer").get("firstName").asText()).isEqualTo("Ana");
+        assertThat(order.get("buyer").get("lastName").asText()).isEqualTo("Pérez");
         assertThat(order.get("buyer").get("nationalId").asText()).isEqualTo("30123456");
         assertThat(order.get("items")).hasSize(1);
         assertThat(order.get("items").get(0).get("productName").asText()).isEqualTo("Pijama Luna");
@@ -321,11 +325,12 @@ class CustomerDataApiTest {
         byte[] token = new byte[32];
         RANDOM.nextBytes(token);
         owner.update("""
-            insert into orders (id, number, user_id, tracking_token_hash, status, customer_name, customer_email,
+            insert into orders (id, number, user_id, tracking_token_hash, status, customer_first_name,
+                                customer_last_name, customer_email,
                                 customer_phone, national_id, street, street_number, city, province, postal_code,
                                 subtotal_cents, discount_cents, shipping_cents, total_cents, payment_provider,
                                 terms_version, reservation_expires_at, created_at, updated_at)
-            values (?, nextval('order_number_seq'), ?, ?, 'AWAITING_PAYMENT', 'Ana Pérez', ?, '3425551234', ?,
+            values (?, nextval('order_number_seq'), ?, ?, 'AWAITING_PAYMENT', 'Ana', 'Pérez', ?, '3425551234', ?,
                     'San Martín', '1234', 'Santa Fe', 'SANTA_FE', '3000', 2000000, 0, 300000, 2300000, 'MERCADOPAGO',
                     '2026-10', now() + interval '30 minutes', now(), now())
             """, id, customer, HexFormat.of().formatHex(token), email, nationalId);

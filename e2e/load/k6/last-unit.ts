@@ -35,7 +35,7 @@ export function setup(): CookieState[] {
 export default function confirm(carts: CookieState[]): void {
   const n = exec.vu.idInTest;
   const shopper = new Shopper(carts[n - 1] as CookieState);
-  const body = checkoutBody(`Carga ${RUN} última ${String(n)}`, `carga.${RUN}.ultima.${String(n)}@pijamaparty.test`);
+  const body = checkoutBody('Carga', `${RUN} última ${String(n)}`, `carga.${RUN}.ultima.${String(n)}@pijamaparty.test`);
   const answer = shopper.post('/api/checkout', body, { 'Idempotency-Key': uuid() }, { name: 'checkout' });
 
   // Whoever loses the race finds the cart no longer ready (CART_NOT_READY) or the stock gone (INSUFFICIENT_STOCK).

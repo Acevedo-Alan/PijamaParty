@@ -71,7 +71,8 @@ function stubCheckout(currentCart: unknown = cart([cartItem({ quantity: 2 })]), 
 async function goToPaymentStep() {
   await screen.findByRole('heading', { name: es.checkout.shippingTitle });
   const values: Record<string, string> = {
-    [es.checkout.fields.name]: 'Ana Pérez',
+    [es.checkout.fields.firstName]: 'Ana',
+    [es.checkout.fields.lastName]: 'Pérez',
     [es.checkout.fields.email]: 'ana@example.com',
     [es.checkout.fields.phone]: '342 456 7890',
     [es.checkout.fields.nationalId]: '30123456',

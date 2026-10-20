@@ -50,8 +50,7 @@ class OrderPaidCustomerComposer implements EmailComposer {
         String number = Long.toString(order.number());
         var writer = new OrderEmailWriter(messages);
         String subject = writer.message("notifications.order-paid.customer.subject", number);
-        writer.heading(writer.message("notifications.order-paid.customer.greeting", number,
-                OrderEmailWriter.firstName(order.buyerName())))
+        writer.heading(writer.message("notifications.order-paid.customer.greeting", number, order.buyerFirstName()))
             .paragraph(writer.message("notifications.order-paid.customer.intro", number))
             .summary(order)
             .block(writer.message("notifications.order-paid.customer.address"), writer.address(order.address()))

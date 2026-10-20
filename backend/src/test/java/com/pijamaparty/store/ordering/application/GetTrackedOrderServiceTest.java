@@ -48,11 +48,11 @@ class GetTrackedOrderServiceTest {
     }
 
     @Test
-    void givenAnOrder_whenOpeningItsTrackingLink_thenOnlyTheBuyersFirstNameIsGiven() {
+    void givenAnOrder_whenOpeningItsTrackingLink_thenOnlyTheBuyersFirstNameAsTypedIsGiven() {
         placed();
 
         assertThat(findAt(PLACED_AT)).isInstanceOfSatisfying(GetTrackedOrder.Result.Found.class,
-            found -> assertThat(found.buyerFirstName()).isEqualTo("Ana"));
+            found -> assertThat(found.order().buyerFirstName()).isEqualTo("María José"));
     }
 
     @Test
@@ -91,7 +91,7 @@ class GetTrackedOrderServiceTest {
 
     private NewOrder placed() {
         var order = new NewOrder(OrderId.of(UUID.randomUUID()), orders.next(), token.hash(), Optional.empty(),
-            new BuyerDetails("Ana Pérez", "ana@example.com", "3425551234", "12345678"),
+            new BuyerDetails("María José", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.empty(), Optional.empty(), "Santa Fe", "S3000ABC"),
             Province.SANTA_FE,
             List.of(new OrderLine(UUID.randomUUID(), "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 2)),

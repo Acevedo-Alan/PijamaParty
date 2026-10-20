@@ -6,6 +6,7 @@ import { formatTime } from '../../i18n/formatDate.ts';
 import { CART_KEY } from '../cart/useCart.ts';
 import { RECOVER_PATH, REGISTER_PATH } from './AccountLink.tsx';
 import { signIn, type SignInAnswer } from './accountApi.ts';
+import { RETURN_KEY, returnPathOf } from './returnPath.ts';
 import { SocialSignIn, socialMessage } from './SocialSignIn.tsx';
 import { CUSTOMER_KEY } from './useCustomer.ts';
 import './account.css';
@@ -46,6 +47,8 @@ export function SignInPage() {
   // UC-27 (T-E4-14): where the return from Google or Facebook left the visitor.
   const [searchParams] = useSearchParams();
   const social = socialMessage(searchParams.get('social'));
+  // T-E7-10: the checkout sends a guest here and expects it back.
+  const returnPath = returnPathOf(searchParams.get(RETURN_KEY));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const id = useId();
@@ -57,7 +60,7 @@ export function SignInPage() {
         queryClient.setQueryData(CUSTOMER_KEY, answer.customer);
         // Signed in, the header shows the account's cart, which the guest cart joined (T-E4-04).
         void queryClient.invalidateQueries({ queryKey: CART_KEY });
-        void navigate('/', { replace: true });
+        void navigate(returnPath, { replace: true });
       }
     },
   });

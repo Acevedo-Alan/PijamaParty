@@ -1,6 +1,5 @@
 package com.pijamaparty.store.ordering.application;
 
-import com.pijamaparty.store.ordering.domain.BuyerDetails;
 import com.pijamaparty.store.ordering.domain.OrderPayability;
 import java.time.Clock;
 import org.springframework.stereotype.Service;
@@ -20,7 +19,7 @@ class GetTrackedOrderService implements GetTrackedOrder {
     @Override
     public Result execute(Query query) {
         return orders.find(query.token())
-            .<Result>map(order -> new Result.Found(order, BuyerDetails.firstNameOf(order.buyerName()),
+            .<Result>map(order -> new Result.Found(order,
                 OrderPayability.isPayable(order.status(), order.reservationExpiresAt(), clock.instant())))
             .orElseGet(Result.NotFound::new);
     }

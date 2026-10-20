@@ -43,7 +43,7 @@ class OrderPaidAdminComposerContractTest extends EmailComposerContractTest<Order
         assertThat(message.to()).isEqualTo("admin@pijamaparty.example");
         assertThat(message.subject()).isEqualTo("Nuevo pedido pagado #1001");
         for (String body : new String[] {message.text(), message.html()}) {
-            assertThat(body).contains("Ana María Pérez", "Santa Fe, Santa Fe", "Pijama Luna - Talle M - Rosa x 2",
+            assertThat(body).contains("María José Pérez", "Santa Fe, Santa Fe", "Pijama Luna - Talle M - Rosa x 2",
                 "Total", "$ 48.000,00", "backoffice");
             assertThat(body).doesNotContain("San Martín", "ana@example.com", "/pedido/");
         }

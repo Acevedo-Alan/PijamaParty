@@ -11,7 +11,8 @@ import {
 } from './checkoutForm.ts';
 
 const VALID: ShippingForm = {
-  name: 'Ana Pérez',
+  firstName: 'Ana',
+  lastName: 'Pérez',
   email: 'ana@example.com',
   phone: '+54 (342) 456-7890',
   nationalId: '30.123.456',
@@ -31,10 +32,11 @@ describe('checkout form rules (UC-13)', () => {
 
   it('given an empty form, when validated, then every required field fails in the order of the form', () => {
     expect(invalidFields(EMPTY_FORM)).toEqual([
-      'name',
       'email',
-      'phone',
+      'firstName',
+      'lastName',
       'nationalId',
+      'phone',
       'street',
       'number',
       'city',
@@ -76,29 +78,43 @@ describe('checkout form rules (UC-13)', () => {
   it('given texts over their limits, when validated, then each one fails', () => {
     const form = {
       ...VALID,
-      name: 'a'.repeat(101),
+      firstName: 'a'.repeat(51),
+      lastName: 'p'.repeat(51),
       number: '12345678901',
       floor: '12345678901',
       apartment: '12345678901',
       city: 'c'.repeat(81),
     };
 
-    expect(invalidFields(form)).toEqual(['name', 'number', 'floor', 'apartment', 'city']);
+    expect(invalidFields(form)).toEqual(['firstName', 'lastName', 'number', 'floor', 'apartment', 'city']);
   });
 
-  it('given a name of 100 characters with emojis, when validated, then they count as the server counts them', () => {
-    expect(invalidFields({ ...VALID, name: '🌙'.repeat(100) })).toEqual([]);
+  it('given names of 50 characters with emojis, when validated, then they count as the server counts them', () => {
+    expect(invalidFields({ ...VALID, firstName: '🌙'.repeat(50), lastName: '🌙'.repeat(50) })).toEqual([]);
+  });
+
+  it.each([
+    ['firstName', ' '],
+    ['lastName', ''],
+  ] as const)('given an empty %s (D-13), when validated, then it fails', (field, value) => {
+    expect(invalidFields({ ...VALID, [field]: value })).toEqual([field]);
   });
 
   it('given the fields of INVALID_BUYER_DATA, when read, then only the form fields are kept, in its order', () => {
-    expect(toFormFields(['postalCode', 'unknown', 'name', 3])).toEqual(['name', 'postalCode']);
+    expect(toFormFields(['postalCode', 'unknown', 'lastName', 3])).toEqual(['lastName', 'postalCode']);
   });
 });
 
 describe('checkout request (UC-14)', () => {
   it('given a form without floor or apartment, when sent, then it goes as typed and without them', () => {
     expect(toPlaceOrderRequest({ ...VALID, floor: '  ' }, 'SANTA_FE', 'MERCADOPAGO', true, false)).toEqual({
-      buyer: { name: 'Ana Pérez', email: 'ana@example.com', phone: '+54 (342) 456-7890', nationalId: '30.123.456' },
+      buyer: {
+        firstName: 'Ana',
+        lastName: 'Pérez',
+        email: 'ana@example.com',
+        phone: '+54 (342) 456-7890',
+        nationalId: '30.123.456',
+      },
       address: { street: 'San Martín', number: '1234', city: 'Santa Fe', province: 'SANTA_FE', postalCode: 's3000abc' },
       paymentProvider: 'MERCADOPAGO',
       acceptedTerms: true,
@@ -129,11 +145,24 @@ describe('prefilled checkout (UC-21)', () => {
   it('given fields already typed, when the customer prefills them, then only the empty ones take its data', () => {
     expect(withContactOf({ ...EMPTY_FORM, email: 'otra@example.com' }, customer)).toEqual({
       ...EMPTY_FORM,
-      name: 'Ana Pérez',
+      firstName: 'Ana',
+      lastName: 'Pérez',
       email: 'otra@example.com',
       phone: '3424567890',
     });
     expect(withContactOf(EMPTY_FORM, { ...customer, phone: null }).phone).toBe('');
+  });
+
+  it('given an account named "Ana María Gómez" (D-13), when it prefills, then the first word is the first name', () => {
+    const form = withContactOf(EMPTY_FORM, { ...customer, name: ' Ana  María Gómez ' });
+
+    expect([form.firstName, form.lastName]).toEqual(['Ana', 'María Gómez']);
+  });
+
+  it('given an account of one word, when it prefills, then the last name stays to be typed', () => {
+    const form = withContactOf(EMPTY_FORM, { ...customer, name: 'Ana' });
+
+    expect([form.firstName, form.lastName]).toEqual(['Ana', '']);
   });
 
   it('given a saved address, when chosen and then left for another, then it fills the address and empties it again', () => {
@@ -150,7 +179,8 @@ describe('prefilled checkout (UC-21)', () => {
     });
     expect(withoutAddress(chosen)).toEqual({
       ...EMPTY_FORM,
-      name: VALID.name,
+      firstName: VALID.firstName,
+      lastName: VALID.lastName,
       email: VALID.email,
       phone: VALID.phone,
       nationalId: VALID.nationalId,

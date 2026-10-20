@@ -46,7 +46,7 @@ class IdempotentPlaceOrderTest {
     private static final UUID PIJAMA = UUID.randomUUID();
     private static final OrderLine PIJAMAS =
         new OrderLine(PIJAMA, "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 2);
-    private static final CheckoutForm FORM = new CheckoutForm("Ana Pérez", "ana@example.com", "3425551234",
+    private static final CheckoutForm FORM = new CheckoutForm("Ana", "Pérez", "ana@example.com", "3425551234",
         "12345678", "San Martín", "1234", null, null, "Santa Fe", "S3000ABC");
 
     private final InMemoryCheckoutCarts carts = new InMemoryCheckoutCarts();
@@ -110,11 +110,11 @@ class IdempotentPlaceOrderTest {
     }
 
     static Stream<Object[]> changes() {
-        CheckoutForm otherEmail = new CheckoutForm("Ana Pérez", "otra@example.com", "3425551234", "12345678",
+        CheckoutForm otherEmail = new CheckoutForm("Ana", "Pérez", "otra@example.com", "3425551234", "12345678",
             "San Martín", "1234", null, null, "Santa Fe", "S3000ABC");
-        CheckoutForm emptyFloor = new CheckoutForm("Ana Pérez", "ana@example.com", "3425551234", "12345678",
+        CheckoutForm emptyFloor = new CheckoutForm("Ana", "Pérez", "ana@example.com", "3425551234", "12345678",
             "San Martín", "1234", "", null, "Santa Fe", "S3000ABC");
-        CheckoutForm shiftedText = new CheckoutForm("Ana Pérez", "ana@example.com", "3425551234", "12345678",
+        CheckoutForm shiftedText = new CheckoutForm("Ana", "Pérez", "ana@example.com", "3425551234", "12345678",
             "San Martín", "123", "4", null, "Santa Fe", "S3000ABC");
         return Stream.of(
             new Object[] {"another email", (UnaryOperator<PlaceOrder.Command>) c -> withForm(c, otherEmail)},
@@ -187,10 +187,11 @@ class IdempotentPlaceOrderTest {
     }
 
     @Test
-    void givenARequestWithoutSaveAddress_whenHashed_thenItKeepsTheHashOfTheEncodingBeforeTE406() throws Exception {
-        // Keys stored before T-E4-06 live 24 hours: a retry of one must not become IDEMPOTENCY_KEY_REUSED.
-        String before = "9:Ana Pérez;15:ana@example.com;10:3425551234;8:12345678;10:San Martín;4:1234;-;-;8:Santa Fe;"
-            + "8:S3000ABC;8:SANTA_FE;11:MERCADOPAGO;4:true;";
+    void givenARequestWithoutSaveAddress_whenHashed_thenItKeepsTheEncodingWithoutIt() throws Exception {
+        // T-E4-06: saveAddress counts only when true. T-E7-10 (D-13) put the first and last name in place of the name;
+        // a retry from before it still carries "name", which the API refuses before any hash.
+        String before = "3:Ana;5:Pérez;15:ana@example.com;10:3425551234;8:12345678;10:San Martín;4:1234;-;-;"
+            + "8:Santa Fe;8:S3000ABC;8:SANTA_FE;11:MERCADOPAGO;4:true;";
         String expected = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
             .digest(before.getBytes(StandardCharsets.UTF_8)));
 

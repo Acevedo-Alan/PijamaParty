@@ -106,8 +106,8 @@ public abstract class CorrectableOrdersContractTest<T extends SaveOrders & Order
         persistAndForget();
 
         assertThat(subject.detailsOf(order.id())).contains(new PaidOrder(before.orderId(), before.number(),
-            before.buyerName(), "ana.perez@gmail.com", before.lines(), before.subtotal(), before.discount(),
-            before.couponCode(), before.shipping(), before.total(), before.address()));
+            before.buyerFirstName(), before.buyerLastName(), "ana.perez@gmail.com", before.lines(), before.subtotal(),
+            before.discount(), before.couponCode(), before.shipping(), before.total(), before.address()));
     }
 
     @Test
@@ -125,7 +125,7 @@ public abstract class CorrectableOrdersContractTest<T extends SaveOrders & Order
 
     private NewOrder newOrder(TrackingToken token) {
         return new NewOrder(OrderId.of(UUID.randomUUID()), subject.next(), token.hash(), Optional.empty(),
-            new BuyerDetails("Ana María Pérez", "ana.perez@gmial.com", "3425551234", "12345678"),
+            new BuyerDetails("Ana María", "Pérez", "ana.perez@gmial.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.empty(), Optional.empty(), "Santa Fe", "S3000ABC"),
             Province.SANTA_FE, LINES, OrderAmounts.of(Money.of(4_000_000), Money.zero(), Money.of(300_000)),
             Optional.empty(), PaymentProvider.MERCADOPAGO, "2026-10", NOW, StockHold.expiryOf(NOW));

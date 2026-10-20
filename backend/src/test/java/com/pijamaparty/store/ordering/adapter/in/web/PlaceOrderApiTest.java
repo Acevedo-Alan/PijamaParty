@@ -165,7 +165,8 @@ class PlaceOrderApiTest {
         assertThat(order.get("tracking_token_hash")).isEqualTo(new TrackingToken(trackingToken).hash());
         assertThat(order.get("status")).isEqualTo("AWAITING_PAYMENT");
         assertThat(order.get("user_id")).isNull();
-        assertThat(order.get("customer_name")).isEqualTo("Ana Pérez");
+        assertThat(order.get("customer_first_name")).isEqualTo("Ana");
+        assertThat(order.get("customer_last_name")).isEqualTo("Pérez");
         assertThat(order.get("customer_email")).isEqualTo("ana@example.com");
         assertThat(order.get("customer_phone")).isEqualTo("3425551234");
         assertThat(order.get("national_id")).isEqualTo("12345678");
@@ -383,8 +384,8 @@ class PlaceOrderApiTest {
 
     @Test
     void givenABodyThatIsNotOfTheShape_whenItArrives_thenItIsRejectedWith400() throws Exception {
-        ObjectNode withoutName = order();
-        ((ObjectNode) withoutName.get("buyer")).remove("name");
+        ObjectNode withoutLastName = order();
+        ((ObjectNode) withoutLastName.get("buyer")).remove("lastName");
         ObjectNode unknownProvince = order();
         ((ObjectNode) unknownProvince.get("address")).put("province", "ATLANTIDA");
         ObjectNode unknownProvider = order();
@@ -392,7 +393,7 @@ class PlaceOrderApiTest {
         ObjectNode tooLong = order();
         ((ObjectNode) tooLong.get("address")).put("street", "s".repeat(301));
 
-        for (ObjectNode body : new ObjectNode[] {withoutName, unknownProvince, unknownProvider, tooLong}) {
+        for (ObjectNode body : new ObjectNode[] {withoutLastName, unknownProvince, unknownProvider, tooLong}) {
             checkout(body)
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
@@ -425,6 +426,21 @@ class PlaceOrderApiTest {
             .andExpect(jsonPath("$.fields[0]").value("nationalId"))
             .andExpect(jsonPath("$.fields[1]").value("city"))
             .andExpect(content().string(not(containsString("12.345"))));
+        assertNoOrder();
+    }
+
+    // T-E7-10 (D-13): each part of the name, 1 to 50 characters once trimmed.
+    @Test
+    void givenAnEmptyFirstNameAndALastNameOver50Characters_whenConfirming_thenEachIsNamedWith422() throws Exception {
+        ObjectNode body = order();
+        ((ObjectNode) body.get("buyer")).put("firstName", "  ").put("lastName", "p".repeat(51));
+
+        checkout(body)
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.problem").value("INVALID_BUYER_DATA"))
+            .andExpect(jsonPath("$.fields.length()").value(2))
+            .andExpect(jsonPath("$.fields[0]").value("firstName"))
+            .andExpect(jsonPath("$.fields[1]").value("lastName"));
         assertNoOrder();
     }
 
@@ -511,7 +527,8 @@ class PlaceOrderApiTest {
     private ObjectNode order() {
         ObjectNode body = json.createObjectNode();
         body.putObject("buyer")
-            .put("name", " Ana Pérez ")
+            .put("firstName", " Ana ")
+            .put("lastName", " Pérez")
             .put("email", "Ana@Example.com")
             .put("phone", "342 555-1234")
             .put("nationalId", "12.345.678");

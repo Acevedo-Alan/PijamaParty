@@ -153,7 +153,8 @@ function toOrder(body: DetailResponse): AdminOrder {
     createdAt: new Date(createdAt),
     deliveredAt: body.deliveredAt ? new Date(body.deliveredAt) : null,
     buyer: {
-      name: buyer.name ?? '',
+      // D-13: the order keeps both; the back office shows "Nombre Apellido".
+      name: `${buyer.firstName ?? ''} ${buyer.lastName ?? ''}`.trim(),
       email: buyer.email ?? '',
       phone: buyer.phone ?? '',
       nationalId: buyer.nationalId ?? '',

@@ -142,8 +142,8 @@ class OrderEmailRowLevelSecurityTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"status = 'CANCELLED'", "customer_name = 'Otra'", "street = 'Otra'",
-        "total_cents = 1, subtotal_cents = 1, shipping_cents = 0", "user_id = '00000000-000a-0000-0000-000000000001'",
+    @ValueSource(strings = {"status = 'CANCELLED'", "customer_first_name = 'Otra'", "customer_last_name = 'Otra'",
+        "street = 'Otra'", "total_cents = 1, subtotal_cents = 1, shipping_cents = 0", "user_id = '00000000-000a-0000-0000-000000000001'",
         "tracking_token_hash = repeat('a', 64)", "shipment_tracking_number = 'X'"})
     void givenTheGuestsToken_whenItChangesAnythingButTheEmail_thenTheGuardRefusesIt(String change) {
         assertThatThrownBy(() -> rls.as(GUEST, sql -> sql.update("update orders set " + change + " where id = ?",
