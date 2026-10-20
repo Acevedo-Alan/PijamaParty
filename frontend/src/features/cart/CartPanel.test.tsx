@@ -1,10 +1,17 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
-import { answer, detailOrNoReviews, NO_CART, withHeader } from '../../test/catalogApi.ts';
+import {
+  answer,
+  detailOrNoReviews,
+  NO_CART,
+  NO_SHIPPING_RATES,
+  SHIPPING_RATES_PATH,
+  withHeader,
+} from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 /** The product page of the pink M pijama (3 in stock), with this cart in the header. */
@@ -465,5 +472,91 @@ describe('cart side panel coupon (UC-10)', () => {
     await applyCode('pijama10');
 
     expect(await within(panel()).findByText(es.cart.couponApplyError)).toHaveAttribute('role', 'alert');
+  });
+});
+
+describe('cart side panel free shipping and notice (UC-08, E7)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  /** Opens the panel from the header with this cart and these shipping rates. */
+  async function openWithRates(currentCart: unknown, rates: unknown) {
+    vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
+      if (path === SHIPPING_RATES_PATH) {
+        return Promise.resolve(rates);
+      }
+      return Promise.resolve(path === '/api/cart' ? currentCart : detailOrNoReviews(path));
+    }));
+    renderRoute('/producto/luna');
+    await userEvent.click(await screen.findByRole('button', { name: /^Carrito/ }));
+  }
+
+  const freeFrom50000 = answer(200, { zones: [], freeShippingThresholdCents: 5_000_000 });
+
+  it('given a $50,000 threshold and a $24,999 subtotal after discount, when the panel opens, then it reads "Te faltan $25.001"', async () => {
+    // $29,999 less a $5,000 discount.
+    await openWithRates(cart([cartItem({ unitPriceCents: 2_999_900 })], 500_000), freeFrom50000);
+
+    expect(await within(panel()).findByText(/^Te faltan \$\s25\.001 para envío gratis$/)).toBeInTheDocument();
+  });
+
+  it('given a subtotal after discount of $50,000 or more, when the panel opens, then it reads "¡Tenés envío gratis!"', async () => {
+    await openWithRates(cart([cartItem({ quantity: 2 })]), freeFrom50000);
+
+    expect(await within(panel()).findByText(es.cart.freeShippingReached)).toBeInTheDocument();
+  });
+
+  it('given no threshold, when the panel opens, then there is no bar', async () => {
+    await openWithRates(cart([cartItem()]), NO_SHIPPING_RATES);
+
+    expect(await within(panel()).findByText(es.cart.total)).toBeInTheDocument();
+    expect(within(panel()).queryByText(es.cart.freeShippingReached)).not.toBeInTheDocument();
+    expect(within(panel()).queryByText(/para envío gratis/)).not.toBeInTheDocument();
+  });
+
+  it('given a product added from the product page, when the API answers 200, then "Agregado al carrito" shows until closed', async () => {
+    stubStore();
+    stubAdd(cart([cartItem()]));
+    renderRoute('/producto/luna');
+
+    await addPinkM();
+
+    const notice = await within(await screen.findByRole('dialog', { name: es.cart.title }))
+      .findByText(es.cart.addedNotice);
+    expect(notice.closest('[role="status"]')).not.toBeNull();
+    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.closeNotice }));
+    expect(within(panel()).queryByText(es.cart.addedNotice)).not.toBeInTheDocument();
+  });
+
+  it('given the "Agregado al carrito" notice, when 4 s pass, then it closes by itself', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    stubStore();
+    stubAdd(cart([cartItem()]));
+    renderRoute('/producto/luna');
+
+    await addPinkM();
+    expect(await within(panel()).findByText(es.cart.addedNotice)).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(3900);
+    });
+    expect(within(panel()).getByText(es.cart.addedNotice)).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(within(panel()).queryByText(es.cart.addedNotice)).not.toBeInTheDocument();
+  });
+
+  it('given a rejected add, when the API answers 409, then no notice shows', async () => {
+    stubStore(cart([cartItem({ quantity: 2 })]));
+    stubAdd(answer(409, { problem: 'INSUFFICIENT_STOCK', variantId: 'M-Rosa', available: 3 }));
+    renderRoute('/producto/luna');
+
+    await addPinkM();
+
+    expect(await screen.findByText(es.product.onlyLeft(3))).toBeInTheDocument();
+    expect(screen.queryByText(es.cart.addedNotice)).not.toBeInTheDocument();
   });
 });

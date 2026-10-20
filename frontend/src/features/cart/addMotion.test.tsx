@@ -1,10 +1,10 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
-import { answer, detailOrNoReviews, NO_CART, withHeader } from '../../test/catalogApi.ts';
+import { answer, detailOrNoReviews, NO_CART, SHIPPING_RATES_PATH, withHeader } from '../../test/catalogApi.ts';
 import { forgetMotionPreference, preferReducedMotion } from '../../test/reducedMotion.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
@@ -80,5 +80,52 @@ describe('add to cart motion (E7, D-16)', () => {
     expect(badge(1)?.style.transform).toMatch(NOT_MOVED);
     const check = screen.getByRole('button', { name: es.product.added, hidden: true }).querySelector('svg');
     expect(check?.style.transform).toMatch(NOT_MOVED);
+  });
+});
+
+describe('free-shipping bar motion (E7, D-16)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    forgetMotionPreference();
+  });
+
+  /** A $50,000 threshold and this cart, with the panel opened from the header. */
+  async function openWithThreshold(currentCart: unknown) {
+    vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
+      if (path === SHIPPING_RATES_PATH) {
+        return Promise.resolve(answer(200, { zones: [], freeShippingThresholdCents: 5_000_000 }));
+      }
+      return Promise.resolve(path === '/api/cart' ? currentCart : detailOrNoReviews(path));
+    }));
+    renderRoute('/producto/luna', { motion: true });
+    await userEvent.click(await screen.findByRole('button', { name: /^Carrito/ }));
+    return screen.findByRole('dialog', { name: es.cart.title });
+  }
+
+  it('given a cart below the threshold, when "+" reaches it, then "¡Tenés envío gratis!" pops in', async () => {
+    preferReducedMotion(false);
+    const panel = await openWithThreshold(cart([cartItem()]));
+    vi.spyOn(api, 'PATCH').mockResolvedValue(cart([cartItem({ quantity: 2 })]));
+
+    await userEvent.click(await within(panel).findByRole('button', { name: es.cart.increase('Pijama Luna') }));
+
+    expect((await within(panel).findByText(es.cart.freeShippingReached)).style.transform).toMatch(/scale\(/);
+  });
+
+  it('given a cart already over the threshold, when the panel opens, then the message shows in place', async () => {
+    preferReducedMotion(false);
+    const panel = await openWithThreshold(cart([cartItem({ quantity: 2 })]));
+
+    expect((await within(panel).findByText(es.cart.freeShippingReached)).style.transform).toMatch(NOT_MOVED);
+  });
+
+  it('given reduced motion, when "+" reaches the threshold, then the message does not scale', async () => {
+    preferReducedMotion(true);
+    const panel = await openWithThreshold(cart([cartItem()]));
+    vi.spyOn(api, 'PATCH').mockResolvedValue(cart([cartItem({ quantity: 2 })]));
+
+    await userEvent.click(await within(panel).findByRole('button', { name: es.cart.increase('Pijama Luna') }));
+
+    expect((await within(panel).findByText(es.cart.freeShippingReached)).style.transform).toMatch(NOT_MOVED);
   });
 });

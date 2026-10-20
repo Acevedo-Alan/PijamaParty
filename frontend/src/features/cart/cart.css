@@ -243,6 +243,41 @@ html:has(.cart-panel[open]) {
   padding: 12px 18px;
 }
 
+/* The free-shipping bar (E7), from the prototype's .ship-progress: scaled, not resized, so only transform moves */
+.ship-progress {
+  margin-bottom: 14px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+.ship-bar {
+  height: 6px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.ship-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ship-bar span {
+    transition: transform var(--dur-slow) var(--ease-standard);
+  }
+}
+
+/* The "Agregado al carrito" notice goes inside the modal panel, below its header, as the prototype moves it there */
+.cart-panel .toast-region {
+  position: absolute;
+  top: 76px;
+  bottom: auto;
+}
+
 .cart-row {
   display: flex;
   justify-content: space-between;

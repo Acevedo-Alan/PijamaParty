@@ -228,6 +228,12 @@ export const es = {
     /** The discount line of the coupon that discounts (UC-10, UC-23), e.g. "Descuento PIJAMA10". */
     discountWith: (code: string) => `Descuento ${code}`,
     total: 'Total',
+    /** The free-shipping bar (E7), with the missing amount already formatted, e.g. "$ 25.001". */
+    freeShippingMissing: (missing: string) => `Te faltan ${missing} para envío gratis`,
+    freeShippingReached: '¡Tenés envío gratis!',
+    /** The notice after adding from the product page (E7). */
+    addedNotice: 'Agregado al carrito',
+    closeNotice: 'Cerrar aviso',
     couponCode: 'Código de cupón',
     applyCoupon: 'Aplicar',
     /** The applied coupon, e.g. "Cupón PIJAMA10". */

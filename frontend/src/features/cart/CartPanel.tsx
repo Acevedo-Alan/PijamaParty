@@ -2,10 +2,12 @@ import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
+import { Toast } from '../../components/motion/Toast.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { isCouponOutdone, type Cart, type CartItem, type CouponRefusal } from './cartApi.ts';
 import { useCartPanel } from './CartPanelContext.tsx';
+import { FreeShippingProgress } from './FreeShippingProgress.tsx';
 import {
   useAcknowledgePrices,
   useApplyCoupon,
@@ -295,6 +297,43 @@ function Totals({ cart }: { cart: Cart }) {
   );
 }
 
+/** How long the "Agregado al carrito" notice stays (E7). */
+const NOTICE_MS = 4000;
+
+/**
+ * UC-08 (E7): whether "Agregado al carrito" shows. Each add from the product page shows it for 4 s again; closing it or
+ * the panel hides it.
+ */
+function useAddedNotice(added: number, panelOpen: boolean) {
+  const [shown, setShown] = useState(false);
+  const [seenAdds, setSeenAdds] = useState(added);
+  if (added !== seenAdds) {
+    setSeenAdds(added);
+    setShown(true);
+  } else if (shown && !panelOpen) {
+    setShown(false);
+  }
+
+  useEffect(() => {
+    if (!shown) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setShown(false);
+    }, NOTICE_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [shown, seenAdds]);
+
+  return {
+    shown,
+    hide: () => {
+      setShown(false);
+    },
+  };
+}
+
 /**
  * The side panel of the cart (UC-08): a modal dialog from the right edge over a dimmed page, with the items and the
  * totals as the server sent them. The dialog keeps the focus inside and closes with Escape.
@@ -306,6 +345,7 @@ export function CartPanel() {
   const dialog = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const titleId = useId();
+  const notice = useAddedNotice(panel.added, panel.isOpen);
 
   // A removed item takes its focused button with it: the focus goes to the close button, not out of the dialog.
   const itemCount = cart.data?.items.length;
@@ -341,6 +381,10 @@ export function CartPanel() {
             </svg>
           </button>
         </header>
+        {/* Inside the panel: the modal dialog leaves the page behind it inert. */}
+        <Toast open={notice.shown} closeLabel={es.cart.closeNotice} onClose={notice.hide}>
+          {es.cart.addedNotice}
+        </Toast>
         {cart.isPending && <p className="cart-body" role="status">{es.cart.loading}</p>}
         {cart.isError && (
           <div className="cart-body" role="alert">
@@ -368,6 +412,7 @@ export function CartPanel() {
             </ul>
             <footer className="cart-foot">
               {cart.data.items.some((item) => item.previousUnitPriceCents !== null) && <PriceChangeNotice />}
+              <FreeShippingProgress totalCents={cart.data.totalCents} />
               <CouponField cart={cart.data} />
               <Totals cart={cart.data} />
               <button

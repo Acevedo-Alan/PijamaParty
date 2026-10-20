@@ -269,7 +269,8 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Given no threshold, when the panel opens, then there is no bar.
 
 **Design notes**
-- `FreeShippingProgress` reads the shared rates query; the amounts are `Money` from the API, never recomputed prices.
+- `FreeShippingProgress` reads the shared rates query; the amounts are `Money` from the API, never recomputed prices. Before the threshold is known it shows nothing.
+- The notice renders inside the cart panel, below its header (the prototype moves it to the top while the drawer is open): the modal dialog makes the page behind it inert, so a notice outside it could not be read or closed. Closing the panel closes the notice.
 
 ---
 

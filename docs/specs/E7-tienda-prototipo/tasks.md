@@ -9,7 +9,7 @@
 - [x] **T-E7-06** Barra de filtros en botones y vista de cuadrícula o lista (cambios a CU-02).
 - [x] **T-E7-07** Ficha: `category` en la API, migas de pan, galería con vista ampliada, círculos de color, cantidad, barra fija en el celular, íconos de confianza, envío por provincia y secciones desplegables (cambios a CU-03).
 - [x] **T-E7-08** Ficha: "Completá tu look" (cambios a CU-03, D-08).
-- [ ] **T-E7-09** Panel del carrito: barra de envío gratis y aviso "Agregado al carrito" (cambios a CU-08).
+- [x] **T-E7-09** Panel del carrito: barra de envío gratis y aviso "Agregado al carrito" (cambios a CU-08).
 - [ ] **T-E7-10** Checkout: campos de a dos por fila, nombre y apellido separados en el checkout, la API, el pedido (migración) y los correos, e "Iniciar sesión" para invitados (cambios a CU-13, D-13).
 - [x] **T-E7-13** Banner de personajes editable: tabla y agregado `HomeBanner` (migración), endpoints públicos y del backoffice, pantalla "Portada" del backoffice y sección de la portada (CU-32).
 - [ ] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
