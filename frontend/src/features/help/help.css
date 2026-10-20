@@ -108,3 +108,41 @@
   font-weight: 600;
   color: var(--accent-text);
 }
+
+/* "Contactanos" at the end of the home page (UC-30, D-09): the email and the WhatsApp link, no form. */
+.contact {
+  padding-top: 48px;
+  padding-bottom: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.contact .section-title {
+  margin-bottom: 12px;
+}
+
+.contact p {
+  max-width: 40ch;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.contact-email {
+  margin-top: 16px;
+}
+
+.contact-email a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.contact-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  border-radius: 999px;
+  text-decoration: none;
+}

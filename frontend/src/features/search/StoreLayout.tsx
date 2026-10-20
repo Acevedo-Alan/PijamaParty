@@ -1,13 +1,14 @@
 import { Outlet } from 'react-router';
-import { Analytics, StoreFooter } from '../analytics/ConsentBanner.tsx';
+import { Analytics } from '../analytics/ConsentBanner.tsx';
 import { AccountDeletedNotice } from '../account/AccountDataSection.tsx';
 import { CartPanel } from '../cart/CartPanel.tsx';
 import { CartPanelProvider } from '../cart/CartPanelContext.tsx';
+import { SiteFooter } from './SiteFooter.tsx';
 import { SiteHeader } from './SiteHeader.tsx';
 import './search.css';
 
 /**
- * The frame of every public page: the header (UC-31), the cart side panel (UC-08), the footer, the analytics
+ * The frame of every public page: the header and the footer (UC-31), the cart side panel (UC-08), the analytics
  * consent (RNF-25), which the back office never shows, and the message after the customer deleted its account
  * (UC-28).
  */
@@ -19,7 +20,7 @@ export function StoreLayout() {
       <Analytics />
       <AccountDeletedNotice />
       <Outlet />
-      <StoreFooter />
+      <SiteFooter />
       <CartPanel />
     </CartPanelProvider>
   );

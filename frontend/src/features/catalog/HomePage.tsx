@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { ContactSection } from '../help/ContactSection.tsx';
 import { WithdrawalHomeBlock } from '../withdrawal/WithdrawalLink.tsx';
 import { AudienceCards } from './AudienceCards.tsx';
 import { CatalogListing } from './CatalogListing.tsx';
@@ -20,7 +21,7 @@ function showsListing(state: unknown): boolean {
 
 /**
  * The home page at / (UC-30): the welcome carousel, the character banner (UC-32), "Elegí para quién", the whole
- * shop's listing (UC-01, UC-02) and the withdrawal block (UC-29). Opened with filters or a sort in the URL, or from
+ * shop's listing (UC-01, UC-02), the withdrawal block (UC-29) and "Contactanos" (D-09). Opened with filters or a sort in the URL, or from
  * a navigation link of the header (UC-31), it starts at the listing.
  */
 export function HomePage() {
@@ -74,6 +75,7 @@ export function HomePage() {
         />
         <WithdrawalHomeBlock />
       </section>
+      <ContactSection />
     </main>
   );
 }

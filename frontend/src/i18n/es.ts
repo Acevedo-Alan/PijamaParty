@@ -360,6 +360,22 @@ export const es = {
     /** No installments or discounts here until the owner decides them (D-01, D-02). */
     freeShippingFrom: (amount: string) => `Envío gratis desde ${amount}`,
   },
+  /** UC-31 (T-E7-03): the footer's columns; the withdrawal and Cookies links keep their own texts. */
+  footer: {
+    help: 'Ayuda',
+    social: 'Redes',
+    instagram: 'Instagram',
+    tiktok: 'TikTok',
+    payments: 'Medios de pago',
+    /** The last line, e.g. "© 2026 Pijama Party Santa Fe". */
+    copyright: (year: number, store: string) => `© ${String(year)} ${store}`,
+  },
+  /** UC-30 (T-E7-03, D-09): "Contactanos" at the end of the home page, links only. */
+  contact: {
+    title: 'Contactanos',
+    text: 'Escribinos para resolver dudas o finalizar tu pedido de forma personalizada.',
+    whatsApp: 'Pedir por WhatsApp',
+  },
   sort: {
     label: 'Ordenar por',
     RELEVANCE: 'Relevancia',

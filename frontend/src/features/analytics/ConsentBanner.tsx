@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
-import { FaqLink } from '../help/FaqLink.tsx';
-import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
 import {
   analyticsIds,
   analyticsLoaded,
@@ -123,24 +121,14 @@ export function Analytics() {
   );
 }
 
-/**
- * The footer of the public pages, with the withdrawal button (UC-29, RNF-30.1) and the link to change the analytics
- * choice (RNF-25).
- */
-export function StoreFooter() {
-  const enabled = hasAnalytics(analyticsIds());
+/** The footer's link to change the analytics choice (RNF-25); a build without analytics has nothing to change. */
+export function ConsentFooterLink() {
+  if (!hasAnalytics(analyticsIds())) {
+    return null;
+  }
   return (
-    <footer className="site-footer">
-      <div className="wrap site-footer-inner">
-        <p>{es.store.name}</p>
-        <FaqLink />
-        <WithdrawalLink />
-        {enabled && (
-          <button type="button" className="link-btn" onClick={reopenConsent}>
-            {messages.footerLink}
-          </button>
-        )}
-      </div>
-    </footer>
+    <button type="button" className="link-btn" onClick={reopenConsent}>
+      {messages.footerLink}
+    </button>
   );
 }

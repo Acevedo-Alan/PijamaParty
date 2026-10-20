@@ -343,7 +343,7 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     await userEvent.click(screen.getByRole('radio', { name: /^MODO/ }));
     await userEvent.click(screen.getByRole('button', { name: es.checkout.toReview }));
     await screen.findByRole('heading', { name: es.checkout.reviewTitle });
-    expect(screen.getByText(es.checkout.providers.MODO.name)).toBeInTheDocument();
+    expect(within(screen.getByRole('main')).getByText(es.checkout.providers.MODO.name)).toBeInTheDocument();
 
     await acceptAndConfirm();
 

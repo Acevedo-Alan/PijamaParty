@@ -1,0 +1,84 @@
+/* The store footer (UC-31), from the prototype's footer: one column on phones, three from 860 px, and below them
+   the withdrawal button, the Cookies link and the copyright across the whole width. */
+
+.site-footer {
+  margin-top: 40px;
+  border-top: 1px solid var(--line);
+  padding: 36px 0 calc(24px + env(safe-area-inset-bottom, 0px));
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.site-footer-inner {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+}
+
+.footer-column h2 {
+  margin-bottom: 4px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.footer-links {
+  list-style: none;
+}
+
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--ink-soft);
+}
+
+.footer-payments {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.footer-payments li {
+  padding: 4px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.footer-bottom {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.footer-bottom p {
+  margin-left: auto;
+  font-size: 13px;
+}
+
+@media (hover: hover) {
+  .footer-links a:hover {
+    color: var(--ink);
+  }
+}
+
+@media (max-width: 859px) {
+  .site-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .footer-bottom p {
+    width: 100%;
+    margin-left: 0;
+  }
+}

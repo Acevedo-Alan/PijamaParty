@@ -95,6 +95,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Alternative flows**
 - A photo is missing (D-15): its place shows the gradient background, with the same size, so nothing shifts.
+- The contact email or WhatsApp number has not been sent yet (D-15): its link is not shown; with neither, there is no "Contactanos" section.
 - The URL carries filters or a sort: the page opens scrolled to "Todos los productos".
 
 **Business rules**
@@ -133,6 +134,8 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Alternative flows**
 - No threshold, or `GET /api/shipping/rates` fails: no strip.
 - A footer page that does not exist yet (T-E6-06): its link is not shown.
+- A social link the business has not sent yet (D-15): it is not shown; with neither, there is no Redes column.
+- No enabled provider, or `GET /api/checkout/payment-providers` fails: no Medios de pago column.
 
 **Business rules**
 - Navigation links: Todo → `/`; Mujer, Hombre, Niños → `/?publico=mujer|hombre|infantil`; Temporada Invierno → `/?temporada=invierno`. The current one is marked with `aria-current="page"`.
@@ -151,7 +154,9 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Design notes**
 - `SiteHeader`, `MobileMenu` (a modal `dialog`, like the filter panel of UC-02) and `SiteFooter` replace the header and `StoreFooter` of `StoreLayout`. The back office keeps its own layout.
 - The threshold comes from `GET /api/shipping/rates` (RNF-31.6), one TanStack Query shared by the strip, the product page and the cart panel.
-- Payment provider icons from `GET /api/checkout/payment-providers`; social links from `es.ts` (D-15).
+- Payment provider names from `GET /api/checkout/payment-providers`, the query the checkout and the purchase summary already share. The contact email, the WhatsApp number and the social links live in `storeContact.ts`, empty until the business sends them (D-15).
+- `ContactSection` (D-09) closes the home page after the withdrawal block: "Contactanos" with a `mailto:` link and a `https://wa.me/{number}` link, no form.
+- The footer keeps the "Cookies" link of RNF-25 next to the withdrawal link.
 
 ---
 

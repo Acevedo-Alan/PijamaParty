@@ -83,6 +83,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 **Reglas**
 - El carrusel y "Elegí para quién" tienen textos y fotos fijos (D-03); el banner de personajes es el que carga el administrador (CU-32). Una foto que falta muestra el fondo degradado.
 - Sin banner publicado, la portada no muestra esa sección.
+- El email o el WhatsApp que el negocio todavía no pasó (D-15) no se muestra; sin ninguno de los dos, la portada no muestra "Contactanos".
 - Con filtros u orden en la URL, la portada abre directamente en "Todos los productos".
 - El listado de una categoría (`/categoria/{slug}`) no muestra las secciones de la portada.
 
@@ -108,6 +109,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Con sesión, "Mi cuenta" abre una lista con el saludo, "Mis pedidos", "Mis direcciones", "Mi cuenta" y "Salir". En el menú del celular, esos enlaces se ven directamente.
 - La franja no muestra cuotas ni descuentos (D-01, D-02). Sin umbral, no hay franja.
 - Los enlaces del pie a páginas que todavía no existen (T-E6-06) no se muestran hasta que existan.
+- Una red social que el negocio todavía no pasó (D-15) no se muestra; sin ninguna, no hay columna Redes. Sin medios de pago habilitados, no hay columna Medios de pago.
 - Los datos del vendedor de RNF-30.2 se suman al pie con T-E6-21.
 
 **Criterios de aceptación**
