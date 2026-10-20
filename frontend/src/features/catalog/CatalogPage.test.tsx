@@ -56,7 +56,7 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/categoria/verano');
 
-    await screen.findAllByRole('listitem');
+    await within(screen.getByRole('main')).findAllByRole('listitem');
     const photos = screen.getAllByTestId('blurred-image').map((image) => within(image).getByRole('img'));
     expect(photos.map((photo) => photo.getAttribute('loading'))).toEqual(
       ['eager', 'eager', 'eager', 'eager', 'lazy', 'lazy'],

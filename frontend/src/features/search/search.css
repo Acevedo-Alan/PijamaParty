@@ -1,4 +1,17 @@
-/* The store header and its search (UC-26), from the prototype's header: a field from 960 px, a full-screen search below. */
+/* The store header (UC-31) and its search (UC-26), from the prototype's header: the navigation and the account
+   entries from 860 px, the phone menu below; the search field from 960 px, a full-screen search below. The wide
+   layout is the base so that it is what a test environment without media queries (jsdom) sees. */
+
+/* The free-shipping strip above the header: no installments or discounts (D-01, D-02) */
+.announce {
+  padding: 9px 16px;
+  background: var(--rose);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
 header.site {
   position: sticky;
   top: 0;
@@ -8,47 +21,100 @@ header.site {
   border-bottom: 1px solid var(--line);
 }
 
+/* The logo stays centered between the navigation (or the menu button) and the tools. */
 .header-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   height: 64px;
 }
 
 .logo {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   min-height: 44px;
   display: flex;
   align-items: center;
   font-family: var(--ff-display);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
   color: var(--ink);
   text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.header-actions {
+.header-nav {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  min-width: 0;
+}
+
+.nav-links {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex: none;
+  /* As in the prototype: the gaps narrow so that the five links fit beside the logo from 860 px. */
+  gap: clamp(6px, 1vw, 16px);
+  list-style: none;
+  font-size: 13px;
+}
+
+.nav-links a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 4px 0 8px;
+  border-bottom: 1px solid transparent;
+  color: var(--ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
+}
+
+.nav-links a[aria-current='page'] {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+@media (hover: hover) {
+  .nav-links a:hover {
+    color: var(--ink);
+    border-color: var(--accent);
+  }
+}
+
+.icon-btn.menu-toggle {
+  display: none;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+}
+
+.header-tools {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .header-search {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex: none;
+  flex: 0 1 220px;
+  min-width: 0;
 }
 
-/* The field shows in the header from 960 px; below, the icon opens the full-screen search. The wide layout is the
-   base so that the field is what a test environment without media queries (jsdom) sees. */
 .header-search-inline {
-  width: 260px;
+  width: 100%;
+  min-width: 0;
 }
 
 .icon-btn.search-trigger {
@@ -81,6 +147,10 @@ header.site {
 }
 
 @media (max-width: 959px) {
+  .header-search {
+    flex: none;
+  }
+
   .header-search-inline {
     display: none;
   }
@@ -88,6 +158,128 @@ header.site {
   .icon-btn.search-trigger {
     display: flex;
   }
+}
+
+@media (max-width: 859px) {
+  .header-row {
+    gap: 6px;
+  }
+
+  .header-nav,
+  .header-tools .header-account {
+    display: none;
+  }
+
+  .icon-btn.menu-toggle {
+    display: flex;
+  }
+
+  .header-tools {
+    gap: 0;
+  }
+}
+
+/* The phone menu: a modal dialog from the left edge, full height, over the dimmed page */
+html:has(.menu-panel[open]) {
+  overflow: hidden;
+}
+
+.menu-panel {
+  width: min(360px, 90vw);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0 auto 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 0 18px 18px 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.menu-panel::backdrop {
+  background: rgba(74, 58, 58, 0.4);
+}
+
+.menu-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.menu-head {
+  position: relative;
+  padding: 12px 56px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+}
+
+.menu-brand {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.menu-title {
+  margin-top: 6px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.menu-head .icon-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.menu-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 12px 18px;
+}
+
+.menu-links {
+  list-style: none;
+}
+
+.menu-links a,
+.menu-account .account-links a,
+.menu-account .account-sign-out {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 12px 10px;
+  border-radius: var(--radius-s);
+  color: var(--ink);
+  font-size: 14.5px;
+  text-decoration: none;
+}
+
+.menu-links a[aria-current='page'] {
+  background: var(--peach-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+@media (hover: hover) {
+  .menu-links a:hover,
+  .menu-account .account-links a:hover,
+  .menu-account .account-sign-out:hover {
+    background: var(--peach-soft);
+  }
+}
+
+.menu-foot {
+  padding: 14px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: var(--surface);
 }
 
 /* The field and its suggestions */

@@ -95,10 +95,11 @@ describe('my orders (UC-22, T-E4-07)', () => {
     );
     const { router } = renderRoute('/');
 
+    await userEvent.click(await screen.findByRole('button', { name: es.account.menu }));
     await userEvent.click(await screen.findByRole('link', { name: es.account.ordersLink }));
 
     expect(router.state.location.pathname).toBe('/cuenta/pedidos');
-    const items = await screen.findAllByRole('listitem');
+    const items = await within(screen.getByRole('main')).findAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('Pedido #1002');
     expect(items[0]).toHaveTextContent(es.tracking.statuses.SHIPPED);
@@ -120,9 +121,9 @@ describe('my orders (UC-22, T-E4-07)', () => {
     await userEvent.click(await screen.findByRole('button', { name: messages.more }));
 
     await waitFor(() => {
-      expect(screen.getAllByRole('listitem')).toHaveLength(2);
+      expect(within(screen.getByRole('main')).getAllByRole('listitem')).toHaveLength(2);
     });
-    expect(screen.getAllByRole('listitem')[1]).toHaveTextContent('Pedido #1001');
+    expect(within(screen.getByRole('main')).getAllByRole('listitem')[1]).toHaveTextContent('Pedido #1001');
     expect(screen.queryByRole('button', { name: messages.more })).not.toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/api/account/orders', expect.objectContaining({ params: { query: { page: 1 } } }));
   });

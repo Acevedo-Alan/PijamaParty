@@ -5,7 +5,7 @@ import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
 import { es } from '../../i18n/es.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
-import { answer, NO_CART, withHeader } from '../../test/catalogApi.ts';
+import { answer, headerRead, NO_CART, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { keepTrackingToken } from '../checkout/trackingTokenStore.ts';
 import { CONFIRMING_EVERY_MS } from '../orders/useTrackedOrder.ts';
@@ -123,7 +123,7 @@ function trackedOrder(status: OrderStatus, number = 1001): TrackedOrderResponse 
 function stubOrder(...answers: unknown[]) {
   const queue = [...answers];
   vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
-    Promise.resolve(path === '/api/cart' ? NO_CART : queue.length > 1 ? queue.shift() : queue[0])));
+    Promise.resolve(headerRead(path) ?? (queue.length > 1 ? queue.shift() : queue[0]))));
 }
 
 async function openTracking(status: OrderStatus) {

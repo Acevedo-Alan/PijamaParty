@@ -81,6 +81,8 @@ interface CatalogAnswers {
   cart?: unknown;
   /** Answer of GET /api/home/banner: none published unless told otherwise. */
   banner?: unknown;
+  /** Answer of GET /api/shipping/rates, which the header's free-shipping strip reads (UC-31): none unless told. */
+  shippingRates?: unknown;
 }
 
 /** Serves the catalog GET calls by path, so the listing and the filter options can load in any order. */
@@ -91,6 +93,7 @@ export function stubCatalogApi({
   categories = shopCategories([]),
   cart = NO_CART,
   banner = answer(204),
+  shippingRates = NO_SHIPPING_RATES,
 }: CatalogAnswers): MockInstance {
   const queue = [...listings];
   return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string, init?: { params?: { query?: { q?: string } } }) => {
@@ -110,6 +113,9 @@ export function stubCatalogApi({
     }
     if (path === '/api/home/banner') {
       return Promise.resolve(banner);
+    }
+    if (path === SHIPPING_RATES_PATH) {
+      return Promise.resolve(shippingRates);
     }
     const next = queue.length > 1 ? queue.shift() : queue[0];
     return Promise.resolve(next);
@@ -185,6 +191,14 @@ export const NO_SHIPPING_RATES = answer(200, { zones: [], freeShippingThresholdC
 
 /** MODO switched off. */
 export const MERCADOPAGO_ONLY = answer(200, { providers: ['MERCADOPAGO'] });
+
+/** The header's own reads besides the account (UC-08, UC-31): an empty cart and no free shipping; undefined otherwise. */
+export function headerRead(path: string): unknown {
+  if (path === '/api/cart') {
+    return NO_CART;
+  }
+  return path === SHIPPING_RATES_PATH ? NO_SHIPPING_RATES : undefined;
+}
 
 /** The answer of a purchase-summary read, or undefined for any other path. */
 export function purchaseInfo(path: string): unknown {

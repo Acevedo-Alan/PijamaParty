@@ -125,7 +125,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Preconditions:** none.
 
 **Main flow**
-1. Every public page shows the header: logo (link to `/`), navigation (Todo, Mujer, Hombre, Niños, Temporada Invierno), search (UC-26), "Ingresar" and "Crear cuenta" (or the account entry with a session, UC-19) and the cart button.
+1. Every public page shows the header: logo (link to `/`), navigation (Todo, Mujer, Hombre, Niños, Temporada Invierno), search (UC-26), "Ingresar" and "Crear cuenta" (or "Mi cuenta" with a session, UC-19) and the cart button.
 2. From 860 px the navigation sits in the header; below, a menu button opens it with the account links in a side panel.
 3. With a free-shipping threshold, a strip above the header says "Envío gratis desde $X".
 4. The footer has three columns: Ayuda (FAQ, exchanges and returns, terms), Redes (Instagram, TikTok) and Medios de pago (the enabled providers); below them, the withdrawal link (RNF-30.1) and "© {year} Pijama Party Santa Fe".
@@ -136,12 +136,15 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Business rules**
 - Navigation links: Todo → `/`; Mujer, Hombre, Niños → `/?publico=mujer|hombre|infantil`; Temporada Invierno → `/?temporada=invierno`. The current one is marked with `aria-current="page"`.
+- A navigation link with a filter takes the home page to "Todos los productos", as when it opens with filters (UC-30).
+- With a session, "Mi cuenta" opens a list with the greeting, "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta" (UC-27) and "Salir"; Escape, a click outside or choosing a link closes it. The phone menu lists the same links open.
 - The strip shows no installments or discounts (D-01, D-02).
 - Seller data (RNF-30.2) joins the footer with T-E6-21; it is not part of this use case.
 
 **Acceptance criteria**
 - Given a free-shipping threshold of $50,000, when any public page opens, then the strip reads "Envío gratis desde $50.000"; without a threshold, there is no strip.
 - Given a phone, when the menu opens, then it shows the navigation and the account links, the focus stays inside it, and Escape closes it and returns the focus to the menu button.
+- Given a signed-in customer on a computer, when "Mi cuenta" is opened, then it lists "Mis pedidos", "Mis direcciones", "Mi cuenta" and "Salir", and Escape closes it and returns the focus to "Mi cuenta".
 - Given "Temporada Invierno", when chosen, then the grid shows only `WINTER` products.
 - Given any public page, when the footer is checked, then the withdrawal link is visible without signing in.
 

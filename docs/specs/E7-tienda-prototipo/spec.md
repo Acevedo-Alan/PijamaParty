@@ -104,7 +104,8 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 4. El pie tiene tres columnas: Ayuda (preguntas frecuentes, cambios y devoluciones, términos), Redes (Instagram, TikTok) y Medios de pago (los habilitados); debajo, el botón de arrepentimiento y el año con el nombre de la tienda.
 
 **Reglas**
-- Cada enlace de la navegación abre el listado filtrado: Mujer, Hombre y Niños por público; Temporada Invierno por temporada.
+- Cada enlace de la navegación abre el listado filtrado: Mujer, Hombre y Niños por público; Temporada Invierno por temporada. En la portada, bajan hasta "Todos los productos".
+- Con sesión, "Mi cuenta" abre una lista con el saludo, "Mis pedidos", "Mis direcciones", "Mi cuenta" y "Salir". En el menú del celular, esos enlaces se ven directamente.
 - La franja no muestra cuotas ni descuentos (D-01, D-02). Sin umbral, no hay franja.
 - Los enlaces del pie a páginas que todavía no existen (T-E6-06) no se muestran hasta que existan.
 - Los datos del vendedor de RNF-30.2 se suman al pie con T-E6-21.

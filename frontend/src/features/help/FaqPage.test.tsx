@@ -98,7 +98,7 @@ describe('the FAQ page (RNF-31.6, T-E5-12)', () => {
     renderRoute('/preguntas-frecuentes');
 
     await userEvent.click(screen.getByText(messages.payment.question));
-    const list = within(await screen.findByRole('list'));
+    const list = within(await within(screen.getByRole('main')).findByRole('list'));
     expect(list.getAllByRole('listitem').map((item) => item.querySelector('strong')?.textContent)).toEqual(names);
   });
 

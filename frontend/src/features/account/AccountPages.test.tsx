@@ -146,6 +146,7 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
     expect(post).toHaveBeenCalledWith('/api/account/login', {
       body: { email: 'ana@example.com', password: 'ocho1234' },
     });
+    await userEvent.click(await screen.findByRole('button', { name: es.account.menu }));
     expect(await screen.findByText(es.account.greeting('Ana'))).toBeInTheDocument();
     expect(screen.getByRole('button', { name: es.account.signOut })).toBeInTheDocument();
   });
@@ -202,6 +203,7 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
     const post = stubPost(answer(204));
     renderRoute('/');
 
+    await userEvent.click(await screen.findByRole('button', { name: es.account.menu }));
     await userEvent.click(await screen.findByRole('button', { name: es.account.signOut }));
 
     expect(await screen.findByRole('link', { name: es.account.signInLink })).toHaveAttribute('href', '/cuenta/ingresar');

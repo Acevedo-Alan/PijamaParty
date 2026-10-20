@@ -1,40 +1,127 @@
 /* UC-19 (T-E4-02, T-E4-03): the header's account entry and the registration, sign-in, verification and password
    recovery pages. UC-20 (T-E4-05): the address book. UC-22 (T-E4-07): my orders. */
 
-.account-link {
+/* UC-31 (T-E7-02): the account entries of the header and the phone menu, from the prototype's .account-btn */
+.header-account,
+.menu-account {
   display: flex;
   align-items: center;
-  gap: 4px;
-  min-height: 44px;
-  padding: 0 8px;
-  color: var(--accent-text);
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
+  gap: 6px;
 }
 
-a.account-link {
+.account-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 12px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
   text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--dur-base) var(--ease-standard), color var(--dur-base) var(--ease-standard);
+}
+
+.account-btn.secondary {
+  background: transparent;
+  color: var(--accent-text);
+}
+
+.account-btn.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+@media (hover: hover) {
+  .account-btn.secondary:hover {
+    background: var(--rose-soft);
+  }
+
+  .account-btn.primary:hover {
+    background: var(--accent-hover);
+  }
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-menu-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+.account-menu-btn[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.account-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  box-shadow: 0 12px 24px rgba(194, 80, 106, 0.12);
 }
 
 .account-greeting {
-  display: none;
+  padding: 8px 10px 4px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.account-links {
+  list-style: none;
+}
+
+.account-menu-list .account-links a,
+.account-menu-list .account-sign-out {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 10px;
   color: var(--ink);
-  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .account-menu-list .account-links a:hover,
+  .account-menu-list .account-sign-out:hover {
+    background: var(--peach-soft);
+  }
 }
 
 .account-sign-out {
-  min-height: 44px;
-  padding: 0 4px;
-  color: var(--accent-text);
-  font-weight: 600;
-  text-decoration: underline;
+  text-align: left;
 }
 
-@media (min-width: 640px) {
-  .account-greeting {
-    display: inline;
-  }
+/* In the phone menu the signed-out entries take the whole width, one above the other. */
+.menu-account {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.menu-account .account-btn {
+  min-height: 48px;
+}
+
+.menu-account .account-greeting {
+  padding-top: 0;
 }
 
 .account-page {
@@ -122,15 +209,7 @@ a.account-link {
   text-decoration: none;
 }
 
-.account-orders,
-.account-addresses,
-.account-mine {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 4px;
-  color: var(--accent-text);
-}
+
 
 /* UC-20 (T-E4-05): the address book. */
 

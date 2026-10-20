@@ -87,6 +87,7 @@ describe('my account (UC-27, T-E4-15)', () => {
     stubMethods({ hasPassword: false, identities: [GOOGLE] });
     const { router } = renderRoute('/');
 
+    await userEvent.click(await screen.findByRole('button', { name: es.account.menu }));
     await userEvent.click(await screen.findByRole('link', { name: es.account.myAccountLink }));
 
     expect(router.state.location.pathname).toBe('/cuenta');

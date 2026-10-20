@@ -346,6 +346,20 @@ export const es = {
     categories: 'Categorías',
     tooShort: 'Escribí al menos 2 letras para buscar.',
   },
+  /** UC-31 (T-E7-02): the header, its navigation, the phone menu and the free-shipping strip. */
+  header: {
+    /** The navigation's name; the phone menu shows the prototype's title, "Categorías". */
+    navigation: 'Navegación principal',
+    menuTitle: 'Categorías',
+    all: 'Todo',
+    audiences: { WOMEN: 'Mujer', MEN: 'Hombre', KIDS: 'Niños' },
+    winter: 'Temporada Invierno',
+    openMenu: 'Abrir menú',
+    closeMenu: 'Cerrar menú',
+    account: 'Tu cuenta',
+    /** No installments or discounts here until the owner decides them (D-01, D-02). */
+    freeShippingFrom: (amount: string) => `Envío gratis desde ${amount}`,
+  },
   sort: {
     label: 'Ordenar por',
     RELEVANCE: 'Relevancia',
@@ -1064,6 +1078,9 @@ export const es = {
     addressesLink: 'Mis direcciones',
     ordersLink: 'Mis pedidos',
     myAccountLink: 'Mi cuenta',
+    /** UC-31 (T-E7-02): the header's entries; with a session, "Mi cuenta" opens the list of the account links. */
+    registerLink: 'Crear cuenta',
+    menu: 'Mi cuenta',
     /** UC-27 (T-E4-15): how the customer signs in, linking and unlinking providers and creating a password. */
     myAccount: {
       title: 'Mi cuenta',

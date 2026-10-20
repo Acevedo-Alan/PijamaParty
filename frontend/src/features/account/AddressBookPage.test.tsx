@@ -73,10 +73,11 @@ describe('address book (UC-20, T-E4-05)', () => {
     stubBook([saved('a1', 'Belgrano', true), saved('a2', 'San Martín', false, { floor: '3', apartment: 'B' })]);
     const { router } = renderRoute('/');
 
+    await userEvent.click(await screen.findByRole('button', { name: es.account.menu }));
     await userEvent.click(await screen.findByRole('link', { name: es.account.addressesLink }));
 
     expect(router.state.location.pathname).toBe('/cuenta/direcciones');
-    const items = await screen.findAllByRole('listitem');
+    const items = await within(screen.getByRole('main')).findAllByRole('listitem');
     expect(items[0]).toHaveTextContent('Belgrano 1234');
     expect(within(nth(items, 0)).getByText(messages.primary)).toBeInTheDocument();
     expect(items[1]).toHaveTextContent('San Martín 1234, piso 3, depto. B');
@@ -190,9 +191,9 @@ describe('address book (UC-20, T-E4-05)', () => {
       },
     });
     await waitFor(() => {
-      expect(screen.getAllByRole('listitem')[0]).toHaveTextContent('San Martín 1234');
+      expect(within(screen.getByRole('main')).getAllByRole('listitem')[0]).toHaveTextContent('San Martín 1234');
     });
-    expect(within(nth(screen.getAllByRole('listitem'), 1)).queryByText(messages.primary)).not.toBeInTheDocument();
+    expect(within(nth(within(screen.getByRole('main')).getAllByRole('listitem'), 1)).queryByText(messages.primary)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: messages.makePrimary('San Martín 1234') })).not.toBeInTheDocument();
   });
 

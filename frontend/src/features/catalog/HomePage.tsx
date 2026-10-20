@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { WithdrawalHomeBlock } from '../withdrawal/WithdrawalLink.tsx';
 import { AudienceCards } from './AudienceCards.tsx';
@@ -10,10 +11,17 @@ import { useListingCriteria } from './useListingCriteria.ts';
 import './catalog.css';
 import './home.css';
 
+/** The navigation state of a link that opens the listing with a filter (UC-31): the home page goes to its listing. */
+export const SHOW_LISTING = { showListing: true } as const;
+
+function showsListing(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && 'showListing' in state && state.showListing === true;
+}
+
 /**
  * The home page at / (UC-30): the welcome carousel, the character banner (UC-32), "Elegí para quién", the whole
- * shop's listing (UC-01, UC-02) and the withdrawal block (UC-29). Opened with filters or a sort in the URL, it
- * starts at the listing.
+ * shop's listing (UC-01, UC-02) and the withdrawal block (UC-29). Opened with filters or a sort in the URL, or from
+ * a navigation link of the header (UC-31), it starts at the listing.
  */
 export function HomePage() {
   const [urlCriteria] = useListingCriteria();
@@ -21,6 +29,7 @@ export function HomePage() {
   const listingHeading = useRef<HTMLHeadingElement>(null);
   const opensAtListing = useRef(toSearchParams(criteria).toString() !== '');
   const bannerSettled = useHomeBanner().isFetched;
+  const location = useLocation();
 
   const showListing = useCallback(() => {
     const heading = listingHeading.current;
@@ -38,6 +47,13 @@ export function HomePage() {
       opensAtListing.current = false;
     }
   }, [bannerSettled]);
+
+  // A navigation link keeps this page mounted when it is already open: each one goes to the listing again.
+  useEffect(() => {
+    if (showsListing(location.state)) {
+      showListing();
+    }
+  }, [location, showListing]);
 
   return (
     <main className="home">
