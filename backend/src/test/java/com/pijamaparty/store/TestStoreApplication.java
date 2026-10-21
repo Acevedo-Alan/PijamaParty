@@ -3,7 +3,7 @@ package com.pijamaparty.store;
 import org.springframework.boot.SpringApplication;
 
 /**
- * Runs the application locally against a throwaway PostgreSQL container: {@code ./mvnw spring-boot:test-run}.
+ * Runs the application locally against a throwaway PostgreSQL container: {@code ./mvnw spring-boot:test-run@dev}.
  */
 public class TestStoreApplication {
 

@@ -179,6 +179,17 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <!-- ./mvnw spring-boot:test-run@dev: the test classes hold two main classes (TestStoreApplication
+                         and E2eStoreApplication), so test-run needs one named. Not in the plugin configuration, which
+                         spring-boot:run would also read, without the test classes on its classpath. -->
+                    <execution>
+                        <id>dev</id>
+                        <configuration>
+                            <mainClass>com.pijamaparty.store.TestStoreApplication</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Static analysis with find-sec-bugs (RNF-28, R-13). The check goal is a gate: SQL built by concatenation
