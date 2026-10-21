@@ -45,7 +45,7 @@ Frontend and tooling: TypeScript only (.ts/.tsx). No .js/.jsx/.mjs/.cjs files, i
 ## Commands
 Backend (run from `backend/`; requires JDK 21 and Docker running for Testcontainers):
 - Build and test: `./mvnw verify` (find-sec-bugs fails on SQL built from strings; all other findings go to `target/spotbugsReport.xml`)
-- Run locally with a throwaway PostgreSQL container: `./mvnw spring-boot:test-run`
+- Run locally with a throwaway PostgreSQL container: `./mvnw spring-boot:test-run@dev`
 - Local PostgreSQL (from the repository root): `docker compose -f deploy/docker-compose.dev.yml --env-file .env up -d`
 - Run locally against your own PostgreSQL: set the variables of `.env.example` (including `SPRING_PROFILES_ACTIVE=dev`; there is no default profile), then `./mvnw spring-boot:run`
 - Vulnerable dependency scan (slow, downloads the NVD database; set NVD_API_KEY): `./mvnw dependency-check:check`
