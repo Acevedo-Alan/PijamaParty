@@ -106,7 +106,7 @@ PAGADO | PREPARANDO → CANCELADO
 | Ajustes de stock idempotentes | Decidido | Cada ajuste lleva un `Idempotency-Key` por variante: un reintento con la misma clave no cambia el stock dos veces (CU-07, R-09) |
 | Rate limiting solo en la app (Bucket4j en memoria) | Decidido | Sin Cloudflare ni plugin de Caddy |
 | Concurrencia: pool de hilos clásico y acotado | Recomendado | Delegado por el usuario; hilos virtuales como opción futura |
-| Backoffice: un único administrador (el dueño) | Decidido | Sin gestión de roles ni permisos |
+| Backoffice: un único administrador (el dueño) | Decidido | Sin gestión de roles ni permisos; reconfirmado el 2026-10-20 al descartar los usuarios del backoffice (E8, D-E8-01) |
 | Correos: servicio transaccional (Resend) con outbox | Recomendado | Delegado por el usuario; verificar límites del plan gratuito |
 | Segundo factor (TOTP) para el administrador | Recomendado como obligatorio | La cuenta accede a datos personales de clientes (RNF-29.8) |
 | Factura electrónica (ARCA) | Pendiente | Consultar al contador del negocio; propuesta para v1: la emite el negocio por fuera del sistema |
@@ -137,4 +137,6 @@ PAGADO | PREPARANDO → CANCELADO
 | SEO, datos estructurados y redirecciones desde Treinta | Recomendado | RNF-31.1 a RNF-31.3 |
 | Guía de talles por categoría | Decidido | RNF-31.5; columnas definidas por el administrador, una fila por talle y nota opcional (2026-10-18) |
 | Preguntas frecuentes e información antes de comprar | Decidido | RNF-31.6; textos fijos de la tienda, costos de envío y medios de pago leídos del servidor, plazos de 1 a 3 días hábiles a Santa Fe y de 3 a 7 al resto del país desde la acreditación del pago (2026-10-18) |
-| Fuera de la primera versión | Propuesto | Favoritos, aviso de reposición de stock, correo de carrito abandonado (requiere consentimiento y contradice la regla de un solo correo), newsletter, tarjetas de regalo, reembolsos desde el sistema e ingreso con Apple |
+| Fuera de la primera versión | Propuesto | Favoritos, aviso de reposición de stock, correo de carrito abandonado (requiere consentimiento y contradice la regla de un solo correo), newsletter, tarjetas de regalo e ingreso con Apple. Los reembolsos desde el sistema pasaron a E8c (D-E8-04) |
+| Reembolsos desde el backoffice (E8) | Decidido | Total, por MercadoPago, desde el detalle del pedido (CU-42, E8c, D-E8-04, 2026-10-20). Parciales y MODO siguen desde el panel del proveedor hasta decidir T-E3b-06 |
+| Panel de administración (E8a) | Decidido | Resumen como página inicial, clientes en solo lectura, datos de contacto editables, umbral único de stock bajo (3 por defecto) y registro de actividad conservado 2 años (CU-33, CU-34, CU-36, CU-37; D-E8-03, D-E8-10, D-E8-11; 2026-10-20) |
