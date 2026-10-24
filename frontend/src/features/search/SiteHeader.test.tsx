@@ -100,6 +100,15 @@ describe('store navigation (UC-31)', () => {
     expect(headerNav().queryByRole('link', { current: 'page' })).not.toBeInTheDocument();
   });
 
+  it('given any public page, when the header shows, then the logo is an image named after the store that opens the home page', () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+
+    const logo = screen.getByRole('link', { name: es.store.name });
+    expect(logo).toHaveAttribute('href', '/');
+    expect(within(logo).getByRole('img', { name: es.store.name })).toHaveAttribute('height', '48');
+  });
+
   it.each([
     ['/', 'Todo'],
     ['/?publico=mujer&orden=menor-precio', 'Mujer'],

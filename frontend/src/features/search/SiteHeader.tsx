@@ -1,4 +1,7 @@
 import { Link } from 'react-router';
+import logo144 from '../../assets/brand/logo-144.webp';
+import logo48 from '../../assets/brand/logo-48.webp';
+import logo96 from '../../assets/brand/logo-96.webp';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { HeaderAccount } from '../account/AccountLink.tsx';
@@ -29,7 +32,14 @@ export function SiteHeader() {
         <div className="wrap header-row">
           <MobileMenu />
           <Link to="/" className="logo">
-            {es.store.name}
+            {/* The business's logo (D-15), 48 px tall as in the prototype, fixed in the build (D-03). */}
+            <img
+              src={logo48}
+              srcSet={`${logo48} 1x, ${logo96} 2x, ${logo144} 3x`}
+              width={58}
+              height={48}
+              alt={es.store.name}
+            />
           </Link>
           <nav className="header-nav" aria-label={es.header.navigation}>
             <StoreNavigation className="nav-links" />

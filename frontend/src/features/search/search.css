@@ -37,13 +37,12 @@ header.site {
   min-height: 44px;
   display: flex;
   align-items: center;
-  font-family: var(--ff-display);
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.1;
-  text-align: center;
-  color: var(--ink);
-  text-decoration: none;
+}
+
+.logo img {
+  display: block;
+  height: 48px;
+  width: auto;
 }
 
 .header-nav {
