@@ -233,7 +233,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - **Never recorded:** buyer or customer names, emails, phones, national IDs or addresses; the free-text note of a stock adjustment (it may contain personal data, UC-07); review texts; passwords, second-factor secrets, codes, tokens or idempotency keys; photo file names.
 - Entries are append-only: nothing edits or deletes them, except the retention job.
 - **Retention** (D-E8-11): a daily job at 03:00 Argentina time deletes the entries older than 2 years.
-- **Screen:** "Actividad" lists 50 per page, newest first, filterable by area and by a date range (Argentina dates, both inclusive). Each row shows the date and time, the action in Spanish, the subject label linked to its screen when it still exists, and the changed fields as "antes → después".
+- **Screen:** "Actividad" lists 50 per page, newest first, filterable by area and by a date range (Argentina dates, both inclusive). Each row shows the date and time, the action in Spanish, the subject label linked to its screen (a product or an order opens itself; a category, a coupon, a review, a withdrawal, the shipping table and the banner open their section; a variant, the settings, a customer and the administrator are not links until their screens exist), and the changed fields as "antes → después".
 
 **Acceptance criteria**
 - Given a variant whose price changes from $20,000 to $22,000, when saved, then "Actividad" shows the change with the SKU, $20.000 → $22.000 and the time.

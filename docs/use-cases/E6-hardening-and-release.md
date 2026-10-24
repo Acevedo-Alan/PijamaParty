@@ -255,7 +255,7 @@ Each task's open decisions are settled with the owner when the task starts and w
 6. **Payments and checkout keys:** as Ana, the guest and the administrator, the database sees none of the `idempotency_key` rows of the others. As Ana and the guest, none of the `payment` rows.
 7. **The two sides:** Ana and the guest on `/api/admin/orders/{id}` → `403` and `401`; the administrator on `/api/account/orders/{id}` → `403`. The administrator opens Bruno's order in the back office (`200`): reading every order is its job (RNF-27 table). As the administrator, the database sees no `cart` or `cart_item` row.
 
-**Protected tables** (`FORCE ROW LEVEL SECURITY`): the RNF-27 list (`orders`, `order_item`, `payment`, `payment_event`, `address`, `app_user`, `cart`, `cart_item`, `review`, `idempotency_key`, `email_outbox`, `email_event`, `external_identity`, `user_token`, `withdrawal_request`) plus `admin_recovery_code`, `order_tracking_token`, `payment_checkout` and `pending_link`.
+**Protected tables** (`FORCE ROW LEVEL SECURITY`): the RNF-27 list (`orders`, `order_item`, `payment`, `payment_event`, `address`, `app_user`, `cart`, `cart_item`, `review`, `idempotency_key`, `email_outbox`, `email_event`, `external_identity`, `user_token`, `withdrawal_request`) plus `admin_recovery_code`, `order_tracking_token`, `payment_checkout`, `pending_link` and `activity_entry` (the back-office activity log, UC-37: only the administrator reads it, T-E8-01).
 
 **Public tables, with their reason:**
 - `category`, `product`, `variant`, `product_image`, `size_guide`, `home_banner`, `stock_level`, `shipping_zone_rate`, `shop_setting`: the catalog, the home page's banner (UC-32) and the store's settings, public and without personal data (RNF-27).

@@ -20,6 +20,6 @@ class ModularityTest {
     void detectsTheModulesOfArchitectureSection3() {
         assertThat(modules.stream().map(ApplicationModule::getIdentifier).map(Object::toString))
             .containsExactlyInAnyOrder("catalog", "inventory", "cart", "promotions", "shipping", "ordering",
-                "payments", "notifications", "accounts", "reviews", "backoffice", "platform");
+                "payments", "notifications", "accounts", "reviews", "activity", "backoffice", "platform");
     }
 }

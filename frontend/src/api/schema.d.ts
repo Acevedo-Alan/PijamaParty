@@ -1620,6 +1620,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The back-office changes, newest first
+         * @description 50 per page, from page 0. Every area when `area` is absent; `from` and `to` are store dates (America/Argentina/Buenos_Aires), both inclusive and optional.
+         */
+        get: operations["list_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/orders": {
         parameters: {
             query?: never;
@@ -1631,7 +1651,7 @@ export interface paths {
          * The customer's orders, newest first
          * @description 20 per page, from page 0. Not cached.
          */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2630,6 +2650,34 @@ export interface components {
             secret?: string;
             otpauthUri?: string;
             qrCode?: string;
+        };
+        ActivityChangeResponse: {
+            field?: string;
+            before?: string | null;
+            after?: string | null;
+        };
+        ActivityEntryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+            /** @enum {string} */
+            area?: "CATALOG" | "STOCK" | "ORDERS" | "PROMOTIONS" | "REVIEWS" | "SHIPPING" | "CONTENT" | "SETTINGS" | "CUSTOMERS" | "ACCOUNT";
+            /** @enum {string} */
+            action?: "CATEGORY_CREATED" | "CATEGORY_RENAMED" | "CATEGORIES_REORDERED" | "CATEGORY_DEACTIVATED" | "CATEGORY_ACTIVATED" | "CATEGORY_DELETED" | "PRODUCT_CREATED" | "PRODUCT_UPDATED" | "PRODUCT_PUBLISHED" | "PRODUCT_HIDDEN" | "VARIANTS_GENERATED" | "VARIANT_UPDATED" | "PRODUCT_IMAGE_UPLOADED" | "PRODUCT_IMAGES_REORDERED" | "PRODUCT_IMAGE_DELETED" | "SIZE_GUIDE_SAVED" | "STOCK_ADJUSTED" | "ORDER_STATUS_CHANGED" | "TRACKING_NUMBER_CORRECTED" | "WITHDRAWAL_RESOLVED" | "COUPON_CREATED" | "COUPON_UPDATED" | "COUPON_ACTIVATED" | "COUPON_DEACTIVATED" | "COUPON_DELETED" | "REVIEW_APPROVED" | "REVIEW_REJECTED" | "REVIEW_DELETED" | "SHIPPING_ZONES_CHANGED" | "FREE_SHIPPING_THRESHOLD_CHANGED" | "HOME_BANNER_UPDATED" | "HOME_BANNER_PUBLISHED" | "HOME_BANNER_HIDDEN" | "HOME_BANNER_PHOTO_REPLACED" | "STORE_SETTINGS_CHANGED" | "CUSTOMER_VIEWED" | "ADMIN_SIGNED_IN" | "SECOND_FACTOR_ENROLLED" | "RECOVERY_CODE_USED";
+            subject?: components["schemas"]["ActivitySubjectResponse"];
+            changes?: components["schemas"]["ActivityChangeResponse"][];
+        };
+        ActivityPageResponse: {
+            items?: components["schemas"]["ActivityEntryResponse"][];
+            hasMore?: boolean;
+        };
+        ActivitySubjectResponse: {
+            /** @enum {string} */
+            type?: "CATEGORY" | "PRODUCT" | "VARIANT" | "ORDER" | "WITHDRAWAL" | "COUPON" | "REVIEW" | "SHIPPING" | "HOME_BANNER" | "STORE_SETTINGS" | "CUSTOMER" | "ADMINISTRATOR";
+            /** Format: uuid */
+            id?: string | null;
+            label?: string | null;
         };
         MyReviewAnswer: {
             eligible?: boolean;
@@ -6992,6 +7040,49 @@ export interface operations {
         };
     };
     list_6: {
+        parameters: {
+            query?: {
+                area?: "CATALOG" | "STOCK" | "ORDERS" | "PROMOTIONS" | "REVIEWS" | "SHIPPING" | "CONTENT" | "SETTINGS" | "CUSTOMERS" | "ACCOUNT";
+                from?: string;
+                to?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of entries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityPageResponse"];
+                };
+            };
+            /** @description Unknown area, a date that is not yyyy-MM-dd, `from` after `to`, or a page out of range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_7: {
         parameters: {
             query?: {
                 page?: number;

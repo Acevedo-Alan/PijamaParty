@@ -537,3 +537,21 @@
 .admin-card .size-guide-fieldset legend {
   font-size: 14px;
 }
+
+/* UC-37: the activity log. One filter per row on a phone, side by side from 640 px. */
+.activity-filters {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .activity-filters {
+    grid-template-columns: repeat(3, minmax(0, 220px));
+  }
+}
+
+.activity-changes {
+  margin: 0;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}

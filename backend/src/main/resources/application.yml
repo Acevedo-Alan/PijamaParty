@@ -120,6 +120,10 @@ store:
       # T-E2-04: every day at 04:00 store time (America/Argentina/Buenos_Aires), the quietest hour, the carts idle
       # for more than 30 days are deleted
       cron: "0 0 4 * * *"
+  activity:
+    retention:
+      # T-E8-01 (D-E8-11): every day at 03:00 store time, the activity entries older than 2 years are deleted
+      cron: "0 0 3 * * *"
   platform:
     idempotency-purge:
       # T-E3-14 (RNF-20.2): every day at 04:30 store time, after the cart cleanup, the Idempotency-Keys past their 24

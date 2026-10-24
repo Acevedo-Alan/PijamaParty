@@ -21,7 +21,7 @@ class RowLevelSecurityCoverageTest {
     private static final Set<String> PROTECTED = Set.of(
         "orders", "order_item", "order_tracking_token", "payment", "payment_event", "payment_checkout", "address",
         "app_user", "admin_recovery_code", "cart", "cart_item", "review", "idempotency_key", "email_outbox",
-        "email_event", "external_identity", "user_token", "pending_link", "withdrawal_request");
+        "email_event", "external_identity", "user_token", "pending_link", "withdrawal_request", "activity_entry");
 
     /** Without customer data, or out of RLS's reach with the reason given in RNF-27. */
     private static final Set<String> PUBLIC = Set.of(

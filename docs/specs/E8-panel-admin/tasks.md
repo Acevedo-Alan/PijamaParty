@@ -2,9 +2,9 @@
 
 Las tareas de E8b y E8c se agregan cuando empiece cada fase.
 
-- [ ] **T-E8-01** Módulo `activity`: migración V41 (`activity_entry` con RLS), `ActivityLog` en `activity.api`, `ListActivity`, tarea diaria de conservación de 2 años, endpoint `GET /api/admin/activity`, pantalla "Actividad" y test de datos personales. Actualiza la tabla de módulos de ARCHITECTURE.md (CU-37, D-E8-11).
-- [ ] **T-E8-02** Registrar actividad en catálogo y contenido: categorías, productos, variantes, fotos, guía de talles y portada (CU-37 sobre CU-05, CU-06, CU-32 y RNF-31.5).
-- [ ] **T-E8-03** Registrar actividad en el resto: stock, pedidos, arrepentimientos, cupones, reseñas, envíos e ingreso del administrador (CU-37 sobre CU-04, CU-07, CU-11, CU-12, CU-18, CU-23, CU-25 y CU-29).
+- [x] **T-E8-01** Módulo `activity`: migración V41 (`activity_entry` con RLS), `ActivityLog` en `activity.api` (dentro de la transacción del cambio), `ListActivity`, tarea diaria de conservación de 2 años, endpoint `GET /api/admin/activity` y pantalla "Actividad". Actualiza ARCHITECTURE.md (CU-37, D-E8-11).
+- [ ] **T-E8-02** Registrar actividad en catálogo y contenido: categorías, productos, variantes, fotos, guía de talles y portada (CU-37 sobre CU-05, CU-06, CU-32 y RNF-31.5). Crea `ActivityPersonalDataTest`, que corre cada acción registrada con datos personales conocidos y falla si alguno aparece.
+- [ ] **T-E8-03** Registrar actividad en el resto: stock, pedidos, arrepentimientos, cupones, reseñas, envíos e ingreso del administrador (CU-37 sobre CU-04, CU-07, CU-11, CU-12, CU-18, CU-23, CU-25 y CU-29), con sus acciones sumadas a `ActivityPersonalDataTest`.
 - [ ] **T-E8-04** Módulo `settings`: migración V42, agregado `StoreSettings`, endpoints público y del backoffice, pantalla "Datos de la tienda"; la tienda lee contacto, redes y franja de anuncios del servidor en lugar de `storeContact.ts`, y Facebook se suma al pie (CU-36, D-E8-03).
 - [ ] **T-E8-05** Menú agrupado del backoffice, panel del menú en el celular y número de pedidos pagados (`GET /api/admin/dashboard/counts`) (navegación de E8a).
 - [ ] **T-E8-06** Búsqueda de pedidos por número, comprador y fechas (cambio a CU-18), con el índice `orders (created_at DESC)` en su propia migración.
