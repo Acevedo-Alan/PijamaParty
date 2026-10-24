@@ -14,6 +14,7 @@ import { NotFoundPage } from '../errors/NotFoundPage.tsx';
 import { PurchaseInfoSummary } from '../help/PurchaseInfoSummary.tsx';
 import { MyReviewSection } from '../reviews/MyReviewSection.tsx';
 import { ProductReviewsSection, RatingSummary } from '../reviews/ProductReviews.tsx';
+import { REVIEWS_SHOWN } from '../reviews/reviewsShown.ts';
 import { PageMeta } from '../seo/PageMeta.tsx';
 import { productDescription } from '../seo/productMeta.ts';
 import { ProductStructuredData } from '../seo/ProductStructuredData.tsx';
@@ -186,7 +187,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
       />
       <div className="pdp-info">
         <h1>{product.name}</h1>
-        <RatingSummary slug={product.slug} />
+        {REVIEWS_SHOWN && <RatingSummary slug={product.slug} />}
         <Price price={price} />
         {product.description !== '' && <p className="pdp-desc">{product.description}</p>}
         <VariantPicker
@@ -275,8 +276,12 @@ export function ProductDetailPage() {
           <PageMeta description={productDescription(detail.data.product)} />
           <ProductStructuredData product={detail.data.product} />
           <ProductDetailView key={detail.data.product.slug} product={detail.data.product} />
-          <ProductReviewsSection key={detail.data.product.slug} slug={detail.data.product.slug} />
-          <MyReviewSection key={detail.data.product.id} productId={detail.data.product.id} />
+          {REVIEWS_SHOWN && (
+            <>
+              <ProductReviewsSection key={detail.data.product.slug} slug={detail.data.product.slug} />
+              <MyReviewSection key={detail.data.product.id} productId={detail.data.product.id} />
+            </>
+          )}
         </>
       )}
     </main>

@@ -159,6 +159,30 @@ describe('product detail (UC-03)', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' })).toBeInTheDocument();
   });
+
+  it('given the reviews hidden in the store, when a product with approved reviews opens, then no rating, reviews nor review form shows', async () => {
+    const get = vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) => {
+      if (path === '/api/cart') {
+        return Promise.resolve(NO_CART);
+      }
+      if (path === LISTING_PATH) {
+        return Promise.resolve(listed([]));
+      }
+      if (path === REVIEWS_PATH) {
+        return Promise.resolve(answer(200, { average: 4.5, count: 2, reviews: [] }));
+      }
+      return Promise.resolve(purchaseInfo(path) ?? answer(200, productDetail()));
+    }));
+
+    renderRoute('/producto/luna');
+
+    await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' });
+    expect(screen.queryByRole('region', { name: es.reviews.product.title })).toBeNull();
+    expect(screen.queryByRole('heading', { name: es.reviews.mine.title })).toBeNull();
+    expect(queriesTo(get, REVIEWS_PATH)).toHaveLength(0);
+    const data = document.querySelector('script[type="application/ld+json"]')?.textContent ?? '';
+    expect(JSON.parse(data)).not.toHaveProperty('aggregateRating');
+  });
 });
 
 describe('size guide on the product page (RNF-31.5)', () => {

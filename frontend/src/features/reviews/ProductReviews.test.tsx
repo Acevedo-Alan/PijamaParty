@@ -6,6 +6,9 @@ import { es } from '../../i18n/es.ts';
 import { answer, NO_CART, NO_REVIEWS, productDetail, REVIEWS_PATH, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
+// The store hides the reviews for now (reviewsShown.ts); these tests cover them shown.
+vi.mock('./reviewsShown.ts', () => ({ REVIEWS_SHOWN: true }));
+
 const messages = es.reviews.product;
 
 function review(authorName: string, rating: number, text: string | null, createdAt = '2026-10-18T15:00:00Z') {

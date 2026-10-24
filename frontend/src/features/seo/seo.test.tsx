@@ -20,6 +20,9 @@ import {
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { cutDescription } from './productMeta.ts';
 
+// The store hides the reviews for now (reviewsShown.ts); these tests cover the rating with them shown.
+vi.mock('../reviews/reviewsShown.ts', () => ({ REVIEWS_SHOWN: true }));
+
 /** The product page's reads: the product, its reviews, an empty cart and no other product of its category. */
 function stubProduct(detail: DetailBody, reviews: unknown = NO_REVIEWS) {
   vi.spyOn(api, 'GET').mockImplementation(

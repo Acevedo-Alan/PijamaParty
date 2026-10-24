@@ -45,6 +45,7 @@
 - El texto es opcional, de hasta 1.000 caracteres.
 - La ficha muestra solo el nombre de pila del autor.
 - Al eliminar la cuenta (CU-28) se eliminan sus reseñas; la descarga de datos las incluye.
+- **Ocultas por ahora (2026-10-24, decisión del dueño):** la ficha no muestra el promedio, las reseñas ni el formulario "Tu opinión". La moderación (CU-25) sigue funcionando, y las reseñas vuelven tal como están cuando se muestren de nuevo.
 
 **Criterios de aceptación**
 - Dado un cliente que no compró el producto, cuando intenta reseñarlo, entonces se le informa que solo pueden opinar quienes lo compraron.
