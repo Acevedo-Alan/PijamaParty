@@ -27,14 +27,14 @@ interface ChooseProps {
   onChoose?: () => void;
 }
 
-/** "Ingresar" and "Crear cuenta" (UC-19, UC-31). */
+/** "Ingresar" and "Crear cuenta" (UC-19, UC-31); returning customers sign in more often, so "Ingresar" is filled. */
 function SignedOutLinks({ onChoose }: ChooseProps) {
   return (
     <>
-      <Link to={SIGN_IN_PATH} className="account-btn secondary" onClick={onChoose}>
+      <Link to={SIGN_IN_PATH} className="account-btn primary" onClick={onChoose}>
         {es.account.signInLink}
       </Link>
-      <Link to={REGISTER_PATH} className="account-btn primary" onClick={onChoose}>
+      <Link to={REGISTER_PATH} className="account-btn secondary" onClick={onChoose}>
         {es.account.registerLink}
       </Link>
     </>

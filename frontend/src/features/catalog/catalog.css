@@ -142,6 +142,13 @@
   white-space: nowrap;
 }
 
+/* Beside the filter buttons, a rule keeps the count apart from the buttons that scroll under its edge */
+.filters-row .result-count {
+  margin-left: 10px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+
 .skeleton-card {
   display: flex;
   flex-direction: column;
@@ -226,11 +233,16 @@
   flex: 1;
   min-width: 0;
   gap: 10px;
-  /* Room for the focus ring (2 px at 3 px), which the scrolling box would clip; the buttons stay in line */
-  margin: 0 -6px;
-  padding: 6px;
+  /* Room for the focus ring (2 px at 3 px), which the scrolling box would clip; the first button stays in line with
+     the page, the last one ends before the count */
+  margin: 0 0 0 -6px;
+  /* The end padding lets the last button scroll clear of the fade */
+  padding: 6px 24px 6px 6px;
   overflow-x: auto;
+  white-space: nowrap;
   scrollbar-width: none;
+  /* The buttons fade out at the end, so a cut one reads as "more to the side" rather than as overlapping the count */
+  mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
 }
 
 .filters-bar::-webkit-scrollbar {

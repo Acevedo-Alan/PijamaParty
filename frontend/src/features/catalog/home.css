@@ -139,7 +139,7 @@
   right: 14px;
   bottom: 14px;
   display: flex;
-  gap: 4px;
+  gap: 0;
 }
 
 .hero-dots button {
@@ -148,21 +148,25 @@
   height: 44px;
 }
 
+/* The slide picker reads as one: small dots, the current slide a wider pill. Each keeps its 44 px target. */
 .hero-dots button::after {
   content: '';
   position: absolute;
-  left: 8px;
-  right: 8px;
+  left: 50%;
   top: 50%;
-  height: 3px;
-  border-radius: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
   background: #fff;
   opacity: 0.55;
-  transform: translateY(-50%);
-  transition: opacity var(--dur-base) var(--ease-standard);
+  transform: translate(-50%, -50%);
+  transition:
+    opacity var(--dur-base) var(--ease-standard),
+    width var(--dur-base) var(--ease-standard);
 }
 
 .hero-dots button[aria-current='true']::after {
+  width: 22px;
   opacity: 1;
 }
 
@@ -259,7 +263,14 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(0deg, rgba(74, 58, 58, 0.78), rgba(74, 58, 58, 0.06) 72%);
+  /* The lower half darkens enough for white text on any photo or gradient; the top stays light */
+  background: linear-gradient(
+    0deg,
+    rgba(74, 58, 58, 0.85),
+    rgba(74, 58, 58, 0.6) 30%,
+    rgba(74, 58, 58, 0.2) 55%,
+    rgba(74, 58, 58, 0) 75%
+  );
 }
 
 .audience-card span {
@@ -270,6 +281,7 @@
   font-size: 21px;
   font-weight: 600;
   line-height: 1.1;
+  text-shadow: 0 1px 3px rgba(74, 58, 58, 0.5);
 }
 
 @media (min-width: 700px) {

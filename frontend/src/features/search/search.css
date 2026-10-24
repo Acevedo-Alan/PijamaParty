@@ -21,17 +21,19 @@ header.site {
   border-bottom: 1px solid var(--line);
 }
 
-/* The logo stays centered between the navigation (or the menu button) and the tools. */
+/* From 860 px the logo starts the row and the navigation sits right beside the tools, so the eye goes from the links to
+   the search, the account and the cart in one pass. On a phone the logo stays centered between the menu button and
+   the tools. */
 .header-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   height: 64px;
 }
 
 .logo {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 1;
   min-width: 0;
   min-height: 44px;
@@ -46,10 +48,11 @@ header.site {
 }
 
 .header-nav {
-  grid-column: 1;
+  grid-column: 2;
   grid-row: 1;
-  justify-self: start;
+  justify-self: end;
   min-width: 0;
+  padding-right: clamp(6px, 1.5vw, 20px);
 }
 
 .nav-links {
@@ -161,7 +164,12 @@ header.site {
 
 @media (max-width: 859px) {
   .header-row {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 6px;
+  }
+
+  .logo {
+    grid-column: 2;
   }
 
   .header-nav,
