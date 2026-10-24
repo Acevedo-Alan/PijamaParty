@@ -18,6 +18,7 @@ public enum ActivityAction {
     PRODUCT_IMAGES_REORDERED(ActivityArea.CATALOG),
     PRODUCT_IMAGE_DELETED(ActivityArea.CATALOG),
     SIZE_GUIDE_SAVED(ActivityArea.CATALOG),
+    SIZE_GUIDE_DELETED(ActivityArea.CATALOG),
 
     STOCK_ADJUSTED(ActivityArea.STOCK),
 

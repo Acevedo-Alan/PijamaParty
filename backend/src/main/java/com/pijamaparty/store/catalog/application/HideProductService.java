@@ -1,5 +1,6 @@
 package com.pijamaparty.store.catalog.application;
 
+import com.pijamaparty.store.activity.api.ActivityAction;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.platform.domain.Role;
 import java.time.Clock;
@@ -12,11 +13,13 @@ class HideProductService implements HideProduct {
 
     private final LoadProducts loadProducts;
     private final SaveProduct saveProduct;
+    private final CatalogActivity activity;
     private final Clock clock;
 
-    HideProductService(LoadProducts loadProducts, SaveProduct saveProduct, Clock clock) {
+    HideProductService(LoadProducts loadProducts, SaveProduct saveProduct, CatalogActivity activity, Clock clock) {
         this.loadProducts = loadProducts;
         this.saveProduct = saveProduct;
+        this.activity = activity;
         this.clock = clock;
     }
 
@@ -31,9 +34,13 @@ class HideProductService implements HideProduct {
             return new Result.NotFound();
         }
         Product product = found.get();
+        boolean wasPublished = product.published();
         product.hide(clock.instant());
         if (saveProduct.update(product) != SaveProduct.Outcome.SAVED) {
             throw new IllegalStateException("hiding touches no unique value or category");
+        }
+        if (wasPublished) {
+            activity.record(CatalogEntries.product(command.actor(), ActivityAction.PRODUCT_HIDDEN, product));
         }
         return new Result.Hidden(ProductView.of(product));
     }

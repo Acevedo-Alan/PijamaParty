@@ -1,5 +1,6 @@
 package com.pijamaparty.store.catalog.application;
 
+import com.pijamaparty.store.activity.api.ActivityAction;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductDetails;
 import com.pijamaparty.store.catalog.domain.ProductId;
@@ -15,14 +16,16 @@ class CreateProductService implements CreateProduct {
     private final LoadCategories loadCategories;
     private final SaveProduct saveProduct;
     private final CatalogEvents events;
+    private final CatalogActivity activity;
     private final IdGenerator ids;
     private final Clock clock;
 
-    CreateProductService(LoadCategories loadCategories, SaveProduct saveProduct, CatalogEvents events, IdGenerator ids,
-                         Clock clock) {
+    CreateProductService(LoadCategories loadCategories, SaveProduct saveProduct, CatalogEvents events,
+                         CatalogActivity activity, IdGenerator ids, Clock clock) {
         this.loadCategories = loadCategories;
         this.saveProduct = saveProduct;
         this.events = events;
+        this.activity = activity;
         this.ids = ids;
         this.clock = clock;
     }
@@ -47,6 +50,7 @@ class CreateProductService implements CreateProduct {
         return switch (saveProduct.add(product)) {
             case SAVED -> {
                 events.productChanged(product.id());
+                activity.record(CatalogEntries.product(command.actor(), ActivityAction.PRODUCT_CREATED, product));
                 yield new Result.Created(ProductView.of(product));
             }
             case SLUG_ALREADY_USED -> new Result.SlugAlreadyUsed(product.slug().value());

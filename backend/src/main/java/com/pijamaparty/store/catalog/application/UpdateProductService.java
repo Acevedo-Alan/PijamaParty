@@ -1,5 +1,8 @@
 package com.pijamaparty.store.catalog.application;
 
+import com.pijamaparty.store.activity.api.ActivityAction;
+import com.pijamaparty.store.catalog.domain.Category;
+import com.pijamaparty.store.catalog.domain.CategoryId;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductDetails;
 import com.pijamaparty.store.platform.domain.Role;
@@ -15,14 +18,16 @@ class UpdateProductService implements UpdateProduct {
     private final LoadProducts loadProducts;
     private final SaveProduct saveProduct;
     private final CatalogEvents events;
+    private final CatalogActivity activity;
     private final Clock clock;
 
     UpdateProductService(LoadCategories loadCategories, LoadProducts loadProducts, SaveProduct saveProduct,
-                         CatalogEvents events, Clock clock) {
+                         CatalogEvents events, CatalogActivity activity, Clock clock) {
         this.loadCategories = loadCategories;
         this.loadProducts = loadProducts;
         this.saveProduct = saveProduct;
         this.events = events;
+        this.activity = activity;
         this.clock = clock;
     }
 
@@ -43,14 +48,21 @@ class UpdateProductService implements UpdateProduct {
         if (found.isEmpty()) {
             return new Result.NotFound();
         }
-        if (loadCategories.findById(details.categoryId()).isEmpty()) {
+        Optional<Category> category = loadCategories.findById(details.categoryId());
+        if (category.isEmpty()) {
             return new Result.UnknownCategory();
         }
         Product product = found.get();
+        ProductDetails previous = product.details();
         product.update(details, clock.instant());
         return switch (saveProduct.update(product)) {
             case SAVED -> {
                 events.productChanged(product.id());
+                CatalogEntries.Changes changes = changes(previous, details, category.get());
+                if (!changes.isEmpty()) {
+                    activity.record(CatalogEntries.product(command.actor(), ActivityAction.PRODUCT_UPDATED, product,
+                        changes.list()));
+                }
                 yield new Result.Updated(ProductView.of(product));
             }
             case SLUG_ALREADY_USED -> new Result.SlugAlreadyUsed(product.slug().value());
@@ -58,5 +70,22 @@ class UpdateProductService implements UpdateProduct {
             case UNKNOWN_CATEGORY -> new Result.UnknownCategory();
             case SKU_ALREADY_USED -> throw new IllegalStateException("editing details creates no variants");
         };
+    }
+
+    /** UC-37: the details that changed; categories by name. */
+    private CatalogEntries.Changes changes(ProductDetails previous, ProductDetails details, Category category) {
+        return new CatalogEntries.Changes()
+            .add("name", previous.name().value(), details.name().value())
+            .add("description", previous.description().value(), details.description().value())
+            .add("category", previous.categoryId().equals(details.categoryId())
+                ? category.name().value() : categoryName(previous.categoryId()), category.name().value())
+            .add("material", previous.material().value(), details.material().value())
+            .add("season", previous.season().name(), details.season().name())
+            .add("audience", previous.audience().name(), details.audience().name());
+    }
+
+    /** The name of the product's previous category; a category with products is never deleted (UC-05). */
+    private String categoryName(CategoryId id) {
+        return loadCategories.findById(id).map(category -> category.name().value()).orElse(null);
     }
 }

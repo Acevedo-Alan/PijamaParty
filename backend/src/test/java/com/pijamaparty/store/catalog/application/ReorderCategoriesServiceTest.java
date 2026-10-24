@@ -22,6 +22,7 @@ class ReorderCategoriesServiceTest {
 
     private final InMemoryCategoryStore categories = new InMemoryCategoryStore();
     private final ReorderCategoriesService service = new ReorderCategoriesService(categories, categories,
+        new InMemoryCatalogActivity(),
         Clock.fixed(NOW, ZoneOffset.UTC));
     private final List<Category> existing = new ArrayList<>();
     private Category summer;

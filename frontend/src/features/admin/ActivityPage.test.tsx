@@ -46,7 +46,7 @@ describe('the activity log in the back office (UC-37)', () => {
     expect(entry.getByText('15/10/26, 15:30')).toHaveAttribute('datetime', '2026-10-15T18:30:00.000Z');
     expect(entry.getByText('PP-AB12CD34')).toBeInTheDocument();
     expect(entry.queryByRole('link', { name: 'PP-AB12CD34' })).not.toBeInTheDocument();
-    expect(entry.getByText('price: $20.000 → $22.000')).toBeInTheDocument();
+    expect(entry.getByText('Precio: $20.000 → $22.000')).toBeInTheDocument();
   });
 
   it('given entries about a product and an order, when listed, then each label links to its screen', async () => {
@@ -97,6 +97,63 @@ describe('the activity log in the back office (UC-37)', () => {
 
     expect(await screen.findByText('trackingNumber: — → AR123')).toBeInTheDocument();
     expect(screen.getByText('note: x → —')).toBeInTheDocument();
+  });
+
+  it('given catalog changes recorded as names, when listed, then the fields and their values show in Spanish', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      [LIST]: answer(200, {
+        items: [
+          row('a-1', {
+            action: 'PRODUCT_UPDATED',
+            subject: { type: 'PRODUCT', id: 'p-1', label: 'Pijama Sol' },
+            changes: [
+              { field: 'season', before: 'SUMMER', after: 'WINTER' },
+              { field: 'audience', before: 'WOMEN', after: 'KIDS' },
+            ],
+          }),
+          row('a-2', { changes: [{ field: 'active', before: 'true', after: 'false' }] }),
+        ],
+        hasMore: false,
+      }),
+    });
+    renderRoute('/admin/actividad');
+
+    expect(await screen.findByText('Temporada: Verano → Invierno')).toBeInTheDocument();
+    expect(screen.getByText('Público: Mujer → Infantil')).toBeInTheDocument();
+    expect(screen.getByText('Activa: Sí → No')).toBeInTheDocument();
+  });
+
+  it('given entries about the banner and the category order, when listed, then they link to their sections', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      [LIST]: answer(200, {
+        items: [
+          row('a-1', {
+            area: 'CONTENT',
+            action: 'HOME_BANNER_PUBLISHED',
+            subject: { type: 'HOME_BANNER', id: null, label: null },
+            changes: [],
+          }),
+          row('a-2', {
+            action: 'CATEGORIES_REORDERED',
+            subject: { type: 'CATEGORY', id: null, label: null },
+            changes: [{ field: 'order', before: 'Verano, Invierno', after: 'Invierno, Verano' }],
+          }),
+        ],
+        hasMore: false,
+      }),
+    });
+    renderRoute('/admin/actividad');
+
+    expect(await screen.findByRole('link', { name: messages.subjects.HOME_BANNER })).toHaveAttribute(
+      'href',
+      '/admin/portada',
+    );
+    expect(
+      card(messages.actions.CATEGORIES_REORDERED).getByRole('link', { name: messages.subjects.CATEGORY }),
+    ).toHaveAttribute('href', '/admin/categorias');
+    expect(screen.getByText('Orden: Verano, Invierno → Invierno, Verano')).toBeInTheDocument();
   });
 
   it('given more than one page, when Ver más is pressed, then the next page is asked for and added', async () => {

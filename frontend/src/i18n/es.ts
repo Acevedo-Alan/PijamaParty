@@ -791,6 +791,7 @@ export const es = {
         PRODUCT_IMAGES_REORDERED: 'Fotos reordenadas',
         PRODUCT_IMAGE_DELETED: 'Foto eliminada',
         SIZE_GUIDE_SAVED: 'Guía de talles guardada',
+        SIZE_GUIDE_DELETED: 'Guía de talles eliminada',
         STOCK_ADJUSTED: 'Stock ajustado',
         ORDER_STATUS_CHANGED: 'Estado del pedido cambiado',
         TRACKING_NUMBER_CORRECTED: 'Número de seguimiento corregido',
@@ -815,8 +816,36 @@ export const es = {
         SECOND_FACTOR_ENROLLED: 'Segundo factor configurado',
         RECOVERY_CODE_USED: 'Código de recuperación usado',
       },
+      /** What an entry without a label of its own is about, so it still links to its section. */
+      subjects: {
+        CATEGORY: 'Categorías',
+        HOME_BANNER: 'Banner de la portada',
+      },
       /** The names of the changed fields; a key without a name here shows as it comes. */
-      fields: {} as Readonly<Partial<Record<string, string>>>,
+      fields: {
+        name: 'Nombre',
+        order: 'Orden',
+        description: 'Descripción',
+        category: 'Categoría',
+        material: 'Material',
+        season: 'Temporada',
+        audience: 'Público',
+        variants: 'Variantes',
+        sizes: 'Talles',
+        colors: 'Colores',
+        price: 'Precio',
+        active: 'Activa',
+        title: 'Título',
+        body: 'Texto',
+        linkText: 'Texto del enlace',
+        linkPath: 'Destino del enlace',
+      } as Readonly<Partial<Record<string, string>>>,
+      /** The values the server records as names (a yes/no, a choice); any other value shows as it comes. */
+      values: {
+        active: { true: 'Sí', false: 'No' },
+        season: { SUMMER: 'Verano', MID_SEASON: 'Media estación', WINTER: 'Invierno' },
+        audience: { WOMEN: 'Mujer', MEN: 'Hombre', KIDS: 'Infantil' },
+      } as Readonly<Partial<Record<string, Readonly<Partial<Record<string, string>>>>>>,
       /** A value the field did not have before, or no longer has. */
       noValue: '—',
       /** One changed field, e.g. "Precio: $20.000 → $22.000". */

@@ -22,6 +22,7 @@ class CreateCategoryServiceTest {
 
     private final InMemoryCategoryStore categories = new InMemoryCategoryStore();
     private final CreateCategoryService service = new CreateCategoryService(categories, categories,
+        new InMemoryCatalogActivity(),
         new InMemoryIdGenerator(), Clock.fixed(NOW, ZoneOffset.UTC));
 
     @Test

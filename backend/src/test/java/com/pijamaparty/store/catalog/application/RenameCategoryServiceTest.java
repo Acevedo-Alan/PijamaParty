@@ -24,6 +24,7 @@ class RenameCategoryServiceTest {
     private final InMemoryCategoryStore categories = new InMemoryCategoryStore();
     private final InMemoryCatalogEvents events = new InMemoryCatalogEvents();
     private final RenameCategoryService service = new RenameCategoryService(categories, categories, events,
+        new InMemoryCatalogActivity(),
         Clock.fixed(NOW, ZoneOffset.UTC));
     private Category summer;
     private Category winter;

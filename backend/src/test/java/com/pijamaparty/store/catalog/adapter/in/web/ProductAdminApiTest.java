@@ -66,7 +66,33 @@ class ProductAdminApiTest {
 
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate product_image, variant, product, size_guide, category, stock_movement, stock_level");
+        owner.execute("""
+            truncate product_image, variant, product, size_guide, category, stock_movement, stock_level,
+                     activity_entry
+            """);
+    }
+
+    @Test
+    void givenAVariantPriceChange_whenSaved_thenActividadShowsTheSkuAndBothPrices_andARefusedOneShowsNothing()
+        throws Exception {
+        String id = idOf(create("Pijama"));
+        JsonNode variant = body(generate(id, List.of("M"), List.of("Rosa"))).at("/variants/0");
+        String variantId = variant.get("id").asText();
+        send(patch(VARIANTS + "/" + variantId), "{\"priceCents\":2000000}").andExpect(status().isOk());
+
+        send(patch(VARIANTS + "/" + variantId), "{\"priceCents\":2200000}").andExpect(status().isOk());
+        send(patch(VARIANTS + "/" + variantId), "{\"priceCents\":0}").andExpect(status().isUnprocessableEntity());
+
+        mvc.perform(get("/api/admin/activity").with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].action").value("VARIANT_UPDATED"))
+            .andExpect(jsonPath("$.items[0].subject.id").value(variantId))
+            .andExpect(jsonPath("$.items[0].subject.label").value(variant.get("sku").asText()))
+            .andExpect(jsonPath("$.items[0].changes[0].field").value("price"))
+            .andExpect(jsonPath("$.items[0].changes[0].before").value("$20.000"))
+            .andExpect(jsonPath("$.items[0].changes[0].after").value("$22.000"));
+        assertThat(owner.queryForObject("select count(*) from activity_entry where action = 'VARIANT_UPDATED'",
+            Integer.class)).isEqualTo(2);
     }
 
     @Test

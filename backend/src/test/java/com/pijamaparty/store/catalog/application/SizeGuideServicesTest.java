@@ -29,8 +29,10 @@ class SizeGuideServicesTest {
     private final InMemoryCategoryStore categories = new InMemoryCategoryStore();
     private final InMemorySizeGuideStore guides = new InMemorySizeGuideStore(categories);
     private final GetSizeGuide get = new GetSizeGuideService(categories, guides);
-    private final EditSizeGuide edit = new EditSizeGuideService(categories, guides, Clock.fixed(NOW, ZoneOffset.UTC));
-    private final DeleteSizeGuide delete = new DeleteSizeGuideService(categories, guides);
+    private final EditSizeGuide edit = new EditSizeGuideService(categories, guides, guides,
+        new InMemoryCatalogActivity(), Clock.fixed(NOW, ZoneOffset.UTC));
+    private final DeleteSizeGuide delete = new DeleteSizeGuideService(categories, guides, guides,
+        new InMemoryCatalogActivity());
 
     private final Category women = saved("Pijamas de mujer");
     private final CategoryId unknown = CategoryId.of(UUID.randomUUID());

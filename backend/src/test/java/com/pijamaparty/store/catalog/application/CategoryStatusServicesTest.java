@@ -20,9 +20,12 @@ class CategoryStatusServicesTest {
 
     private final InMemoryCategoryStore categories = new InMemoryCategoryStore();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-    private final DeactivateCategoryService deactivate = new DeactivateCategoryService(categories, categories, clock);
-    private final ActivateCategoryService activate = new ActivateCategoryService(categories, categories, clock);
-    private final DeleteCategoryService delete = new DeleteCategoryService(categories);
+    private final DeactivateCategoryService deactivate = new DeactivateCategoryService(categories, categories,
+        new InMemoryCatalogActivity(), clock);
+    private final ActivateCategoryService activate = new ActivateCategoryService(categories, categories,
+        new InMemoryCatalogActivity(), clock);
+    private final DeleteCategoryService delete = new DeleteCategoryService(categories, categories,
+        new InMemoryCatalogActivity());
     private final CategoryId unknown = CategoryId.of(UUID.randomUUID());
     private Category summer;
 

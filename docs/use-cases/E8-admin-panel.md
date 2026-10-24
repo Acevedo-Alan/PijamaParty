@@ -218,7 +218,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 
   | Area | Actions |
   |---|---|
-  | `CATALOG` | Categories (UC-05): created, renamed, reordered, deactivated, activated, deleted. Products (UC-06): created, details updated, published, hidden; variants generated; a variant's price or active state changed; photos uploaded, reordered, deleted. Size guide saved. |
+  | `CATALOG` | Categories (UC-05): created, renamed, reordered, deactivated, activated, deleted. Products (UC-06): created, details updated, published, hidden; variants generated; a variant's price or active state changed; photos uploaded, reordered, deleted. Size guide saved or deleted (RNF-31.5). |
   | `STOCK` | A stock adjustment (UC-07), with the quantity and the stock before and after. |
   | `ORDERS` | Status changed, with from and to, and whether the stock was put back. Tracking number set or corrected. Withdrawal resolved (UC-29). |
   | `PROMOTIONS` | Coupons (UC-11, UC-23): created, updated, activated, deactivated, deleted. |
@@ -255,6 +255,24 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - `PurgeOldActivity` (system, `@Scheduled`, `callAsSystem`), port `ActivityRetention`.
 - **Table** `activity_entry` (migration): `id`, `occurred_at`, `actor_id` (uuid, no FK, rule 6), `area`, `action`, `subject_type`, `subject_id`, `subject_label`, `changes` (`jsonb`, an array of `{field, before, after}`), indexed on `(occurred_at DESC)` and `(area, occurred_at DESC)`. **RLS:** `ADMIN` inserts and selects; `SYSTEM` inserts only `ACCOUNT` entries (sign-in runs before there is an `ADMIN` actor, UC-04) and deletes rows older than 2 years (a policy with `occurred_at < now() - interval '2 years'`); nobody updates. `UPDATE` and `TRUNCATE` are revoked from `tienda_app`.
 - **Recording:** each admin use case builds its entry from the before and after state it already holds and calls `ActivityLog` after its own write succeeds, inside its transaction. Results that change nothing (`Invalid`, `NotFound`, `StatusChanged`, a replayed idempotent result) record nothing. Each module gets one small outbound port (`<Module>Activity`) with an adapter over `activity.api`, so use-case tests assert entries through an in-memory fake (contract test per port, CLAUDE.md L). A shared test, `ActivityPersonalDataTest`, runs every recorded action against fixtures with known personal data and fails if any of it appears in `changes` or `subject_label`.
+- **Catalog and content entries** (T-E8-02, decided on 2026-10-23). Values are display text: money as `$22.000` (`$22.000,50` with cents, `activity.api.ActivityValues`), a yes/no as `true`/`false` and a choice as its enum name (`SUMMER`, `WOMEN`), which the screen translates along with the field names; an empty text (a banner without body) is no value; a description is cut to 200 characters like any value. An entry without a label (the banner, the category order) shows "Banner de la portada" or "Categorías" on the screen, linked to its section.
+
+  | Action | Subject (label) | Changed fields |
+  |---|---|---|
+  | `CATEGORY_CREATED` | category (name) | `name`: none → new |
+  | `CATEGORY_RENAMED` | category (new name) | `name`: old → new |
+  | `CATEGORIES_REORDERED` | `CATEGORY` without an id or label | `order`: the names in the old order → in the new order, comma-separated |
+  | `CATEGORY_ACTIVATED`, `CATEGORY_DEACTIVATED`, `CATEGORY_DELETED` | category (name) | none |
+  | `PRODUCT_CREATED`, `PRODUCT_PUBLISHED`, `PRODUCT_HIDDEN` | product (name) | none |
+  | `PRODUCT_UPDATED` | product (new name) | only the ones that changed: `name`, `description`, `category` (names), `material`, `season`, `audience` |
+  | `VARIANTS_GENERATED` | product (name) | `variants`: none → how many were created; `sizes` and `colors`: none → those of the new combinations, comma-separated |
+  | `VARIANT_UPDATED` | variant (SKU) | only the ones that changed: `price`, `active` |
+  | `PRODUCT_IMAGE_UPLOADED`, `PRODUCT_IMAGES_REORDERED`, `PRODUCT_IMAGE_DELETED` | product (name) | none (never a file name) |
+  | `SIZE_GUIDE_SAVED`, `SIZE_GUIDE_DELETED` | category (name) | none |
+  | `HOME_BANNER_UPDATED` | `HOME_BANNER` | only the ones that changed: `title`, `body`, `linkText`, `linkPath` |
+  | `HOME_BANNER_PUBLISHED`, `HOME_BANNER_HIDDEN`, `HOME_BANNER_PHOTO_REPLACED` | `HOME_BANNER` | none |
+
+  Nothing is recorded when the write changes nothing: publishing a published product or banner, hiding a hidden one, activating an active category or deactivating an inactive one, renaming to the same name, saving the same details, variant values, banner texts or size guide, generating no new combination, a photo order that moves nothing, deleting a size guide that does not exist, and a photo upload answered from an earlier one with the same key.
 - **Sign-in entries** are recorded by `accounts` after a successful sign-in as `ADMIN`, never for failed attempts: those stay in the lock counter of UC-04.
 - **Endpoint:** `GET /api/admin/activity?area=&from=&to=&page=` → `200` `{items, hasMore}`; `400`.
 - **Page:** `/admin/actividad`. Action and field names are translated in `es.ts`. Money values are stored as display text already formatted (`$22.000`), so old entries read the same after any format change.

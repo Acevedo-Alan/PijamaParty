@@ -20,7 +20,7 @@ class DeleteProductImageService implements DeleteProductImage {
         if (!command.actor().is(Role.ADMIN)) {
             return new Result.Forbidden();
         }
-        return transactions.remove(command.productId(), command.imageId())
+        return transactions.remove(command.actor(), command.productId(), command.imageId())
             .<Result>map(removed -> {
                 imageStore.delete(removed.storageKey());
                 return new Result.Deleted();

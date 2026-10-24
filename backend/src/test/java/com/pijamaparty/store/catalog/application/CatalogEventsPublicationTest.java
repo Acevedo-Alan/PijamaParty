@@ -41,7 +41,8 @@ class CatalogEventsPublicationTest {
     @Test
     void givenACategory_whenRenamed_thenCategoryRenamedIsPublished() {
         InMemoryCatalogEvents events = new InMemoryCatalogEvents();
-        var rename = new RenameCategoryService(fixture.categories, fixture.categories, events, fixture.clock);
+        var rename = new RenameCategoryService(fixture.categories, fixture.categories, events, fixture.activity,
+            fixture.clock);
 
         rename.execute(new RenameCategory.Command(ADMIN, ProductFixture.CATEGORY, "Noche"));
         rename.execute(new RenameCategory.Command(ADMIN, ProductFixture.CATEGORY, ""));

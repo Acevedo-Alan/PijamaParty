@@ -31,22 +31,26 @@ final class ProductFixture {
     final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
     final InMemoryCatalogEvents events = new InMemoryCatalogEvents();
+    final InMemoryCatalogActivity activity = new InMemoryCatalogActivity();
 
-    final CreateProduct create = new CreateProductService(categories, products, events, ids, clock);
-    final UpdateProduct update = new UpdateProductService(categories, products, products, events, clock);
+    final CreateProduct create = new CreateProductService(categories, products, events, activity, ids, clock);
+    final UpdateProduct update = new UpdateProductService(categories, products, products, events, activity,
+        clock);
     final GenerateVariantMatrix generate =
-        new GenerateVariantMatrixService(products, products, stockLevels, events, ids, skus, clock);
-    final UpdateVariant updateVariant = new UpdateVariantService(products, products, events, clock);
-    final PublishProduct publish = new PublishProductService(products, products, clock);
-    final HideProduct hide = new HideProductService(products, products, clock);
+        new GenerateVariantMatrixService(products, products, stockLevels, events, activity, ids, skus, clock);
+    final UpdateVariant updateVariant = new UpdateVariantService(products, products, events, activity, clock);
+    final PublishProduct publish = new PublishProductService(products, products, activity, clock);
+    final HideProduct hide = new HideProductService(products, products, activity, clock);
     final ListAllProducts listAll = new ListAllProductsService(products);
     final GetProductForAdmin get = new GetProductForAdminService(products);
     final InMemoryImageProcessor imageProcessor = new InMemoryImageProcessor();
     final InMemoryImageStore imageStore = new InMemoryImageStore();
-    final ProductImageTransactions imageTransactions = new ProductImageTransactions(products, products, clock);
+    final ProductImageTransactions imageTransactions = new ProductImageTransactions(products, products,
+        activity, clock);
     final UploadProductImage uploadImage =
         new UploadProductImageService(imageTransactions, imageProcessor, imageStore, ids);
-    final ReorderProductImages reorderImages = new ReorderProductImagesService(products, products);
+    final ReorderProductImages reorderImages = new ReorderProductImagesService(products, products,
+        activity);
     final DeleteProductImage deleteImage = new DeleteProductImageService(imageTransactions, imageStore);
 
     ProductFixture() {

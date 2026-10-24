@@ -38,6 +38,11 @@ public record SizeGuide(CategoryId categoryId, List<String> columns, List<Row> r
         }
     }
 
+    /** Whether both guides say the same, whenever each was saved (UC-37: saving it unchanged changes nothing). */
+    public boolean sameContentAs(SizeGuide other) {
+        return columns.equals(other.columns) && rows.equals(other.rows) && note.equals(other.note);
+    }
+
     /** 1 to 6 names, each trimmed, one line, 1 to 30 characters, unique ignoring case. */
     static boolean areValidColumns(List<String> columns) {
         return !columns.isEmpty() && columns.size() <= MAX_COLUMNS

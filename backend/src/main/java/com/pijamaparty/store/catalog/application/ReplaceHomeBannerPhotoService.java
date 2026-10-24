@@ -59,16 +59,16 @@ class ReplaceHomeBannerPhotoService implements ReplaceHomeBannerPhoto {
             case ImageProcessor.Result.Processed processed -> {
                 StorageKey storageKey = StorageKey.of(ids.newId());
                 imageStore.save(storageKey, processed.renditions());
-                yield replace(new HomeBannerPhoto(storageKey, processed.placeholder(), command.uploadKey(),
-                    contentHash));
+                yield replace(command, new HomeBannerPhoto(storageKey, processed.placeholder(),
+                    command.uploadKey(), contentHash));
             }
         };
     }
 
-    private Result replace(HomeBannerPhoto photo) {
+    private Result replace(Command command, HomeBannerPhoto photo) {
         HomeBannerPhotoTransactions.Step replacement;
         try {
-            replacement = transactions.replace(photo);
+            replacement = transactions.replace(command.actor(), photo);
         } catch (RuntimeException e) {
             imageStore.delete(photo.storageKey());
             throw e;

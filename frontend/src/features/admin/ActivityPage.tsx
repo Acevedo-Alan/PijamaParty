@@ -13,6 +13,7 @@ import {
 } from './activityApi.ts';
 
 const messages = es.admin.activityList;
+const subjectNames: Readonly<Partial<Record<string, string>>> = messages.subjects;
 const AREA_PARAM = 'seccion';
 const FROM_PARAM = 'desde';
 const TO_PARAM = 'hasta';
@@ -57,7 +58,9 @@ function subjectPath({ type, id }: ActivityEntry['subject']): string | null {
 }
 
 function changeText({ field, before, after }: ActivityChange): string {
-  return messages.change(messages.fields[field] ?? field, before ?? messages.noValue, after ?? messages.noValue);
+  const value = (text: string | null) =>
+    text === null ? messages.noValue : (messages.values[field]?.[text] ?? text);
+  return messages.change(messages.fields[field] ?? field, value(before), value(after));
 }
 
 /**
@@ -159,6 +162,7 @@ export function ActivityPage() {
         <ul className="admin-list">
           {items.map((entry) => {
             const path = subjectPath(entry.subject);
+            const label = entry.subject.label ?? subjectNames[entry.subject.type] ?? null;
             return (
               <li key={entry.id} className="admin-card">
                 <div className="admin-card-head">
@@ -167,14 +171,10 @@ export function ActivityPage() {
                 </div>
                 <p className="admin-card-meta">
                   <time dateTime={entry.occurredAt.toISOString()}>{formatDateTime(entry.occurredAt)}</time>
-                  {entry.subject.label !== null && (
+                  {label !== null && (
                     <>
                       {' · '}
-                      {path === null ? (
-                        <span>{entry.subject.label}</span>
-                      ) : (
-                        <Link to={path}>{entry.subject.label}</Link>
-                      )}
+                      {path === null ? <span>{label}</span> : <Link to={path}>{label}</Link>}
                     </>
                   )}
                 </p>

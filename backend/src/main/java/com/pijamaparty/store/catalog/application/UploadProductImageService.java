@@ -70,7 +70,7 @@ class UploadProductImageService implements UploadProductImage {
     private Result add(Command command, Product.NewImage image) {
         Optional<Product.ImageUpload> outcome;
         try {
-            outcome = transactions.add(command.productId(), image);
+            outcome = transactions.add(command.actor(), command.productId(), image);
         } catch (RuntimeException e) {
             imageStore.delete(image.storageKey());
             throw e;

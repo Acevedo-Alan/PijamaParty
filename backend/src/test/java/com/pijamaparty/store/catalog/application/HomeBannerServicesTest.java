@@ -29,13 +29,14 @@ class HomeBannerServicesTest {
     private final InMemoryHomeBannerStore store = new InMemoryHomeBannerStore();
     private final InMemoryImageProcessor processor = new InMemoryImageProcessor();
     private final InMemoryImageStore files = new InMemoryImageStore();
+    private final InMemoryCatalogActivity activity = new InMemoryCatalogActivity();
     private final GetHomeBanner getPublished = new GetHomeBannerService(store);
     private final GetHomeBannerForAdmin get = new GetHomeBannerForAdminService(store);
-    private final UpdateHomeBanner update = new UpdateHomeBannerService(store, store, clock);
-    private final PublishHomeBanner publish = new PublishHomeBannerService(store, store, clock);
-    private final HideHomeBanner hide = new HideHomeBannerService(store, store, clock);
+    private final UpdateHomeBanner update = new UpdateHomeBannerService(store, store, activity, clock);
+    private final PublishHomeBanner publish = new PublishHomeBannerService(store, store, activity, clock);
+    private final HideHomeBanner hide = new HideHomeBannerService(store, store, activity, clock);
     private final ReplaceHomeBannerPhoto replacePhoto = new ReplaceHomeBannerPhotoService(
-        new HomeBannerPhotoTransactions(store, store, clock), processor, files, new InMemoryIdGenerator());
+        new HomeBannerPhotoTransactions(store, store, activity, clock), processor, files, new InMemoryIdGenerator());
 
     @Test
     void givenANewShop_whenTheHomePageAndTheAdministratorReadTheBanner_thenItIsHiddenAndEmpty() {
