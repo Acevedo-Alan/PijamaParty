@@ -82,6 +82,28 @@
 		import api
 	}
 
+	# T-E6-23 (RNF-31.1): search engines skip the back office, the account, checkout, tracking links, search results
+	# and the API (the storefront adds noindex to the same paths, frontend/src/features/seo/privatePaths.ts), and
+	# read the sitemap the API writes from the catalog. Tested against this image by e2e/lighthouse/seo.spec.ts.
+	handle /robots.txt {
+		header Content-Type "text/plain; charset=utf-8"
+		respond <<TXT
+			User-agent: *
+			Disallow: /admin
+			Disallow: /cuenta
+			Disallow: /checkout
+			Disallow: /pedido
+			Disallow: /buscar
+			Disallow: /api/
+
+			Sitemap: https://{$DOMAIN}/sitemap.xml
+			TXT 200
+	}
+	handle /sitemap.xml {
+		rewrite * /api/catalog/sitemap
+		import api
+	}
+
 	# The single-page app: unknown paths fall back to index.html, where the router shows its own 404 (RNF-31.7).
 	# Hashed build files are kept a year; index.html is checked on every visit, so a deploy shows at once (T-E6-02).
 	handle {

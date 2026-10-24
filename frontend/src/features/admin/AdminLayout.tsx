@@ -2,15 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { NoIndex } from '../seo/NoIndex.tsx';
 import { onSessionExpired } from './adminSession.ts';
 import { signOut } from './authApi.ts';
 import { useSession, type SignInState } from './useSession.ts';
 import './admin.css';
-
-/** Not for search engines: the back office has nothing public. */
-export function NoIndex() {
-  return <meta name="robots" content="noindex" />;
-}
 
 function AccessDenied() {
   return (

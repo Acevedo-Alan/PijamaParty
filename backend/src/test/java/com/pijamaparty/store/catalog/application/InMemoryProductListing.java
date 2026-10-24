@@ -17,11 +17,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Fake of {@link ProductListingQuery} and {@link FilterOptionsQuery} over the category and product fakes, with the
- * inventory's available stock set by {@link #setAvailable}. Ids break ties as PostgreSQL orders UUIDs (by their
- * text).
+ * Fake of {@link ProductListingQuery}, {@link FilterOptionsQuery} and {@link ListedProductSlugs} over the category and
+ * product fakes, with the inventory's available stock set by {@link #setAvailable}. Ids break ties as PostgreSQL
+ * orders UUIDs (by their text).
  */
-public class InMemoryProductListing implements ProductListingQuery, FilterOptionsQuery {
+public class InMemoryProductListing implements ProductListingQuery, FilterOptionsQuery, ListedProductSlugs {
+
+    private static final Comparator<Product> NEWEST_FIRST = Comparator.comparing(Product::createdAt)
+        .thenComparing((Product product) -> product.id().value().toString())
+        .reversed();
 
     private final LoadCategories categories;
     private final InMemoryProductStore products;
@@ -39,14 +43,11 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
 
     @Override
     public List<ListedProduct> list(ProductFilter filter, ProductSort sort, int offset, int limit) {
-        Comparator<Product> newestFirst = Comparator.comparing(Product::createdAt)
-            .thenComparing(product -> product.id().value().toString())
-            .reversed();
         Comparator<Product> order = switch (sort) {
-            case NEWEST -> newestFirst;
-            case PRICE_ASC -> Comparator.comparing(InMemoryProductListing::fromPrice).thenComparing(newestFirst);
+            case NEWEST -> NEWEST_FIRST;
+            case PRICE_ASC -> Comparator.comparing(InMemoryProductListing::fromPrice).thenComparing(NEWEST_FIRST);
             case PRICE_DESC -> Comparator.comparing(InMemoryProductListing::fromPrice).reversed()
-                .thenComparing(newestFirst);
+                .thenComparing(NEWEST_FIRST);
         };
         return listed(filter.category()).stream()
             .filter(product -> matches(product, filter))
@@ -54,6 +55,15 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
             .skip(offset)
             .limit(limit)
             .map(this::toListed)
+            .toList();
+    }
+
+    @Override
+    public List<String> newestFirst(int limit) {
+        return listed(Optional.empty()).stream()
+            .sorted(NEWEST_FIRST)
+            .limit(limit)
+            .map(product -> product.slug().value())
             .toList();
     }
 

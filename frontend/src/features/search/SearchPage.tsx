@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
@@ -10,17 +9,13 @@ import { SortSelect } from '../catalog/SortSelect.tsx';
 import { useListingCriteria } from '../catalog/useListingCriteria.ts';
 import { useListingView } from '../catalog/useListingView.ts';
 import { ViewToggle } from '../catalog/ViewToggle.tsx';
-import { fetchShopCategories } from './searchApi.ts';
+import { useShopCategories } from './useShopCategories.ts';
 import { isSearchable } from './useSuggestions.ts';
 import '../catalog/catalog.css';
 
 /** Nothing matched the text: links to the categories and to the whole catalog (UC-26). */
 function NoResults({ text }: { text: string }) {
-  const categories = useQuery({
-    queryKey: ['catalog', 'categories'],
-    queryFn: ({ signal }) => fetchShopCategories(signal),
-    staleTime: 300_000,
-  });
+  const categories = useShopCategories();
   return (
     <div className="empty-state">
       <p>{es.search.noResults(text)}</p>

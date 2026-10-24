@@ -3,7 +3,7 @@ import { useEffect, useId, useState, type SubmitEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
-import { NoIndex } from './AdminLayout.tsx';
+import { NoIndex } from '../seo/NoIndex.tsx';
 import {
   confirmEnrollment,
   signIn,

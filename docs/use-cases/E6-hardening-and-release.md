@@ -266,10 +266,46 @@ Each task's open decisions are settled with the owner when the task starts and w
 
 ---
 
+## T-E6-23 Search engines: sitemap, robots, canonical links and structured data (RNF-31.1, RNF-31.2)
+
+**Decided on 2026-10-20:**
+- **The structured data lives in the single-page app only.** Google runs JavaScript (T-E6-07), so the product page writes it; the link-preview bots do not read it, so the preview of T-E6-07 stays as it is. RNF-31.2's "shared prerendering" was dropped by T-E6-07's decision not to prerender; there is nothing to share.
+- **One `Product` with one `Offer` per sellable variant**, so each variant's SKU, price and stock are there as RNF-31.2 lists them; not `AggregateOffer`, which loses them, nor `ProductGroup`, more code for the same data.
+- **The sitemap comes from the API, `robots.txt` from Caddy.** The sitemap changes with the catalog, so the backend writes it from the same rules as the listing; `robots.txt` is fixed but for the domain, which Caddy knows.
+- **The descriptions are drafted by the developer** in `es.ts` and reviewed by the owner; changing their wording later is a text change, not a decision.
+
+**Design notes**
+- **Sitemap:** `GET /api/catalog/sitemap` answers `application/xml` (sitemaps.org 0.9), public, under the `catalog` rate-limit policy; Caddy rewrites `/sitemap.xml` to it. It lists, as absolute URLs of `store.public-url`: the home page, the FAQ (`/preguntas-frecuentes`), every active category (`/categoria/{slug}`, by position) and every listed product (`/producto/{slug}`, newest first). Listed means what UC-01 lists: published, of an active category, with an active priced variant. No `lastmod`: `product.updated_at` does not move when a variant's price or stock does, and a wrong date is worse than none. At most 49,000 products (the format allows 50,000 URLs per file; the shop has a few hundred). Read through a use case (`ListSitemapPages`) and a read port of its own (`ListedProductSlugs`).
+- **`robots.txt`** (Caddy, `deploy/caddy/Caddyfile`): `User-agent: *`, `Disallow` for `/admin`, `/cuenta`, `/checkout`, `/pedido`, `/buscar` and `/api/`, and `Sitemap: https://{$DOMAIN}/sitemap.xml`. The cart is a side panel without a path, so there is nothing to exclude for it.
+- **`noindex`** (`<meta name="robots" content="noindex">`): the store layout adds it on every path under the excluded prefixes above (the back office already has it), and the 404 page has it. Search results are excluded because each query would be a thin duplicate of the listing.
+- **Title, description and canonical on every indexable page** (home, category, product, FAQ, withdrawal): the title stays as it is now, but for a category, whose tab title was the generic "Productos" and becomes `{name} | Pijama Party Santa Fe` once the categories are loaded (the heading on the page does not change); the description and `<link rel="canonical">` (the page's origin and path, without the query string, so filters, sort and pages point to the bare listing) are rendered by one component. The descriptions:
+  - Home: a fixed text about the store.
+  - Category: a template with the category's name.
+  - Product: as its preview (T-E6-07): the price, with `Desde` when the variants' prices differ, then the description on one line cut at a word to at most 200 characters with `…`.
+  - FAQ and withdrawal: fixed texts.
+- **Structured data of a product** (`<script type="application/ld+json">`, rendered with the page once the product is found; the content security policy does not apply to it, since it is not run):
+  - `Product`: `name`, `description` (the full description on one line), `url` (canonical), `image` (absolute URLs of the 1200 px file of every photo, or its largest one; left out without photos), `brand` `Pijama Party Santa Fe`.
+  - `offers`: one `Offer` per variant of the product page, with `sku`, `price` (pesos with two decimals, `12500.00`), `priceCurrency` `ARS`, `availability` `https://schema.org/InStock` when `available` > 0 and `https://schema.org/OutOfStock` otherwise, and `url` (canonical).
+  - `aggregateRating` (`ratingValue`, `reviewCount`) from UC-24's `average` and `count`, only when there is at least one approved review; not while the reviews are loading or failed to load.
+  - Every text goes through `JSON.stringify`, and `<` is written as `<`, so a name or description cannot close the script element.
+
+**Acceptance criteria**
+- Given an active and an inactive category and a listed, a hidden and an unsellable product, when the sitemap is requested, then it is `200` XML listing the home page, the FAQ, the active category and the listed product as absolute URLs, and neither the inactive category nor the other two products.
+- Given the production Caddy image, when `/robots.txt` is requested, then it disallows the back office, account, checkout, tracking, search and API paths and points to the sitemap; when `/sitemap.xml` is requested, then the API's sitemap answers.
+- Given an account, checkout, tracking or search page, or an unknown path, when it renders, then it carries `noindex`; given the home, a category, a product, the FAQ or the withdrawal page, then it carries its description and a canonical URL without the query string, and no `noindex`.
+- Given a product with two variants of different prices, one with stock and one without, and approved reviews, when its page renders, then its structured data is a `Product` with two `Offer`s carrying their SKUs, prices, `ARS` and `InStock` and `OutOfStock`, and an `aggregateRating` with the average and the count; without reviews, then there is no `aggregateRating`.
+- Given a product name with `</script>`, when its page renders, then the structured data stays one script element whose JSON reads back the same name.
+
+**As built (2026-10-20)**
+- Backend: `ListSitemapPages` and its port `ListedProductSlugs` (`JdbcListedProductSlugs`; the in-memory fake is `InMemoryProductListing`) in `catalog`, and `SitemapController`. Tests: `ListedProductSlugsContractTest` (both implementations), `ListSitemapPagesServiceTest` and the sitemap case of `CatalogApiTest`.
+- Frontend: `features/seo` (`NoIndex`, now shared with the back office, `PageMeta`, `privatePaths.ts`, `productMeta.ts` and `ProductStructuredData`); the texts are `es.seo`. The category page and the search's links share `useShopCategories`. Tests: `features/seo/seo.test.tsx`.
+- `e2e/lighthouse/seo.spec.ts` runs in `npm run lighthouse`, against the production Caddy image: `robots.txt`, `/sitemap.xml`, the product page's tags and structured data, and `noindex` on private paths.
+
+---
+
 ## Remaining tasks
 
 Written when each one starts, with its decisions. Known inputs so far:
 - **T-E6-06:** the texts come from the business (RNF-30, validated in T-E6-21); `store.ordering.terms-version` changes whenever they change (RNF-30.6).
-- **T-E6-23:** RNF-31.2 asks it to share the solution of T-E6-07 (the preview endpoint, above). Google runs JavaScript and is not sent to that endpoint, so whether the structured data goes in the single-page app, in the preview or in both is decided there.
 - **T-E6-24:** the mapping table of Treinta URLs comes from the business.
 - **T-E6-25:** the router already has its own 404 (`NotFoundPage`); 500 and the maintenance page served by Caddy are missing (RNF-31.7).

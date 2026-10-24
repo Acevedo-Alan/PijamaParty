@@ -345,6 +345,29 @@ class CatalogApiTest {
     }
 
     @Test
+    void givenListedHiddenAndUnsellableProductsAndAnInactiveCategory_whenTheSitemapIsRequested_thenOnlyIndexablePages()
+        throws Exception {
+        UUID winter = category("invierno", false);
+        variant(product(summer, "Pijama", "SUMMER", true), "M", "Rosa", 1000, 0);
+        variant(product(summer, "Oculto", "SUMMER", false), "M", "Rosa", 1000, 5);
+        product(summer, "Sin variantes", "SUMMER", true);
+        variant(product(winter, "Abrigado", "WINTER", true), "M", "Rosa", 1000, 5);
+
+        mvc.perform(get("/api/catalog/sitemap"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_XML))
+            .andExpect(content().string("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+                <url><loc>%1$s/</loc></url>
+                <url><loc>%1$s/preguntas-frecuentes</loc></url>
+                <url><loc>%1$s/categoria/verano</loc></url>
+                <url><loc>%1$s/producto/pijama</loc></url>
+                </urlset>
+                """.formatted(STOREFRONT)));
+    }
+
+    @Test
     void givenActiveAndInactiveCategories_whenAVisitorListsThem_thenOnlyTheActiveOnesAppear() throws Exception {
         category("invierno", true);
         category("cerrada", false);

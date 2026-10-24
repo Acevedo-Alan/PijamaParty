@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
 import { es } from '../../i18n/es.ts';
+import { PageMeta } from '../seo/PageMeta.tsx';
 import { requestWithdrawal, type WithdrawalAnswer } from './withdrawalApi.ts';
 import './withdrawal.css';
 
@@ -59,6 +60,7 @@ export function WithdrawalPage() {
   return (
     <main className="wrap withdrawal">
       <title>{`${es.withdrawal.title} | ${es.store.name}`}</title>
+      <PageMeta description={es.seo.withdrawalDescription} />
       <h1>{es.withdrawal.title}</h1>
       <p className="withdrawal-intro">{es.withdrawal.intro}</p>
       {code !== null ? (

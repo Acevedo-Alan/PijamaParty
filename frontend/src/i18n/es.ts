@@ -7,6 +7,17 @@ export const es = {
   store: {
     name: 'Pijama Party Santa Fe',
   },
+  /** T-E6-23 (RNF-31.1): the descriptions search engines show; drafted for the owner to review. */
+  seo: {
+    homeDescription: 'Pijamas y ropa de dormir para mujer, hombre y niños. Tienda online de Pijama Party Santa Fe.',
+    categoryDescription: (category: string) => `${category}: pijamas y ropa de dormir de Pijama Party Santa Fe.`,
+    faqDescription: 'Costos y plazos de envío, medios de pago y cambios de Pijama Party Santa Fe.',
+    withdrawalDescription:
+      'Botón de arrepentimiento de Pijama Party Santa Fe: revocá tu compra dentro de los 10 días corridos, sin costo.',
+    /** The price (with "Desde" when prices differ), then the description cut at 200 characters. */
+    productDescription: (price: string, description: string) =>
+      description === '' ? price : `${price}. ${description}`,
+  },
   catalog: {
     allTitle: 'Todos los productos',
     categoryTitle: 'Productos',

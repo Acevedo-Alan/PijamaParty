@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { ContactSection } from '../help/ContactSection.tsx';
+import { PageMeta } from '../seo/PageMeta.tsx';
 import { WithdrawalHomeBlock } from '../withdrawal/WithdrawalLink.tsx';
 import { AudienceCards } from './AudienceCards.tsx';
 import { CatalogListing } from './CatalogListing.tsx';
@@ -59,6 +60,7 @@ export function HomePage() {
   return (
     <main className="home">
       <title>{`${es.catalog.allTitle} | ${es.store.name}`}</title>
+      <PageMeta description={es.seo.homeDescription} />
       <HeroCarousel onDiscover={showListing} />
       <CharacterBanner />
       <div className="wrap home-sections">

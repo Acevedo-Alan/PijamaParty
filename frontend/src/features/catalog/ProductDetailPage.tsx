@@ -14,6 +14,9 @@ import { NotFoundPage } from '../errors/NotFoundPage.tsx';
 import { PurchaseInfoSummary } from '../help/PurchaseInfoSummary.tsx';
 import { MyReviewSection } from '../reviews/MyReviewSection.tsx';
 import { ProductReviewsSection, RatingSummary } from '../reviews/ProductReviews.tsx';
+import { PageMeta } from '../seo/PageMeta.tsx';
+import { productDescription } from '../seo/productMeta.ts';
+import { ProductStructuredData } from '../seo/ProductStructuredData.tsx';
 import { BackToCatalog, ProductBreadcrumbs } from './ProductBreadcrumbs.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
@@ -269,6 +272,8 @@ export function ProductDetailPage() {
       {detail.data?.status === 'found' && (
         <>
           <title>{`${detail.data.product.name} | ${es.store.name}`}</title>
+          <PageMeta description={productDescription(detail.data.product)} />
+          <ProductStructuredData product={detail.data.product} />
           <ProductDetailView key={detail.data.product.slug} product={detail.data.product} />
           <ProductReviewsSection key={detail.data.product.slug} slug={detail.data.product.slug} />
           <MyReviewSection key={detail.data.product.id} productId={detail.data.product.id} />

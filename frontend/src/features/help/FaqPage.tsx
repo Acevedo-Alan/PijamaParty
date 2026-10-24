@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { usePaymentProviders } from '../checkout/useCheckout.ts';
+import { PageMeta } from '../seo/PageMeta.tsx';
 import { WITHDRAWAL_PATH } from '../withdrawal/WithdrawalLink.tsx';
 import { RETURNS_POLICY_PATH } from './FaqLink.tsx';
 import { useShippingRates } from './useShippingRates.ts';
@@ -94,6 +95,7 @@ export function FaqPage() {
   return (
     <main className="wrap faq">
       <title>{`${messages.title} | ${es.store.name}`}</title>
+      <PageMeta description={es.seo.faqDescription} />
       <h1>{messages.title}</h1>
       <details open>
         <summary>{messages.shipping.question}</summary>
