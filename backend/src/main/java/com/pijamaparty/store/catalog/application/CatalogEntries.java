@@ -9,9 +9,7 @@ import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.Variant;
 import com.pijamaparty.store.platform.domain.Actor;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * UC-37: the activity entries of the catalog and home page use cases, labelled as the "Actividad" screen names them
@@ -59,34 +57,5 @@ final class CatalogEntries {
                                List<FieldChange> changes) {
         return new ActivityEntry(administrator.userId().orElseThrow(
             () -> new IllegalArgumentException("only an administrator changes the catalog")), action, subject, changes);
-    }
-
-    /** The fields that changed, each added only when its value before and after differ. */
-    static final class Changes {
-
-        private final List<FieldChange> changes = new ArrayList<>();
-
-        /** @param before null or empty when the field had no value; {@code after} likewise */
-        Changes add(String field, String before, String after) {
-            String from = valueOf(before);
-            String to = valueOf(after);
-            if (!Objects.equals(from, to)) {
-                changes.add(FieldChange.of(field, from, to));
-            }
-            return this;
-        }
-
-        /** An empty text, such as a banner without body, is no value. */
-        private static String valueOf(String value) {
-            return value == null || value.isEmpty() ? null : value;
-        }
-
-        boolean isEmpty() {
-            return changes.isEmpty();
-        }
-
-        List<FieldChange> list() {
-            return List.copyOf(changes);
-        }
     }
 }

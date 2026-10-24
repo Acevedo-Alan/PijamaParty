@@ -88,12 +88,13 @@ public abstract class AdminWithdrawalsContractTest<T extends WithdrawalPages & A
         requested(withdrawal);
 
         assertThat(subject.lockForResolution(withdrawal.id()))
-            .contains(new LockedWithdrawal(WithdrawalStatus.RECEIVED, NOW, Optional.empty()));
+            .contains(new LockedWithdrawal(withdrawal.code(), WithdrawalStatus.RECEIVED, NOW, Optional.empty()));
         subject.resolve(withdrawal.id(), NOW.plusSeconds(3600));
         persistAndForget();
 
         assertThat(subject.lockForResolution(withdrawal.id()))
-            .contains(new LockedWithdrawal(WithdrawalStatus.RESOLVED, NOW, Optional.of(NOW.plusSeconds(3600))));
+            .contains(new LockedWithdrawal(withdrawal.code(), WithdrawalStatus.RESOLVED, NOW,
+                Optional.of(NOW.plusSeconds(3600))));
         assertThat(subject.activeViewOf(order.id())).isEmpty();
     }
 

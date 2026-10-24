@@ -273,6 +273,24 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   | `HOME_BANNER_PUBLISHED`, `HOME_BANNER_HIDDEN`, `HOME_BANNER_PHOTO_REPLACED` | `HOME_BANNER` | none |
 
   Nothing is recorded when the write changes nothing: publishing a published product or banner, hiding a hidden one, activating an active category or deactivating an inactive one, renaming to the same name, saving the same details, variant values, banner texts or size guide, generating no new combination, a photo order that moves nothing, deleting a size guide that does not exist, and a photo upload answered from an earlier one with the same key.
+- **Entries of the other areas** (T-E8-03, decided on 2026-10-24). Same value rules as the catalog; a date is `01/10/2026` (`ActivityValues.date`), a count its number, and a stock adjustment its signed quantity (`+5`, `-3`). An entry without a label (the free-shipping threshold, a review of a product the catalog no longer has) shows "Envíos" or "Reseñas" on the screen, linked to its section; a province label, an order status and a coupon type are translated.
+
+  | Action | Subject (label) | Changed fields |
+  |---|---|---|
+  | `STOCK_ADJUSTED` | variant (SKU) | `quantity`: none → the signed quantity; `stock`: on hand before → after. Never the note |
+  | `ORDER_STATUS_CHANGED` | order (`#1001`) | `status`: from → to; `trackingNumber`: none → the number, when shipped; `restock`: none → `true`/`false`, when cancelling a paid or preparing order |
+  | `TRACKING_NUMBER_CORRECTED` | order (`#1001`) | `trackingNumber`: old → new |
+  | `WITHDRAWAL_RESOLVED` | withdrawal (code, `ARR-...`) | none |
+  | `COUPON_CREATED`, `COUPON_ACTIVATED`, `COUPON_DEACTIVATED`, `COUPON_DELETED` | coupon (code) | none |
+  | `COUPON_UPDATED` | coupon (new code) | only the ones that changed: `code`, `type` (`PERCENTAGE`, `FIXED_AMOUNT`), `value` (`15%` or `$5.000`), `validFrom`, `validUntil`, `maxUses` (none: unlimited), `minimumPurchase` (none: no minimum), and the scope as counts, `scopeProducts` and `scopeCategories` (both `0`: the whole cart), each recorded when its set changed even if the count did not |
+  | `REVIEW_APPROVED`, `REVIEW_REJECTED`, `REVIEW_DELETED` | review (its product's name; none when the catalog no longer has it) | none (never the text, the rating or the author) |
+  | `SHIPPING_ZONES_CHANGED` | `SHIPPING` without an id, labelled with the province (`SANTA_FE`); one entry per province whose cost changed | `cost`: before → after (none: not served) |
+  | `FREE_SHIPPING_THRESHOLD_CHANGED` | `SHIPPING` without an id or label | `threshold`: before → after (none: no free shipping) |
+  | `ADMIN_SIGNED_IN` | `ADMINISTRATOR` (the administrator's id, no label) | none |
+  | `RECOVERY_CODE_USED`, `SECOND_FACTOR_ENROLLED` | `ADMINISTRATOR` | none; recorded next to the `ADMIN_SIGNED_IN` of the same sign-in, so every sign-in has one |
+
+  Nothing is recorded when the write changes nothing: an adjustment answered from an earlier one with the same key, correcting a tracking number to the same one, resolving a resolved withdrawal, saving a coupon with the same terms, activating an active coupon or deactivating an inactive one, approving an approved review or rejecting a rejected one, saving the same zone costs or threshold. A refused write (a `409`, a `422`, deleting a coupon that has uses) records nothing either.
+- **Variant SKUs for stock entries:** `inventory` cannot depend on `catalog` (`catalog` already depends on `inventory::api`), so `inventory.api.VariantSkus` declares the lookup and `catalog` implements it over its own store (dependency inversion, ARCHITECTURE.md section 3, rule 3).
 - **Sign-in entries** are recorded by `accounts` after a successful sign-in as `ADMIN`, never for failed attempts: those stay in the lock counter of UC-04.
 - **Endpoint:** `GET /api/admin/activity?area=&from=&to=&page=` → `200` `{items, hasMore}`; `400`.
 - **Page:** `/admin/actividad`. Action and field names are translated in `es.ts`. Money values are stored as display text already formatted (`$22.000`), so old entries read the same after any format change.

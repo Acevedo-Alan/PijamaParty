@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.application;
 
 import com.pijamaparty.store.activity.api.ActivityAction;
+import com.pijamaparty.store.activity.api.FieldChanges;
 import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.CategoryId;
 import com.pijamaparty.store.catalog.domain.Product;
@@ -58,7 +59,7 @@ class UpdateProductService implements UpdateProduct {
         return switch (saveProduct.update(product)) {
             case SAVED -> {
                 events.productChanged(product.id());
-                CatalogEntries.Changes changes = changes(previous, details, category.get());
+                FieldChanges changes = changes(previous, details, category.get());
                 if (!changes.isEmpty()) {
                     activity.record(CatalogEntries.product(command.actor(), ActivityAction.PRODUCT_UPDATED, product,
                         changes.list()));
@@ -73,8 +74,8 @@ class UpdateProductService implements UpdateProduct {
     }
 
     /** UC-37: the details that changed; categories by name. */
-    private CatalogEntries.Changes changes(ProductDetails previous, ProductDetails details, Category category) {
-        return new CatalogEntries.Changes()
+    private FieldChanges changes(ProductDetails previous, ProductDetails details, Category category) {
+        return new FieldChanges()
             .add("name", previous.name().value(), details.name().value())
             .add("description", previous.description().value(), details.description().value())
             .add("category", previous.categoryId().equals(details.categoryId())

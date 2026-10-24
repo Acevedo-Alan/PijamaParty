@@ -1,5 +1,6 @@
 package com.pijamaparty.store.promotions.application;
 
+import com.pijamaparty.store.activity.api.ActivityAction;
 import com.pijamaparty.store.platform.domain.Role;
 import com.pijamaparty.store.promotions.domain.Coupon;
 import java.time.Clock;
@@ -13,12 +14,15 @@ class DeactivateCouponService implements DeactivateCoupon {
     private final LoadCoupon loadCoupon;
     private final SaveCoupon saveCoupon;
     private final CouponUses uses;
+    private final CouponActivity activity;
     private final Clock clock;
 
-    DeactivateCouponService(LoadCoupon loadCoupon, SaveCoupon saveCoupon, CouponUses uses, Clock clock) {
+    DeactivateCouponService(LoadCoupon loadCoupon, SaveCoupon saveCoupon, CouponUses uses, CouponActivity activity,
+                            Clock clock) {
         this.loadCoupon = loadCoupon;
         this.saveCoupon = saveCoupon;
         this.uses = uses;
+        this.activity = activity;
         this.clock = clock;
     }
 
@@ -34,7 +38,12 @@ class DeactivateCouponService implements DeactivateCoupon {
         }
         Coupon coupon = stored.get().deactivated();
         return switch (saveCoupon.update(coupon, clock.instant())) {
-            case SAVED -> new Result.Deactivated(CouponView.of(coupon, uses.count(coupon.id())));
+            case SAVED -> {
+                if (stored.get().active()) {
+                    activity.record(CouponEntries.entry(command.actor(), ActivityAction.COUPON_DEACTIVATED, coupon));
+                }
+                yield new Result.Deactivated(CouponView.of(coupon, uses.count(coupon.id())));
+            }
             case NOT_FOUND -> new Result.NotFound();
             case CODE_ALREADY_USED ->
                 throw new IllegalStateException("deactivating does not change the code, so saving cannot collide");

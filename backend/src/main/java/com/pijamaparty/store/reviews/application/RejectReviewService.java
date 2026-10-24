@@ -1,5 +1,6 @@
 package com.pijamaparty.store.reviews.application;
 
+import com.pijamaparty.store.activity.api.ActivityAction;
 import com.pijamaparty.store.platform.domain.Role;
 import com.pijamaparty.store.reviews.domain.Review;
 import java.time.Clock;
@@ -14,13 +15,15 @@ class RejectReviewService implements RejectReview {
     private final LockReview lockReview;
     private final SaveModeration saveModeration;
     private final ProductLinks productLinks;
+    private final ReviewActivity activity;
     private final Clock clock;
 
     RejectReviewService(LockReview lockReview, SaveModeration saveModeration, ProductLinks productLinks,
-                        Clock clock) {
+                        ReviewActivity activity, Clock clock) {
         this.lockReview = lockReview;
         this.saveModeration = saveModeration;
         this.productLinks = productLinks;
+        this.activity = activity;
         this.clock = clock;
     }
 
@@ -35,9 +38,11 @@ class RejectReviewService implements RejectReview {
             return new Result.NotFound();
         }
         Review rejected = stored.get().rejected(clock.instant());
+        ModeratedReview moderated = ModeratedReview.of(List.of(rejected), productLinks).getFirst();
         if (!rejected.equals(stored.get())) {
             saveModeration.saveDecision(rejected);
+            activity.record(ReviewEntries.entry(command.actor(), ActivityAction.REVIEW_REJECTED, moderated));
         }
-        return new Result.Rejected(ModeratedReview.of(List.of(rejected), productLinks).getFirst());
+        return new Result.Rejected(moderated);
     }
 }

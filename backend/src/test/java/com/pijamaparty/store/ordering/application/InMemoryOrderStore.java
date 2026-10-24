@@ -6,6 +6,7 @@ import com.pijamaparty.store.ordering.api.AdminOrderDetails.Status;
 import com.pijamaparty.store.ordering.api.PaidOrders.Address;
 import com.pijamaparty.store.ordering.api.PaidOrders.Line;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
+import com.pijamaparty.store.ordering.application.OrderStatuses.LockedOrder;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.ShipmentTrackingNumber;
@@ -189,8 +190,9 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
     }
 
     @Override
-    public synchronized Optional<OrderStatus> lockStatus(OrderId order) {
-        return statusOf(order);
+    public synchronized Optional<LockedOrder> lockForChange(OrderId order) {
+        return Optional.ofNullable(orders.get(order)).map(row -> new LockedOrder(row.number(), row.status(),
+            shipmentTrackingNumberOf(order).map(ShipmentTrackingNumber::new)));
     }
 
     /** Only the orders the checkout placed carry what the list shows. */

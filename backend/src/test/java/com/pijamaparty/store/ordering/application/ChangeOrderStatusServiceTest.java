@@ -23,7 +23,7 @@ class ChangeOrderStatusServiceTest {
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
     private final InMemoryStockReleases stock = new InMemoryStockReleases();
     private final ChangeOrderStatusService service = new ChangeOrderStatusService(orders, orders, stock, stock,
-        Clock.fixed(NOW, ZoneOffset.UTC));
+        new InMemoryOrderActivity(), Clock.fixed(NOW, ZoneOffset.UTC));
     private final OrderId order = OrderId.of(UUID.randomUUID());
     private final UUID variant = UUID.randomUUID();
 

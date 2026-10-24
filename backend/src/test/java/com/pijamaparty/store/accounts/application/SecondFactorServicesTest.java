@@ -12,6 +12,10 @@ import com.pijamaparty.store.accounts.domain.EncryptedSecret;
 import com.pijamaparty.store.accounts.domain.TotpSecret;
 import com.pijamaparty.store.accounts.domain.User;
 import com.pijamaparty.store.accounts.domain.UserRole;
+import com.pijamaparty.store.activity.api.ActivityAction;
+import com.pijamaparty.store.activity.api.ActivityEntry;
+import com.pijamaparty.store.activity.api.ActivitySubject;
+import com.pijamaparty.store.activity.api.SubjectType;
 import com.pijamaparty.store.platform.domain.UserId;
 import java.time.Clock;
 import java.time.Duration;
@@ -34,6 +38,7 @@ class SecondFactorServicesTest {
     private final InMemorySecondFactorCipher cipher = new InMemorySecondFactorCipher();
     private final InMemoryTotpVerifier totp = new InMemoryTotpVerifier();
     private final InMemoryPasswordHasher passwords = new InMemoryPasswordHasher();
+    private final InMemoryAccountActivity activity = new InMemoryAccountActivity();
     private Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private User administrator;
 
@@ -142,6 +147,47 @@ class SecondFactorServicesTest {
         assertThat(recoveryCodes.unused(administrator.id())).isEqualTo(9);
     }
 
+    // --- UC-37: the activity log ---
+
+    @Test
+    void givenAStartedEnrollment_whenConfirmed_thenTheSignInAndTheEnrollmentAreRecorded() {
+        var started = (StartSecondFactorEnrollment.Result.Started) start();
+
+        confirm(started.secret(), "000000");
+        confirm(started.secret(), appCode(started, STEP));
+
+        assertThat(activity.entries()).containsExactly(signInEntry(ActivityAction.ADMIN_SIGNED_IN),
+            signInEntry(ActivityAction.SECOND_FACTOR_ENROLLED));
+    }
+
+    @Test
+    void givenAnEnrolledAdministrator_whenAWrongAndThenARightCodeOfTheAppAreTyped_thenOnlyTheSignInIsRecorded() {
+        TotpSecret secret = enrolledAt(STEP - 4);
+        activity.clear();
+
+        failOnce();
+        verify(InMemoryTotpVerifier.codeAt(secret, STEP));
+
+        assertThat(activity.single()).isEqualTo(signInEntry(ActivityAction.ADMIN_SIGNED_IN));
+    }
+
+    @Test
+    void givenARecoveryCode_whenItOpensTheBackOffice_thenTheSignInAndTheUsedCodeAreRecordedButNeverTheCode() {
+        var started = (StartSecondFactorEnrollment.Result.Started) start();
+        var enrolled = (ConfirmSecondFactorEnrollment.Result.Enrolled) confirm(started.secret(), appCode(started, STEP));
+        activity.clear();
+
+        verify(enrolled.recoveryCodes().getFirst());
+
+        assertThat(activity.entries()).containsExactly(signInEntry(ActivityAction.ADMIN_SIGNED_IN),
+            signInEntry(ActivityAction.RECOVERY_CODE_USED));
+    }
+
+    private ActivityEntry signInEntry(ActivityAction action) {
+        return new ActivityEntry(administrator.id(), action,
+            ActivitySubject.of(SubjectType.ADMINISTRATOR, administrator.id().value()));
+    }
+
     @Test
     void givenNoSecondFactorOrNoAdministrator_whenACodeIsTyped_thenThereIsNoSignInToFinish() {
         assertThat(verify("123456")).isEqualTo(new VerifySecondFactor.Result.NotPending());
@@ -149,7 +195,7 @@ class SecondFactorServicesTest {
             passwords.hash("correct horse battery"), "Ana", UserRole.CUSTOMER, 0, null, NOW, NOW);
         users.save(customer);
 
-        assertThat(new VerifySecondFactorService(signInStore, recoveryCodes, cipher, totp, clock)
+        assertThat(new VerifySecondFactorService(signInStore, recoveryCodes, cipher, totp, activity, clock)
             .execute(new VerifySecondFactor.Command(customer.id(), "123456")))
             .isEqualTo(new VerifySecondFactor.Result.NotPending());
         assertThat(new StartSecondFactorEnrollmentService(signInStore, new InMemoryTotpSecretGenerator(), cipher,
@@ -196,12 +242,13 @@ class SecondFactorServicesTest {
     private final InMemoryRecoveryCodeGenerator codeGenerator = new InMemoryRecoveryCodeGenerator();
 
     private ConfirmSecondFactorEnrollment.Result confirm(EncryptedSecret secret, String code) {
-        return new ConfirmSecondFactorEnrollmentService(signInStore, recoveryCodes, codeGenerator, cipher, totp, clock)
+        return new ConfirmSecondFactorEnrollmentService(signInStore, recoveryCodes, codeGenerator, cipher, totp,
+            activity, clock)
             .execute(new ConfirmSecondFactorEnrollment.Command(administrator.id(), secret, code));
     }
 
     private VerifySecondFactor.Result verify(String code) {
-        return new VerifySecondFactorService(signInStore, recoveryCodes, cipher, totp, clock)
+        return new VerifySecondFactorService(signInStore, recoveryCodes, cipher, totp, activity, clock)
             .execute(new VerifySecondFactor.Command(administrator.id(), code));
     }
 }

@@ -3,6 +3,8 @@ package com.pijamaparty.store.activity.api;
 import com.pijamaparty.store.platform.domain.Money;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
@@ -12,6 +14,8 @@ import java.util.Locale;
  * both.
  */
 public final class ActivityValues {
+
+    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/uuuu", Locale.ROOT);
 
     private ActivityValues() {
     }
@@ -28,5 +32,15 @@ public final class ActivityValues {
     /** A list as one value, such as {@code S, M, L}. */
     public static String list(List<String> values) {
         return String.join(", ", values);
+    }
+
+    /** {@code 01/10/2026}. */
+    public static String date(LocalDate date) {
+        return DATE.format(date);
+    }
+
+    /** A signed quantity, such as {@code +5} or {@code -3}. */
+    public static String signed(int quantity) {
+        return quantity > 0 ? "+" + quantity : Integer.toString(quantity);
     }
 }

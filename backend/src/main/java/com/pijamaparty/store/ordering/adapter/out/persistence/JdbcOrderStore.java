@@ -21,6 +21,7 @@ import com.pijamaparty.store.ordering.application.LatePayments;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderPages;
 import com.pijamaparty.store.ordering.application.OrderStatuses;
+import com.pijamaparty.store.ordering.application.OrderStatuses.LockedOrder;
 import com.pijamaparty.store.ordering.application.OrderSummary;
 import com.pijamaparty.store.ordering.application.OrderTransitions;
 import com.pijamaparty.store.ordering.application.OrdersToPay;
@@ -164,8 +165,8 @@ class JdbcOrderStore
         """;
 
     // UC-18 (T-E3-10): the administrator locks the order it changes (orders_staff_select, orders_staff_update).
-    private static final String LOCK_STATUS = """
-        SELECT status FROM orders WHERE id = :id FOR UPDATE
+    private static final String LOCK_FOR_CHANGE = """
+        SELECT number, status, shipment_tracking_number FROM orders WHERE id = :id FOR UPDATE
         """;
 
     // RNF-20.5: conditional, like TRANSITION; SHIPPED also saves the tracking number, DELIVERED the delivery instant.
@@ -429,9 +430,11 @@ class JdbcOrderStore
     }
 
     @Override
-    public Optional<OrderStatus> lockStatus(OrderId order) {
-        return jdbc.queryForList(LOCK_STATUS, new MapSqlParameterSource("id", order.value()), String.class).stream()
-            .findFirst().map(OrderStatus::valueOf);
+    public Optional<LockedOrder> lockForChange(OrderId order) {
+        return jdbc.query(LOCK_FOR_CHANGE, new MapSqlParameterSource("id", order.value()), (row, n) ->
+                new LockedOrder(row.getLong("number"), OrderStatus.valueOf(row.getString("status")),
+                    Optional.ofNullable(row.getString("shipment_tracking_number")).map(ShipmentTrackingNumber::new)))
+            .stream().findFirst();
     }
 
     @Override

@@ -27,7 +27,7 @@ class ResolveWithdrawalServiceTest {
 
     private final InMemoryWithdrawalStore store = new InMemoryWithdrawalStore();
     private final ResolveWithdrawalService service = new ResolveWithdrawalService(store,
-        Clock.fixed(NOW, ZoneOffset.UTC));
+        new InMemoryOrderActivity(), Clock.fixed(NOW, ZoneOffset.UTC));
 
     @ParameterizedTest
     @EnumSource(value = OrderStatus.class, names = {"PAID", "PREPARING", "SHIPPED", "DELIVERED", "CANCELLED"})
@@ -55,7 +55,8 @@ class ResolveWithdrawalServiceTest {
 
     @Test
     void givenAClockBehindTheRequest_whenResolved_thenItIsResolvedWhenItWasRequested() {
-        var behind = new ResolveWithdrawalService(store, Clock.fixed(REQUESTED_AT.minusSeconds(5), ZoneOffset.UTC));
+        var behind = new ResolveWithdrawalService(store, new InMemoryOrderActivity(),
+            Clock.fixed(REQUESTED_AT.minusSeconds(5), ZoneOffset.UTC));
         UUID id = requested(store.place(OrderStatus.PAID, REQUESTED_AT.minusSeconds(60), Optional.empty()).id());
 
         assertThat(behind.execute(new Command(ADMIN, id))).isEqualTo(new Result.Resolved(REQUESTED_AT));

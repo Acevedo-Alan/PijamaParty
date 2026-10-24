@@ -3,6 +3,7 @@ package com.pijamaparty.store.activity.api;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.platform.domain.Money;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -23,5 +24,16 @@ class ActivityValuesTest {
     @Test
     void givenSeveralValues_whenListed_thenTheyAreCommaSeparated() {
         assertThat(ActivityValues.list(List.of("S", "M", "L"))).isEqualTo("S, M, L");
+    }
+
+    @Test
+    void givenADate_whenWritten_thenItReadsDayMonthYear() {
+        assertThat(ActivityValues.date(LocalDate.of(2026, 10, 1))).isEqualTo("01/10/2026");
+    }
+
+    @Test
+    void givenAQuantity_whenWrittenSigned_thenAnAdditionCarriesItsPlus() {
+        assertThat(ActivityValues.signed(5)).isEqualTo("+5");
+        assertThat(ActivityValues.signed(-3)).isEqualTo("-3");
     }
 }

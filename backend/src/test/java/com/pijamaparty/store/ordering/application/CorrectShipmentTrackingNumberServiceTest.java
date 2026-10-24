@@ -22,7 +22,7 @@ class CorrectShipmentTrackingNumberServiceTest {
 
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
     private final CorrectShipmentTrackingNumberService service = new CorrectShipmentTrackingNumberService(orders,
-        orders, Clock.fixed(NOW, ZoneOffset.UTC));
+        orders, new InMemoryOrderActivity(), Clock.fixed(NOW, ZoneOffset.UTC));
     private final OrderId order = OrderId.of(UUID.randomUUID());
 
     @Test

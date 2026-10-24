@@ -95,7 +95,7 @@ describe('the activity log in the back office (UC-37)', () => {
     });
     renderRoute('/admin/actividad');
 
-    expect(await screen.findByText('trackingNumber: — → AR123')).toBeInTheDocument();
+    expect(await screen.findByText('Número de seguimiento: — → AR123')).toBeInTheDocument();
     expect(screen.getByText('note: x → —')).toBeInTheDocument();
   });
 
@@ -122,6 +122,92 @@ describe('the activity log in the back office (UC-37)', () => {
     expect(await screen.findByText('Temporada: Verano → Invierno')).toBeInTheDocument();
     expect(screen.getByText('Público: Mujer → Infantil')).toBeInTheDocument();
     expect(screen.getByText('Activa: Sí → No')).toBeInTheDocument();
+  });
+
+  it('given stock, order and coupon changes (T-E8-03), when listed, then their fields and values show in Spanish', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      [LIST]: answer(200, {
+        items: [
+          row('a-1', {
+            area: 'STOCK',
+            action: 'STOCK_ADJUSTED',
+            changes: [
+              { field: 'quantity', before: null, after: '+5' },
+              { field: 'stock', before: '3', after: '8' },
+            ],
+          }),
+          row('a-2', {
+            area: 'ORDERS',
+            action: 'ORDER_STATUS_CHANGED',
+            subject: { type: 'ORDER', id: 'o-1', label: '#1001' },
+            changes: [
+              { field: 'status', before: 'PAID', after: 'CANCELLED' },
+              { field: 'restock', before: null, after: 'true' },
+            ],
+          }),
+          row('a-3', {
+            area: 'PROMOTIONS',
+            action: 'COUPON_UPDATED',
+            subject: { type: 'COUPON', id: 'c-1', label: 'VERANO15' },
+            changes: [
+              { field: 'type', before: 'PERCENTAGE', after: 'FIXED_AMOUNT' },
+              { field: 'value', before: '10%', after: '$5.000' },
+              { field: 'scopeProducts', before: '1', after: '1' },
+            ],
+          }),
+        ],
+        hasMore: false,
+      }),
+    });
+    renderRoute('/admin/actividad');
+
+    expect(await screen.findByText('Cantidad: — → +5')).toBeInTheDocument();
+    expect(screen.getByText('Stock: 3 → 8')).toBeInTheDocument();
+    expect(screen.getByText('Estado: Pagado → Cancelado')).toBeInTheDocument();
+    expect(screen.getByText('Stock devuelto: — → Sí')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'VERANO15' })).toHaveAttribute('href', '/admin/cupones');
+    expect(screen.getByText('Tipo: Porcentaje → Monto fijo')).toBeInTheDocument();
+    expect(screen.getByText('Descuento: 10% → $5.000')).toBeInTheDocument();
+    expect(screen.getByText('Productos del cupón: 1 → 1')).toBeInTheDocument();
+  });
+
+  it('given shipping changes, when listed, then a province shows by its name and the threshold links to Envíos', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      [LIST]: answer(200, {
+        items: [
+          row('a-1', {
+            area: 'SHIPPING',
+            action: 'SHIPPING_ZONES_CHANGED',
+            subject: { type: 'SHIPPING', id: null, label: 'SANTA_FE' },
+            changes: [{ field: 'cost', before: '$5.000', after: '$6.000' }],
+          }),
+          row('a-2', {
+            area: 'SHIPPING',
+            action: 'FREE_SHIPPING_THRESHOLD_CHANGED',
+            subject: { type: 'SHIPPING', id: null, label: null },
+            changes: [{ field: 'threshold', before: null, after: '$50.000' }],
+          }),
+          row('a-3', {
+            area: 'ACCOUNT',
+            action: 'ADMIN_SIGNED_IN',
+            subject: { type: 'ADMINISTRATOR', id: 'u-1', label: null },
+            changes: [],
+          }),
+        ],
+        hasMore: false,
+      }),
+    });
+    renderRoute('/admin/actividad');
+
+    expect(await screen.findByRole('link', { name: 'Santa Fe' })).toHaveAttribute('href', '/admin/envios');
+    expect(screen.getByText('Costo de envío: $5.000 → $6.000')).toBeInTheDocument();
+    expect(
+      card(messages.actions.FREE_SHIPPING_THRESHOLD_CHANGED).getByRole('link', { name: messages.subjects.SHIPPING }),
+    ).toHaveAttribute('href', '/admin/envios');
+    expect(screen.getByText('Envío gratis desde: — → $50.000')).toBeInTheDocument();
+    expect(card(messages.actions.ADMIN_SIGNED_IN).queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('given entries about the banner and the category order, when listed, then they link to their sections', async () => {

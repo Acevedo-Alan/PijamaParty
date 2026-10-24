@@ -5,6 +5,7 @@ import com.pijamaparty.store.accounts.domain.SecondFactorCode;
 import com.pijamaparty.store.accounts.domain.TotpSecret;
 import com.pijamaparty.store.accounts.domain.User;
 import com.pijamaparty.store.accounts.domain.UserRole;
+import com.pijamaparty.store.activity.api.ActivityAction;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
@@ -23,14 +24,16 @@ class VerifySecondFactorService implements VerifySecondFactor {
     private final RecoveryCodes recoveryCodes;
     private final SecondFactorCipher cipher;
     private final TotpVerifier totp;
+    private final AccountActivity activity;
     private final Clock clock;
 
     VerifySecondFactorService(UserSignInStore users, RecoveryCodes recoveryCodes, SecondFactorCipher cipher,
-                              TotpVerifier totp, Clock clock) {
+                              TotpVerifier totp, AccountActivity activity, Clock clock) {
         this.users = users;
         this.recoveryCodes = recoveryCodes;
         this.cipher = cipher;
         this.totp = totp;
+        this.activity = activity;
         this.clock = clock;
     }
 
@@ -56,6 +59,11 @@ class VerifySecondFactorService implements VerifySecondFactor {
             case SecondFactorCode.Recovery recovery -> acceptRecovery(user, recovery, now);
         }).orElse(false);
         if (accepted) {
+            // UC-37: every sign-in is recorded, and a recovery code used for it besides.
+            activity.record(AdministratorEntries.entry(user.id(), ActivityAction.ADMIN_SIGNED_IN));
+            if (code.get() instanceof SecondFactorCode.Recovery) {
+                activity.record(AdministratorEntries.entry(user.id(), ActivityAction.RECOVERY_CODE_USED));
+            }
             return new Result.SignedIn(AdministratorView.of(user));
         }
         return user.registerFailedSignIn(now)

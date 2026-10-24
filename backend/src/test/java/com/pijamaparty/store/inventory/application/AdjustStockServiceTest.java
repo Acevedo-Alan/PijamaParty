@@ -2,6 +2,12 @@ package com.pijamaparty.store.inventory.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.pijamaparty.store.activity.api.ActivityAction;
+import com.pijamaparty.store.activity.api.ActivityEntry;
+import com.pijamaparty.store.activity.api.ActivitySubject;
+import com.pijamaparty.store.activity.api.FieldChange;
+import com.pijamaparty.store.activity.api.SubjectType;
+import com.pijamaparty.store.inventory.api.InMemoryVariantSkus;
 import com.pijamaparty.store.inventory.application.AdjustStock.Command;
 import com.pijamaparty.store.inventory.application.AdjustStock.Result;
 import com.pijamaparty.store.inventory.domain.AdjustmentKey;
@@ -33,8 +39,10 @@ class AdjustStockServiceTest {
     private static final VariantId VARIANT = VariantId.of(UUID.randomUUID());
 
     private final InMemoryStockStore stock = new InMemoryStockStore();
-    private final AdjustStockService service = new AdjustStockService(stock, stock, new InMemoryIdGenerator(),
-        Clock.fixed(NOW, ZoneOffset.UTC));
+    private final InMemoryVariantSkus skus = new InMemoryVariantSkus();
+    private final InMemoryStockActivity activity = new InMemoryStockActivity();
+    private final AdjustStockService service = new AdjustStockService(stock, stock, skus, activity,
+        new InMemoryIdGenerator(), Clock.fixed(NOW, ZoneOffset.UTC));
 
     @BeforeEach
     void openVariant() {
@@ -180,6 +188,42 @@ class AdjustStockServiceTest {
         assertThat(service.execute(new Command(Actor.system(), VARIANT, AdjustmentKey.of(UUID.randomUUID()), 1,
             Optional.empty()))).isEqualTo(new Result.Forbidden());
         assertThat(stock.onHand(VARIANT)).hasValue(0);
+    }
+
+    // --- UC-37: the activity log ---
+
+    @Test
+    void givenAStockOf3_whenAdding5WithANote_thenTheEntryHasTheSkuTheQuantityAndTheStockButNeverTheNote() {
+        adjust(3);
+        activity.clear();
+        skus.add(VARIANT.value(), "PP-AB12CD34");
+
+        service.execute(new Command(ADMIN, VARIANT, AdjustmentKey.of(UUID.randomUUID()), 5,
+            Optional.of("devolución de Ana")));
+
+        assertThat(activity.single()).isEqualTo(new ActivityEntry(ADMIN_ID, ActivityAction.STOCK_ADJUSTED,
+            ActivitySubject.of(SubjectType.VARIANT, VARIANT.value(), "PP-AB12CD34"),
+            List.of(FieldChange.of("quantity", null, "+5"), FieldChange.of("stock", "3", "8"))));
+    }
+
+    @Test
+    void givenAnAdjustment_whenRetriedWithTheSameKeyOrRefused_thenThereIsStillOneEntry() {
+        AdjustmentKey key = AdjustmentKey.of(UUID.randomUUID());
+
+        service.execute(new Command(ADMIN, VARIANT, key, 2, Optional.empty()));
+        service.execute(new Command(ADMIN, VARIANT, key, 2, Optional.empty()));
+        service.execute(new Command(ADMIN, VARIANT, AdjustmentKey.of(UUID.randomUUID()), -5, Optional.empty()));
+
+        assertThat(activity.single().changes()).containsExactly(FieldChange.of("quantity", null, "+2"),
+            FieldChange.of("stock", "0", "2"));
+    }
+
+    @Test
+    void givenAVariantTheCatalogDoesNotName_whenAdjusted_thenTheEntryHasNoLabel() {
+        adjust(1);
+
+        assertThat(activity.single().subject())
+            .isEqualTo(new ActivitySubject(SubjectType.VARIANT, Optional.of(VARIANT.value()), Optional.empty()));
     }
 
     private void adjust(int quantity) {

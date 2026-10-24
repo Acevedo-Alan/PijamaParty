@@ -1,5 +1,9 @@
 package com.pijamaparty.store.ordering.application;
 
+import com.pijamaparty.store.activity.api.ActivityAction;
+import com.pijamaparty.store.activity.api.ActivityEntry;
+import com.pijamaparty.store.activity.api.ActivitySubject;
+import com.pijamaparty.store.activity.api.SubjectType;
 import com.pijamaparty.store.ordering.application.WithdrawalResolutions.LockedWithdrawal;
 import com.pijamaparty.store.platform.domain.Role;
 import java.time.Clock;
@@ -14,10 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 class ResolveWithdrawalService implements ResolveWithdrawal {
 
     private final WithdrawalResolutions resolutions;
+    private final OrderActivity activity;
     private final Clock clock;
 
-    ResolveWithdrawalService(WithdrawalResolutions resolutions, Clock clock) {
+    ResolveWithdrawalService(WithdrawalResolutions resolutions, OrderActivity activity, Clock clock) {
         this.resolutions = resolutions;
+        this.activity = activity;
         this.clock = clock;
     }
 
@@ -40,6 +46,8 @@ class ResolveWithdrawalService implements ResolveWithdrawal {
         // Never before it was requested (withdrawal_request_resolved_after_ck), should the clocks disagree.
         Instant at = now.isBefore(withdrawal.createdAt()) ? withdrawal.createdAt() : now;
         resolutions.resolve(command.requestId(), at);
+        activity.record(new ActivityEntry(command.actor().userId().orElseThrow(), ActivityAction.WITHDRAWAL_RESOLVED,
+            ActivitySubject.of(SubjectType.WITHDRAWAL, command.requestId(), withdrawal.code().value())));
         return new Result.Resolved(at);
     }
 }

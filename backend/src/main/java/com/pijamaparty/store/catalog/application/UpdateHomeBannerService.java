@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.application;
 
 import com.pijamaparty.store.activity.api.ActivityAction;
+import com.pijamaparty.store.activity.api.FieldChanges;
 import com.pijamaparty.store.catalog.domain.HomeBanner;
 import com.pijamaparty.store.platform.domain.Role;
 import java.time.Clock;
@@ -38,7 +39,7 @@ class UpdateHomeBannerService implements UpdateHomeBanner {
             case HomeBanner.EditOutcome.Invalid invalid -> new Result.Invalid(invalid.fields());
             case HomeBanner.EditOutcome.Edited edited -> {
                 saveHomeBanner.save(banner);
-                CatalogEntries.Changes changes = changes(previous, banner.texts());
+                FieldChanges changes = changes(previous, banner.texts());
                 if (!changes.isEmpty()) {
                     activity.record(CatalogEntries.homeBanner(command.actor(), ActivityAction.HOME_BANNER_UPDATED,
                         changes.list()));
@@ -49,9 +50,9 @@ class UpdateHomeBannerService implements UpdateHomeBanner {
     }
 
     /** UC-37: the texts that changed; none before the banner's first edit. */
-    private static CatalogEntries.Changes changes(Optional<HomeBanner.Texts> previous,
+    private static FieldChanges changes(Optional<HomeBanner.Texts> previous,
                                                   Optional<HomeBanner.Texts> texts) {
-        return new CatalogEntries.Changes()
+        return new FieldChanges()
             .add("title", text(previous, HomeBanner.Texts::title), text(texts, HomeBanner.Texts::title))
             .add("body", text(previous, HomeBanner.Texts::body), text(texts, HomeBanner.Texts::body))
             .add("linkText", text(previous, HomeBanner.Texts::linkText), text(texts, HomeBanner.Texts::linkText))

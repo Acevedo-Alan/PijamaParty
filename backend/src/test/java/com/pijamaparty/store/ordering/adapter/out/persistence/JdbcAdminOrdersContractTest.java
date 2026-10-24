@@ -177,8 +177,8 @@ class JdbcAdminOrdersContractTest extends AdminOrdersContractTest<JdbcAdminOrder
         }
 
         @Override
-        public Optional<OrderStatus> lockStatus(OrderId order) {
-            return as(ADMIN, () -> adapter.lockStatus(order));
+        public Optional<LockedOrder> lockForChange(OrderId order) {
+            return as(ADMIN, () -> adapter.lockForChange(order));
         }
 
         @Override

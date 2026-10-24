@@ -33,11 +33,15 @@ class CouponAdminServicesTest {
     private final InMemoryCouponStore coupons = new InMemoryCouponStore();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private final ListCouponsService list = new ListCouponsService(coupons);
-    private final CreateCouponService create = new CreateCouponService(coupons, new InMemoryIdGenerator(), clock);
-    private final UpdateCouponService update = new UpdateCouponService(coupons, coupons, coupons, clock);
-    private final ActivateCouponService activate = new ActivateCouponService(coupons, coupons, coupons, clock);
-    private final DeactivateCouponService deactivate = new DeactivateCouponService(coupons, coupons, coupons, clock);
-    private final DeleteCouponService delete = new DeleteCouponService(coupons);
+    private final InMemoryCouponActivity activity = new InMemoryCouponActivity();
+    private final CreateCouponService create =
+        new CreateCouponService(coupons, activity, new InMemoryIdGenerator(), clock);
+    private final UpdateCouponService update = new UpdateCouponService(coupons, coupons, coupons, activity, clock);
+    private final ActivateCouponService activate =
+        new ActivateCouponService(coupons, coupons, coupons, activity, clock);
+    private final DeactivateCouponService deactivate =
+        new DeactivateCouponService(coupons, coupons, coupons, activity, clock);
+    private final DeleteCouponService delete = new DeleteCouponService(coupons, coupons, activity);
 
     @Test
     void givenTypedData_whenTheAdministratorCreatesACoupon_thenItIsActiveWithItsCodeInUpperCase() {

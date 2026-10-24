@@ -8,6 +8,7 @@ import com.pijamaparty.store.ordering.api.AdminOrderDetails.Buyer;
 import com.pijamaparty.store.ordering.api.AdminOrderDetails.Status;
 import com.pijamaparty.store.ordering.api.PaidOrders.Address;
 import com.pijamaparty.store.ordering.api.PaidOrders.Line;
+import com.pijamaparty.store.ordering.application.OrderStatuses.LockedOrder;
 import com.pijamaparty.store.ordering.application.SaveOrders.AppliedCoupon;
 import com.pijamaparty.store.ordering.application.SaveOrders.NewOrder;
 import com.pijamaparty.store.ordering.domain.BuyerDetails;
@@ -73,7 +74,7 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
         OrderId unknown = OrderId.of(UUID.randomUUID());
 
         assertThat(subject.adminViewOf(unknown)).isEmpty();
-        assertThat(subject.lockStatus(unknown)).isEmpty();
+        assertThat(subject.lockForChange(unknown)).isEmpty();
     }
 
     @Test
@@ -107,7 +108,7 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
             delivered)).isTrue();
         persistAndForget();
 
-        assertThat(subject.lockStatus(order.id())).contains(OrderStatus.DELIVERED);
+        assertThat(subject.lockForChange(order.id())).map(LockedOrder::status).contains(OrderStatus.DELIVERED);
         assertThat(subject.adminViewOf(order.id())).hasValueSatisfying(view -> {
             assertThat(view.status()).isEqualTo(Status.DELIVERED);
             assertThat(view.shipmentTrackingNumber()).contains("CA123456789AR");
@@ -126,7 +127,7 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
             OrderStatus.CANCELLED, Optional.empty()), NOW.plusSeconds(1))).isFalse();
         persistAndForget();
 
-        assertThat(subject.lockStatus(order.id())).contains(OrderStatus.AWAITING_PAYMENT);
+        assertThat(subject.lockForChange(order.id())).map(LockedOrder::status).contains(OrderStatus.AWAITING_PAYMENT);
     }
 
     @Test
@@ -136,7 +137,19 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
         assertThatThrownBy(() -> subject.change(order.id(),
             change(OrderStatus.AWAITING_PAYMENT, OrderStatus.DELIVERED, Optional.empty()), NOW))
             .isInstanceOf(RuntimeException.class).hasMessageContaining("cannot go from AWAITING_PAYMENT to DELIVERED");
-        assertThat(subject.lockStatus(order.id())).contains(OrderStatus.AWAITING_PAYMENT);
+        assertThat(subject.lockForChange(order.id())).map(LockedOrder::status).contains(OrderStatus.AWAITING_PAYMENT);
+    }
+
+    @Test
+    void givenAPlacedAndAShippedOrder_whenLockedForAChange_thenEachHasItsNumberStatusAndTrackingNumberIfShipped() {
+        NewOrder placed = placed(NOW, Optional.empty());
+        NewOrder shipped = shipped("CA123456789AR");
+        persistAndForget();
+
+        assertThat(subject.lockForChange(placed.id()))
+            .contains(new LockedOrder(placed.number(), OrderStatus.AWAITING_PAYMENT, Optional.empty()));
+        assertThat(subject.lockForChange(shipped.id())).contains(new LockedOrder(shipped.number(), OrderStatus.SHIPPED,
+            Optional.of(new ShipmentTrackingNumber("CA123456789AR"))));
     }
 
     @Test

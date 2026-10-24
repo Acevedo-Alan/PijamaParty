@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.application;
 
 import com.pijamaparty.store.activity.api.ActivityValues;
+import com.pijamaparty.store.activity.api.FieldChanges;
 import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.Variant;
 import com.pijamaparty.store.catalog.domain.VariantId;
@@ -58,7 +59,7 @@ class UpdateVariantService implements UpdateVariant {
                 }
                 events.productChanged(product.id());
                 Variant after = variant.orElseThrow();
-                CatalogEntries.Changes changes = new CatalogEntries.Changes()
+                FieldChanges changes = new FieldChanges()
                     .add("price", priceBefore.orElse(null), after.price().map(ActivityValues::pesos).orElse(null))
                     .add("active", activeBefore.map(String::valueOf).orElse(null), String.valueOf(after.active()));
                 if (!changes.isEmpty()) {

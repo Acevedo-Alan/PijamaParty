@@ -14,6 +14,13 @@ import {
 
 const messages = es.admin.activityList;
 const subjectNames: Readonly<Partial<Record<string, string>>> = messages.subjects;
+const provinceNames: Readonly<Partial<Record<string, string>>> = es.provinces;
+/** The recorded names translated, with the order statuses and coupon types in the words of their own screens. */
+const values: Readonly<Partial<Record<string, Readonly<Partial<Record<string, string>>>>>> = {
+  ...messages.values,
+  status: es.tracking.statuses,
+  type: es.admin.couponForm.types,
+};
 const AREA_PARAM = 'seccion';
 const FROM_PARAM = 'desde';
 const TO_PARAM = 'hasta';
@@ -57,9 +64,16 @@ function subjectPath({ type, id }: ActivityEntry['subject']): string | null {
   }
 }
 
+/** How the screen names an entry's subject: its label (a province translated), or else its section. */
+function subjectLabel({ type, label }: ActivityEntry['subject']): string | null {
+  if (label === null) {
+    return subjectNames[type] ?? null;
+  }
+  return type === 'SHIPPING' ? (provinceNames[label] ?? label) : label;
+}
+
 function changeText({ field, before, after }: ActivityChange): string {
-  const value = (text: string | null) =>
-    text === null ? messages.noValue : (messages.values[field]?.[text] ?? text);
+  const value = (text: string | null) => (text === null ? messages.noValue : (values[field]?.[text] ?? text));
   return messages.change(messages.fields[field] ?? field, value(before), value(after));
 }
 
@@ -162,7 +176,7 @@ export function ActivityPage() {
         <ul className="admin-list">
           {items.map((entry) => {
             const path = subjectPath(entry.subject);
-            const label = entry.subject.label ?? subjectNames[entry.subject.type] ?? null;
+            const label = subjectLabel(entry.subject);
             return (
               <li key={entry.id} className="admin-card">
                 <div className="admin-card-head">

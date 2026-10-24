@@ -107,8 +107,8 @@ public class InMemoryWithdrawalStore implements WithdrawableOrders, ActiveWithdr
 
     @Override
     public synchronized Optional<LockedWithdrawal> lockForResolution(UUID request) {
-        return Optional.ofNullable(requests.get(request)).map(stored -> new LockedWithdrawal(stored.status(),
-            stored.withdrawal().createdAt(), stored.resolvedAt()));
+        return Optional.ofNullable(requests.get(request)).map(stored -> new LockedWithdrawal(
+            stored.withdrawal().code(), stored.status(), stored.withdrawal().createdAt(), stored.resolvedAt()));
     }
 
     @Override

@@ -820,6 +820,8 @@ export const es = {
       subjects: {
         CATEGORY: 'Categorías',
         HOME_BANNER: 'Banner de la portada',
+        REVIEW: 'Reseñas',
+        SHIPPING: 'Envíos',
       },
       /** The names of the changed fields; a key without a name here shows as it comes. */
       fields: {
@@ -839,10 +841,30 @@ export const es = {
         body: 'Texto',
         linkText: 'Texto del enlace',
         linkPath: 'Destino del enlace',
+        quantity: 'Cantidad',
+        stock: 'Stock',
+        status: 'Estado',
+        trackingNumber: 'Número de seguimiento',
+        restock: 'Stock devuelto',
+        code: 'Código',
+        type: 'Tipo',
+        value: 'Descuento',
+        validFrom: 'Vale desde',
+        validUntil: 'Vale hasta',
+        maxUses: 'Usos máximos',
+        minimumPurchase: 'Compra mínima',
+        scopeProducts: 'Productos del cupón',
+        scopeCategories: 'Categorías del cupón',
+        cost: 'Costo de envío',
+        threshold: 'Envío gratis desde',
       } as Readonly<Partial<Record<string, string>>>,
-      /** The values the server records as names (a yes/no, a choice); any other value shows as it comes. */
+      /**
+       * The values the server records as names (a yes/no, a choice); any other value shows as it comes. The order
+       * statuses and coupon types come from their own screens' words.
+       */
       values: {
         active: { true: 'Sí', false: 'No' },
+        restock: { true: 'Sí', false: 'No' },
         season: { SUMMER: 'Verano', MID_SEASON: 'Media estación', WINTER: 'Invierno' },
         audience: { WOMEN: 'Mujer', MEN: 'Hombre', KIDS: 'Infantil' },
       } as Readonly<Partial<Record<string, Readonly<Partial<Record<string, string>>>>>>,

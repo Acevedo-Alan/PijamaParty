@@ -29,9 +29,11 @@ class ShippingAdminServicesTest {
     private final InMemoryShippingStore store = new InMemoryShippingStore();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private final GetShippingConfigurationService get = new GetShippingConfigurationService(store, store);
-    private final ReplaceShippingZoneRatesService replace = new ReplaceShippingZoneRatesService(store, store, clock);
+    private final InMemoryShippingActivity activity = new InMemoryShippingActivity();
+    private final ReplaceShippingZoneRatesService replace =
+        new ReplaceShippingZoneRatesService(store, store, store, activity, clock);
     private final SetFreeShippingThresholdService setThreshold =
-        new SetFreeShippingThresholdService(store, store, clock);
+        new SetFreeShippingThresholdService(store, store, store, activity, clock);
 
     @Test
     void givenNothingConfigured_whenTheAdministratorReadsIt_thenNoProvinceHasShippingNorFreeShipping() {

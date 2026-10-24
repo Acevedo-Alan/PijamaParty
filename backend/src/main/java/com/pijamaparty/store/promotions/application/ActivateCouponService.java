@@ -1,5 +1,6 @@
 package com.pijamaparty.store.promotions.application;
 
+import com.pijamaparty.store.activity.api.ActivityAction;
 import com.pijamaparty.store.platform.domain.Role;
 import com.pijamaparty.store.promotions.domain.Coupon;
 import java.time.Clock;
@@ -13,12 +14,15 @@ class ActivateCouponService implements ActivateCoupon {
     private final LoadCoupon loadCoupon;
     private final SaveCoupon saveCoupon;
     private final CouponUses uses;
+    private final CouponActivity activity;
     private final Clock clock;
 
-    ActivateCouponService(LoadCoupon loadCoupon, SaveCoupon saveCoupon, CouponUses uses, Clock clock) {
+    ActivateCouponService(LoadCoupon loadCoupon, SaveCoupon saveCoupon, CouponUses uses, CouponActivity activity,
+                          Clock clock) {
         this.loadCoupon = loadCoupon;
         this.saveCoupon = saveCoupon;
         this.uses = uses;
+        this.activity = activity;
         this.clock = clock;
     }
 
@@ -34,7 +38,12 @@ class ActivateCouponService implements ActivateCoupon {
         }
         Coupon coupon = stored.get().activated();
         return switch (saveCoupon.update(coupon, clock.instant())) {
-            case SAVED -> new Result.Activated(CouponView.of(coupon, uses.count(coupon.id())));
+            case SAVED -> {
+                if (!stored.get().active()) {
+                    activity.record(CouponEntries.entry(command.actor(), ActivityAction.COUPON_ACTIVATED, coupon));
+                }
+                yield new Result.Activated(CouponView.of(coupon, uses.count(coupon.id())));
+            }
             case NOT_FOUND -> new Result.NotFound();
             case CODE_ALREADY_USED ->
                 throw new IllegalStateException("activating does not change the code, so saving cannot collide");

@@ -90,7 +90,7 @@ class JdbcWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, Save
 
     // T-E3-26: two administrators resolving the same request run one after the other.
     private static final String LOCK_FOR_RESOLUTION = """
-        SELECT status, created_at, resolved_at FROM withdrawal_request
+        SELECT code, status, created_at, resolved_at FROM withdrawal_request
         WHERE id = :id
         FOR UPDATE
         """;
@@ -171,7 +171,8 @@ class JdbcWithdrawalStore implements WithdrawableOrders, ActiveWithdrawals, Save
     @Override
     public Optional<LockedWithdrawal> lockForResolution(UUID request) {
         return jdbc.query(LOCK_FOR_RESOLUTION, new MapSqlParameterSource("id", request), (row, n) ->
-                new LockedWithdrawal(WithdrawalStatus.valueOf(row.getString("status")),
+                new LockedWithdrawal(new WithdrawalCode(row.getString("code")),
+                    WithdrawalStatus.valueOf(row.getString("status")),
                     row.getObject("created_at", OffsetDateTime.class).toInstant(),
                     Optional.ofNullable(row.getObject("resolved_at", OffsetDateTime.class))
                         .map(OffsetDateTime::toInstant)))

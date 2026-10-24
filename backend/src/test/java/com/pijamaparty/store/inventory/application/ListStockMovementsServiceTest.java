@@ -2,6 +2,7 @@ package com.pijamaparty.store.inventory.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.pijamaparty.store.inventory.api.InMemoryVariantSkus;
 import com.pijamaparty.store.inventory.application.ListStockMovements.Query;
 import com.pijamaparty.store.inventory.application.ListStockMovements.Result;
 import com.pijamaparty.store.inventory.domain.AdjustmentKey;
@@ -29,9 +30,11 @@ class ListStockMovementsServiceTest {
     private static final VariantId VARIANT = VariantId.of(UUID.randomUUID());
 
     private final InMemoryStockStore stock = new InMemoryStockStore();
+    private final InMemoryVariantSkus skus = new InMemoryVariantSkus();
+    private final InMemoryStockActivity activity = new InMemoryStockActivity();
     private final InMemoryUserNameLookup userNames = new InMemoryUserNameLookup();
-    private final AdjustStockService adjust = new AdjustStockService(stock, stock, new InMemoryIdGenerator(),
-        Clock.fixed(NOW, ZoneOffset.UTC));
+    private final AdjustStockService adjust = new AdjustStockService(stock, stock, skus, activity,
+        new InMemoryIdGenerator(), Clock.fixed(NOW, ZoneOffset.UTC));
     private final ListStockMovementsService service = new ListStockMovementsService(stock, userNames);
 
     @BeforeEach

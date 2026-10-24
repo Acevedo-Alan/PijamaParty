@@ -1,5 +1,8 @@
 package com.pijamaparty.store.promotions.application;
 
+import com.pijamaparty.store.activity.api.ActivityAction;
+import com.pijamaparty.store.activity.api.FieldChanges;
+import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.domain.Role;
 import com.pijamaparty.store.promotions.domain.Coupon;
 import java.time.Clock;
@@ -13,12 +16,15 @@ class UpdateCouponService implements UpdateCoupon {
     private final LoadCoupon loadCoupon;
     private final SaveCoupon saveCoupon;
     private final CouponUses uses;
+    private final CouponActivity activity;
     private final Clock clock;
 
-    UpdateCouponService(LoadCoupon loadCoupon, SaveCoupon saveCoupon, CouponUses uses, Clock clock) {
+    UpdateCouponService(LoadCoupon loadCoupon, SaveCoupon saveCoupon, CouponUses uses, CouponActivity activity,
+                        Clock clock) {
         this.loadCoupon = loadCoupon;
         this.saveCoupon = saveCoupon;
         this.uses = uses;
+        this.activity = activity;
         this.clock = clock;
     }
 
@@ -34,13 +40,20 @@ class UpdateCouponService implements UpdateCoupon {
         }
         return switch (command.coupon().parse(command.couponId(), stored.get().active(), stored.get().automatic())) {
             case CouponInput.Parsed.Invalid invalid -> new Result.InvalidFields(invalid.fields());
-            case CouponInput.Parsed.Valid valid -> save(valid.coupon());
+            case CouponInput.Parsed.Valid valid -> save(command.actor(), stored.get(), valid.coupon());
         };
     }
 
-    private Result save(Coupon coupon) {
+    private Result save(Actor administrator, Coupon before, Coupon coupon) {
         return switch (saveCoupon.update(coupon, clock.instant())) {
-            case SAVED -> new Result.Updated(CouponView.of(coupon, uses.count(coupon.id())));
+            case SAVED -> {
+                FieldChanges changes = CouponEntries.changes(before, coupon);
+                if (!changes.isEmpty()) {
+                    activity.record(CouponEntries.entry(administrator, ActivityAction.COUPON_UPDATED, coupon,
+                        changes.list()));
+                }
+                yield new Result.Updated(CouponView.of(coupon, uses.count(coupon.id())));
+            }
             case CODE_ALREADY_USED -> new Result.CodeAlreadyUsed(coupon.code().value());
             case NOT_FOUND -> new Result.NotFound();
         };

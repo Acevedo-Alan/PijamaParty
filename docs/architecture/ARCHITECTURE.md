@@ -25,16 +25,16 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 
 | Module | Responsibility | Key types | Depends on (`api` packages only) |
 |---|---|---|---|
-| `catalog` | Categories, products, variants, images, listing, filters, text search | `Category`, `Product` (with `Variant`, `Image`) | `inventory`, `activity` (its back-office changes, UC-37) |
-| `inventory` | Stock levels, reservations, movements | `StockLevel`, `StockReservation`, `StockMovement` | `accounts` (names of the users in the stock history) |
+| `catalog` | Categories, products, variants, images, listing, filters, text search | `Category`, `Product` (with `Variant`, `Image`) | `inventory` (and implements `inventory.api.VariantSkus`), `activity` (its back-office changes, UC-37) |
+| `inventory` | Stock levels, reservations, movements | `StockLevel`, `StockReservation`, `StockMovement` | `accounts` (names of the users in the stock history), `activity` |
 | `cart` | Carts and items | `Cart` | `catalog`, `inventory`, `promotions`, `accounts` (deletes the cart of a deleted account, UC-28) |
-| `promotions` | Coupons and automatic discount rules | `Coupon`, `DiscountRule` | – |
-| `shipping` | Cost per zone, free-shipping threshold | `ShippingZoneRate`, `ShippingSettings` | – |
-| `ordering` | Checkout orchestration, orders, state machine, tracking link, withdrawal requests ("botón de arrepentimiento") | `Order`, `OrderItem` | `cart`, `inventory`, `promotions`, `shipping`, `payments`, `accounts` (what a customer's checkout leaves on its account, UC-21; its orders in the data download and their unlinking when the account is deleted, UC-28) |
+| `promotions` | Coupons and automatic discount rules | `Coupon`, `DiscountRule` | `activity` |
+| `shipping` | Cost per zone, free-shipping threshold | `ShippingZoneRate`, `ShippingSettings` | `activity` |
+| `ordering` | Checkout orchestration, orders, state machine, tracking link, withdrawal requests ("botón de arrepentimiento") | `Order`, `OrderItem` | `cart`, `inventory`, `promotions`, `shipping`, `payments`, `accounts` (what a customer's checkout leaves on its account, UC-21; its orders in the data download and their unlinking when the account is deleted, UC-28), `activity` |
 | `payments` | Provider gateways, payment attempts, webhooks | `Payment`, `PaymentEvent` | – |
 | `notifications` | Email outbox, sending, bounces | `OutboxEmail` | `ordering` (events), `accounts` (events and the links of the account emails) |
-| `accounts` | Users, authentication (password, Google and Facebook through OAuth2), 2FA, address book, account deletion and data export | `User`, `Address` | – |
-| `reviews` | Reviews and moderation | `Review` | `ordering`, `catalog`, `accounts` (the author's name, its reviews in the data download and their deletion with the account, UC-24, UC-28) |
+| `accounts` | Users, authentication (password, Google and Facebook through OAuth2), 2FA, address book, account deletion and data export | `User`, `Address` | `activity` (the administrator's sign-ins) |
+| `reviews` | Reviews and moderation | `Review` | `ordering`, `catalog`, `accounts` (the author's name, its reviews in the data download and their deletion with the account, UC-24, UC-28), `activity` |
 | `activity` | The back-office activity log (UC-37): every admin change, recorded in the transaction of the change | `ActivityEntry` | – |
 | `backoffice` | Composition of admin screens that need data from several modules | read models only | `ordering`, `notifications`, `catalog`, `inventory` |
 | `platform` | Shared kernel: `Money`, `Clock`, ids, `Actor`, idempotency, rate limiting, problem+json, security context for RLS | – | – |
@@ -42,7 +42,7 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 **Rules**
 1. The module dependency graph must be acyclic. `ordering → payments`, `ordering → accounts`, `cart → accounts`, `notifications → ordering`, `notifications → accounts` and `reviews → ordering` all point one way.
 2. A module may use another module only through that module's `api` package (public interfaces, DTO records and events).
-3. **Avoiding cycles:** when two modules need data from each other (for example the admin order screen needs the email-bounce alert from `notifications`), the composition happens in `backoffice`, which depends on both and which nobody depends on. Events flow in one direction only.
+3. **Avoiding cycles:** when two modules need data from each other (for example the admin order screen needs the email-bounce alert from `notifications`), the composition happens in `backoffice`, which depends on both and which nobody depends on. Events flow in one direction only. When a module needs a lookup from a module that already depends on it, it declares the lookup in its own `api` and the other module implements it (dependency inversion): `inventory.api.VariantSkus`, implemented by `catalog`, names the variants in the stock entries of the activity log (UC-37).
 4. Writes touch only the tables of the owning module. Read-side queries may read another module's data only through a database view published by the owner (for example `inventory.v_variant_availability`).
 5. Cross-module reactions use domain events published after commit (section 6), never direct calls into another module's internals. Exception: a listener that only inserts into a transactional outbox (the emails of `notifications`, UC-17) or makes the state change the event reports (`PaymentApproved` confirming the order, UC-15), or cleans up what must disappear with it (`CustomerAccountDeleted` unlinking the orders and deleting the cart, UC-28) runs synchronously in the publisher's transaction, so both commit or neither does; it must be idempotent. The activity log (UC-37) is not an event either: each admin use case calls `activity.api.ActivityLog` inside its own transaction, because an event would carry the changed values through `event_publication`, which has no Row Level Security.
 6. **Foreign keys stay inside a module.** A table that refers to another module's data stores only the `uuid` (for example `stock_level.variant_id`), with no foreign key, so the database does not couple modules against their dependency direction. Consistency comes from events, or from a call through the owner's `api` in the same transaction when the dependency already points that way (`catalog` calls `inventory.api.StockLevels.open` when it creates variants, UC-06).
