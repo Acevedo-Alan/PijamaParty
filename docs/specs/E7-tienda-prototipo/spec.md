@@ -199,11 +199,13 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 **Reglas nuevas**
 - Con umbral de envío gratis, una barra muestra cuánto falta ("Te faltan $X para envío gratis") o "¡Tenés envío gratis!". Se calcula sobre el subtotal con descuento que manda el servidor. El costo final lo sigue decidiendo el checkout (CU-12).
 - Al agregar desde la ficha, un aviso breve dice "Agregado al carrito".
+- Vacío, el panel muestra arriba un ícono de bolsa de compras sobre "Tu carrito está vacío.", y "Empezar a comprar" ocupa todo el ancho del panel. Debajo queda reservado el lugar de "Productos sugeridos", que llega en una tarea futura; mientras tanto no muestra nada.
 
 **Criterios de aceptación**
 - Dado un umbral de $50.000 y un subtotal con descuento de $24.999, cuando se abre el panel, entonces dice "Te faltan $25.001 para envío gratis".
 - Dado un subtotal con descuento de $50.000 o más, cuando se abre el panel, entonces dice "¡Tenés envío gratis!".
 - Sin umbral, el panel no muestra la barra.
+- Dado un carrito vacío, cuando se abre el panel, entonces se ve el ícono, "Tu carrito está vacío." y "Empezar a comprar" a todo el ancho, que cierra el panel.
 
 ## Cambios a CU-13 (checkout)
 

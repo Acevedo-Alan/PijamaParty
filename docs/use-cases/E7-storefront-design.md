@@ -280,8 +280,10 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Business rules (new)**
 - With a threshold, a bar shows "Te faltan $X para envío gratis" or "¡Tenés envío gratis!". X is the threshold minus the subtotal after discount as the server sent it. The checkout still decides the final cost (UC-12).
 - Adding from the product page also shows a short "Agregado al carrito" notice (`role="status"`), closed by itself after 4 s or with its close button.
+- Empty, the panel shows a shopping-bag icon above "Tu carrito está vacío.", and "Empezar a comprar" takes the panel's whole width inside its side padding. Below it, the rest of the panel's height is kept for "Productos sugeridos", a future task; until then that place renders nothing (T-E7-19).
 
 **Acceptance criteria**
+- Given an empty cart, when the panel opens, then it shows the icon, "Tu carrito está vacío." and a full-width "Empezar a comprar" that closes the panel.
 - Given a $50,000 threshold and a $24,999 subtotal after discount, when the panel opens, then it reads "Te faltan $25.001 para envío gratis".
 - Given a subtotal after discount of $50,000 or more, when the panel opens, then it reads "¡Tenés envío gratis!".
 - Given no threshold, when the panel opens, then there is no bar.
@@ -289,6 +291,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Design notes**
 - `FreeShippingProgress` reads the shared rates query; the amounts are `Money` from the API, never recomputed prices. Before the threshold is known it shows nothing.
 - The notice renders inside the cart panel, below its header (the prototype moves it to the top while the drawer is open): the modal dialog makes the page behind it inert, so a notice outside it could not be read or closed. Closing the panel closes the notice.
+- The empty state is a column: the icon, the texts and the button at the top, then `.cart-suggestions` with `flex: 1`, an empty `div` until "Productos sugeridos" fills it. The icon is decorative (`aria-hidden`): the text says the cart is empty.
 
 ---
 

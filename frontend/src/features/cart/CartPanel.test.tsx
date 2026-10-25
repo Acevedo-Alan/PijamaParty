@@ -132,13 +132,15 @@ describe('cart side panel (UC-08)', () => {
     expect(button).toHaveFocus();
   });
 
-  it('given an empty cart, when the panel opens, then it says so and offers to keep shopping', async () => {
+  it('given an empty cart, when the panel opens, then it shows the icon, says so and offers to keep shopping', async () => {
     stubStore();
     renderRoute('/producto/luna');
 
     await userEvent.click(await screen.findByRole('button', { name: es.cart.open(0) }));
 
-    expect(within(panel()).getByText(es.cart.empty)).toBeInTheDocument();
+    const empty = within(panel()).getByText(es.cart.empty);
+    expect(empty.previousElementSibling).toHaveAttribute('aria-hidden', 'true');
+    expect(empty.previousElementSibling?.tagName.toLowerCase()).toBe('svg');
     await userEvent.click(within(panel()).getByRole('button', { name: es.cart.keepShopping }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

@@ -396,11 +396,17 @@ export function CartPanel() {
         )}
         {cart.data !== undefined && cart.data.items.length === 0 && (
           <div className="cart-body cart-empty">
-            <p>{es.cart.empty}</p>
+            <svg className="cart-empty-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 8h14l-1.2 12H6.2L5 8z" />
+              <path d="M9 10V7a3 3 0 0 1 6 0v3" />
+            </svg>
+            <p className="cart-empty-title">{es.cart.empty}</p>
             <p>{es.cart.emptyHint}</p>
             <button type="button" className="btn" onClick={panel.close}>
               {es.cart.keepShopping}
             </button>
+            {/* T-E7-19: where "Productos sugeridos" goes once it exists. */}
+            <div className="cart-suggestions" />
           </div>
         )}
         {cart.data !== undefined && cart.data.items.length > 0 && (
