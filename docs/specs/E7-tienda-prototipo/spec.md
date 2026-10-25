@@ -190,7 +190,8 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Color con círculos (D-04) y el nombre del color elegido; talle con botones cuadrados; selector de cantidad.
 - En el celular, cuando el botón de agregar sale de la pantalla, una barra fija abajo muestra el precio y el botón.
 - Íconos de confianza (D-12), que reemplazan al resumen de envíos y pagos de RNF-31.6 debajo del botón para no repetirlo: "Envío gratis desde $X" (solo con umbral), los plazos de entrega y "Pagá con …" con los medios de pago habilitados (MercadoPago, MODO), con el enlace a preguntas frecuentes.
-- El costo de envío por provincia (D-07) y secciones desplegables: guía de talles (RNF-31.5), composición (material y temporada) y cambios y devoluciones (enlace a preguntas frecuentes).
+- El precio se destaca sobre la descripción: más grande y en negrita. El color elegido lleva un anillo grueso y el talle elegido se rellena con el color de la tienda.
+- El costo de envío por provincia (D-07) va en una sola fila ("Calculá el envío" y la provincia), con el costo debajo, sin recuadro. Sigue siendo por provincia, no por código postal. Secciones desplegables: guía de talles (RNF-31.5), composición (material y temporada) y cambios y devoluciones (enlace a preguntas frecuentes).
 - "Completá tu look" (D-08), en la columna de la información, debajo de las secciones desplegables, como en el prototipo. Las opiniones (CU-24) se mantienen debajo.
 
 **Criterios de aceptación**

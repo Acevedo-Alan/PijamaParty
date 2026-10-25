@@ -257,7 +257,8 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Color as swatches (D-04) with the chosen color's name; sizes as square buttons; a quantity input from 1 to the available stock of the chosen variant.
 - On phones, when the add button leaves the screen, a fixed bar at the bottom shows the price and the add button.
 - Trust icons (D-12) take the place of the RNF-31.6 purchase summary below the add button, so its lines are not repeated: "Envío gratis desde $X" (only with a threshold), the delivery times, and "Pagá con …" naming the payment methods enabled now (MercadoPago, MODO), with the link to the FAQ. A line that could not be read is left out.
-- The shipping cost by province (D-07); collapsible sections: size guide (RNF-31.5, moved from its current place), composition (material and season) and exchanges and returns (link to the FAQ).
+- The price stands out over the description: 22 px, bold, in `--ink`. The picked color carries a 3 px ring; the picked size is filled with `--accent` (T-E7-22).
+- The shipping cost by province (D-07), on one row ("Calculá el envío" and the province select) with the cost below, without a box (T-E7-22); still by province, never by postal code. Collapsible sections: size guide (RNF-31.5, moved from its current place), composition (material and season) and exchanges and returns (link to the FAQ).
 - "Completá tu look" (D-08), in the info column below the collapsible sections, as in the prototype (T-E7-11). Reviews (UC-24) stay below the page layout.
 - The UC-03 variant rules do not change.
 

@@ -70,9 +70,11 @@
   line-height: 1.2;
 }
 
+/* The most scanned fact of the page: larger and bolder than the description (T-E7-22). */
 .pdp-price {
-  font-size: 17px;
-  color: var(--ink-soft);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .pdp-desc {
@@ -358,8 +360,8 @@
 .swatch-option::after {
   content: '';
   position: absolute;
-  inset: 1px;
-  border: 2px solid var(--ink);
+  inset: 0;
+  border: 3px solid var(--ink);
   border-radius: 50%;
   opacity: 0;
   transform: scale(0.8);
@@ -489,7 +491,7 @@
 }
 
 .pdp-sticky-cta .pdp-price {
-  font-size: 15px;
+  font-size: 16px;
   white-space: nowrap;
 }
 
@@ -513,23 +515,23 @@
 }
 
 /* E7 (D-07): the shipping cost of one province. */
+/* T-E7-22: the label and the province on one row, the cost below; no box around them. */
 .shipping-estimator {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0 12px;
   margin-top: 10px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-s);
-  background: rgba(255, 255, 255, 0.48);
   font-size: 13px;
 }
 
 .shipping-estimator label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .shipping-estimator select {
   width: 100%;
+  max-width: 260px;
   min-height: 44px;
   padding: 0 11px;
   border: 1px solid var(--line-strong);
@@ -540,8 +542,9 @@
 }
 
 .shipping-result {
+  grid-column: 1 / -1;
   min-height: 1.5em;
-  margin-top: 9px;
+  margin-top: 6px;
   color: var(--ink-soft);
 }
 
