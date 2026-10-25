@@ -83,7 +83,13 @@ class CatalogApiTest {
             .andExpect(jsonPath("$.items[1].soldOut").value(false))
             .andExpect(jsonPath("$.items[1].image.placeholder").value(PLACEHOLDER))
             .andExpect(jsonPath("$.items[1].image.files[*].width", contains(400, 800, 1200)))
-            .andExpect(jsonPath("$.items[1].image.files[0].url").value("/uploads/" + storageKey + "-400.webp"));
+            .andExpect(jsonPath("$.items[1].image.files[0].url").value("/uploads/" + storageKey + "-400.webp"))
+            .andExpect(jsonPath("$.items[1].secondImage").value(nullValue()));
+        String secondKey = image(withStock, null, 1);
+        mvc.perform(get(PRODUCTS))
+            .andExpect(jsonPath("$.items[1].image.files[0].url").value("/uploads/" + storageKey + "-400.webp"))
+            .andExpect(jsonPath("$.items[1].secondImage.placeholder").value(PLACEHOLDER))
+            .andExpect(jsonPath("$.items[1].secondImage.files[0].url").value("/uploads/" + secondKey + "-400.webp"));
         app.update("update stock_level set on_hand = 0 where variant_id = ?", rosaM);
         mvc.perform(get(PRODUCTS)).andExpect(jsonPath("$.items[1].soldOut").value(true));
     }

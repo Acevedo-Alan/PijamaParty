@@ -210,6 +210,24 @@ public abstract class ProductListingQueryContractTest<T extends ProductListingQu
         assertThat(items.get(1).image().orElseThrow().placeholder()).isEqualTo(PLACEHOLDER);
     }
 
+    @Test
+    void givenTwoPhotosOneOrNone_whenListing_thenTheSecondPhotoIsTheOneAfterTheFirstOrNone() {
+        Product two = stocked(product(summer, "Dos fotos", 0, M, ROSA, 1000, p -> p.images(2)), 1);
+        stocked(product(summer, "Una foto", 1, M, ROSA, 1000, p -> p.images(1)), 1);
+        stocked(product(summer, "Sin fotos", 2, M, ROSA, 1000), 1);
+        persistAndForget();
+
+        List<ListedProduct> items = list(ProductFilter.none(), ProductSort.NEWEST);
+
+        assertThat(items).extracting(ListedProduct::name).containsExactly("Sin fotos", "Una foto", "Dos fotos");
+        assertThat(items.get(0).secondImage()).isEmpty();
+        assertThat(items.get(1).image()).isPresent();
+        assertThat(items.get(1).secondImage()).isEmpty();
+        var second = two.images().get(1);
+        assertThat(items.get(2).secondImage()).contains(ProductListingItem.ListingImage.of(second.storageKey(),
+            second.placeholder()));
+    }
+
     private List<ListedProduct> list(ProductFilter filter, ProductSort sort) {
         return subject.list(filter, sort, 0, 100);
     }

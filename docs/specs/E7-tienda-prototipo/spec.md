@@ -54,7 +54,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 | Dónde | Qué se mueve |
 |---|---|
 | Portada | El título, el texto y "Descubrí la colección" suben y aparecen en cascada una vez; las fotos del carrusel cambian con un fundido. |
-| Tarjeta de producto | En computadora, la foto se acerca apenas al pasar el mouse. |
+| Tarjeta de producto | En computadora, la foto se acerca apenas al pasar el mouse; si el producto tiene una segunda foto, aparece con un fundido. |
 | Círculos de color y talles | El elegido se marca con un anillo que crece. |
 | Agregar al carrito | El botón muestra "Agregado" con un tilde un momento; el ícono del carrito da un salto y su número se actualiza; aparece el aviso desde abajo. |
 | Panel del carrito, menú, filtros, vista ampliada | Se deslizan desde su borde con el fondo oscureciéndose; al cerrar, el camino inverso. |
@@ -157,9 +157,11 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Los filtros se abren desde una barra de botones (Público, Talle, Color, Material, Temporada, Precio). Cada botón abre el panel de filtros de CU-02 en ese grupo; las reglas de CU-02 no cambian. Un botón con valores elegidos lo indica. Un grupo sin opciones no tiene botón, salvo que un enlace compartido haya elegido un valor en él.
 - El listado muestra la cantidad de productos que coinciden (D-11), a la derecha de la barra de filtros, como en el prototipo. En el celular queda a la vista mientras los botones se desplazan.
 - El visitante puede ver la grilla en cuadrícula o en lista. La elección no cambia la URL.
+- En la computadora, al pasar el mouse sobre una tarjeta, se ve la segunda foto del producto, si tiene. En el celular y en la vista de lista se ve solo la primera, y la segunda no se descarga.
 
 **Criterios de aceptación**
 - Dado un producto con stock en rosa y sin stock en beige, cuando se lista, entonces su tarjeta muestra solo el círculo rosa.
+- Dado un producto con dos fotos en la computadora, cuando se pasa el mouse sobre su tarjeta, entonces se ve la segunda foto; en el celular, no se descarga.
 - Dado un producto creado hace 10 días y otro hace 40, cuando se listan, entonces solo el primero lleva "Nuevo".
 - Dados 30 productos que coinciden con los filtros, cuando se abre el listado, entonces dice "30 productos".
 

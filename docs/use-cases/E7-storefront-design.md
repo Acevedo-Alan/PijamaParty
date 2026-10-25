@@ -54,7 +54,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 |---|---|---|
 | Home welcome | Title, text and button rise 12 px and fade in, staggered 80 ms, once | `--dur-entrance`, `--ease-out` |
 | Carousel | Crossfade between slides | `--dur-slow`, `--ease-standard` |
-| Product card (hover devices) | Photo scales to 1.03 | `--dur-base`, `--ease-out` |
+| Product card (hover devices) | Photo scales to 1.03; a second photo, if any, crossfades in (UC-01) | `--dur-base`, `--ease-out` |
 | Swatches and size buttons | The selection ring grows in | `--dur-fast`, `--ease-pop` |
 | Add to cart | Button shows "Agregado" with a check for 1.5 s; cart icon bumps once; the notice rises from the bottom | `--dur-base`, `--ease-pop` |
 | Cart panel, menu, filters, lightbox | Slide from their edge over a fading overlay; reverse on close | `--dur-panel`, `--ease-standard` |
@@ -213,9 +213,12 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - The listing shows the number of matches (D-11): "1 producto" or "N productos", at the right end of the filter bar row, as in the prototype. On phones it stays in view while the buttons scroll (T-E7-11).
 - The visitor can switch between grid and list views. The choice is per visit and does not change the URL.
 - "Ver más" stays (D-10).
+- On a device with hover (`(hover: hover) and (pointer: fine)`), a card whose product has a second photo shows it while the pointer is over the card (T-E7-14). Touch devices and the list view show the first photo only and never download the second.
 
 **Acceptance criteria**
 - Given a product with stock in pink and none in beige, when listed, then its card shows only the pink swatch.
+- Given a product with two photos on a computer, when the pointer rests on its card, then the second photo shows over the first; given a product with one photo, then the first one stays.
+- Given a phone, when a listing with products of two photos loads, then no second photo is requested.
 - Given a product created 10 days ago and one created 40 days ago, when listed, then only the first carries "Nuevo".
 - Given 30 products matching the filters, when the listing opens, then it reads "30 productos", and 24 cards show with "Ver más".
 - Given the "Talle" button, when pressed, then the filter panel opens with the focus on the size group.
@@ -224,6 +227,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - `ProductListingItem` gains `colors: List<String>` (active priced variants with available stock, in display order, the same rule as the UC-02 color filter) and `isNew: boolean`. `Product.isNew(Instant now)` holds the 30-day rule in `catalog.domain`; `ListProducts` and `SearchProducts` read `now` from the injected `Clock`.
 - `ProductListingQuery` and `ProductSearchQuery` gain `count`: a `count(*)` over the same constant SQL conditions as the page (one shared `matching` part, RNF-28), in the same read-only transaction. The use case skips it when the page is the last one and not past the end: its offset plus its size is the total.
 - Endpoint: `GET /api/catalog/products`, with or without `q` (UC-26) → `200` `{items, hasMore, total}`, each item adding `colors` and `isNew`. OpenAPI and the typed client are updated.
+- Second photo (T-E7-14): `ListedProduct` and `ProductListingItem` gain `secondImage` (the photo after the first, in the same order: position, then id); the listing query reads both in its lateral join. Each item of `GET /api/catalog/products` adds `secondImage` (null without one). The card renders it as a second `img` with `loading="lazy"`, `display: none` except on hover devices, empty alternative text (the first photo carries the name), faded in with `opacity`.
 - Frontend: `ColorSwatches` (shared with UC-03), `FilterBar`, the view toggle (`ViewToggle`; the view is kept in `sessionStorage` for the visit, grid when storage is refused). The color map normalizes names (lowercase, no accents) and is unit tested, including the swatch border contrast against the card background (3:1).
 
 ---

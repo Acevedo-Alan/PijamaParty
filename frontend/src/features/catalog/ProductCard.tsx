@@ -15,8 +15,8 @@ const LIST_IMAGE_SIZES = '96px';
 export type CardPhotoPriority = 'lazy' | 'eager' | 'high';
 
 /**
- * A product of the grid (UC-01): first photo, the "Nuevo" (D-05) and "Sold out" labels, the colors with stock
- * (D-04), name and "from" price.
+ * A product of the grid (UC-01): first photo, the second one on hover in the grid view (T-E7-14), the "Nuevo" (D-05)
+ * and "Sold out" labels, the colors with stock (D-04), name and "from" price.
  */
 export function ProductCard({
   product,
@@ -27,7 +27,7 @@ export function ProductCard({
   photo?: CardPhotoPriority;
   view?: ListingView;
 }) {
-  const { slug, name, image, fromPriceCents, soldOut, colors, isNew } = product;
+  const { slug, name, image, secondImage, fromPriceCents, soldOut, colors, isNew } = product;
 
   return (
     <Link to={`/producto/${encodeURIComponent(slug)}`} className="card">
@@ -43,6 +43,20 @@ export function ProductCard({
             loading={photo === 'lazy' ? 'lazy' : 'eager'}
             fetchPriority={photo === 'high' ? 'high' : 'auto'}
             {...(image.placeholder === undefined ? {} : { placeholder: image.placeholder })}
+          />
+        )}
+        {/* Hidden by CSS except on hover devices, so touch devices never download it; the first photo carries the
+            name, so this one is decorative. */}
+        {image !== null && secondImage !== null && view === 'grid' && (
+          <img
+            className="card-second-photo"
+            src={secondImage.src}
+            srcSet={secondImage.srcSet}
+            sizes={GRID_IMAGE_SIZES}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            data-testid="second-photo"
           />
         )}
         {(isNew || soldOut) && (

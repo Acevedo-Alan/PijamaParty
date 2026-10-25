@@ -117,6 +117,8 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
         return new ListedProduct(product.slug().value(), product.details().name().value(),
             product.images().stream().findFirst()
                 .map(image -> ProductListingItem.ListingImage.of(image.storageKey(), image.placeholder())),
+            product.images().stream().skip(1).findFirst()
+                .map(image -> ProductListingItem.ListingImage.of(image.storageKey(), image.placeholder())),
             fromPrice(product), inStock.isEmpty(),
             byPositionThenText(inStock, variant -> variant.color().value(), Variant::colorPosition),
             product.createdAt());

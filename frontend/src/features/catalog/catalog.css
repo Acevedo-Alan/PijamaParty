@@ -58,6 +58,32 @@
   }
 }
 
+/* T-E7-14: the second photo over the first on hover. display: none elsewhere, so a lazy image is never requested on
+   touch devices. Opacity only, which reduced motion allows. */
+.card-second-photo {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-second-photo {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-m);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+
+  .card:hover .card-second-photo {
+    opacity: 1;
+  }
+}
+
 .card-title {
   font-size: 13px;
   font-weight: 500;

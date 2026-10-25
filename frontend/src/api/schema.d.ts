@@ -2421,6 +2421,7 @@ export interface components {
             slug?: string;
             name?: string;
             image?: components["schemas"]["ListingImageResponse"];
+            secondImage?: components["schemas"]["ListingImageResponse"];
             /** Format: int64 */
             fromPriceCents?: number;
             soldOut?: boolean;

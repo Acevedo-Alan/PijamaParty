@@ -203,6 +203,22 @@ describe('catalog grid (UC-01)', () => {
     expect(within(card).getByTestId('no-photo')).toBeInTheDocument();
   });
 
+  it('given a product with two photos, when listed, then its card holds the second one, lazy and decorative (T-E7-14)', async () => {
+    const second = { ...product('segunda').image, files: [{ width: 400, url: '/media/rosa-2-400.webp' }] };
+    stubCatalogApi({ listings: [listed([product('rosa', { secondImage: second }), product('una-foto')])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const photo = within(card).getByTestId('second-photo');
+    expect(photo).toHaveAttribute('src', '/media/rosa-2-400.webp');
+    expect(photo).toHaveAttribute('alt', '');
+    expect(photo).toHaveAttribute('loading', 'lazy');
+    expect(within(card).getAllByRole('img')).toHaveLength(1);
+    const single = screen.getByRole('link', { name: /Pijama una-foto/ });
+    expect(within(single).queryByTestId('second-photo')).not.toBeInTheDocument();
+  });
+
   it('given the listing fails, when the shop opens, then an error offers to retry', async () => {
     stubCatalogApi({ listings: [answer(500), listed([product('rosa')])] });
     renderRoute('/');
@@ -233,6 +249,18 @@ describe('grid or list view (T-E7-06, changes to UC-01)', () => {
     expect(toggle().getByRole('button', { name: es.catalog.gridView })).toHaveAttribute('aria-pressed', 'false');
     expect(card.closest('ul')).toHaveClass('list-view');
     expect(router.state.location.pathname + router.state.location.search).toBe('/categoria/pijamas?talle=M');
+  });
+
+  it('given a product with two photos, when the list is chosen, then its card drops the second one (T-E7-14)', async () => {
+    const second = { files: [{ width: 400, url: '/media/rosa-2-400.webp' }] };
+    stubCatalogApi({ listings: [listed([product('rosa', { secondImage: second })])] });
+    renderRoute('/categoria/pijamas');
+    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    expect(within(card).getByTestId('second-photo')).toBeInTheDocument();
+
+    await userEvent.click(toggle().getByRole('button', { name: es.catalog.listView }));
+
+    expect(within(card).queryByTestId('second-photo')).not.toBeInTheDocument();
   });
 
   it('given the list chosen, when another listing opens in the same visit, then it shows as a list too', async () => {

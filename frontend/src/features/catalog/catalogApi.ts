@@ -21,6 +21,8 @@ export interface ListedProduct {
   name: string;
   /** The first photo of the product; null when it has none. */
   image: ListingImage | null;
+  /** The photo after the first, shown over it on hover (T-E7-14); null without one. */
+  secondImage: ListingImage | null;
   fromPriceCents: number;
   soldOut: boolean;
   /** The colors with stock, in display order (D-04). */
@@ -69,6 +71,7 @@ function toProduct(item: ListItemResponse): ListedProduct {
     slug,
     name,
     image: toImage(item.image),
+    secondImage: toImage(item.secondImage),
     fromPriceCents,
     soldOut: item.soldOut === true,
     colors: item.colors ?? [],

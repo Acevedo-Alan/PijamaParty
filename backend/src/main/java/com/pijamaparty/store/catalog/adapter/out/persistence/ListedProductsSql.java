@@ -72,10 +72,12 @@ final class ListedProductsSql {
         )
         """;
 
-    // One page of the matching products with their first photo and the colors of their active priced variants with
-    // available stock, in display order (D-04, the rule of the color filter).
+    // One page of the matching products with their first two photos (the second shows on hover, T-E7-14) and the
+    // colors of their active priced variants with available stock, in display order (D-04, the rule of the color
+    // filter).
     static final String LIST = MATCHING + """
         SELECT m.slug, m.name, m.from_price_cents, m.sold_out, m.created_at, i.storage_key, i.placeholder,
+               s.second_storage_key, s.second_placeholder,
                ARRAY(SELECT v.color
                      FROM variant v
                      JOIN v_variant_availability a ON a.variant_id = v.id AND a.available > 0
@@ -90,6 +92,13 @@ final class ListedProductsSql {
             ORDER BY position, id
             LIMIT 1
         ) i ON true
+        LEFT JOIN LATERAL (
+            SELECT storage_key AS second_storage_key, placeholder AS second_placeholder
+            FROM product_image
+            WHERE product_id = m.id
+            ORDER BY position, id
+            LIMIT 1 OFFSET 1
+        ) s ON true
         ORDER BY CASE WHEN :sort = 'RELEVANCE' THEN ts_rank(m.search_vector, (SELECT query FROM search)) END DESC,
                  CASE WHEN :sort = 'PRICE_ASC' THEN m.from_price_cents END ASC,
                  CASE WHEN :sort = 'PRICE_DESC' THEN m.from_price_cents END DESC,
@@ -129,6 +138,7 @@ final class ListedProductsSql {
 
     static ListedProduct toListed(ResultSet row, int rowNumber) throws SQLException {
         return new ListedProduct(row.getString("slug"), row.getString("name"), image(row),
+            image(row, "second_storage_key", "second_placeholder"),
             Money.of(row.getLong("from_price_cents")), row.getBoolean("sold_out"),
             List.of((String[]) row.getArray("colors").getArray()),
             row.getObject("created_at", OffsetDateTime.class).toInstant());
@@ -136,11 +146,17 @@ final class ListedProductsSql {
 
     /** The first photo from the columns {@code storage_key} and {@code placeholder}, if the product has one. */
     static Optional<ProductListingItem.ListingImage> image(ResultSet row) throws SQLException {
-        String storageKey = row.getString("storage_key");
+        return image(row, "storage_key", "placeholder");
+    }
+
+    /** A photo from the two given columns, empty when the storage key is null. */
+    private static Optional<ProductListingItem.ListingImage> image(ResultSet row, String storageKeyColumn,
+                                                                   String placeholderColumn) throws SQLException {
+        String storageKey = row.getString(storageKeyColumn);
         return storageKey == null
             ? Optional.empty()
             : Optional.of(ProductListingItem.ListingImage.of(new StorageKey(storageKey),
-                new ImagePlaceholder(row.getString("placeholder"))));
+                new ImagePlaceholder(row.getString(placeholderColumn))));
     }
 
     /** A text array (never a list, which Spring would expand into several parameters). */

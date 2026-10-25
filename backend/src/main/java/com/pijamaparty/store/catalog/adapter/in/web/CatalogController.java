@@ -216,16 +216,19 @@ class CatalogController {
     record ProductListPageResponse(List<ProductListItemResponse> items, boolean hasMore, long total) {}
 
     /**
-     * {@code image} is the product's first photo, null when it has none; {@code colors} are those with available
-     * stock, in display order; {@code isNew} says it was created in the last 30 days.
+     * {@code image} is the product's first photo, null when it has none; {@code secondImage} the one after it, shown
+     * on hover, null without one; {@code colors} are those with available stock, in display order; {@code isNew} says
+     * it was created in the last 30 days.
      */
     record ProductListItemResponse(String slug, String name, @Schema(nullable = true) ListingImageResponse image,
-                                   long fromPriceCents, boolean soldOut, List<String> colors, boolean isNew) {
+                                   @Schema(nullable = true) ListingImageResponse secondImage, long fromPriceCents,
+                                   boolean soldOut, List<String> colors, boolean isNew) {
 
         static ProductListItemResponse of(ProductListingItem item) {
             return new ProductListItemResponse(item.slug(), item.name(),
-                item.image().map(ListingImageResponse::of).orElse(null), item.fromPrice().cents(), item.soldOut(),
-                item.colors(), item.isNew());
+                item.image().map(ListingImageResponse::of).orElse(null),
+                item.secondImage().map(ListingImageResponse::of).orElse(null), item.fromPrice().cents(),
+                item.soldOut(), item.colors(), item.isNew());
         }
     }
 
