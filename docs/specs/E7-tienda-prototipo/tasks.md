@@ -13,6 +13,9 @@
 - [x] **T-E7-10** Checkout: campos de a dos por fila, nombre y apellido separados en el checkout, la API, el pedido (migración) y los correos, e "Iniciar sesión" para invitados (cambios a CU-13, D-13).
 - [x] **T-E7-13** Banner de personajes editable: tabla y agregado `HomeBanner` (migración), endpoints públicos y del backoffice, pantalla "Portada" del backoffice y sección de la portada (CU-32).
 - [x] **T-E7-14** Segunda foto en la tarjeta al pasar el mouse en la computadora: `secondImage` en el listado (API, OpenAPI y cliente tipado) y la tarjeta (cambios a CU-01).
+- [x] **T-E7-15** Encabezado que se esconde al bajar y vuelve al subir en el celular (cambios a CU-31).
+- [x] **T-E7-16** Encabezado con fondo un poco transparente y difuminado una vez que la página bajó (cambios a CU-31).
+- [x] **T-E7-17** Logo de la tienda arriba del menú del celular, y animaciones de entrada: el contenido del menú, las tarjetas que se suman a la grilla y el cambio de página (cambios a CU-31 y a "Animaciones").
 - [x] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 
 **Orden:** T-E7-01 primero (sus decisiones cambian T-E7-02, T-E7-05, T-E7-07, T-E7-09 y T-E7-12), después T-E7-12 (las pantallas usan sus tokens). T-E7-13 va antes de T-E7-04 (la portada muestra el banner). T-E7-02 a T-E7-04 no esperan las fotos: usan los fondos degradados hasta que lleguen.

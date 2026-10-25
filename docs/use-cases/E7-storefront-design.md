@@ -43,7 +43,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Rules**
 - **Motion answers an action** (add, open, choose, go to the next step) and shows what changed. Nothing moves by itself except the carousel (D-14).
-- **One entrance moment:** the home welcome text enters once on load. Sections do not fade in on scroll.
+- **Entrances:** the home welcome text enters once on load; product cards enter when they join the grid (its first page, "Ver más", a new filter or sort), never because the page scrolled to them; a new page enters on a route change, never on the first load of the store. Sections do not fade in on scroll (T-E7-17).
 - **Short and soft:** 120 to 450 ms (the home entrance up to 700 ms), easing that slows on arrival.
 - **Accessible:** movement and scaling only under `@media (prefers-reduced-motion: no-preference)`; under `reduce`, at most a short opacity change. Hover effects only under `@media (hover: hover)`.
 - **Motion, without delaying the first load (D-16):** enter and exit animations, step changes and pops use the Motion library, loaded after first paint; until it loads, everything shows in place, unanimated. Simple effects (hover, color changes) stay in CSS. Only `transform` and `opacity` are animated, never layout properties. The home LCP image is never animated (RNF-11).
@@ -55,14 +55,17 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 | Home welcome | Title, text and button rise 12 px and fade in, staggered 80 ms, once | `--dur-entrance`, `--ease-out` |
 | Carousel | Crossfade between slides | `--dur-slow`, `--ease-standard` |
 | Product card (hover devices) | Photo scales to 1.03; a second photo, if any, crossfades in (UC-01) | `--dur-base`, `--ease-out` |
+| Header (below 860 px) | Slides up out of view while scrolling down, back while scrolling up (UC-31) | `--dur-base`, `--ease-standard` |
 | Swatches and size buttons | The selection ring grows in | `--dur-fast`, `--ease-pop` |
 | Add to cart | Button shows "Agregado" with a check for 1.5 s; cart icon bumps once; the notice rises from the bottom | `--dur-base`, `--ease-pop` |
 | Cart panel, menu, filters, lightbox | Slide from their edge over a fading overlay; reverse on close | `--dur-panel`, `--ease-standard` |
+| Phone menu contents | The logo, then each navigation link, slide 12 px in from the left and fade in, 40 ms apart, while the panel opens (T-E7-17) | `--dur-base`, `--ease-out` |
+| Product cards joining the grid | Rise 12 px and fade in, 40 ms apart within a page (at most 6 steps); cards already shown do not move (T-E7-17) | `--dur-base`, `--ease-out` |
 | Free-shipping bar | Fills smoothly (`transform: scaleX`); reaching the threshold pops the "¡Tenés envío gratis!" message | `--dur-slow`, `--ease-pop` |
 | Product page sections | Expand and collapse (`grid-template-rows: 0fr → 1fr`) | `--dur-base`, `--ease-standard` |
 | Checkout steps | The new step rises 12 px and fades in | `--dur-base`, `--ease-out` |
 | Loading | Skeletons pulse | 1.2 s loop |
-| Route change | New page content fades in | `--dur-fast` |
+| Route change | New page content rises 12 px and fades in; not on the first load (T-E7-17) | `--dur-base`, `--ease-out` |
 
 **Acceptance criteria**
 - Given reduced motion, when the shopper adds a product, opens the cart or changes checkout step, then nothing translates or scales.
@@ -130,7 +133,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Main flow**
 1. Every public page shows the header: logo (link to `/`), navigation (Todo, Mujer, Hombre, Niños, Temporada Invierno), search (UC-26), "Ingresar" and "Crear cuenta" (or "Mi cuenta" with a session, UC-19) and the cart button.
-2. From 860 px the navigation sits in the header; below, a menu button opens it with the account links in a side panel.
+2. From 860 px the navigation sits in the header; below, a menu button opens it with the account links in a side panel, headed by the store's logo (T-E7-17).
 3. With a free-shipping threshold, a strip above the header says "Envío gratis desde $X".
 4. The footer has three columns: Ayuda (FAQ, exchanges and returns, terms), Redes (Instagram, TikTok) and Medios de pago (the enabled providers); below them, the withdrawal link (RNF-30.1) and "© {year} Pijama Party Santa Fe".
 
@@ -146,9 +149,15 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - With a session, "Mi cuenta" opens a list with the greeting, "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta" (UC-27) and "Salir"; Escape, a click outside or choosing a link closes it. The phone menu lists the same links open.
 - The strip shows no installments or discounts (D-01, D-02).
 - Seller data (RNF-30.2) joins the footer with T-E6-21; it is not part of this use case.
+- Below 860 px the header stays at the top of the screen but hides while the visitor scrolls down and comes back as soon as they scroll up (T-E7-15). It stays shown within its own height of the top of the page, while the phone menu, the search, the cart panel or the account list is open, and while the keyboard focus is inside it. From 860 px it never hides.
+- Once the page has scrolled past the header's height, at any width, the header's background turns slightly transparent and blurred, so the page shows through it; within that height of the top it keeps its usual background (T-E7-16). The logo, the links and the icons keep their contrast.
 
 **Acceptance criteria**
 - Given a free-shipping threshold of $50,000, when any public page opens, then the strip reads "Envío gratis desde $50.000"; without a threshold, there is no strip.
+- Given a phone, when the visitor scrolls down past the header, then it hides; when they scroll up, then it shows again. Given a computer, when the visitor scrolls down, then it stays.
+- Given a hidden header on a phone, when the keyboard focus moves into it, then it shows.
+- Given reduced motion, when the header hides or shows, then it does so without sliding.
+- Given a page scrolled past the header, when the header shows, then its background is translucent; given the page back at the top, then it is the usual one.
 - Given a phone, when the menu opens, then it shows the navigation and the account links, the focus stays inside it, and Escape closes it and returns the focus to the menu button.
 - Given a signed-in customer on a computer, when "Mi cuenta" is opened, then it lists "Mis pedidos", "Mis direcciones", "Mi cuenta" and "Salir", and Escape closes it and returns the focus to "Mi cuenta".
 - Given "Temporada Invierno", when chosen, then the grid shows only `WINTER` products.
@@ -160,6 +169,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Payment provider names from `GET /api/checkout/payment-providers`, the query the checkout and the purchase summary already share. The contact email, the WhatsApp number and the social links live in `storeContact.ts`, empty until the business sends them (D-15).
 - `ContactSection` (D-09) closes the home page after the withdrawal block: "Contactanos" with a `mailto:` link and a `https://wa.me/{number}` link, no form.
 - The footer keeps the "Cookies" link of RNF-25 next to the withdrawal link.
+- Hiding and translucent header: `useHeaderScroll` (`features/search`) listens to `scroll` passively and reads the position once per frame; it hides after 8 px down past the header's height and shows after 8 px up, and does nothing while an open modal `dialog` (menu, search, cart panel) is on the page. It sets `data-scrolled` on `header.site` past the header's height (the background drops from 92% to 75% of `--bg` with a 12 px blur, a color change in CSS) and `data-hidden`; the CSS moves it with `transform: translateY(-100%)` only below 860 px, keeps it shown under `:focus-within`, and slides it only under `prefers-reduced-motion: no-preference`.
 
 ---
 

@@ -1,5 +1,7 @@
+import { m } from 'motion/react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router';
+import { staggered, useEntranceMotion } from '../../components/motion/useActionMotion.ts';
 import { es } from '../../i18n/es.ts';
 import { listId, trackItemList } from '../analytics/catalogEvents.ts';
 import { countFilters, type ListingCriteria } from './listingCriteria.ts';
@@ -87,6 +89,7 @@ export function ProductListing({
   view = 'grid',
 }: ProductListingProps) {
   const listing = useProductListing(category, criteria);
+  const entrance = useEntranceMotion();
   const sentPages = useRef(new Set<string>());
   const pages = listing.data?.pages;
 
@@ -124,6 +127,8 @@ export function ProductListing({
   }
 
   const products = listing.data.pages.flatMap((page) => (page.status === 'listed' ? page.items : []));
+  // T-E7-17: each page's cards enter one after another, counted from the start of their page.
+  const steps = listing.data.pages.flatMap((page) => (page.status === 'listed' ? page.items.map((_, step) => step) : []));
   const unknownCategory = listing.data.pages[0]?.status === 'unknownCategory';
   if (products.length === 0 && !unknownCategory && countFilters(criteria.filters) > 0) {
     return (
@@ -155,9 +160,9 @@ export function ProductListing({
     <>
       <ul className={gridClass(view)}>
         {products.map((product, index) => (
-          <li key={product.slug}>
+          <m.li key={product.slug} {...staggered(entrance, steps[index] ?? 0)}>
             <ProductCard product={product} photo={photosBelowFold ? 'lazy' : photoPriority(index)} view={view} />
-          </li>
+          </m.li>
         ))}
       </ul>
       {listing.hasNextPage && (

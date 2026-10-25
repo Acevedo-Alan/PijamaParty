@@ -17,37 +17,50 @@ function filtersQuery(filters: ProductFilters): string {
   return toSearchParams({ filters, sort: 'NEWEST' }).toString();
 }
 
-interface StoreNavigationProps {
-  className: string;
-  /** A link was chosen: the phone menu closes. */
-  onChoose?: () => void;
+export interface StoreLink {
+  label: string;
+  /** The home page with the link's filter. */
+  search: string;
+  /** It matches the filters of the home page shown. */
+  current: boolean;
+}
+
+/** The links of the store navigation, so the header and the phone menu can each lay them out (UC-31). */
+export function useStoreLinks(): StoreLink[] {
+  const { pathname, search } = useLocation();
+  const shown = pathname === '/' ? filtersQuery(parseCriteria(new URLSearchParams(search)).filters) : null;
+  return LINKS.map(({ label, filters }) => {
+    const query = filtersQuery(filters);
+    return { label, search: query, current: query === shown };
+  });
 }
 
 /**
- * The store navigation of the header and the phone menu (UC-31). Each link opens the home listing with its filter;
- * the one matching the filters of the home page shown is marked as the current page.
+ * One link of the store navigation: it opens the home listing with its filter, and is marked as the current page
+ * when that listing is shown.
  */
-export function StoreNavigation({ className, onChoose }: StoreNavigationProps) {
-  const { pathname, search } = useLocation();
-  const shown = pathname === '/' ? filtersQuery(parseCriteria(new URLSearchParams(search)).filters) : null;
+export function StoreNavigationLink({ link, onChoose }: { link: StoreLink; onChoose?: (() => void) | undefined }) {
+  return (
+    <Link
+      to={{ pathname: '/', search: link.search }}
+      state={link.search === '' ? undefined : SHOW_LISTING}
+      aria-current={link.current ? 'page' : undefined}
+      onClick={onChoose}
+    >
+      {link.label}
+    </Link>
+  );
+}
 
+/** The store navigation of the header (UC-31); the phone menu lays out the same links with its entrance. */
+export function StoreNavigation({ className }: { className: string }) {
   return (
     <ul className={className}>
-      {LINKS.map(({ label, filters }) => {
-        const query = filtersQuery(filters);
-        return (
-          <li key={label}>
-            <Link
-              to={{ pathname: '/', search: query }}
-              state={query === '' ? undefined : SHOW_LISTING}
-              aria-current={query === shown ? 'page' : undefined}
-              onClick={onChoose}
-            >
-              {label}
-            </Link>
-          </li>
-        );
-      })}
+      {useStoreLinks().map((link) => (
+        <li key={link.label}>
+          <StoreNavigationLink link={link} />
+        </li>
+      ))}
     </ul>
   );
 }

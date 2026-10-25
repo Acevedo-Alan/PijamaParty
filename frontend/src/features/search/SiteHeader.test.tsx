@@ -165,6 +165,17 @@ describe('phone menu (UC-31)', () => {
     expect(menu().getByRole('link', { name: es.account.registerLink })).toHaveAttribute('href', '/cuenta/registro');
   });
 
+  it('given a visitor, when the menu opens, then the store logo heads it (T-E7-17)', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+
+    await userEvent.click(await menuButton());
+
+    const logo = menu().getByRole('img', { name: es.store.name });
+    expect(logo).toHaveAttribute('srcset', expect.stringContaining('3x'));
+    expect(logo.closest('.menu-head')).not.toBeNull();
+  });
+
   it('given the open menu, when Escape is pressed, then it closes and the focus goes back to the menu button', async () => {
     stubCatalogApi({ listings: [listed([])] });
     renderRoute('/buscar');
@@ -201,6 +212,88 @@ describe('phone menu (UC-31)', () => {
       es.account.myAccountLink,
     ]);
     expect(menu().getByRole('button', { name: es.account.signOut })).toBeInTheDocument();
+  });
+});
+
+describe('header on scroll (T-E7-15, T-E7-16, UC-31)', () => {
+  afterEach(() => {
+    scrollPageTo(0);
+    vi.restoreAllMocks();
+  });
+
+  /** jsdom does not scroll: the position is set and the event sent, as the browser does. */
+  function scrollPageTo(y: number) {
+    Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
+    fireEvent.scroll(window);
+  }
+
+  function header() {
+    return screen.getByRole('banner');
+  }
+
+  it('given a page, when the visitor scrolls down, then the header hides; when they scroll up, then it shows', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+    await menuButton();
+
+    scrollPageTo(300);
+    await waitFor(() => {
+      expect(header()).toHaveAttribute('data-hidden', 'true');
+    });
+
+    scrollPageTo(200);
+    await waitFor(() => {
+      expect(header()).not.toHaveAttribute('data-hidden');
+    });
+  });
+
+  it('given a scrolled page, when the header shows, then it is translucent; back at the top, it is not (T-E7-16)', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+    await menuButton();
+    expect(header()).not.toHaveAttribute('data-scrolled');
+
+    scrollPageTo(300);
+    await waitFor(() => {
+      expect(header()).toHaveAttribute('data-hidden', 'true');
+    });
+    scrollPageTo(250);
+    await waitFor(() => {
+      expect(header()).not.toHaveAttribute('data-hidden');
+    });
+    expect(header()).toHaveAttribute('data-scrolled', 'true');
+
+    scrollPageTo(0);
+    await waitFor(() => {
+      expect(header()).not.toHaveAttribute('data-scrolled');
+    });
+  });
+
+  it('given a hidden header, when the page moves up less than 8 px, then it stays hidden', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+    await menuButton();
+    scrollPageTo(300);
+    await waitFor(() => {
+      expect(header()).toHaveAttribute('data-hidden', 'true');
+    });
+
+    scrollPageTo(295);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    expect(header()).toHaveAttribute('data-hidden', 'true');
+  });
+
+  it('given the open menu, when the page scrolls down, then the header stays', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+    await userEvent.click(await menuButton());
+
+    scrollPageTo(300);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    // The menu has a header of its own; the page's is the one with the class.
+    expect(document.querySelector('header.site')).not.toHaveAttribute('data-hidden');
   });
 });
 

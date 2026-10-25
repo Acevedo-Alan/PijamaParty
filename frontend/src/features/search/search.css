@@ -19,6 +19,34 @@ header.site {
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
+  transition: background-color var(--dur-base) var(--ease-standard);
+}
+
+/* T-E7-16: once the page has scrolled (useHeaderScroll), the page shows through a little; the stronger blur keeps the
+   logo and the icons readable over photos. */
+header.site[data-scrolled] {
+  background-color: color-mix(in srgb, var(--bg) 75%, transparent);
+  backdrop-filter: blur(12px) saturate(1.2);
+}
+
+/* T-E7-15: on a phone the header slides up while scrolling down (useHeaderScroll) and stays while the keyboard focus
+   is inside it. Without the slide under reduced motion: it just hides and shows. */
+@media (max-width: 859px) {
+  header.site[data-hidden] {
+    transform: translateY(-100%);
+  }
+
+  header.site[data-hidden]:focus-within {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  header.site {
+    transition:
+      transform var(--dur-base) var(--ease-standard),
+      background-color var(--dur-base) var(--ease-standard);
+  }
 }
 
 /* From 860 px the logo starts the row and the navigation sits right beside the tools, so the eye goes from the links to
@@ -222,14 +250,18 @@ html:has(.menu-panel[open]) {
   text-align: center;
 }
 
+/* The logo at the top of the menu (T-E7-17), the same 48 px as in the header */
 .menu-brand {
-  min-height: 44px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--ff-display);
-  font-size: 16px;
-  font-weight: 700;
+}
+
+.menu-brand img {
+  display: block;
+  height: 48px;
+  width: auto;
 }
 
 .menu-title {

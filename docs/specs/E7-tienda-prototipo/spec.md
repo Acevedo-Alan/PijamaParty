@@ -44,7 +44,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 
 **Principios**
 - **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14).
-- **Un solo momento de entrada:** el texto de bienvenida de la portada aparece una vez al cargar. Las secciones no aparecen de a una al bajar.
+- **Entradas:** el texto de bienvenida de la portada aparece una vez al cargar; las tarjetas de producto aparecen cuando se suman a la grilla (la primera tanda, "Ver más", un filtro u orden nuevo), nunca por bajar hasta ellas; al cambiar de página, el contenido nuevo entra, pero no en la primera carga de la tienda. Las secciones no aparecen de a una al bajar.
 - **Rápido y suave:** entre 120 y 450 ms (la entrada de la portada, hasta 700 ms), con curvas que frenan al llegar.
 - **Accesible:** con `prefers-reduced-motion` no hay desplazamientos ni escalas, solo cambios de opacidad cortos; los efectos de hover solo con `@media (hover: hover)`.
 - **Con Motion, sin demorar la carga (D-16):** las animaciones de entrada y salida, los pasos y los rebotes usan la librería Motion, que se carga después de mostrar la página; hasta entonces, todo se ve en su lugar sin animar. Los efectos simples (hover, colores) siguen en CSS. Solo se anima `transform` y `opacity`, nunca el tamaño o la posición. La foto principal de la portada no se anima, para no demorar el LCP (RNF-11).
@@ -55,17 +55,22 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 |---|---|
 | Portada | El título, el texto y "Descubrí la colección" suben y aparecen en cascada una vez; las fotos del carrusel cambian con un fundido. |
 | Tarjeta de producto | En computadora, la foto se acerca apenas al pasar el mouse; si el producto tiene una segunda foto, aparece con un fundido. |
+| Encabezado (celular) | Al bajar por la página se esconde hacia arriba; al subir, vuelve. |
 | Círculos de color y talles | El elegido se marca con un anillo que crece. |
 | Agregar al carrito | El botón muestra "Agregado" con un tilde un momento; el ícono del carrito da un salto y su número se actualiza; aparece el aviso desde abajo. |
 | Panel del carrito, menú, filtros, vista ampliada | Se deslizan desde su borde con el fondo oscureciéndose; al cerrar, el camino inverso. |
+| Contenido del menú del celular | El logo y después cada enlace entran desde la izquierda, uno tras otro. |
+| Tarjetas que se suman a la grilla | Suben un poco y aparecen, una tras otra; las que ya estaban no se mueven. |
 | Barra de envío gratis | Se llena con suavidad; al llegar al umbral, el mensaje "¡Tenés envío gratis!" aparece con un pequeño rebote. |
 | Secciones desplegables de la ficha | Se abren y cierran deslizando su altura. |
 | Pasos del checkout | El contenido del paso nuevo sube y aparece. |
 | Cargando | Las tarjetas y textos en espera laten suavemente (esqueletos). |
-| Cambio de página | El contenido nuevo aparece con un fundido corto. |
+| Cambio de página | El contenido nuevo sube un poco y aparece con un fundido; no en la primera carga. |
 
 **Criterios de aceptación**
 - Dado un visitante con movimiento reducido, cuando agrega un producto, abre el carrito o cambia de paso, entonces nada se desplaza ni cambia de escala.
+- Dada la grilla con productos, cuando "Ver más" suma otros, entonces solo los nuevos entran; con movimiento reducido, solo aparecen con un fundido.
+- Dado el menú del celular, cuando se abre, entonces el logo de la tienda está arriba y los enlaces entran uno tras otro.
 - Dado un producto agregado desde la ficha, cuando la respuesta llega, entonces el ícono del carrito salta una vez y el aviso aparece.
 - Dada la portada, cuando se mide con Lighthouse, entonces el LCP sigue debajo de 3 s y el "Cumulative Layout Shift" debajo de 0,1.
 - Dado un teléfono, cuando se toca una tarjeta, entonces no queda trabado ningún efecto de hover.
@@ -103,7 +108,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 
 **Flujo principal**
 1. En todas las páginas públicas, el encabezado muestra el logo, la navegación (Todo, Mujer, Hombre, Niños, Temporada Invierno), la búsqueda, "Ingresar" y "Crear cuenta" (o "Mi cuenta" con sesión) y el carrito.
-2. En el celular, la navegación, "Ingresar" y "Crear cuenta" van en un menú que se abre con un botón.
+2. En el celular, la navegación, "Ingresar" y "Crear cuenta" van en un menú que se abre con un botón, con el logo de la tienda arriba.
 3. Sobre el encabezado, una franja dice "Envío gratis desde $X" cuando hay umbral de envío gratis.
 4. El pie tiene tres columnas: Ayuda (preguntas frecuentes, cambios y devoluciones, términos), Redes (Instagram, TikTok) y Medios de pago (los habilitados); debajo, el botón de arrepentimiento y el año con el nombre de la tienda.
 
@@ -114,9 +119,13 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Los enlaces del pie a páginas que todavía no existen (T-E6-06) no se muestran hasta que existan.
 - Una red social que el negocio todavía no pasó (D-15) no se muestra; sin ninguna, no hay columna Redes. Sin medios de pago habilitados, no hay columna Medios de pago.
 - Los datos del vendedor de RNF-30.2 se suman al pie con T-E6-21.
+- En el celular, el encabezado queda fijo arriba, pero se esconde mientras el visitante baja por la página y vuelve apenas sube, para dejar más lugar a los productos. No se esconde cerca del principio de la página, con el menú, la búsqueda, el carrito o "Mi cuenta" abiertos, ni con el foco del teclado dentro de él. En la computadora no se esconde nunca.
+- Una vez que la página bajó, el fondo del encabezado se vuelve un poco transparente y difuminado, así se ve lo que pasa por detrás sin perder la lectura del logo y los íconos. Arriba de todo, el fondo es el de siempre.
 
 **Criterios de aceptación**
 - Dado un umbral de envío gratis de $50.000, cuando se abre cualquier página pública, entonces la franja dice "Envío gratis desde $50.000"; sin umbral, no hay franja.
+- Dado un celular, cuando el visitante baja por la página, entonces el encabezado se esconde; cuando sube, vuelve. En la computadora siempre se ve.
+- Dada una página bajada, cuando se ve el encabezado, entonces su fondo es un poco transparente; al volver arriba, es el de siempre.
 - Dado un celular, cuando se abre el menú, entonces muestra la navegación y el ingreso, se navega con teclado, y Escape lo cierra y devuelve el foco al botón.
 - Dado el enlace "Temporada Invierno", cuando se toca, entonces la grilla muestra solo productos de invierno.
 - Dado el pie, cuando se revisa, entonces el botón de arrepentimiento sigue visible (RNF-30.1).

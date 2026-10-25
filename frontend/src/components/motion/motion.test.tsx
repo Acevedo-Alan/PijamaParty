@@ -1,11 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { m, type Transition } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { forgetMotionPreference, preferReducedMotion } from '../../test/reducedMotion.ts';
 import { Collapsible } from '../Collapsible.tsx';
 import { MotionProvider, useMotionReady } from './MotionProvider.tsx';
 import { PanelDialog } from './PanelDialog.tsx';
+import { staggered, useEntranceMotion } from './useActionMotion.ts';
 import { Toast } from './Toast.tsx';
 
 function ReadyMark() {
@@ -242,5 +244,86 @@ describe('collapsible section (E7 motion)', () => {
 
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(panel).toHaveAttribute('inert');
+  });
+});
+
+/** Three items that join the page on a button press, as cards after "Ver más" or the links of the opened menu. */
+function Entering({ from }: { from?: 'below' | 'left' }) {
+  const [shown, setShown] = useState(false);
+  const entrance = useEntranceMotion(from);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setShown(true);
+        }}
+      >
+        Sumar
+      </button>
+      {shown && (
+        <ul>
+          {['Uno', 'Dos', 'Tres'].map((label, index) => (
+            <m.li key={label} {...staggered(entrance, index)}>
+              {label}
+            </m.li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+const addItems = () => {
+  fireEvent.click(screen.getByRole('button', { name: 'Sumar' }));
+  return screen.getByText('Uno');
+};
+
+describe('entrances (T-E7-17)', () => {
+  afterEach(forgetMotionPreference);
+
+  it('given Motion not loaded yet, when items join the page, then they show in place', () => {
+    render(<Entering />);
+
+    const item = addItems();
+
+    expect(item.style.transform).toMatch(/^(none)?$/);
+    expect(item.style.opacity).not.toBe('0');
+  });
+
+  it('given motion allowed, when items join the page, then they rise 12 px and fade in', async () => {
+    preferReducedMotion(false);
+    await renderAnimated(<Entering />);
+
+    const item = addItems();
+
+    expect(item.style.transform).toBe('translateY(12px)');
+    expect(item.style.opacity).toBe('0');
+  });
+
+  it('given motion allowed, when the menu links come in, then they come from the left', async () => {
+    preferReducedMotion(false);
+    await renderAnimated(<Entering from="left" />);
+
+    expect(addItems().style.transform).toBe('translateX(-12px)');
+  });
+
+  it('given reduced motion, when items join the page, then they only fade in', async () => {
+    preferReducedMotion(true);
+    await renderAnimated(<Entering />);
+
+    const item = addItems();
+
+    expect(item.style.transform).toMatch(/^(none)?$/);
+    expect(item.style.opacity).toBe('0');
+  });
+
+  it('given a staggered entrance, when its items are counted, then each starts 40 ms later, at most 6 steps', () => {
+    const motion: { transition: Transition } = { transition: { duration: 0.24 } };
+
+    expect([0, 1, 2, 6, 20].map((step) => staggered(motion, step).transition.delay)).toEqual([
+      0, 0.04, 0.08, 0.24, 0.24,
+    ]);
+    expect(staggered(motion, 3).transition.duration).toBe(0.24);
   });
 });
