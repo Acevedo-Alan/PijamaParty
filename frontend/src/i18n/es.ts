@@ -421,10 +421,12 @@ export const es = {
     /** No installments or discounts here until the owner decides them (D-01, D-02). */
     freeShippingFrom: (amount: string) => `Envío gratis desde ${amount}`,
   },
-  /** UC-31 (T-E7-03): the footer's columns; the withdrawal and Cookies links keep their own texts. */
+  /** UC-31 (T-E7-03, T-E7-20): the footer's columns; the withdrawal and Cookies links keep their own texts. */
   footer: {
-    help: 'Ayuda',
-    social: 'Redes',
+    help: 'Ayuda y legales',
+    social: 'Contacto y redes',
+    /** The link to "Contactanos" of the home page. */
+    contact: 'Contacto',
     instagram: 'Instagram',
     tiktok: 'TikTok',
     payments: 'Medios de pago',
@@ -1194,8 +1196,6 @@ export const es = {
   /** UC-29 (T-E3-25). The texts about the right are placeholders, to be validated with a professional. */
   withdrawal: {
     link: 'Botón de arrepentimiento',
-    homeText:
-      '¿Te arrepentiste de una compra? Tenés 10 días corridos desde que la recibiste para pedir la devolución, sin costo.',
     title: 'Botón de arrepentimiento',
     intro:
       'Podés revocar tu compra dentro de los 10 días corridos desde que la recibiste o desde que la hiciste, lo que haya pasado último. La devolución no tiene costo para vos. Completá el número de pedido y el email con el que compraste.',

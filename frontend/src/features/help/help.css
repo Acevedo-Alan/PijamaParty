@@ -127,6 +127,7 @@
 
 /* "Contactanos" at the end of the home page (UC-30, D-09): the email and the WhatsApp link, no form. */
 .contact {
+  scroll-margin-top: 40px; /* "Contacto" of the footer lands below the header */
   padding-top: 48px;
   padding-bottom: 24px;
   border-top: 1px solid var(--line);

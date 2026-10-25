@@ -26,7 +26,7 @@ describe('home page (UC-30)', () => {
     vi.restoreAllMocks();
   });
 
-  it('given the home page, when it loads, then the carousel, the banner, "Elegí para quién", the grid and the withdrawal block appear in that order', async () => {
+  it('given the home page, when it loads, then the carousel, the banner, "Elegí para quién" and the grid appear in that order, with the withdrawal link only in the footer', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])], banner: answer(200, BANNER) });
 
     renderRoute('/');
@@ -37,12 +37,13 @@ describe('home page (UC-30)', () => {
       await screen.findByRole('region', { name: BANNER.title }),
       screen.getByRole('region', { name: es.home.audienceTitle }),
       screen.getByRole('region', { name: es.catalog.allTitle }),
-      screen.getByRole('region', { name: es.withdrawal.link }),
     ];
     sections.slice(1).forEach((section, index) => {
       const position = sections[index]?.compareDocumentPosition(section) ?? 0;
       expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
+    expect(screen.queryByRole('region', { name: es.withdrawal.link })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('contentinfo')).getByRole('link', { name: es.withdrawal.link })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(es.home.title);
     expect(within(screen.getByRole('region', { name: es.catalog.allTitle })).getByText(es.home.listingText))
       .toBeInTheDocument();

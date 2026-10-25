@@ -89,18 +89,12 @@ describe('withdrawal button (UC-29, T-E3-25)', () => {
     expect(await screen.findByRole('heading', { name: es.withdrawal.title })).toBeInTheDocument();
   });
 
-  it('given the home page, when it opens, then it shows a visible block with the withdrawal button', () => {
+  it('given the home page, when it opens, then the withdrawal button is in its footer, with no block of its own (T-E7-20)', () => {
     stubCatalogApi({ listings: [listed([])] });
     renderRoute('/');
 
-    const block = screen.getByRole('region', { name: es.withdrawal.link });
-    expect(within(block).getByRole('link', { name: es.withdrawal.link })).toHaveAttribute('href', '/arrepentimiento');
-  });
-
-  it('given a category page, when it opens, then the home block is not there', () => {
-    stubCatalogApi({ listings: [listed([])] });
-    renderRoute('/categoria/pijamas');
-
+    const footer = screen.getByRole('contentinfo');
+    expect(within(footer).getByRole('link', { name: es.withdrawal.link })).toHaveAttribute('href', '/arrepentimiento');
     expect(screen.queryByRole('region', { name: es.withdrawal.link })).not.toBeInTheDocument();
   });
 });

@@ -179,7 +179,7 @@ Obligaciones habituales de una tienda online argentina. **Todo este bloque se va
 
 | ID | Requisito |
 |---|---|
-| RNF-30.1 | **Botón de arrepentimiento** en la página de inicio y en el pie, con acceso directo y sin necesidad de cuenta (CU-29). |
+| RNF-30.1 | **Botón de arrepentimiento** en el pie de todas las páginas, la de inicio incluida, con acceso directo y sin necesidad de cuenta (CU-29). |
 | RNF-30.2 | **Identificación del vendedor** en el pie: razón social o nombre, CUIT, domicilio, email y teléfono de contacto, y el formulario **Data Fiscal** de ARCA (código QR enlazado). |
 | RNF-30.3 | **Defensa del consumidor:** enlace visible al sitio oficial de Defensa de las y los Consumidores y a la Ventanilla Federal de reclamos. |
 | RNF-30.4 | **Precios:** precio final en ARS con impuestos incluidos y, según el Régimen de Transparencia Fiscal al Consumidor (Ley 27.743), el IVA contenido informado en la ficha, el carrito y el resumen del checkout. El costo de envío y el total final se ven antes de pagar. Si se muestran cuotas, se informa el costo financiero total. |

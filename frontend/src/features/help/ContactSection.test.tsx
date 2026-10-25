@@ -15,7 +15,7 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
     clearStoreContact();
   });
 
-  it('given the email and the WhatsApp number, when the home page opens, then it links both after the withdrawal block, with no form', async () => {
+  it('given the email and the WhatsApp number, when the home page opens, then it links both after the grid, with no form', async () => {
     setStoreContact({ email: 'hola@example.com', whatsAppNumber: '5493424000000' });
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 
@@ -29,8 +29,8 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
     expect(whatsApp).toHaveAttribute('target', '_blank');
     expect(whatsApp).toHaveAttribute('rel', 'noopener noreferrer');
     expect(within(section).queryByRole('textbox')).not.toBeInTheDocument();
-    const withdrawal = screen.getByRole('region', { name: es.withdrawal.link });
-    expect(withdrawal.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const grid = screen.getByRole('region', { name: es.catalog.allTitle });
+    expect(grid.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('given only the email (D-15), when the home page opens, then there is no WhatsApp link', async () => {

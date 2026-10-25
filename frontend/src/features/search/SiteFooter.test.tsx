@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
 import { answer, listed, product, stubCatalogApi } from '../../test/catalogApi.ts';
@@ -37,7 +38,7 @@ describe('store footer (UC-31)', () => {
     expect(column(messages.help).getAllByRole('link')).toHaveLength(1);
   });
 
-  it('given MercadoPago and MODO enabled, when the footer is checked, then Medios de pago lists both', async () => {
+  it('given MercadoPago and MODO enabled, when the footer is checked, then Medios de pago shows both icons in a row, named after them', async () => {
     stubCatalogApi({
       listings: [listed([product('rosa')])],
       paymentProviders: answer(200, { providers: ['MERCADOPAGO', 'MODO'] }),
@@ -46,7 +47,11 @@ describe('store footer (UC-31)', () => {
     renderRoute('/');
 
     const payments = within(await screen.findByRole('region', { name: messages.payments }));
-    expect(payments.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['MercadoPago', 'MODO']);
+    const items = payments.getAllByRole('listitem');
+    expect(items.map((item) => item.textContent)).toEqual(['MercadoPago', 'MODO']);
+    items.forEach((item) => {
+      expect(item.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    });
   });
 
   it('given the payment providers failing, when the footer is checked, then there is no Medios de pago column', async () => {
@@ -61,7 +66,7 @@ describe('store footer (UC-31)', () => {
     expect(screen.queryByRole('region', { name: messages.payments })).not.toBeInTheDocument();
   });
 
-  it('given no social links from the business yet (D-15), when the footer is checked, then there is no Redes column', async () => {
+  it('given no contact or social links from the business yet (D-15), when the footer is checked, then there is no Contacto y redes column', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 
     renderRoute('/');
@@ -70,7 +75,7 @@ describe('store footer (UC-31)', () => {
     expect(screen.queryByRole('region', { name: messages.social })).not.toBeInTheDocument();
   });
 
-  it('given only the Instagram link, when the footer is checked, then Redes links Instagram in a new tab and not TikTok', async () => {
+  it('given only the Instagram link, when the footer is checked, then Contacto y redes links Instagram in a new tab and neither TikTok nor Contacto', async () => {
     setStoreContact({ instagramUrl: 'https://www.instagram.com/pijamaparty/' });
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 
@@ -82,5 +87,23 @@ describe('store footer (UC-31)', () => {
     expect(instagram).toHaveAttribute('target', '_blank');
     expect(instagram).toHaveAttribute('rel', 'noopener noreferrer');
     expect(column(messages.social).queryByRole('link', { name: messages.tiktok })).not.toBeInTheDocument();
+    expect(column(messages.social).queryByRole('link', { name: messages.contact })).not.toBeInTheDocument();
+  });
+
+  it('given a contact email, when "Contacto" is followed from another page, then the home page opens at "Contactanos"', async () => {
+    setStoreContact({ email: 'hola@example.com' });
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+
+    renderRoute('/categoria/verano');
+
+    await screen.findByRole('link', { name: /Pijama rosa/ });
+    const contact = column(messages.social).getByRole('link', { name: messages.contact });
+    expect(contact).toHaveAttribute('href', '/#contactanos');
+    await userEvent.click(contact);
+    const section = await screen.findByRole('region', { name: es.contact.title });
+    await waitFor(() => {
+      expect(scrollIntoView.mock.contexts).toContain(section);
+    });
   });
 });

@@ -16,3 +16,8 @@ export const STORE_CONTACT: StoreContact = {};
 export function whatsAppUrl(number: string): string {
   return `https://wa.me/${number}`;
 }
+
+/** Whether the home page shows "Contactanos" (UC-30): only with the email or the WhatsApp number. */
+export function hasContactSection(): boolean {
+  return STORE_CONTACT.email !== undefined || STORE_CONTACT.whatsAppNumber !== undefined;
+}

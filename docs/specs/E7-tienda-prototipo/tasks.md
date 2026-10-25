@@ -18,6 +18,7 @@
 - [x] **T-E7-17** Logo de la tienda arriba del menú del celular, y animaciones de entrada: el contenido del menú, las tarjetas que se suman a la grilla y el cambio de página (cambios a CU-31 y a "Animaciones").
 - [x] **T-E7-18** Tipografía Inter en lugar de Quicksand en toda la tienda y el backoffice (D-17), con su precarga en `vite.config.ts`.
 - [x] **T-E7-19** Panel del carrito vacío: ícono de bolsa, "Empezar a comprar" a todo el ancho y el lugar reservado para "Productos sugeridos" (cambios a CU-08).
+- [x] **T-E7-20** Pie: columnas Ayuda y legales, Contacto y redes (con íconos) y Medios de pago (íconos en fila), franja inferior separada por una línea; sin el bloque del botón de arrepentimiento en la portada, que queda en el pie (cambios a CU-29, CU-30, CU-31 y RNF-30.1).
 - [x] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 
 **Orden:** T-E7-01 primero (sus decisiones cambian T-E7-02, T-E7-05, T-E7-07, T-E7-09 y T-E7-12), después T-E7-12 (las pantallas usan sus tokens). T-E7-13 va antes de T-E7-04 (la portada muestra el banner). T-E7-02 a T-E7-04 no esperan las fotos: usan los fondos degradados hasta que lleguen.

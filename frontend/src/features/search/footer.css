@@ -1,5 +1,5 @@
-/* The store footer (UC-31), from the prototype's footer: one column on phones, three from 860 px, and below them
-   the withdrawal button, the Cookies link and the copyright across the whole width. */
+/* The store footer (UC-31, T-E7-20), from the prototype's footer: one column on phones, three from 860 px, and below
+   them, after a line, the withdrawal button, the Cookies link and the copyright across the whole width. */
 
 .site-footer {
   margin-top: 40px;
@@ -41,13 +41,39 @@
   margin-top: 8px;
 }
 
+.footer-links a .footer-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* T-E7-20: one icon per enabled provider, in a row. */
 .footer-payments li {
-  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 36px;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-s);
+  background: var(--surface);
   color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
+}
+
+.footer-payment-icon {
+  width: 32px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .footer-bottom {
