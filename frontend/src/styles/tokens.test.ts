@@ -17,8 +17,8 @@ describe('design tokens', () => {
       line: '#f0dcd0', danger: '#b84332',
       'radius-s': '12px', 'radius-m': '16px', maxw: '1180px',
     });
-    expect(token('ff-body')).toContain('Quicksand');
-    expect(token('ff-display')).toContain('Quicksand');
+    expect(token('ff-body')).toContain('Inter');
+    expect(token('ff-display')).toContain('Inter');
   });
 
   it('given small text and links, when drawn on the store backgrounds, then they reach WCAG AA 4.5:1', () => {

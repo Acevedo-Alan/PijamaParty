@@ -37,6 +37,7 @@ Decididas con el dueño el 2026-10-19 y anotadas en `00-dominio-y-reglas.md`, sa
 | D-14 | Carrusel de la portada | Decidido | Hasta 3 imágenes. **Pasan solas cada 6 segundos, con botón de pausa** (WCAG 2.2.2) y sin movimiento con `prefers-reduced-motion`. |
 | D-15 | Materiales del negocio | Pendiente del negocio | El negocio entrega el logo, las fotos del carrusel (hasta 3), las 3 de "Elegí para quién", la primera foto del banner de personajes (después la cambia desde el backoffice), el email y el WhatsApp de contacto y los enlaces de Instagram y TikTok. Sin ellas, cada lugar muestra el fondo degradado del prototipo. Recibido el 2026-10-23: el logo. El rótulo recortado va en el encabezado (fondo transparente, sin los pedacitos de personajes de las esquinas, 48 px de alto); la ilustración completa es la primera foto del banner de personajes y se sube desde "Portada". |
 | D-16 | Animaciones | Decidido | **Con la librería Motion** (`motion`, para React), cargada de forma diferida para no demorar la primera carga, sobre los tokens de la sección "Animaciones". |
+| D-17 | Tipografía | Decidido | **Inter** en lugar de Quicksand, en títulos y textos, en la tienda y el backoffice (el dueño, 2026-10-24). Alojada en la tienda, nunca desde Google Fonts. |
 
 ## Animaciones
 

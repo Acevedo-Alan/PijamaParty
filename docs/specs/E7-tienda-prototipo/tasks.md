@@ -16,6 +16,7 @@
 - [x] **T-E7-15** Encabezado que se esconde al bajar y vuelve al subir en el celular (cambios a CU-31).
 - [x] **T-E7-16** Encabezado con fondo un poco transparente y difuminado una vez que la página bajó (cambios a CU-31).
 - [x] **T-E7-17** Logo de la tienda arriba del menú del celular, y animaciones de entrada: el contenido del menú, las tarjetas que se suman a la grilla y el cambio de página (cambios a CU-31 y a "Animaciones").
+- [x] **T-E7-18** Tipografía Inter en lugar de Quicksand en toda la tienda y el backoffice (D-17), con su precarga en `vite.config.ts`.
 - [x] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 
 **Orden:** T-E7-01 primero (sus decisiones cambian T-E7-02, T-E7-05, T-E7-07, T-E7-09 y T-E7-12), después T-E7-12 (las pantallas usan sus tokens). T-E7-13 va antes de T-E7-04 (la portada muestra el banner). T-E7-02 a T-E7-04 no esperan las fotos: usan los fondos degradados hasta que lleguen.

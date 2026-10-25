@@ -34,6 +34,7 @@ Decided with the owner on 2026-10-19 and written into `docs/specs/00-dominio-y-r
 | D-14 | Home carousel | Decided | Up to 3 slides, auto-advancing every 6 s with a pause button (WCAG 2.2.2), no auto-advance under `prefers-reduced-motion`. |
 | D-15 | Business materials | Open (owner) | The owner provides the logo, up to 3 carousel photos, the 3 audience photos, the first character-banner photo (then changed in the back office), the contact email and WhatsApp number, and the Instagram and TikTok links. Missing photos show the prototype's gradient background. Received on 2026-10-23: the logo. The cropped sign is the header logo (`src/assets/brand/logo-{48,96,144}.webp`: the white outside the frame made transparent and the bits of characters in its corners erased, 48 px tall as in the prototype, alternative text the store name); the full illustration is the first character-banner photo, uploaded in the back office ("Portada", UC-32). |
 | D-16 | Motion | Decided | The Motion library (`motion`, its React entry `motion/react`), loaded after first paint, on the tokens of the "Motion" section. |
+| D-17 | Typography | Decided | Inter replaces Quicksand for headings and body text, in the store and the back office (owner, 2026-10-24), self-hosted with `@fontsource/inter` at weights 500, 600 and 700 (ARCHITECTURE.md section 11). |
 
 ---
 

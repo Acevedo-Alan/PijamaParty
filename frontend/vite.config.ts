@@ -2,8 +2,8 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
-/** The Latin file of the body text weight (Quicksand 500, styles/base.css), which every page paints with. */
-const BODY_FONT = /\/quicksand-latin-500-normal-[^/]+\.woff2$/;
+/** The Latin file of the body text weight (Inter 500, styles/base.css), which every page paints with. */
+const BODY_FONT = /\/inter-latin-500-normal-[^/]+\.woff2$/;
 
 /**
  * T-E6-02 (RNF-11): preloads the body font from index.html, so its download starts with the HTML instead of after
@@ -18,7 +18,7 @@ function preloadBodyFont(): Plugin {
       handler(_html, { bundle }) {
         const font = Object.keys(bundle ?? {}).find((fileName) => BODY_FONT.test(`/${fileName}`));
         if (font === undefined) {
-          throw new Error('The body font (Quicksand 500, latin, woff2) is not in the build');
+          throw new Error('The body font (Inter 500, latin, woff2) is not in the build');
         }
         return [
           {

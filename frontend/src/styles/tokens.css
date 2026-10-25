@@ -33,9 +33,9 @@
   --radius-m: 16px;
   --maxw: 1180px;
 
-  /* Typography (prototype): Quicksand 500-700 (T-E6-02), self-hosted with @fontsource, never from Google Fonts */
-  --ff-display: 'Quicksand', sans-serif;
-  --ff-body: 'Quicksand', sans-serif;
+  /* Typography: Inter 500-700 (D-17; Quicksand before, T-E6-02), self-hosted with @fontsource, never from Google Fonts */
+  --ff-display: 'Inter', sans-serif;
+  --ff-body: 'Inter', sans-serif;
 
   /*
    * Motion (E7, D-16): only transform and opacity move. The same values live in motion.ts for the Motion library;
