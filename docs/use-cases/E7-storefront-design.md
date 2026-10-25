@@ -137,12 +137,13 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 2. From 860 px the navigation sits in the header; below, a menu button opens it with the account links in a side panel, headed by the store's logo (T-E7-17).
 3. With a free-shipping threshold, a strip above the header says "Envío gratis desde $X".
 4. The footer has three columns from 860 px, stacked below: Ayuda y legales (FAQ, exchanges and returns, terms and conditions), Contacto y redes ("Contacto", to the home page's "Contactanos", and Instagram and TikTok with their icons) and Medios de pago (one icon per enabled provider, in a row). Below them, after a top border, a strip with the withdrawal link (RNF-30.1), "Cookies" and "© {year} Pijama Party Santa Fe" (T-E7-20).
+5. Right above the footer, a benefits bar (T-E7-21) with three equal blocks, each an icon on the left and, on its right, a bold uppercase title over a regular text: "Enviamos tu compra" (a truck; "Entregas dentro de Santa Fe Capital y todo el país"), "Todas las formas de pago" (a card; "Pagá con" and the enabled providers, e.g. "Pagá con MercadoPago o MODO") and "Comprá con seguridad" (a closed padlock; "Tus datos siempre protegidos"). From 860 px the blocks sit in a row with subtle vertical dividers; below, they stack with no dividers.
 
 **Alternative flows**
 - No threshold, or `GET /api/shipping/rates` fails: no strip.
 - A footer page that does not exist yet (T-E6-06): its link is not shown.
 - A social link the business has not sent yet (D-15): it is not shown. "Contacto" shows only when the home page has "Contactanos" (an email or a WhatsApp number, UC-30). With none of the three, there is no Contacto y redes column.
-- No enabled provider, or `GET /api/checkout/payment-providers` fails: no Medios de pago column.
+- No enabled provider, or `GET /api/checkout/payment-providers` fails: no Medios de pago column, and the benefits bar shows only its shipping and security blocks.
 
 **Business rules**
 - Navigation links: Todo → `/`; Mujer, Hombre, Niños → `/?publico=mujer|hombre|infantil`; Temporada Invierno → `/?temporada=invierno`. The current one is marked with `aria-current="page"`.
@@ -150,6 +151,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - With a session, "Mi cuenta" opens a list with the greeting, "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta" (UC-27) and "Salir"; Escape, a click outside or choosing a link closes it. The phone menu lists the same links open.
 - The strip shows no installments or discounts (D-01, D-02).
 - Seller data (RNF-30.2) joins the footer with T-E6-21; it is not part of this use case.
+- The benefits bar promises no payment method, installments, discount or surcharge the checkout does not have (D-01, D-02): its payment block names only the enabled providers. The uppercase titles are written in sentence case and uppercased in CSS, so screen readers do not spell them.
 - The payment icons are the store's own drawings (a card for MercadoPago, a phone for MODO), not the brands' logos; each carries the provider's name as its accessible name. The social icons are simple outline drawings, with the network's name as the link's accessible name.
 - Below 860 px the header stays at the top of the screen but hides while the visitor scrolls down and comes back as soon as they scroll up (T-E7-15). It stays shown within its own height of the top of the page, while the phone menu, the search, the cart panel or the account list is open, and while the keyboard focus is inside it. From 860 px it never hides.
 - Once the page has scrolled past the header's height, at any width, the header's background turns slightly transparent and blurred, so the page shows through it; within that height of the top it keeps its usual background (T-E7-16). The logo, the links and the icons keep their contrast.
@@ -166,6 +168,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Given any public page, when the footer is checked, then the withdrawal link is visible without signing in.
 - Given MercadoPago and MODO enabled, when the footer is checked, then Medios de pago shows their two icons in a row, named "MercadoPago" and "MODO".
 - Given a contact email or WhatsApp number, when the footer is checked, then "Contacto" links to `/#contactanos`; without either, it is not shown.
+- Given MercadoPago and MODO enabled, when any public page opens, then above the footer the benefits bar shows "Enviamos tu compra", "Todas las formas de pago" with "Pagá con MercadoPago o MODO" and "Comprá con seguridad"; given the providers failing, then only the first and the last.
 
 **Design notes**
 - `SiteHeader`, `MobileMenu` (a modal `dialog`, like the filter panel of UC-02) and `SiteFooter` replace the header and `StoreFooter` of `StoreLayout`. The back office keeps its own layout.

@@ -433,6 +433,18 @@ export const es = {
     /** The last line, e.g. "© 2026 Pijama Party Santa Fe". */
     copyright: (year: number, store: string) => `© ${String(year)} ${store}`,
   },
+  /**
+   * UC-31 (T-E7-21): the benefits bar above the footer. The titles are uppercased in CSS. It promises no payment
+   * method, installments, discount or surcharge the checkout does not have (D-01, D-02).
+   */
+  benefits: {
+    label: 'Beneficios',
+    shippingTitle: 'Enviamos tu compra',
+    shippingText: 'Entregas dentro de Santa Fe Capital y todo el país',
+    paymentsTitle: 'Todas las formas de pago',
+    securityTitle: 'Comprá con seguridad',
+    securityText: 'Tus datos siempre protegidos',
+  },
   /** UC-30 (T-E7-03, D-09): "Contactanos" at the end of the home page, links only. */
   contact: {
     title: 'Contactanos',

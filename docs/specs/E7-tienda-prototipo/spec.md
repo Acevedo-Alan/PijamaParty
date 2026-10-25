@@ -113,6 +113,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 2. En el celular, la navegación, "Ingresar" y "Crear cuenta" van en un menú que se abre con un botón, con el logo de la tienda arriba.
 3. Sobre el encabezado, una franja dice "Envío gratis desde $X" cuando hay umbral de envío gratis.
 4. El pie tiene tres columnas en la computadora, una debajo de otra en el celular: Ayuda y legales (preguntas frecuentes, cambios y devoluciones, términos y condiciones), Contacto y redes ("Contacto", que lleva a "Contactanos" de la portada, e Instagram y TikTok con sus íconos) y Medios de pago (un ícono por cada medio habilitado, en fila). Debajo, separada por una línea, una franja con el botón de arrepentimiento, "Cookies" y el año con el nombre de la tienda.
+5. Justo arriba del pie, una barra de beneficios con tres bloques iguales, cada uno con un ícono a la izquierda y, a su derecha, un título en negrita y mayúsculas y un texto: "Enviamos tu compra" (camión; "Entregas dentro de Santa Fe Capital y todo el país"), "Todas las formas de pago" (tarjeta; "Pagá con" y los medios habilitados, por ejemplo "Pagá con MercadoPago o MODO") y "Comprá con seguridad" (candado; "Tus datos siempre protegidos"). En la computadora, los bloques van en fila separados por líneas verticales suaves; en el celular, uno debajo de otro, sin líneas.
 
 **Reglas**
 - Cada enlace de la navegación abre el listado filtrado: Mujer, Hombre y Niños por público; Temporada Invierno por temporada. En la portada, bajan hasta "Todos los productos".
@@ -120,6 +121,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - La franja no muestra cuotas ni descuentos (D-01, D-02). Sin umbral, no hay franja.
 - Los enlaces del pie a páginas que todavía no existen (T-E6-06) no se muestran hasta que existan.
 - Una red social que el negocio todavía no pasó (D-15) no se muestra; "Contacto" se muestra solo si la portada tiene "Contactanos". Sin ninguno de los tres, no hay columna Contacto y redes. Sin medios de pago habilitados, no hay columna Medios de pago.
+- La barra de beneficios no promete medios de pago, cuotas, descuentos ni recargos que el checkout no tiene (D-01, D-02): el bloque de pagos nombra solo los medios habilitados, y sin ellos (todavía no se saben o no se pudieron leer) ese bloque no se muestra.
 - Los íconos de medios de pago son dibujos propios de la tienda (una tarjeta para MercadoPago, un celular para MODO), no los logos de las marcas, con el nombre del medio como texto para lectores de pantalla.
 - Los datos del vendedor de RNF-30.2 se suman al pie con T-E6-21.
 - En el celular, el encabezado queda fijo arriba, pero se esconde mientras el visitante baja por la página y vuelve apenas sube, para dejar más lugar a los productos. No se esconde cerca del principio de la página, con el menú, la búsqueda, el carrito o "Mi cuenta" abiertos, ni con el foco del teclado dentro de él. En la computadora no se esconde nunca.
@@ -134,6 +136,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Dado el pie, cuando se revisa, entonces el botón de arrepentimiento sigue visible (RNF-30.1).
 - Dados MercadoPago y MODO habilitados, cuando se revisa el pie, entonces Medios de pago muestra sus dos íconos en fila, cada uno con su nombre para lectores de pantalla.
 - Dado el email o el WhatsApp de contacto, cuando se revisa el pie, entonces "Contacto" lleva a "Contactanos" de la portada; sin ninguno, no aparece.
+- Dados MercadoPago y MODO habilitados, cuando se abre cualquier página pública, entonces arriba del pie se ven "Enviamos tu compra", "Todas las formas de pago" con "Pagá con MercadoPago o MODO" y "Comprá con seguridad"; si los medios de pago no se pueden leer, se ven solo el primero y el último.
 
 ## CU-32 Editar el banner de personajes
 
