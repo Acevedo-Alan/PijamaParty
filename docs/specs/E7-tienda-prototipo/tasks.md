@@ -25,7 +25,7 @@
 - [x] **T-E7-24** Pie: "Contacto y redes" se separa en Contacto (WhatsApp y email con sus íconos) y Redes sociales (íconos en círculos con degradé rosa al pasar el mouse) (cambios a CU-31).
 - [x] **T-E7-25** Pie: bloque de la tienda (logo, "Pijamas para toda la familia" y las redes) y columna Tienda con los enlaces de la navegación (cambios a CU-31).
 - [x] **T-E7-26** Pie: horario de atención y dirección en Contacto, y Correo Argentino como medio de envío (cambios a CU-31).
-- [ ] **T-E7-27** Botón flotante de WhatsApp en la tienda, salvo en el checkout y la cuenta (cambios a CU-31).
+- [x] **T-E7-27** Botón flotante de WhatsApp en la tienda, salvo en el checkout y la cuenta (cambios a CU-31).
 - [ ] **T-E7-28** Páginas de ayuda: Cómo comprar, Guía de talles, y borradores de Términos y condiciones y de Cambios y devoluciones para revisar con el abogado (adelanta parte de T-E6-06; cambios a CU-31).
 - [x] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 

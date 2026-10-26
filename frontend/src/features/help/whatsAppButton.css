@@ -1,0 +1,72 @@
+/* T-E7-27: the round WhatsApp button at the bottom right of the store, under the panels, the menu and the consent. */
+.whatsapp-button {
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--surface);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--ink) 18%, transparent);
+  transition:
+    background-color var(--dur-base) var(--ease-standard),
+    transform var(--dur-base) var(--ease-pop);
+}
+
+.whatsapp-button svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Its space stays free: keyboard focus scrolls clear of it (WCAG 2.4.11), and the footer ends above it. */
+html:has(.whatsapp-button) {
+  scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+body:has(.whatsapp-button) .site-footer {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+/* While the product page's add-to-cart bar shows (phones only), the button rises above it. */
+html:has(.pdp-sticky-cta) {
+  scroll-padding-bottom: calc(156px + env(safe-area-inset-bottom, 0px));
+}
+
+body:has(.pdp-sticky-cta) .whatsapp-button {
+  transform: translateY(-68px);
+}
+
+@media (hover: hover) {
+  .whatsapp-button:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-2px);
+  }
+
+  body:has(.pdp-sticky-cta) .whatsapp-button:hover {
+    transform: translateY(-70px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .whatsapp-button {
+    transition: background-color var(--dur-base) var(--ease-standard);
+  }
+
+  .whatsapp-button:hover {
+    transform: none;
+  }
+
+  body:has(.pdp-sticky-cta) .whatsapp-button:hover {
+    transform: translateY(-68px);
+  }
+}

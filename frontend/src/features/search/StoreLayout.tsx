@@ -6,6 +6,7 @@ import { Analytics } from '../analytics/ConsentBanner.tsx';
 import { AccountDeletedNotice } from '../account/AccountDataSection.tsx';
 import { CartPanel } from '../cart/CartPanel.tsx';
 import { CartPanelProvider } from '../cart/CartPanelContext.tsx';
+import { WhatsAppButton } from '../help/WhatsAppButton.tsx';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import { isPrivatePath } from '../seo/privatePaths.ts';
 import { BenefitsBar } from './BenefitsBar.tsx';
@@ -24,7 +25,7 @@ function PageEntrance({ children }: { children: ReactNode }) {
 /**
  * The frame of every public page: the header, the footer, the benefits bar above it on the home page only (UC-31,
  * T-E7-23), the cart side panel (UC-08), the analytics consent (RNF-25), which the back office never shows, and the
- * message after the customer deleted its account (UC-28). The account, checkout, tracking and search pages are kept out of search engines (T-E6-23).
+ * message after the customer deleted its account (UC-28) and the WhatsApp button (T-E7-27). The account, checkout, tracking and search pages are kept out of search engines (T-E6-23).
  */
 export function StoreLayout() {
   const { pathname } = useLocation();
@@ -41,6 +42,7 @@ export function StoreLayout() {
       </PageEntrance>
       {pathname === '/' && <BenefitsBar />}
       <SiteFooter />
+      <WhatsAppButton />
       <CartPanel />
     </CartPanelProvider>
   );

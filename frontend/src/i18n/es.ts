@@ -461,6 +461,8 @@ export const es = {
     title: 'Contactanos',
     text: 'Escribinos para resolver dudas o finalizar tu pedido de forma personalizada.',
     whatsApp: 'Pedir por WhatsApp',
+    /** T-E7-27: the name of the floating button. */
+    whatsAppButton: 'Escribinos por WhatsApp',
   },
   sort: {
     label: 'Ordenar por',
