@@ -229,6 +229,100 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
   });
 });
 
+describe('sign-in and registration cards (UC-19, T-E7-23)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('given the sign-in page with an empty email, when "Ingresar" is pressed, then no request is sent and the email says what is missing and has the focus', async () => {
+    stubStore();
+    const post = stubPost(answer(200, ANA));
+    renderRoute('/cuenta/ingresar');
+
+    await userEvent.type(await screen.findByLabelText(es.account.password), 'ocho1234');
+    await userEvent.click(screen.getByRole('button', { name: es.account.signIn.send }));
+
+    const email = screen.getByLabelText(es.account.email);
+    expect(email).toHaveFocus();
+    expect(email).toHaveAttribute('aria-invalid', 'true');
+    expect(email).toHaveAccessibleDescription(es.account.missing.email);
+    expect(screen.queryByText(es.account.missing.password)).not.toBeInTheDocument();
+    expect(post).not.toHaveBeenCalled();
+
+    await userEvent.type(email, 'a');
+
+    expect(email).not.toHaveAttribute('aria-invalid');
+    expect(screen.queryByText(es.account.missing.email)).not.toBeInTheDocument();
+  });
+
+  it('given an empty registration, when it is sent, then every field says what is missing and the name has the focus', async () => {
+    stubStore();
+    const post = stubPost(answer(201));
+    renderRoute('/cuenta/registro');
+
+    await userEvent.click(await screen.findByRole('button', { name: es.account.register.send }));
+
+    expect(screen.getByLabelText(es.account.register.name)).toHaveFocus();
+    expect(screen.getByText(es.account.missing.name)).toBeInTheDocument();
+    expect(screen.getByText(es.account.missing.email)).toBeInTheDocument();
+    expect(screen.getByLabelText(es.account.password)).toHaveAccessibleDescription(
+      `${es.account.register.passwordHint} ${es.account.missing.password}`,
+    );
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('given a typed password, when "Mostrar contraseña" is pressed, then the password shows as text; pressed again, it hides', async () => {
+    stubStore();
+    renderRoute('/cuenta/ingresar');
+    const password = await screen.findByLabelText(es.account.password);
+    await userEvent.type(password, 'ocho1234');
+    const toggle = screen.getByRole('button', { name: es.account.showPassword });
+
+    await userEvent.click(toggle);
+
+    expect(password).toHaveAttribute('type', 'text');
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(toggle);
+
+    expect(password).toHaveAttribute('type', 'password');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('given the sign-in page, when it opens, then "Crear cuenta" links to the registration page', async () => {
+    stubStore();
+    renderRoute('/cuenta/ingresar');
+
+    expect(await screen.findByRole('link', { name: es.account.registerLink })).toHaveAttribute('href', '/cuenta/registro');
+  });
+
+  it('given the recovery page with an empty email, when it is sent, then no request is sent and the email says what is missing and has the focus', async () => {
+    stubStore();
+    const post = stubPost(answer(204));
+    renderRoute('/cuenta/recuperar');
+
+    await userEvent.click(await screen.findByRole('button', { name: es.account.recover.send }));
+
+    const email = screen.getByLabelText(es.account.email);
+    expect(email).toHaveFocus();
+    expect(email).toHaveAccessibleDescription(es.account.missing.email);
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('given the reset page with an empty password, when it is sent, then no request is sent and the password says what is missing and has the focus', async () => {
+    stubStore();
+    const post = stubPost(answer(204));
+    renderRoute(`/cuenta/restablecer#${TOKEN}`);
+
+    await userEvent.click(await screen.findByRole('button', { name: es.account.reset.send }));
+
+    const password = screen.getByLabelText(es.account.reset.newPassword);
+    expect(password).toHaveFocus();
+    expect(password).toHaveAccessibleDescription(`${es.account.reset.passwordHint} ${es.account.missing.password}`);
+    expect(post).not.toHaveBeenCalled();
+  });
+});
+
 describe('password recovery and reset (UC-19, T-E4-03)', () => {
   afterEach(() => {
     vi.restoreAllMocks();

@@ -1,6 +1,6 @@
 # E7 – La tienda como el prototipo
 
-**Estado:** Borrador · **Casos de uso:** CU-30, CU-31 y CU-32, y cambios a CU-01, CU-02, CU-03, CU-08 y CU-13
+**Estado:** Borrador · **Casos de uso:** CU-30, CU-31 y CU-32, y cambios a CU-01, CU-02, CU-03, CU-08, CU-13 y CU-19
 
 ## Objetivo
 
@@ -109,11 +109,11 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 **Actor:** Visitante
 
 **Flujo principal**
-1. En todas las páginas públicas, el encabezado muestra el logo, la navegación (Todo, Mujer, Hombre, Niños, Temporada Invierno), la búsqueda, "Ingresar" y "Crear cuenta" (o "Mi cuenta" con sesión) y el carrito.
+1. En todas las páginas públicas, el encabezado muestra el logo, la navegación (Todo, Mujer, Hombre, Niños, Temporada Invierno), la búsqueda, un ícono de usuario (lleva a "Ingresar"; con sesión lleva un punto y abre "Mi cuenta") y el carrito. "Crear cuenta" ya no está en el encabezado: lo ofrece la página de ingreso.
 2. En el celular, la navegación, "Ingresar" y "Crear cuenta" van en un menú que se abre con un botón, con el logo de la tienda arriba.
 3. Sobre el encabezado, una franja dice "Envío gratis desde $X" cuando hay umbral de envío gratis.
 4. El pie tiene tres columnas en la computadora, una debajo de otra en el celular: Ayuda y legales (preguntas frecuentes, cambios y devoluciones, términos y condiciones), Contacto y redes ("Contacto", que lleva a "Contactanos" de la portada, e Instagram y TikTok con sus íconos) y Medios de pago (un ícono por cada medio habilitado, en fila). Debajo, separada por una línea, una franja con el botón de arrepentimiento, "Cookies" y el año con el nombre de la tienda.
-5. Justo arriba del pie, una barra de beneficios con tres bloques iguales, cada uno con un ícono a la izquierda y, a su derecha, un título en negrita y mayúsculas y un texto: "Enviamos tu compra" (camión; "Entregas dentro de Santa Fe Capital y todo el país"), "Todas las formas de pago" (tarjeta; "Pagá con" y los medios habilitados, por ejemplo "Pagá con MercadoPago o MODO") y "Comprá con seguridad" (candado; "Tus datos siempre protegidos"). En la computadora, los bloques van en fila separados por líneas verticales suaves; en el celular, uno debajo de otro, sin líneas.
+5. Solo en la portada (con o sin filtros), justo arriba del pie, una barra de beneficios con tres bloques iguales, cada uno con un ícono a la izquierda y, a su derecha, un título en negrita y mayúsculas y un texto: "Enviamos tu compra" (camión; "Entregas dentro de Santa Fe Capital y todo el país"), "Todas las formas de pago" (tarjeta; "Pagá con" y los medios habilitados, por ejemplo "Pagá con MercadoPago o MODO") y "Comprá con seguridad" (candado; "Tus datos siempre protegidos"). En la computadora, los bloques van en fila separados por líneas verticales suaves; en el celular, uno debajo de otro, sin líneas.
 
 **Reglas**
 - Cada enlace de la navegación abre el listado filtrado: Mujer, Hombre y Niños por público; Temporada Invierno por temporada. En la portada, bajan hasta "Todos los productos".
@@ -136,7 +136,24 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Dado el pie, cuando se revisa, entonces el botón de arrepentimiento sigue visible (RNF-30.1).
 - Dados MercadoPago y MODO habilitados, cuando se revisa el pie, entonces Medios de pago muestra sus dos íconos en fila, cada uno con su nombre para lectores de pantalla.
 - Dado el email o el WhatsApp de contacto, cuando se revisa el pie, entonces "Contacto" lleva a "Contactanos" de la portada; sin ninguno, no aparece.
-- Dados MercadoPago y MODO habilitados, cuando se abre cualquier página pública, entonces arriba del pie se ven "Enviamos tu compra", "Todas las formas de pago" con "Pagá con MercadoPago o MODO" y "Comprá con seguridad"; si los medios de pago no se pueden leer, se ven solo el primero y el último.
+- Dados MercadoPago y MODO habilitados, cuando se abre la portada, entonces arriba del pie se ven "Enviamos tu compra", "Todas las formas de pago" con "Pagá con MercadoPago o MODO" y "Comprá con seguridad"; si los medios de pago no se pueden leer, se ven solo el primero y el último. En cualquier otra página, como "Ingresar", no hay barra de beneficios.
+- Dado un visitante en la computadora, cuando se ve el encabezado, entonces el ícono de usuario lleva a "Ingresar" y no hay "Crear cuenta".
+
+## Cambios a CU-19 (ingresar y crear cuenta)
+
+**Reglas nuevas**
+- Ingresar, Crear cuenta, Recuperar contraseña y Elegir contraseña nueva van en una tarjeta blanca centrada, con el título y una frase de introducción adentro. Ingresar dice "Ingresá para ver tus pedidos y comprar más rápido."; Elegir contraseña nueva, "Elegí la contraseña con la que vas a ingresar de ahora en más.".
+- Recuperar contraseña termina con "¿Te acordaste de tu contraseña?" y "Volver a ingresar"; la contraseña nueva también tiene el ojo.
+- En Ingresar, "¿Olvidaste tu contraseña?" va a la derecha de "Contraseña". Abajo, separado por una línea, "¿Primera vez acá?" y un botón "Crear cuenta" a todo el ancho. Crear cuenta termina igual, con "¿Ya tenés cuenta?" e "Ingresar".
+- La contraseña tiene un botón con un ojo dentro del campo ("Mostrar contraseña" para lectores de pantalla), que la muestra u oculta.
+- El botón de enviar no se apaga mientras falten datos: si se envía con un campo vacío, no se consulta al servidor, el campo muestra debajo qué falta ("Escribí tu email.") y el cursor va al primero que falta.
+- Los mensajes, los pasos y el ingreso con Google o Facebook no cambian.
+
+**Criterios de aceptación**
+- Dado Ingresar sin email, cuando se toca "Ingresar", entonces no se envía nada, el email dice "Escribí tu email." y tiene el cursor.
+- Dada una contraseña escrita, cuando se toca "Mostrar contraseña", entonces se lee; tocándolo otra vez, se oculta.
+- Dado Ingresar, cuando se abre, entonces "Crear cuenta" lleva a la página de registro.
+- Dado Recuperar contraseña sin email, o Elegir contraseña nueva sin contraseña, cuando se envía, entonces no se envía nada y el campo dice qué falta y tiene el cursor.
 
 ## CU-32 Editar el banner de personajes
 

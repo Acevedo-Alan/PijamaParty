@@ -1231,6 +1231,13 @@ export const es = {
     email: 'Email',
     password: 'Contraseña',
     tooManyAttempts: 'Hiciste muchos intentos. Probá de nuevo en un rato.',
+    /** T-E7-23: the eye button of the password fields, and what an empty field says once the form is sent. */
+    showPassword: 'Mostrar contraseña',
+    missing: {
+      name: 'Escribí tu nombre y apellido.',
+      email: 'Escribí tu email.',
+      password: 'Escribí tu contraseña.',
+    },
     register: {
       title: 'Crear cuenta',
       intro: 'Con una cuenta guardás tus datos para la próxima compra. También podés comprar sin cuenta.',
@@ -1253,8 +1260,8 @@ export const es = {
       title: 'Ingresar',
       send: 'Ingresar',
       sending: 'Ingresando…',
-      noAccount: '¿No tenés cuenta?',
-      createAccount: 'Creá una',
+      intro: 'Ingresá para ver tus pedidos y comprar más rápido.',
+      firstTime: '¿Primera vez acá?',
       verified: '¡Listo! Verificaste tu email. Ya podés ingresar.',
       invalidCredentials: 'El email o la contraseña no son correctos.',
       emailNotVerified:
@@ -1272,10 +1279,12 @@ export const es = {
       done: (email: string) =>
         `Si hay una cuenta con ${email}, te enviamos un email con un enlace para elegir una contraseña nueva. El enlace vence en 30 minutos. Si no lo ves, revisá la carpeta de spam.`,
       backToSignIn: 'Volver a ingresar',
+      remembered: '¿Te acordaste de tu contraseña?',
       error: 'No pudimos enviar el enlace. Probá de nuevo.',
     },
     reset: {
       title: 'Elegir contraseña nueva',
+      intro: 'Elegí la contraseña con la que vas a ingresar de ahora en más.',
       newPassword: 'Contraseña nueva',
       passwordHint: 'Al menos 8 caracteres.',
       send: 'Guardar contraseña',

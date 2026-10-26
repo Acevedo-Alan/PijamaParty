@@ -6,12 +6,15 @@ import { formatTime } from '../../i18n/formatDate.ts';
 import { CART_KEY } from '../cart/useCart.ts';
 import { RECOVER_PATH, REGISTER_PATH } from './AccountLink.tsx';
 import { signIn, type SignInAnswer } from './accountApi.ts';
+import { AuthCard, AuthField, AuthSwitch, fieldErrorProps, PasswordInput, useMissingFields } from './AuthCard.tsx';
 import { RETURN_KEY, returnPathOf } from './returnPath.ts';
 import { SocialSignIn, socialMessage } from './SocialSignIn.tsx';
 import { CUSTOMER_KEY } from './useCustomer.ts';
-import './account.css';
 
 const messages = es.account.signIn;
+
+/** The fields of the form, in the order the focus visits them. */
+const SIGN_IN_FIELDS = ['email', 'password'] as const;
 
 /** What the verification and reset pages leave in the navigation state: the email was just verified, or the password reset. */
 export interface SignInState {
@@ -52,6 +55,9 @@ export function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const id = useId();
+  const fields = useMissingFields<(typeof SIGN_IN_FIELDS)[number]>(id);
+  const emailId = `${id}-email`;
+  const passwordId = `${id}-password`;
   const attempt = useMutation({
     mutationFn: () => signIn(email, password),
     onSuccess: (answer) => {
@@ -67,14 +73,16 @@ export function SignInPage() {
 
   function send(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
-    attempt.mutate();
+    const values = { email: email.trim(), password };
+    if (fields.check(SIGN_IN_FIELDS.filter((field) => values[field] === ''))) {
+      attempt.mutate();
+    }
   }
 
-  const incomplete = email.trim() === '' || password === '';
+  const emailError = fields.isMissing('email') ? es.account.missing.email : null;
+  const passwordError = fields.isMissing('password') ? es.account.missing.password : null;
   return (
-    <main className="wrap account-page">
-      <title>{`${messages.title} | ${es.store.name}`}</title>
-      <h1>{messages.title}</h1>
+    <AuthCard title={messages.title} intro={messages.intro}>
       {verified && (
         <p className="account-done" role="status">
           {messages.verified}
@@ -95,45 +103,58 @@ export function SignInPage() {
       )}
       <SocialSignIn />
       <form className="account-form" onSubmit={send} noValidate>
-        <label htmlFor={`${id}-email`}>{es.account.email}</label>
-        <input
-          id={`${id}-email`}
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="username"
-          maxLength={254}
-          required
-          value={email}
-          onChange={(event) => {
-            setEmail(event.target.value);
-          }}
-        />
-        <label htmlFor={`${id}-password`}>{es.account.password}</label>
-        <input
-          id={`${id}-password`}
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(event) => {
-            setPassword(event.target.value);
-          }}
-        />
-        <button type="submit" className="btn" disabled={attempt.isPending || incomplete}>
+        <AuthField id={emailId} label={es.account.email} error={emailError}>
+          <input
+            id={emailId}
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            maxLength={254}
+            required
+            value={email}
+            {...fieldErrorProps(emailId, emailError)}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              fields.clear('email');
+            }}
+          />
+        </AuthField>
+        <AuthField
+          id={passwordId}
+          label={es.account.password}
+          aside={
+            <Link to={RECOVER_PATH} className="auth-aside-link">
+              {messages.forgotPassword}
+            </Link>
+          }
+          error={passwordError}
+        >
+          <PasswordInput
+            id={passwordId}
+            name="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            {...fieldErrorProps(passwordId, passwordError)}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              fields.clear('password');
+            }}
+          />
+        </AuthField>
+        <button type="submit" className="btn" disabled={attempt.isPending}>
           {attempt.isPending ? messages.sending : messages.send}
         </button>
         <p className="account-error" role="alert">
           {problemOf(attempt.data, attempt.isError)}
         </p>
       </form>
-      <p className="account-switch">
-        <Link to={RECOVER_PATH}>{messages.forgotPassword}</Link>
-      </p>
-      <p className="account-switch">
-        {messages.noAccount} <Link to={REGISTER_PATH}>{messages.createAccount}</Link>
-      </p>
-    </main>
+      <AuthSwitch question={messages.firstTime} to={REGISTER_PATH}>
+        {es.account.registerLink}
+      </AuthSwitch>
+    </AuthCard>
   );
 }

@@ -10,18 +10,18 @@ const bar = () => screen.getByRole('region', { name: messages.label });
 
 const titles = () => within(bar()).getAllByRole('listitem').map((item) => item.querySelector('.benefit-title')?.textContent);
 
-describe('benefits bar (UC-31, T-E7-21)', () => {
+describe('benefits bar (UC-31, T-E7-21, T-E7-23)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('given MercadoPago and MODO enabled, when any public page opens, then above the footer it shows shipping, the enabled payment methods and security', async () => {
+  it('given MercadoPago and MODO enabled, when the home page opens, then above the footer it shows shipping, the enabled payment methods and security', async () => {
     stubCatalogApi({
       listings: [listed([product('rosa')])],
       paymentProviders: answer(200, { providers: ['MERCADOPAGO', 'MODO'] }),
     });
 
-    renderRoute('/categoria/verano');
+    renderRoute('/');
 
     expect(await within(bar()).findByText(es.faq.summary.payWith('MercadoPago o MODO'))).toBeInTheDocument();
     expect(titles()).toEqual([messages.shippingTitle, messages.paymentsTitle, messages.securityTitle]);
@@ -31,7 +31,7 @@ describe('benefits bar (UC-31, T-E7-21)', () => {
       .toBeTruthy();
   });
 
-  it('given the payment providers failing, when a page opens, then only the shipping and security blocks show', async () => {
+  it('given the payment providers failing, when the home page opens, then only the shipping and security blocks show', async () => {
     const get = stubCatalogApi({ listings: [listed([product('rosa')])], paymentProviders: answer(500) });
 
     renderRoute('/');
@@ -41,5 +41,15 @@ describe('benefits bar (UC-31, T-E7-21)', () => {
       expect(get).toHaveBeenCalledWith('/api/checkout/payment-providers', expect.anything());
     });
     expect(titles()).toEqual([messages.shippingTitle, messages.securityTitle]);
+  });
+
+  it('given any other page, such as the sign-in page, when it opens, then there is no benefits bar', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+
+    renderRoute('/cuenta/ingresar');
+
+    expect(await screen.findByRole('heading', { level: 1, name: es.account.signIn.title })).toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: messages.label })).not.toBeInTheDocument();
   });
 });

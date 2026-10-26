@@ -302,12 +302,15 @@ describe('header account entry (UC-31)', () => {
     vi.restoreAllMocks();
   });
 
-  it('given a visitor, when the header shows, then it offers "Ingresar" and "Crear cuenta"', async () => {
+  it('given a visitor on a computer, when the header shows, then the account icon named "Ingresar" links to the sign-in page and there is no "Crear cuenta" (T-E7-23)', async () => {
     stubCatalogApi({ listings: [listed([])] });
     renderRoute('/buscar');
 
-    expect(await screen.findByRole('link', { name: es.account.signInLink })).toHaveAttribute('href', '/cuenta/ingresar');
-    expect(screen.getByRole('link', { name: es.account.registerLink })).toHaveAttribute('href', '/cuenta/registro');
+    const icon = await screen.findByRole('link', { name: es.account.signInLink });
+    expect(icon).toHaveAttribute('href', '/cuenta/ingresar');
+    expect(icon).toHaveClass('icon-btn');
+    expect(icon).toHaveTextContent('');
+    expect(screen.queryByRole('link', { name: es.account.registerLink })).not.toBeInTheDocument();
   });
 
   it('given a signed-in customer, when "Mi cuenta" is opened, then it lists the account links and choosing one closes it', async () => {

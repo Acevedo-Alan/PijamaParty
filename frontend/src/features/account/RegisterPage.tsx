@@ -4,8 +4,8 @@ import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { SIGN_IN_PATH } from './AccountLink.tsx';
 import { register, type RegisterAnswer } from './accountApi.ts';
+import { AuthCard, AuthField, AuthSwitch, fieldErrorProps, PasswordInput, useMissingFields } from './AuthCard.tsx';
 import { SocialSignIn } from './SocialSignIn.tsx';
-import './account.css';
 
 const messages = es.account.register;
 
@@ -14,6 +14,9 @@ interface RegisterForm {
   email: string;
   password: string;
 }
+
+/** The fields of the form, in the order the focus visits them. */
+const REGISTER_FIELDS = ['name', 'email', 'password'] as const;
 
 function problemOf(answer: RegisterAnswer | undefined, failed: boolean): string | null {
   if (failed) {
@@ -46,6 +49,7 @@ export function RegisterPage() {
   const [form, setForm] = useState<RegisterForm>({ name: '', email: '', password: '' });
   const done = useRef<HTMLDivElement>(null);
   const id = useId();
+  const fields = useMissingFields<keyof RegisterForm>(id);
   const registered = attempt.data?.status === 'registered';
 
   useEffect(() => {
@@ -56,70 +60,83 @@ export function RegisterPage() {
 
   function send(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
-    attempt.mutate(form);
+    const values = { name: form.name.trim(), email: form.email.trim(), password: form.password };
+    if (fields.check(REGISTER_FIELDS.filter((field) => values[field] === ''))) {
+      attempt.mutate(form);
+    }
   }
 
   function change(field: keyof RegisterForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+    fields.clear(field);
   }
 
-  const incomplete = form.name.trim() === '' || form.email.trim() === '' || form.password === '';
+  const nameId = `${id}-name`;
+  const emailId = `${id}-email`;
+  const passwordId = `${id}-password`;
+  const hintId = `${id}-password-hint`;
+  const nameError = fields.isMissing('name') ? es.account.missing.name : null;
+  const emailError = fields.isMissing('email') ? es.account.missing.email : null;
+  const passwordError = fields.isMissing('password') ? es.account.missing.password : null;
   return (
-    <main className="wrap account-page">
-      <title>{`${messages.title} | ${es.store.name}`}</title>
-      <h1>{messages.title}</h1>
+    <AuthCard title={messages.title} intro={registered ? undefined : messages.intro}>
       {registered ? (
         <div className="account-done" ref={done} tabIndex={-1} role="status">
           <p>{messages.done(form.email.trim())}</p>
         </div>
       ) : (
         <>
-          <p className="account-intro">{messages.intro}</p>
           <SocialSignIn />
           <form className="account-form" onSubmit={send} noValidate>
-            <label htmlFor={`${id}-name`}>{messages.name}</label>
-            <input
-              id={`${id}-name`}
-              name="name"
-              autoComplete="name"
-              maxLength={100}
-              required
-              value={form.name}
-              onChange={(event) => {
-                change('name', event.target.value);
-              }}
-            />
-            <label htmlFor={`${id}-email`}>{es.account.email}</label>
-            <input
-              id={`${id}-email`}
-              name="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              maxLength={254}
-              required
-              value={form.email}
-              onChange={(event) => {
-                change('email', event.target.value);
-              }}
-            />
-            <label htmlFor={`${id}-password`}>{es.account.password}</label>
-            <input
-              id={`${id}-password`}
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              aria-describedby={`${id}-password-hint`}
-              required
-              value={form.password}
-              onChange={(event) => {
-                change('password', event.target.value);
-              }}
-            />
-            <p id={`${id}-password-hint`} className="account-hint">
-              {messages.passwordHint}
-            </p>
-            <button type="submit" className="btn" disabled={attempt.isPending || incomplete}>
+            <AuthField id={nameId} label={messages.name} error={nameError}>
+              <input
+                id={nameId}
+                name="name"
+                autoComplete="name"
+                maxLength={100}
+                required
+                value={form.name}
+                {...fieldErrorProps(nameId, nameError)}
+                onChange={(event) => {
+                  change('name', event.target.value);
+                }}
+              />
+            </AuthField>
+            <AuthField id={emailId} label={es.account.email} error={emailError}>
+              <input
+                id={emailId}
+                name="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={254}
+                required
+                value={form.email}
+                {...fieldErrorProps(emailId, emailError)}
+                onChange={(event) => {
+                  change('email', event.target.value);
+                }}
+              />
+            </AuthField>
+            <AuthField id={passwordId} label={es.account.password} error={passwordError}>
+              <PasswordInput
+                id={passwordId}
+                name="password"
+                autoComplete="new-password"
+                required
+                value={form.password}
+                {...fieldErrorProps(passwordId, passwordError, hintId)}
+                onChange={(event) => {
+                  change('password', event.target.value);
+                }}
+              />
+              <p id={hintId} className="account-hint">
+                {messages.passwordHint}
+              </p>
+            </AuthField>
+            <button type="submit" className="btn" disabled={attempt.isPending}>
               {attempt.isPending ? messages.sending : messages.send}
             </button>
             <p className="account-error" role="alert">
@@ -132,11 +149,11 @@ export function RegisterPage() {
               )}
             </p>
           </form>
-          <p className="account-switch">
-            {messages.haveAccount} <Link to={SIGN_IN_PATH}>{es.account.signIn.title}</Link>
-          </p>
+          <AuthSwitch question={messages.haveAccount} to={SIGN_IN_PATH}>
+            {es.account.signIn.title}
+          </AuthSwitch>
         </>
       )}
-    </main>
+    </AuthCard>
   );
 }

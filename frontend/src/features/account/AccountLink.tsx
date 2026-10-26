@@ -27,7 +27,10 @@ interface ChooseProps {
   onChoose?: () => void;
 }
 
-/** "Ingresar" and "Crear cuenta" (UC-19, UC-31); returning customers sign in more often, so "Ingresar" is filled. */
+/**
+ * "Ingresar" and "Crear cuenta" of the phone menu (UC-19, UC-31); returning customers sign in more often, so
+ * "Ingresar" is filled.
+ */
 function SignedOutLinks({ onChoose }: ChooseProps) {
   return (
     <>
@@ -87,9 +90,20 @@ function SignedInLinks({ customer, onChoose }: ChooseProps & { customer: Custome
   );
 }
 
+/** A person's outline, drawn like the cart's bag (T-E7-23). */
+function PersonIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20c.8-3.5 3.8-5.5 7.5-5.5s6.7 2 7.5 5.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /**
- * The header's account entry from 860 px (UC-31): "Ingresar" and "Crear cuenta" when signed out; with a session,
- * "Mi cuenta", which opens the list of the account links. Escape, a click outside or a chosen link closes it.
+ * The header's account icon from 860 px (UC-31, T-E7-23): a link to the sign-in page when signed out, which offers
+ * "Crear cuenta" too; with a session, "Mi cuenta", which opens the list of the account links. Escape, a click outside
+ * or a chosen link closes it.
  */
 export function HeaderAccount() {
   const customer = useCustomer();
@@ -98,7 +112,13 @@ export function HeaderAccount() {
   }
   return (
     <div className="header-account">
-      {customer === null ? <SignedOutLinks /> : <AccountMenu customer={customer} />}
+      {customer === null ? (
+        <Link to={SIGN_IN_PATH} className="icon-btn account-icon" aria-label={es.account.signInLink}>
+          <PersonIcon />
+        </Link>
+      ) : (
+        <AccountMenu customer={customer} />
+      )}
     </div>
   );
 }
@@ -137,17 +157,16 @@ function AccountMenu({ customer }: { customer: Customer }) {
       <button
         ref={button}
         type="button"
-        className="account-btn secondary account-menu-btn"
+        className="icon-btn account-icon"
+        data-signed-in=""
+        aria-label={es.account.menu}
         aria-expanded={isOpen}
         aria-controls={listId}
         onClick={() => {
           setOpen(!isOpen);
         }}
       >
-        {es.account.menu}
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M7 10l5 5 5-5" />
-        </svg>
+        <PersonIcon />
       </button>
       {isOpen && (
         <div id={listId} className="account-menu-list">

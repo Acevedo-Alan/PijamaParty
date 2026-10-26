@@ -133,11 +133,11 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Preconditions:** none.
 
 **Main flow**
-1. Every public page shows the header: logo (link to `/`), navigation (Todo, Mujer, Hombre, Niños, Temporada Invierno), search (UC-26), "Ingresar" and "Crear cuenta" (or "Mi cuenta" with a session, UC-19) and the cart button.
+1. Every public page shows the header: logo (link to `/`), navigation (Todo, Mujer, Hombre, Niños, Temporada Invierno), search (UC-26), the account icon (a person's outline drawn like the cart's bag: a link to the sign-in page named "Ingresar", or with a session the button that opens "Mi cuenta", UC-19, T-E7-23) and the cart button. The header has no "Crear cuenta": the sign-in page offers it.
 2. From 860 px the navigation sits in the header; below, a menu button opens it with the account links in a side panel, headed by the store's logo (T-E7-17).
 3. With a free-shipping threshold, a strip above the header says "Envío gratis desde $X".
 4. The footer has three columns from 860 px, stacked below: Ayuda y legales (FAQ, exchanges and returns, terms and conditions), Contacto y redes ("Contacto", to the home page's "Contactanos", and Instagram and TikTok with their icons) and Medios de pago (one icon per enabled provider, in a row). Below them, after a top border, a strip with the withdrawal link (RNF-30.1), "Cookies" and "© {year} Pijama Party Santa Fe" (T-E7-20).
-5. Right above the footer, a benefits bar (T-E7-21) with three equal blocks, each an icon on the left and, on its right, a bold uppercase title over a regular text: "Enviamos tu compra" (a truck; "Entregas dentro de Santa Fe Capital y todo el país"), "Todas las formas de pago" (a card; "Pagá con" and the enabled providers, e.g. "Pagá con MercadoPago o MODO") and "Comprá con seguridad" (a closed padlock; "Tus datos siempre protegidos"). From 860 px the blocks sit in a row with subtle vertical dividers; below, they stack with no dividers.
+5. Right above the footer of the home page (`/`, with or without filters in the query) and of no other page (T-E7-23), a benefits bar (T-E7-21) with three equal blocks, each an icon on the left and, on its right, a bold uppercase title over a regular text: "Enviamos tu compra" (a truck; "Entregas dentro de Santa Fe Capital y todo el país"), "Todas las formas de pago" (a card; "Pagá con" and the enabled providers, e.g. "Pagá con MercadoPago o MODO") and "Comprá con seguridad" (a closed padlock; "Tus datos siempre protegidos"). From 860 px the blocks sit in a row with subtle vertical dividers; below, they stack with no dividers.
 
 **Alternative flows**
 - No threshold, or `GET /api/shipping/rates` fails: no strip.
@@ -148,7 +148,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Business rules**
 - Navigation links: Todo → `/`; Mujer, Hombre, Niños → `/?publico=mujer|hombre|infantil`; Temporada Invierno → `/?temporada=invierno`. The current one is marked with `aria-current="page"`.
 - A navigation link with a filter takes the home page to "Todos los productos", as when it opens with filters (UC-30).
-- With a session, "Mi cuenta" opens a list with the greeting, "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta" (UC-27) and "Salir"; Escape, a click outside or choosing a link closes it. The phone menu lists the same links open.
+- With a session, the account icon (named "Mi cuenta", drawn in `--accent-text` with a small `--accent` dot, so the session does not show by color alone) opens a list with the greeting, "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta" (UC-27) and "Salir"; Escape, a click outside or choosing a link closes it. The phone menu lists the same links open.
 - The strip shows no installments or discounts (D-01, D-02).
 - Seller data (RNF-30.2) joins the footer with T-E6-21; it is not part of this use case.
 - The benefits bar promises no payment method, installments, discount or surcharge the checkout does not have (D-01, D-02): its payment block names only the enabled providers. The uppercase titles are written in sentence case and uppercased in CSS, so screen readers do not spell them.
@@ -163,12 +163,13 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Given reduced motion, when the header hides or shows, then it does so without sliding.
 - Given a page scrolled past the header, when the header shows, then its background is translucent; given the page back at the top, then it is the usual one.
 - Given a phone, when the menu opens, then it shows the navigation and the account links, the focus stays inside it, and Escape closes it and returns the focus to the menu button.
+- Given a visitor on a computer, when the header shows, then the account icon named "Ingresar" links to `/cuenta/ingresar`, and the header has no "Crear cuenta".
 - Given a signed-in customer on a computer, when "Mi cuenta" is opened, then it lists "Mis pedidos", "Mis direcciones", "Mi cuenta" and "Salir", and Escape closes it and returns the focus to "Mi cuenta".
 - Given "Temporada Invierno", when chosen, then the grid shows only `WINTER` products.
 - Given any public page, when the footer is checked, then the withdrawal link is visible without signing in.
 - Given MercadoPago and MODO enabled, when the footer is checked, then Medios de pago shows their two icons in a row, named "MercadoPago" and "MODO".
 - Given a contact email or WhatsApp number, when the footer is checked, then "Contacto" links to `/#contactanos`; without either, it is not shown.
-- Given MercadoPago and MODO enabled, when any public page opens, then above the footer the benefits bar shows "Enviamos tu compra", "Todas las formas de pago" with "Pagá con MercadoPago o MODO" and "Comprá con seguridad"; given the providers failing, then only the first and the last.
+- Given MercadoPago and MODO enabled, when the home page opens, then above the footer the benefits bar shows "Enviamos tu compra", "Todas las formas de pago" with "Pagá con MercadoPago o MODO" and "Comprá con seguridad"; given the providers failing, then only the first and the last. Given any other page, such as `/cuenta/ingresar`, when it opens, then there is no benefits bar.
 
 **Design notes**
 - `SiteHeader`, `MobileMenu` (a modal `dialog`, like the filter panel of UC-02) and `SiteFooter` replace the header and `StoreFooter` of `StoreLayout`. The back office keeps its own layout.
@@ -326,3 +327,22 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - `ordering.domain.BuyerDetails(firstName, lastName, email, phone, nationalId)`; `BuyerDetails.firstNameOf` and `OrderEmailWriter.firstName` (the first-word guess) are removed: the emails use the stored first name.
 - API: `POST /api/checkout` takes `firstName` and `lastName` instead of `name`; tracking keeps `buyerFirstName` (now the stored first name, never the last name); `ordering.api` (`PaidOrders`, `WithdrawalNotices`, `AdminOrderDetails`) and the account data export (UC-28) carry both. OpenAPI and the typed client are updated; the e2e `fillCheckout` helper fills both fields.
 - Analytics and logs never carry either name (RNF-25, CLAUDE.md).
+
+---
+
+## Changes to UC-19 (sign-in, registration and password pages)
+
+The header no longer has "Crear cuenta" (UC-31), so the sign-in page carries it, and the sign-in, registration, password recovery and reset pages are redesigned (T-E7-23). The flows, messages and API of UC-19 and UC-27 do not change.
+
+**Business rules (new)**
+- The four pages sit in a centered card (`--surface`, `--radius-m`, a soft shadow) up to 440 px wide on the page background, with the title and a one-line intro inside it. Sign-in's intro reads "Ingresá para ver tus pedidos y comprar más rápido.", the reset page's "Elegí la contraseña con la que vas a ingresar de ahora en más."; registration and recovery keep their own. The confirmation and invalid-link messages show in the card instead of the intro.
+- Recovery ends with "¿Te acordaste de tu contraseña?" and an outlined "Volver a ingresar"; the reset page's new password takes the eye button below and keeps its hint. The social buttons (UC-27) and the email form follow, as before.
+- Sign-in: "¿Olvidaste tu contraseña?" sits on the password's label row, on the right. Below the form, after a divider, "¿Primera vez acá?" and a full-width outlined "Crear cuenta" button to `/cuenta/registro`. Registration ends the same way with "¿Ya tenés cuenta?" and an outlined "Ingresar".
+- Password fields carry an eye icon button inside the field, on the right (accessible name "Mostrar contraseña", `aria-pressed` while shown; the eye is crossed out while shown), which switches it between hidden and shown. Email fields turn off spell checking and automatic capitals.
+- The submit button stays enabled until the request starts, then reads "Ingresando…" / "Creando…" as before. Sending with an empty field asks nothing of the server: each empty field shows its message below it ("Escribí tu email.", "Escribí tu contraseña.", "Escribí tu nombre y apellido."), is marked `aria-invalid`, and the focus moves to the first one. Typing in a field clears its message.
+
+**Acceptance criteria**
+- Given the sign-in page with an empty email, when "Ingresar" is pressed, then no request is sent, and the email says "Escribí tu email." and has the focus.
+- Given a typed password, when "Mostrar contraseña" is pressed, then the password shows as text; pressed again, it hides.
+- Given the sign-in page, when it opens, then "Crear cuenta" links to `/cuenta/registro`.
+- Given the recovery page with an empty email, or the reset page with an empty password, when it is sent, then no request is sent and the field says what is missing and has the focus.

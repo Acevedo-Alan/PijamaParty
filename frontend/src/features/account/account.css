@@ -49,16 +49,32 @@
   position: relative;
 }
 
-.account-menu-btn svg {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.8;
+/*
+ * T-E7-23: the header's account icon. Signed in, it takes the store's color and a dot, so the session does not show by
+ * color alone; it stays shaded while its list is open.
+ */
+.account-icon[data-signed-in] {
+  position: relative;
 }
 
-.account-menu-btn[aria-expanded='true'] svg {
-  transform: rotate(180deg);
+.account-icon[data-signed-in] svg {
+  stroke: var(--accent-text);
+}
+
+.account-icon[data-signed-in]::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.account-icon[aria-expanded='true'] {
+  background: var(--surface);
 }
 
 .account-menu-list {
@@ -210,6 +226,151 @@
 }
 
 
+
+/* T-E7-23: the sign-in and registration pages, a centered card on the page background. */
+
+.auth-page {
+  max-width: 488px; /* a 440 px card plus the page's side padding */
+  padding-top: 32px;
+  padding-bottom: 56px;
+}
+
+.auth-card {
+  padding: 24px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(194, 80, 106, 0.08);
+}
+
+@media (min-width: 640px) {
+  .auth-card {
+    padding: 28px 24px;
+  }
+}
+
+.auth-card h1 {
+  margin-bottom: 6px;
+  text-wrap: balance;
+}
+
+.auth-card .account-intro {
+  margin-bottom: 24px;
+  text-wrap: pretty;
+}
+
+.auth-card h1 + .account-done {
+  margin-top: 16px;
+}
+
+.auth-card .account-done {
+  background: var(--peach-soft);
+  border-color: transparent;
+}
+
+.auth-field {
+  margin-bottom: 16px;
+}
+
+.auth-label-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 6px;
+}
+
+.account-form .auth-label-row label {
+  margin-bottom: 0;
+}
+
+/* A 44 px tap area that does not make the label row taller. */
+.auth-aside-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -12px 0;
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.account-form .auth-field input,
+.account-form .auth-field input[aria-describedby] {
+  margin-bottom: 0;
+}
+
+.account-form .auth-field input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.auth-field .account-hint {
+  margin: 6px 0 0;
+}
+
+.auth-field-error {
+  margin-top: 6px;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.password-field {
+  position: relative;
+}
+
+.account-form .password-field input {
+  padding-right: 52px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  width: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  color: var(--ink-soft);
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.password-toggle[aria-pressed='true'] {
+  color: var(--accent-text);
+}
+
+@media (hover: hover) {
+  .password-toggle:hover {
+    color: var(--ink);
+  }
+}
+
+.auth-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.auth-switch .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
 
 /* UC-20 (T-E4-05): the address book. */
 
