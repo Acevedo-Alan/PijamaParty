@@ -1,5 +1,4 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
 import { answer, listed, product, stubCatalogApi } from '../../test/catalogApi.ts';
@@ -66,44 +65,49 @@ describe('store footer (UC-31)', () => {
     expect(screen.queryByRole('region', { name: messages.payments })).not.toBeInTheDocument();
   });
 
-  it('given no contact or social links from the business yet (D-15), when the footer is checked, then there is no Contacto y redes column', async () => {
+  it('given no contact or social links from the business yet (D-15), when the footer is checked, then there are no Contacto and Redes sociales columns', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 
     renderRoute('/');
 
     await screen.findByRole('link', { name: /Pijama rosa/ });
+    expect(screen.queryByRole('region', { name: messages.contact })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: messages.social })).not.toBeInTheDocument();
   });
 
-  it('given only the Instagram link, when the footer is checked, then Contacto y redes links Instagram in a new tab and neither TikTok nor Contacto', async () => {
-    setStoreContact({ instagramUrl: 'https://www.instagram.com/pijamaparty/' });
+  it('given a contact email and WhatsApp number, when the footer is checked, then Contacto links the chat in a new tab and a new email', async () => {
+    setStoreContact({ email: 'hola@example.com', whatsAppNumber: '5493424000000' });
     stubCatalogApi({ listings: [listed([product('rosa')])] });
-
-    renderRoute('/');
-
-    await screen.findByRole('link', { name: /Pijama rosa/ });
-    const instagram = column(messages.social).getByRole('link', { name: messages.instagram });
-    expect(instagram).toHaveAttribute('href', 'https://www.instagram.com/pijamaparty/');
-    expect(instagram).toHaveAttribute('target', '_blank');
-    expect(instagram).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(column(messages.social).queryByRole('link', { name: messages.tiktok })).not.toBeInTheDocument();
-    expect(column(messages.social).queryByRole('link', { name: messages.contact })).not.toBeInTheDocument();
-  });
-
-  it('given a contact email, when "Contacto" is followed from another page, then the home page opens at "Contactanos"', async () => {
-    setStoreContact({ email: 'hola@example.com' });
-    stubCatalogApi({ listings: [listed([product('rosa')])] });
-    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
 
     renderRoute('/categoria/verano');
 
     await screen.findByRole('link', { name: /Pijama rosa/ });
-    const contact = column(messages.social).getByRole('link', { name: messages.contact });
-    expect(contact).toHaveAttribute('href', '/#contactanos');
-    await userEvent.click(contact);
-    const section = await screen.findByRole('region', { name: es.contact.title });
-    await waitFor(() => {
-      expect(scrollIntoView.mock.contexts).toContain(section);
+    const whatsApp = column(messages.contact).getByRole('link', { name: '+54 9 3424000000' });
+    expect(whatsApp).toHaveAttribute('href', 'https://wa.me/5493424000000');
+    expect(whatsApp).toHaveAttribute('target', '_blank');
+    expect(whatsApp).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(column(messages.contact).getByRole('link', { name: 'hola@example.com' })).toHaveAttribute('href', 'mailto:hola@example.com');
+    expect(screen.queryByRole('region', { name: messages.social })).not.toBeInTheDocument();
+  });
+
+  it('given Instagram and TikTok links, when the footer is checked, then Redes sociales shows both as icons named after them, opening in a new tab', async () => {
+    setStoreContact({ instagramUrl: 'https://www.instagram.com/pijamaparty/', tiktokUrl: 'https://www.tiktok.com/@pijamaparty' });
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+
+    renderRoute('/');
+
+    await screen.findByRole('link', { name: /Pijama rosa/ });
+    const links = column(messages.social).getAllByRole('link');
+    expect(links.map((link) => link.getAttribute('aria-label'))).toEqual([messages.instagram, messages.tiktok]);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      'https://www.instagram.com/pijamaparty/',
+      'https://www.tiktok.com/@pijamaparty',
+    ]);
+    links.forEach((link) => {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     });
+    expect(screen.queryByRole('region', { name: messages.contact })).not.toBeInTheDocument();
   });
 });

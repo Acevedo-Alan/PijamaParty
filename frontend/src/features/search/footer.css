@@ -1,4 +1,4 @@
-/* The store footer (UC-31, T-E7-20), from the prototype's footer: one column on phones, three from 860 px, and below
+/* The store footer (UC-31, T-E7-20, T-E7-24), from the prototype's footer: one column on phones, four from 860 px, and below
    them, after a line, the withdrawal button, the Cookies link and the copyright across the whole width. */
 
 /* T-E7-21: the benefits bar right above the footer; a row with dividers from 860 px, stacked below. */
@@ -63,7 +63,7 @@
 
 .site-footer-inner {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 32px;
 }
 
@@ -98,6 +98,64 @@
   height: 20px;
   margin-right: 8px;
   flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* T-E7-24: the networks as round icon buttons in a row; the pink gradient fades in on hover and keyboard focus. */
+.footer-social {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.footer-social a {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--ink);
+  transition:
+    color var(--dur-base) var(--ease-standard),
+    border-color var(--dur-base) var(--ease-standard),
+    transform var(--dur-base) var(--ease-pop);
+}
+
+/* A gradient cannot be transitioned: it sits under the icon and only its opacity changes. */
+.footer-social a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, var(--rose), var(--accent) 55%, var(--accent-hover));
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+
+.footer-social a:focus-visible {
+  border-color: transparent;
+  color: var(--surface);
+}
+
+.footer-social a:focus-visible::before {
+  opacity: 1;
+}
+
+.footer-social .footer-icon {
+  width: 20px;
+  height: 20px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.6;
@@ -146,6 +204,22 @@
 @media (hover: hover) {
   .footer-links a:hover {
     color: var(--ink);
+  }
+
+  .footer-social a:hover {
+    border-color: transparent;
+    color: var(--surface);
+    transform: translateY(-2px);
+  }
+
+  .footer-social a:hover::before {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-social a:hover {
+    transform: none;
   }
 }
 

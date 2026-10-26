@@ -421,12 +421,11 @@ export const es = {
     /** No installments or discounts here until the owner decides them (D-01, D-02). */
     freeShippingFrom: (amount: string) => `Envío gratis desde ${amount}`,
   },
-  /** UC-31 (T-E7-03, T-E7-20): the footer's columns; the withdrawal and Cookies links keep their own texts. */
+  /** UC-31 (T-E7-03, T-E7-20, T-E7-24): the footer's columns; the withdrawal and Cookies links keep their own texts. */
   footer: {
     help: 'Ayuda y legales',
-    social: 'Contacto y redes',
-    /** The link to "Contactanos" of the home page. */
     contact: 'Contacto',
+    social: 'Redes sociales',
     instagram: 'Instagram',
     tiktok: 'TikTok',
     payments: 'Medios de pago',

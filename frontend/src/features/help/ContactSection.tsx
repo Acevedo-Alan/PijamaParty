@@ -8,19 +8,16 @@ const messages = es.contact;
 
 const CONTACT_ID = 'contactanos';
 
-/** Where "Contacto" of the footer goes (UC-31, T-E7-20): this section of the home page. */
-export const CONTACT_PATH = `/#${CONTACT_ID}`;
-
 /**
  * "Contactanos" at the end of the home page (UC-30, D-09): the email and WhatsApp as links, no form. What the
- * business has not sent yet is left out (D-15), and without both there is no section. Opened from "Contacto" of the
- * footer, the page scrolls to it.
+ * business has not sent yet is left out (D-15), and without both there is no section. Opened at `/#contactanos`, the
+ * page scrolls to it.
  */
 export function ContactSection() {
   const { hash, key } = useLocation();
   const section = useRef<HTMLElement>(null);
 
-  // The router does not scroll to a hash: each "Contacto", even from the home page itself, comes here again.
+  // The router does not scroll to a hash: each link to it, even from the home page itself, comes here again.
   useEffect(() => {
     if (hash === `#${CONTACT_ID}`) {
       section.current?.scrollIntoView({ block: 'start' });
