@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { ConsentFooterLink } from '../analytics/ConsentBanner.tsx';
 import type { PaymentProvider } from '../checkout/checkoutForm.ts';
@@ -6,6 +7,8 @@ import { usePaymentProviders } from '../checkout/useCheckout.ts';
 import { FaqLink } from '../help/FaqLink.tsx';
 import { STORE_CONTACT, whatsAppUrl } from '../help/storeContact.ts';
 import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
+import { StoreLogo } from './StoreLogo.tsx';
+import { StoreNavigation } from './StoreNavigation.tsx';
 import './footer.css';
 
 const messages = es.footer;
@@ -94,9 +97,9 @@ function ContactColumn() {
 
 /**
  * Instagram and TikTok as round icon buttons (T-E7-24), as the business sends them (D-15); the network's name is the
- * link's name. Without both, no column.
+ * link's name. Without both, nothing.
  */
-function SocialColumn() {
+function SocialLinks() {
   const links = [
     { name: messages.instagram as string, url: STORE_CONTACT.instagramUrl, icon: instagramIcon },
     { name: messages.tiktok as string, url: STORE_CONTACT.tiktokUrl, icon: tiktokIcon },
@@ -105,7 +108,7 @@ function SocialColumn() {
     return null;
   }
   return (
-    <section className="footer-column" aria-labelledby="footer-social">
+    <section className="footer-social-block" aria-labelledby="footer-social">
       <h2 id="footer-social">{messages.social}</h2>
       <ul className="footer-social">
         {links.map((link) => (
@@ -144,15 +147,33 @@ function PaymentsColumn() {
   );
 }
 
+/** The store's block that opens the footer (T-E7-25): the logo to the home page, the tagline and the networks. */
+function StoreBlock() {
+  return (
+    <div className="footer-brand">
+      <Link to="/" className="footer-logo">
+        <StoreLogo />
+      </Link>
+      <p className="footer-tagline">{messages.tagline}</p>
+      <SocialLinks />
+    </div>
+  );
+}
+
 /**
- * The footer of every public page (UC-31, T-E7-20, T-E7-24): Ayuda y legales, Contacto, Redes sociales and Medios de
- * pago; below them, after a line, the withdrawal button (UC-29, RNF-30.1), the link to change the analytics choice
+ * The footer of every public page (UC-31, T-E7-20, T-E7-24, T-E7-25): the store's block, then Tienda, Ayuda y
+ * legales, Contacto and Medios de pago; below them, after a line, the withdrawal button (UC-29, RNF-30.1), the link to change the analytics choice
  * (RNF-25) and the copyright. The exchanges and terms pages of T-E6-06 join Ayuda y legales once they exist.
  */
 export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="wrap site-footer-inner">
+        <StoreBlock />
+        <section className="footer-column" aria-labelledby="footer-shop">
+          <h2 id="footer-shop">{messages.shop}</h2>
+          <StoreNavigation className="footer-links" />
+        </section>
         <section className="footer-column" aria-labelledby="footer-help">
           <h2 id="footer-help">{messages.help}</h2>
           <ul className="footer-links">
@@ -162,7 +183,6 @@ export function SiteFooter() {
           </ul>
         </section>
         <ContactColumn />
-        <SocialColumn />
         <PaymentsColumn />
         <div className="footer-bottom">
           <WithdrawalLink />

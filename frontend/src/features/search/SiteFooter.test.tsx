@@ -28,6 +28,29 @@ describe('store footer (UC-31)', () => {
     expect(footer().getByText(messages.copyright(new Date().getFullYear(), es.store.name))).toBeInTheDocument();
   });
 
+  it('given any public page, when the footer is checked, then the logo links to the home page above the tagline and Tienda has the header navigation', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+
+    renderRoute('/categoria/verano');
+
+    await screen.findByRole('link', { name: /Pijama rosa/ });
+    const logo = footer().getByRole('link', { name: es.store.name });
+    expect(logo).toHaveAttribute('href', '/');
+    expect(footer().getByText(messages.tagline)).toBeInTheDocument();
+    const links = column(messages.shop).getAllByRole('link');
+    expect(links.map((link) => link.textContent)).toEqual([
+      es.header.all,
+      es.header.audiences.WOMEN,
+      es.header.audiences.MEN,
+      es.header.audiences.KIDS,
+      es.header.winter,
+    ]);
+    const header = within(screen.getByRole('navigation', { name: es.header.navigation }));
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(
+      header.getAllByRole('link').map((link) => link.getAttribute('href')),
+    );
+  });
+
   it('given the exchanges and terms pages not built yet (T-E6-06), when the footer is checked, then Ayuda does not link them', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 

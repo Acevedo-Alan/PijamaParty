@@ -421,8 +421,15 @@ export const es = {
     /** No installments or discounts here until the owner decides them (D-01, D-02). */
     freeShippingFrom: (amount: string) => `Envío gratis desde ${amount}`,
   },
-  /** UC-31 (T-E7-03, T-E7-20, T-E7-24): the footer's columns; the withdrawal and Cookies links keep their own texts. */
+  /**
+   * UC-31 (T-E7-03, T-E7-20, T-E7-24, T-E7-25): the footer's store block and columns; the withdrawal and Cookies links
+   * keep their own texts.
+   */
   footer: {
+    /** Under the logo. */
+    tagline: 'Pijamas para toda la familia',
+    /** The header's navigation, again. */
+    shop: 'Tienda',
     help: 'Ayuda y legales',
     contact: 'Contacto',
     social: 'Redes sociales',

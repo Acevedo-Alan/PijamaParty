@@ -104,7 +104,7 @@ describe('store navigation (UC-31)', () => {
     stubCatalogApi({ listings: [listed([])] });
     renderRoute('/buscar');
 
-    const logo = screen.getByRole('link', { name: es.store.name });
+    const logo = within(screen.getByRole('banner')).getByRole('link', { name: es.store.name });
     expect(logo).toHaveAttribute('href', '/');
     expect(within(logo).getByRole('img', { name: es.store.name })).toHaveAttribute('height', '48');
   });

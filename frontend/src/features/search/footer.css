@@ -1,4 +1,5 @@
-/* The store footer (UC-31, T-E7-20, T-E7-24), from the prototype's footer: one column on phones, four from 860 px, and below
+/* The store footer (UC-31, T-E7-20, T-E7-24, T-E7-25), from the prototype's footer: the store's block and the columns
+   stacked on phones, the block over two columns from 640 px and everything in one row from 960 px; below
    them, after a line, the withdrawal button, the Cookies link and the copyright across the whole width. */
 
 /* T-E7-21: the benefits bar right above the footer; a row with dividers from 860 px, stacked below. */
@@ -63,10 +64,30 @@
 
 .site-footer-inner {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 32px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
 }
 
+/* T-E7-25: the logo to the home page, the tagline and the networks. */
+.footer-logo {
+  display: inline-block;
+}
+
+.footer-logo img {
+  display: block;
+}
+
+.footer-tagline {
+  margin-top: 8px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.footer-social-block {
+  margin-top: 20px;
+}
+
+.footer-social-block h2,
 .footer-column h2 {
   margin-bottom: 4px;
   color: var(--ink);
@@ -83,6 +104,12 @@
   align-items: center;
   min-height: 44px;
   color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.footer-links a[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .footer-payments {
@@ -129,23 +156,22 @@
   color: var(--ink);
   transition:
     color var(--dur-base) var(--ease-standard),
-    border-color var(--dur-base) var(--ease-standard),
     transform var(--dur-base) var(--ease-pop);
 }
 
-/* A gradient cannot be transitioned: it sits under the icon and only its opacity changes. */
+/* A gradient cannot be transitioned: it sits under the icon, covering the border too, and only its opacity changes.
+   The --rose stop starts outside the circle, so the white icon stays at 3:1 or more over it (WCAG 1.4.11). */
 .footer-social a::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: -1px;
   z-index: -1;
-  background: linear-gradient(135deg, var(--rose), var(--accent) 55%, var(--accent-hover));
+  background: linear-gradient(135deg, var(--rose) -25%, var(--accent) 50%, var(--accent-hover));
   opacity: 0;
   transition: opacity var(--dur-base) var(--ease-standard);
 }
 
 .footer-social a:focus-visible {
-  border-color: transparent;
   color: var(--surface);
 }
 
@@ -197,8 +223,34 @@
 }
 
 .footer-bottom p {
-  margin-left: auto;
+  width: 100%;
   font-size: 13px;
+}
+
+@media (min-width: 640px) {
+  .site-footer-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px;
+  }
+
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+
+  .footer-bottom p {
+    width: auto;
+    margin-left: auto;
+  }
+}
+
+@media (min-width: 960px) {
+  .site-footer-inner {
+    grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr));
+  }
+
+  .footer-brand {
+    grid-column: auto;
+  }
 }
 
 @media (hover: hover) {
@@ -207,7 +259,6 @@
   }
 
   .footer-social a:hover {
-    border-color: transparent;
     color: var(--surface);
     transform: translateY(-2px);
   }
@@ -241,13 +292,4 @@
     border-left: none;
   }
 
-  .site-footer-inner {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-
-  .footer-bottom p {
-    width: 100%;
-    margin-left: 0;
-  }
 }
