@@ -88,6 +88,8 @@ interface CatalogAnswers {
   shippingRates?: unknown;
   /** Answer of GET /api/checkout/payment-providers, which the footer reads (UC-31): MercadoPago only unless told. */
   paymentProviders?: unknown;
+  /** Answer of GET /api/catalog/size-guides (T-E7-29): none unless told. */
+  sizeGuides?: unknown;
 }
 
 /** Serves the catalog GET calls by path, so the listing and the filter options can load in any order. */
@@ -100,6 +102,7 @@ export function stubCatalogApi({
   banner = answer(204),
   shippingRates = NO_SHIPPING_RATES,
   paymentProviders = MERCADOPAGO_ONLY,
+  sizeGuides = answer(200, { items: [] }),
 }: CatalogAnswers): MockInstance {
   const queue = [...listings];
   return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string, init?: { params?: { query?: { q?: string } } }) => {
@@ -125,6 +128,9 @@ export function stubCatalogApi({
     }
     if (path === PAYMENT_PROVIDERS_PATH) {
       return Promise.resolve(paymentProviders);
+    }
+    if (path === '/api/catalog/size-guides') {
+      return Promise.resolve(sizeGuides);
     }
     const next = queue.length > 1 ? queue.shift() : queue[0];
     return Promise.resolve(next);

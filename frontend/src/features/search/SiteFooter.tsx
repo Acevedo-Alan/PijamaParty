@@ -4,7 +4,7 @@ import { es } from '../../i18n/es.ts';
 import { ConsentFooterLink } from '../analytics/ConsentBanner.tsx';
 import type { PaymentProvider } from '../checkout/checkoutForm.ts';
 import { usePaymentProviders } from '../checkout/useCheckout.ts';
-import { FaqLink, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, TERMS_PATH } from '../help/FaqLink.tsx';
+import { FaqLink, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, SIZE_GUIDES_PATH, TERMS_PATH } from '../help/FaqLink.tsx';
 import { mapsUrl, STORE_CONTACT, whatsAppUrl } from '../help/storeContact.ts';
 import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
 import { StoreLogo } from './StoreLogo.tsx';
@@ -239,6 +239,9 @@ export function SiteFooter() {
             </li>
             <li>
               <Link to={HOW_TO_BUY_PATH}>{messages.howToBuy}</Link>
+            </li>
+            <li>
+              <Link to={SIZE_GUIDES_PATH}>{messages.sizeGuides}</Link>
             </li>
             <li>
               <Link to={RETURNS_POLICY_PATH}>{messages.returns}</Link>

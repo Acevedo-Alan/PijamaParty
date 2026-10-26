@@ -204,7 +204,7 @@ describe('size guide on the product page (RNF-31.5)', () => {
 
     renderRoute('/producto/luna');
 
-    const summary = await screen.findByText(es.product.sizeGuide);
+    const summary = await within(await screen.findByRole('main')).findByText(es.product.sizeGuide);
     await userEvent.click(summary);
     const table = within(screen.getByRole('table'));
     expect(table.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
@@ -227,7 +227,7 @@ describe('size guide on the product page (RNF-31.5)', () => {
     renderRoute('/producto/luna');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' })).toBeInTheDocument();
-    expect(screen.queryByText(es.product.sizeGuide)).not.toBeInTheDocument();
+    expect(within(screen.getByRole('main')).queryByText(es.product.sizeGuide)).not.toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 });

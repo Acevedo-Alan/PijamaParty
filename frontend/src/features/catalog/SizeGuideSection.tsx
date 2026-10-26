@@ -1,15 +1,16 @@
 import { Collapsible } from '../../components/Collapsible.tsx';
 import { es } from '../../i18n/es.ts';
 import type { SizeGuide } from './productDetailApi.ts';
+import './sizeGuide.css';
 
 /**
- * RNF-31.5: the size guide of the product's category, the first of the collapsed sections of the page (E7). The
- * table scrolls sideways inside its box when it does not fit, never the page.
+ * RNF-31.5: a size guide's table (size first, then the columns) and its note, on the product page and the size guide
+ * page (T-E7-29). The table scrolls sideways inside its box when it does not fit, never the page; `label` names it.
  */
-export function SizeGuideSection({ guide }: { guide: SizeGuide }) {
+export function SizeGuideTable({ guide, label }: { guide: SizeGuide; label: string }) {
   return (
-    <Collapsible title={es.product.sizeGuide} className="pdp-section size-guide">
-      <div className="size-guide-table" role="region" aria-label={es.product.sizeGuideTable} tabIndex={0}>
+    <>
+      <div className="size-guide-table" role="region" aria-label={label} tabIndex={0}>
         <table>
           <thead>
             <tr>
@@ -34,6 +35,15 @@ export function SizeGuideSection({ guide }: { guide: SizeGuide }) {
         </table>
       </div>
       {guide.note !== null && <p className="size-guide-note">{guide.note}</p>}
+    </>
+  );
+}
+
+/** RNF-31.5: the size guide of the product's category, the first of the collapsed sections of the page (E7). */
+export function SizeGuideSection({ guide }: { guide: SizeGuide }) {
+  return (
+    <Collapsible title={es.product.sizeGuide} className="pdp-section size-guide">
+      <SizeGuideTable guide={guide} label={es.product.sizeGuideTable} />
     </Collapsible>
   );
 }

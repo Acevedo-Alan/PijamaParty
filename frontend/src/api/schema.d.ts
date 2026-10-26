@@ -1352,6 +1352,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/catalog/size-guides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The size guide of every active category that has one, by the categories' position
+         * @description The same guides the product pages show (RNF-31.5); blank values show "–".
+         */
+        get: operations["listSizeGuides"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/catalog/sitemap": {
         parameters: {
             query?: never;
@@ -1361,7 +1381,7 @@ export interface paths {
         };
         /**
          * The storefront's sitemap
-         * @description The home page, the FAQ, the active categories and the listed products. Caddy serves it at /sitemap.xml.
+         * @description The home page, the FAQ and help pages, the active categories and the listed products. Caddy serves it at /sitemap.xml.
          */
         get: operations["sitemap"];
         put?: never;
@@ -2417,6 +2437,19 @@ export interface components {
         SuggestionsResponse: {
             items?: components["schemas"]["SuggestionResponse"][];
         };
+        CategorySizeGuideResponse: {
+            category?: components["schemas"]["ShopCategoryResponse"];
+            columns?: string[];
+            rows?: components["schemas"]["SizeGuideRowResponse"][];
+            note?: string | null;
+        };
+        ShopCategoryResponse: {
+            slug?: string;
+            name?: string;
+        };
+        SizeGuidesResponse: {
+            items?: components["schemas"]["CategorySizeGuideResponse"][];
+        };
         ProductListItemResponse: {
             slug?: string;
             name?: string;
@@ -2458,10 +2491,6 @@ export interface components {
             variants?: components["schemas"]["VariantDetailResponse"][];
             images?: components["schemas"]["DetailImageResponse"][];
             sizeGuide?: components["schemas"]["SizeGuideResponse"];
-        };
-        ShopCategoryResponse: {
-            slug?: string;
-            name?: string;
         };
         SizeGuideResponse: {
             columns?: string[];
@@ -6451,6 +6480,53 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuggestionsResponse"];
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No active category has this slug */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Over the catalog limit (RNF-22); Retry-After says when to retry */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listSizeGuides: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The guides */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SizeGuidesResponse"];
                 };
             };
             /** @description Invalid parameters */

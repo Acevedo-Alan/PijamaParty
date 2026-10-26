@@ -5,6 +5,7 @@ import com.pijamaparty.store.catalog.application.GetFilterOptions;
 import com.pijamaparty.store.catalog.application.GetProductDetail;
 import com.pijamaparty.store.catalog.application.ListProducts;
 import com.pijamaparty.store.catalog.application.ListShopCategories;
+import com.pijamaparty.store.catalog.application.ListSizeGuides;
 import com.pijamaparty.store.catalog.application.ProductDetail;
 import com.pijamaparty.store.catalog.application.ProductListingItem;
 import com.pijamaparty.store.catalog.application.ProductSuggestion;
@@ -43,7 +44,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** UC-01 to UC-03: the public catalog. Only translates between HTTP and the use cases. */
+/** UC-01 to UC-03 and T-E7-29: the public catalog. Only translates between HTTP and the use cases. */
 @RestController
 @RequestMapping("/api/catalog")
 @Tag(name = "Catalog")
@@ -67,16 +68,18 @@ class CatalogController {
     private final GetFilterOptions getFilterOptions;
     private final GetProductDetail getProductDetail;
     private final ListShopCategories listShopCategories;
+    private final ListSizeGuides listSizeGuides;
 
     CatalogController(ListProducts listProducts, SearchProducts searchProducts, SuggestProducts suggestProducts,
                       GetFilterOptions getFilterOptions, GetProductDetail getProductDetail,
-                      ListShopCategories listShopCategories) {
+                      ListShopCategories listShopCategories, ListSizeGuides listSizeGuides) {
         this.listProducts = listProducts;
         this.searchProducts = searchProducts;
         this.suggestProducts = suggestProducts;
         this.getFilterOptions = getFilterOptions;
         this.getProductDetail = getProductDetail;
         this.listShopCategories = listShopCategories;
+        this.listSizeGuides = listSizeGuides;
     }
 
     @GetMapping("/categories")
@@ -87,6 +90,18 @@ class CatalogController {
         return switch (listShopCategories.execute()) {
             case ListShopCategories.Result.Listed listed -> ResponseEntity.ok(new ShopCategoriesResponse(
                 listed.categories().stream().map(c -> new ShopCategoryResponse(c.slug(), c.name())).toList()));
+        };
+    }
+
+    @GetMapping("/size-guides")
+    @Operation(summary = "The size guide of every active category that has one, by the categories' position",
+        description = "The same guides the product pages show (RNF-31.5); blank values show \"–\".")
+    @ApiResponse(responseCode = "200", description = "The guides", content = @Content(
+        mediaType = "application/json", schema = @Schema(implementation = SizeGuidesResponse.class)))
+    ResponseEntity<?> listSizeGuides() {
+        return switch (listSizeGuides.execute()) {
+            case ListSizeGuides.Result.Listed listed -> ResponseEntity.ok(new SizeGuidesResponse(
+                listed.guides().stream().map(CategorySizeGuideResponse::of).toList()));
         };
     }
 
@@ -245,6 +260,20 @@ class CatalogController {
     record ShopCategoriesResponse(List<ShopCategoryResponse> items) {}
 
     record ShopCategoryResponse(String slug, String name) {}
+
+    record SizeGuidesResponse(List<CategorySizeGuideResponse> items) {}
+
+    /** A category and its guide, as the product page shows it: each row has one value per column. */
+    record CategorySizeGuideResponse(ShopCategoryResponse category, List<String> columns,
+                                     List<SizeGuideResponse.SizeGuideRowResponse> rows,
+                                     @Schema(nullable = true) String note) {
+
+        static CategorySizeGuideResponse of(ListSizeGuides.CategoryGuide categoryGuide) {
+            var guide = SizeGuideResponse.of(categoryGuide.guide());
+            return new CategorySizeGuideResponse(new ShopCategoryResponse(categoryGuide.slug(), categoryGuide.name()),
+                guide.columns(), guide.rows(), guide.note());
+        }
+    }
 
     record SuggestionsResponse(List<SuggestionResponse> items) {}
 

@@ -33,6 +33,7 @@ class SizeGuideServicesTest {
         new InMemoryCatalogActivity(), Clock.fixed(NOW, ZoneOffset.UTC));
     private final DeleteSizeGuide delete = new DeleteSizeGuideService(categories, guides, guides,
         new InMemoryCatalogActivity());
+    private final ListSizeGuides list = new ListSizeGuidesService(categories, guides);
 
     private final Category women = saved("Pijamas de mujer");
     private final CategoryId unknown = CategoryId.of(UUID.randomUUID());
@@ -101,6 +102,31 @@ class SizeGuideServicesTest {
             .isEqualTo(new DeleteSizeGuide.Result.Forbidden());
         assertThat(guides.findByCategory(women.id()).orElseThrow().columns()).containsExactly("Busto (cm)",
             "Cintura (cm)");
+    }
+
+    @Test
+    void givenSomeGuides_whenTheGuidePageOpens_thenItListsActiveCategoriesWithAGuideByPosition() {
+        var kids = saved("Pijamas de niños");
+        saved("Pijamas de hombre");
+        var other = new SizeGuideForm(List.of("Edad"), List.of(new RowForm("4", List.of("4 años"))), null);
+        edit.execute(new EditSizeGuide.Command(ADMIN, kids.id(), other));
+        edit.execute(new EditSizeGuide.Command(ADMIN, women.id(), WOMEN));
+        var winter = saved("Invierno");
+        edit.execute(new EditSizeGuide.Command(ADMIN, winter.id(), other));
+        winter.deactivate(NOW);
+        categories.save(winter);
+
+        var listed = (ListSizeGuides.Result.Listed) list.execute();
+
+        assertThat(listed.guides()).extracting(ListSizeGuides.CategoryGuide::name)
+            .containsExactly("Pijamas de mujer", "Pijamas de niños");
+        assertThat(listed.guides().getFirst().guide().columns()).containsExactly("Busto (cm)", "Cintura (cm)");
+        assertThat(listed.guides().get(1).guide().note()).isEmpty();
+    }
+
+    @Test
+    void givenNoGuides_whenTheGuidePageOpens_thenItListsNone() {
+        assertThat(list.execute()).isEqualTo(new ListSizeGuides.Result.Listed(List.of()));
     }
 
     private Category saved(String name) {

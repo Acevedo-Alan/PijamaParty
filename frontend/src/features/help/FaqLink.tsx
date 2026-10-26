@@ -10,6 +10,9 @@ export const RETURNS_POLICY_PATH = '/cambios-y-devoluciones';
 /** RNF-30.6 (T-E7-28): the terms of purchase, linked from the checkout too. */
 export const TERMS_PATH = '/terminos';
 
+/** UC-31 (T-E7-29, RNF-31.5): the size guides of every category. */
+export const SIZE_GUIDES_PATH = '/guia-de-talles';
+
 /** UC-31 (T-E7-28): the steps of a purchase. */
 export const HOW_TO_BUY_PATH = '/como-comprar';
 

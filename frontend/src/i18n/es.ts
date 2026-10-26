@@ -15,6 +15,7 @@ export const es = {
     howToBuyDescription: 'Cómo comprar en Pijama Party Santa Fe: elegí tus pijamas, pagá y seguí tu pedido en pocos pasos.',
     returnsDescription: 'Cambios por talle o color dentro de los 30 días y arrepentimiento de compra en Pijama Party Santa Fe.',
     termsDescription: 'Términos y condiciones de compra en la tienda online de Pijama Party Santa Fe.',
+    sizeGuidesDescription: 'Guía de talles de los pijamas de Pijama Party Santa Fe, con las medidas de cada categoría.',
     withdrawalDescription:
       'Botón de arrepentimiento de Pijama Party Santa Fe: revocá tu compra dentro de los 10 días corridos, sin costo.',
     /** The price (with "Desde" when prices differ), then the description cut at 200 characters. */
@@ -436,6 +437,7 @@ export const es = {
     help: 'Ayuda y legales',
     /** T-E7-28: the help pages, after the FAQ. */
     howToBuy: 'Cómo comprar',
+    sizeGuides: 'Guía de talles',
     returns: 'Cambios y devoluciones',
     terms: 'Términos y condiciones',
     contact: 'Contacto',
@@ -1587,6 +1589,18 @@ export const es = {
     exchangesBefore: 'Podés cambiar tu compra según la',
     policyLink: 'política de cambios y devoluciones',
     exchangesBetween: 'y arrepentirte dentro de los 10 días corridos desde que la recibiste con el',
+  },
+  /** UC-31 (T-E7-29, RNF-31.5): the size guide page, with the guides of the back office. */
+  sizeGuides: {
+    title: 'Guía de talles',
+    intro: 'Las medidas de cada categoría, las mismas que ves en la ficha de sus productos.',
+    /** The name of each category's table. */
+    tableOf: (category: string) => `Tabla de talles de ${category}`,
+    none: 'Todavía no hay guías de talles. Si tenés dudas con un talle, mirá las',
+    faq: 'preguntas frecuentes',
+    loading: 'Cargando las guías de talles…',
+    loadError: 'No pudimos cargar las guías de talles.',
+    retry: 'Reintentar',
   },
   /** RNF-31.6 (T-E5-12): the FAQ page and its summary on the product page. */
   faq: {

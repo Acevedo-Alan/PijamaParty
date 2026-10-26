@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * T-E6-23 (RNF-31.1): the sitemap of the storefront (sitemaps.org 0.9), which Caddy serves at {@code /sitemap.xml}:
- * the home page, the FAQ and the help pages (T-E7-28), the active categories and the listed products, as absolute
+ * the home page, the FAQ and the help pages (T-E7-28, T-E7-29), the active categories and the listed products, as absolute
  * URLs of {@code store.public-url}.
  */
 @RestController
@@ -30,7 +30,7 @@ class SitemapController {
 
     /** The storefront's pages outside the catalog that search engines may index. */
     static final List<String> FIXED_PATHS = List.of("/", "/preguntas-frecuentes", "/como-comprar",
-        "/cambios-y-devoluciones", "/terminos");
+        "/cambios-y-devoluciones", "/terminos", "/guia-de-talles");
 
     private static final MediaType XML = new MediaType(MediaType.APPLICATION_XML, StandardCharsets.UTF_8);
 

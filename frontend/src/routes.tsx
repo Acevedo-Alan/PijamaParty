@@ -15,7 +15,7 @@ import { CatalogPage } from './features/catalog/CatalogPage.tsx';
 import { HomePage } from './features/catalog/HomePage.tsx';
 import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
-import { FAQ_PATH, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, TERMS_PATH } from './features/help/FaqLink.tsx';
+import { FAQ_PATH, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, SIZE_GUIDES_PATH, TERMS_PATH } from './features/help/FaqLink.tsx';
 import { SearchPage } from './features/search/SearchPage.tsx';
 import { StoreLayout } from './features/search/StoreLayout.tsx';
 import { WITHDRAWAL_PATH } from './features/withdrawal/WithdrawalLink.tsx';
@@ -52,6 +52,10 @@ export const routes: RouteObject[] = [
       { path: HOW_TO_BUY_PATH, lazy: async () => ({ Component: (await helpPages()).HowToBuyPage }) },
       { path: RETURNS_POLICY_PATH, lazy: async () => ({ Component: (await helpPages()).ReturnsPolicyPage }) },
       { path: TERMS_PATH, lazy: async () => ({ Component: (await helpPages()).TermsPage }) },
+      {
+        path: SIZE_GUIDES_PATH,
+        lazy: async () => ({ Component: (await import('./features/catalog/SizeGuidesPage.tsx')).SizeGuidesPage }),
+      },
       { path: REGISTER_PATH, lazy: async () => ({ Component: (await account()).RegisterPage }) },
       { path: SIGN_IN_PATH, lazy: async () => ({ Component: (await account()).SignInPage }) },
       { path: VERIFY_PATH, lazy: async () => ({ Component: (await account()).VerifyEmailPage }) },

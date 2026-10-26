@@ -21,6 +21,7 @@ describe('help pages (UC-31, T-E7-28)', () => {
     expect(help.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
       [es.faq.title, '/preguntas-frecuentes'],
       [es.footer.howToBuy, '/como-comprar'],
+      [es.footer.sizeGuides, '/guia-de-talles'],
       [es.footer.returns, '/cambios-y-devoluciones'],
       [es.footer.terms, '/terminos'],
     ]);

@@ -126,40 +126,6 @@
   cursor: not-allowed;
 }
 
-/* RNF-31.5: the category's size guide, the first collapsed section (E7). The table scrolls sideways inside its box, never the page. */
-.size-guide-table {
-  overflow-x: auto;
-}
-
-.size-guide table {
-  min-width: 100%;
-  font-size: 13px;
-  border-collapse: collapse;
-}
-
-.size-guide th,
-.size-guide td {
-  padding: 7px 10px 7px 4px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  white-space: nowrap;
-}
-
-.size-guide thead th {
-  font-weight: 700;
-}
-
-.size-guide tbody th {
-  font-weight: 600;
-}
-
-.size-guide-note {
-  margin-top: 10px;
-  font-size: 13px;
-  color: var(--ink-soft);
-  white-space: pre-line;
-}
-
 .stock-note {
   min-height: 1.5em;
   margin-top: 6px;

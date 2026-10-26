@@ -63,7 +63,7 @@ function toVariant({ id, sku, size, color, priceCents, available }: VariantRespo
   return { id, sku, size, color, priceCents, available: available ?? 0 };
 }
 
-function toSizeGuide({ columns, rows, note }: SizeGuideResponse): SizeGuide {
+export function toSizeGuide({ columns, rows, note }: SizeGuideResponse): SizeGuide {
   if (columns === undefined || rows === undefined) {
     throw new Error('Incomplete size guide');
   }

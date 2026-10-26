@@ -83,6 +83,41 @@ class SizeGuideApiTest {
     }
 
     @Test
+    void givenActiveAndInactiveCategoriesWithAndWithoutGuides_whenTheGuidePageOpens_thenOnlyActiveOnesWithAGuideShow()
+        throws Exception {
+        UUID kids = category("pijamas-de-ninos");
+        UUID men = category("pijamas-de-hombre");
+        UUID winter = category("invierno");
+        app.update("update category set position = 1 where id = ?", kids);
+        app.update("update category set position = 2 where id = ?", men);
+        app.update("update category set position = 3, active = false where id = ?", winter);
+        String kidsGuide = """
+            {"columns": ["Edad"], "rows": [{"size": "4", "values": ["4 años"]}]}
+            """;
+        save(kids, kidsGuide).andExpect(status().isOk());
+        save(women, WOMEN_GUIDE).andExpect(status().isOk());
+        save(winter, kidsGuide).andExpect(status().isOk());
+
+        mvc.perform(get("/api/catalog/size-guides"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[*].category.slug", contains("pijamas-de-mujer", "pijamas-de-ninos")))
+            .andExpect(jsonPath("$.items[0].category.name").value("pijamas-de-mujer"))
+            .andExpect(jsonPath("$.items[0].columns", contains("Busto (cm)", "Cintura (cm)")))
+            .andExpect(jsonPath("$.items[0].rows[*].size", contains("M", "S")))
+            .andExpect(jsonPath("$.items[0].rows[1].values", contains("83–87", "")))
+            .andExpect(jsonPath("$.items[0].note").value("Medí sobre la ropa interior."))
+            .andExpect(jsonPath("$.items[1].note").value(nullValue()))
+            .andExpect(jsonPath("$.items[0].updatedAt").doesNotExist());
+    }
+
+    @Test
+    void givenNoGuides_whenTheGuidePageOpens_thenThereAreNone() throws Exception {
+        mvc.perform(get("/api/catalog/size-guides"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items").isEmpty());
+    }
+
+    @Test
     void givenACategoryWithoutAGuide_whenOneOfItsProductsOpens_thenItHasNoGuide() throws Exception {
         listedProduct(women, "pijama-rosa");
 

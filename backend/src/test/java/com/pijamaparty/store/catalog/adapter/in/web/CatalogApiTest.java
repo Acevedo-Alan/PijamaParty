@@ -370,6 +370,7 @@ class CatalogApiTest {
                 <url><loc>%1$s/como-comprar</loc></url>
                 <url><loc>%1$s/cambios-y-devoluciones</loc></url>
                 <url><loc>%1$s/terminos</loc></url>
+                <url><loc>%1$s/guia-de-talles</loc></url>
                 <url><loc>%1$s/categoria/verano</loc></url>
                 <url><loc>%1$s/producto/pijama</loc></url>
                 </urlset>
