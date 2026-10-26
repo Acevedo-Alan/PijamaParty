@@ -5,7 +5,7 @@ import { ConsentFooterLink } from '../analytics/ConsentBanner.tsx';
 import type { PaymentProvider } from '../checkout/checkoutForm.ts';
 import { usePaymentProviders } from '../checkout/useCheckout.ts';
 import { FaqLink } from '../help/FaqLink.tsx';
-import { STORE_CONTACT, whatsAppUrl } from '../help/storeContact.ts';
+import { mapsUrl, STORE_CONTACT, whatsAppUrl } from '../help/storeContact.ts';
 import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
 import { StoreLogo } from './StoreLogo.tsx';
 import { StoreNavigation } from './StoreNavigation.tsx';
@@ -13,7 +13,7 @@ import './footer.css';
 
 const messages = es.footer;
 
-/** Outline drawings of a phone and an envelope, before the number and the email (T-E7-24). */
+/** Outline drawings of a phone, an envelope, a clock and a pin, before each contact (T-E7-24, T-E7-26). */
 const phoneIcon = (
   <svg className="footer-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M5 4.5h3.2l1.6 4-2 1.3a10.5 10.5 0 0 0 6.4 6.4l1.3-2 4 1.6V19a1.5 1.5 0 0 1-1.6 1.5A15.5 15.5 0 0 1 3.5 6.1 1.5 1.5 0 0 1 5 4.5Z" />
@@ -24,6 +24,20 @@ const emailIcon = (
   <svg className="footer-icon" viewBox="0 0 24 24" aria-hidden="true">
     <rect x="3" y="5.5" width="18" height="13" rx="2" />
     <path d="m3.5 7 8.5 6 8.5-6" />
+  </svg>
+);
+
+const clockIcon = (
+  <svg className="footer-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.5V12l3 2" />
+  </svg>
+);
+
+const pinIcon = (
+  <svg className="footer-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
+    <circle cx="12" cy="10" r="2.3" />
   </svg>
 );
 
@@ -40,6 +54,14 @@ const tiktokIcon = (
   <svg className="footer-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M13 3.5v11.5a3.5 3.5 0 1 1-3.5-3.5" />
     <path d="M13 3.5c.4 2.6 2.3 4.4 5 4.6" />
+  </svg>
+);
+
+/** The store's own drawing of a parcel for Correo Argentino, not its logo (T-E7-26). */
+const parcelIcon = (
+  <svg className="footer-payment-icon" viewBox="0 0 32 24" aria-hidden="true">
+    <path d="M16 3 6 7.5v9L16 21l10-4.5v-9L16 3Z" />
+    <path d="M6 7.5 16 12l10-4.5M16 12v9M11 5.3l10 4.5" />
   </svg>
 );
 
@@ -64,10 +86,13 @@ function displayWhatsApp(number: string): string {
   return `+${number.slice(0, 2)} ${number.slice(2, 3)} ${number.slice(3)}`;
 }
 
-/** The WhatsApp number and the email, as the business sends them (D-15, T-E7-24); without both, no column. */
+/**
+ * The WhatsApp number, the email, the opening hours and the address, as the business sends them (D-15, T-E7-24,
+ * T-E7-26); without any of them, no column.
+ */
 function ContactColumn() {
-  const { email, whatsAppNumber } = STORE_CONTACT;
-  if (email === undefined && whatsAppNumber === undefined) {
+  const { email, whatsAppNumber, openingHours, address } = STORE_CONTACT;
+  if (email === undefined && whatsAppNumber === undefined && openingHours === undefined && address === undefined) {
     return null;
   }
   return (
@@ -87,6 +112,20 @@ function ContactColumn() {
             <a href={`mailto:${email}`}>
               {emailIcon}
               {email}
+            </a>
+          </li>
+        )}
+        {openingHours !== undefined && (
+          <li className="footer-text">
+            {clockIcon}
+            {openingHours}
+          </li>
+        )}
+        {address !== undefined && (
+          <li>
+            <a href={mapsUrl(address)} target="_blank" rel="noopener noreferrer" title={messages.maps}>
+              {pinIcon}
+              {address}
             </a>
           </li>
         )}
@@ -123,20 +162,20 @@ function SocialLinks() {
   );
 }
 
-/** The enabled providers (T-E3b-04) as icons in a row; while unknown, or when they cannot be read, no column. */
-function PaymentsColumn() {
+/** The enabled providers (T-E3b-04) as icons in a row; while unknown, or when they cannot be read, nothing. */
+function PaymentProviders() {
   const providers = usePaymentProviders().data ?? [];
   if (providers.length === 0) {
     return null;
   }
   return (
-    <section className="footer-column" aria-labelledby="footer-payments">
+    <section aria-labelledby="footer-payments">
       <h2 id="footer-payments">{messages.payments}</h2>
       <ul className="footer-payments">
         {providers.map((provider) => {
           const name = es.checkout.providers[provider].name;
           return (
-            <li key={provider} title={name}>
+            <li key={provider} title={name} translate="no">
               {paymentIcons[provider]}
               <span className="visually-hidden">{name}</span>
             </li>
@@ -144,6 +183,24 @@ function PaymentsColumn() {
         })}
       </ul>
     </section>
+  );
+}
+
+/** The payment providers, then the carrier, which is always there (T-E7-26). */
+function PaymentsColumn() {
+  return (
+    <div className="footer-column footer-payments-column">
+      <PaymentProviders />
+      <section aria-labelledby="footer-shipping">
+        <h2 id="footer-shipping">{messages.shipping}</h2>
+        <ul className="footer-payments">
+          <li title={messages.carrier} translate="no">
+            {parcelIcon}
+            <span className="visually-hidden">{messages.carrier}</span>
+          </li>
+        </ul>
+      </section>
+    </div>
   );
 }
 

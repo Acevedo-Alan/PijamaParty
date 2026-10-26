@@ -436,6 +436,11 @@ export const es = {
     instagram: 'Instagram',
     tiktok: 'TikTok',
     payments: 'Medios de pago',
+    /** T-E7-26: the carrier, under the payment providers. */
+    shipping: 'Envíos',
+    carrier: 'Correo Argentino',
+    /** The tooltip of the address. */
+    maps: 'Ver en Google Maps',
     /** The last line, e.g. "© 2026 Pijama Party Santa Fe". */
     copyright: (year: number, store: string) => `© ${String(year)} ${store}`,
   },

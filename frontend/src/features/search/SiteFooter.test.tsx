@@ -76,7 +76,7 @@ describe('store footer (UC-31)', () => {
     });
   });
 
-  it('given the payment providers failing, when the footer is checked, then there is no Medios de pago column', async () => {
+  it('given the payment providers failing, when the footer is checked, then Medios de pago shows only Envíos', async () => {
     const get = stubCatalogApi({ listings: [listed([product('rosa')])], paymentProviders: answer(500) });
 
     renderRoute('/');
@@ -86,6 +86,33 @@ describe('store footer (UC-31)', () => {
       expect(get).toHaveBeenCalledWith('/api/checkout/payment-providers', expect.anything());
     });
     expect(screen.queryByRole('region', { name: messages.payments })).not.toBeInTheDocument();
+    const shipping = within(screen.getByRole('region', { name: messages.shipping }));
+    expect(shipping.getByText(messages.carrier)).toBeInTheDocument();
+  });
+
+  it('given MercadoPago enabled, when the footer is checked, then Envíos shows the Correo Argentino icon, named after it', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])], paymentProviders: answer(200, { providers: ['MERCADOPAGO'] }) });
+
+    renderRoute('/');
+
+    await screen.findByRole('region', { name: messages.payments });
+    const carrier = column(messages.shipping).getByRole('listitem');
+    expect(carrier).toHaveTextContent(messages.carrier);
+    expect(carrier.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('given opening hours and an address, when the footer is checked, then Contacto shows the hours and links the address to Google Maps in a new tab', async () => {
+    setStoreContact({ openingHours: 'Lunes a viernes de 9 a 18 h', address: 'San Martín 2000, Santa Fe' });
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+
+    renderRoute('/');
+
+    await screen.findByRole('link', { name: /Pijama rosa/ });
+    expect(column(messages.contact).getByText('Lunes a viernes de 9 a 18 h')).toBeInTheDocument();
+    const address = column(messages.contact).getByRole('link', { name: 'San Martín 2000, Santa Fe' });
+    expect(address).toHaveAttribute('href', 'https://www.google.com/maps/search/?api=1&query=San%20Mart%C3%ADn%202000%2C%20Santa%20Fe');
+    expect(address).toHaveAttribute('target', '_blank');
+    expect(address).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('given no contact or social links from the business yet (D-15), when the footer is checked, then there are no Contacto and Redes sociales columns', async () => {

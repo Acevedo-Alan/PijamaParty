@@ -120,7 +120,18 @@
   margin-top: 8px;
 }
 
-.footer-links a .footer-icon {
+/* T-E7-26: the opening hours, a text with its icon, lined up with the links. */
+.footer-links .footer-text {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.footer-payments-column > section + section {
+  margin-top: 20px;
+}
+
+.footer-links .footer-icon {
   width: 20px;
   height: 20px;
   margin-right: 8px;
