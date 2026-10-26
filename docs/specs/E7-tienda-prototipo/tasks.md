@@ -23,6 +23,10 @@
 - [x] **T-E7-22** Ficha: precio destacado, anillo más grueso en el color elegido y envío por provincia en una sola fila (cambios a CU-03, D-07 sin cambios).
 - [x] **T-E7-23** Ícono de usuario en lugar de "Ingresar" y "Crear cuenta" en el encabezado, barra de beneficios solo en la portada, y páginas de ingreso, registro, recuperar y elegir contraseña en tarjeta, con "Mostrar contraseña" y los datos faltantes marcados en cada campo (cambios a CU-31 y CU-19).
 - [x] **T-E7-24** Pie: "Contacto y redes" se separa en Contacto (WhatsApp y email con sus íconos) y Redes sociales (íconos en círculos con degradé rosa al pasar el mouse) (cambios a CU-31).
+- [ ] **T-E7-25** Pie: bloque de la tienda (logo, "Pijamas para toda la familia" y las redes) y columna Tienda con los enlaces de la navegación (cambios a CU-31).
+- [ ] **T-E7-26** Pie: horario de atención y dirección en Contacto, y Correo Argentino como medio de envío (cambios a CU-31).
+- [ ] **T-E7-27** Botón flotante de WhatsApp en la tienda, salvo en el checkout y la cuenta (cambios a CU-31).
+- [ ] **T-E7-28** Páginas de ayuda: Cómo comprar, Guía de talles, y borradores de Términos y condiciones y de Cambios y devoluciones para revisar con el abogado (adelanta parte de T-E6-06; cambios a CU-31).
 - [x] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 
 **Orden:** T-E7-01 primero (sus decisiones cambian T-E7-02, T-E7-05, T-E7-07, T-E7-09 y T-E7-12), después T-E7-12 (las pantallas usan sus tokens). T-E7-13 va antes de T-E7-04 (la portada muestra el banner). T-E7-02 a T-E7-04 no esperan las fotos: usan los fondos degradados hasta que lleguen.
