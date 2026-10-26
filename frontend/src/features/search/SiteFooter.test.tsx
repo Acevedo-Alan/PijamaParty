@@ -51,15 +51,6 @@ describe('store footer (UC-31)', () => {
     );
   });
 
-  it('given the exchanges and terms pages not built yet (T-E6-06), when the footer is checked, then Ayuda does not link them', async () => {
-    stubCatalogApi({ listings: [listed([product('rosa')])] });
-
-    renderRoute('/');
-
-    await screen.findByRole('link', { name: /Pijama rosa/ });
-    expect(column(messages.help).getAllByRole('link')).toHaveLength(1);
-  });
-
   it('given MercadoPago and MODO enabled, when the footer is checked, then Medios de pago shows both icons in a row, named after them', async () => {
     stubCatalogApi({
       listings: [listed([product('rosa')])],

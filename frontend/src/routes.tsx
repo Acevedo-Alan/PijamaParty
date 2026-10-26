@@ -15,7 +15,7 @@ import { CatalogPage } from './features/catalog/CatalogPage.tsx';
 import { HomePage } from './features/catalog/HomePage.tsx';
 import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
-import { FAQ_PATH } from './features/help/FaqLink.tsx';
+import { FAQ_PATH, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, TERMS_PATH } from './features/help/FaqLink.tsx';
 import { SearchPage } from './features/search/SearchPage.tsx';
 import { StoreLayout } from './features/search/StoreLayout.tsx';
 import { WITHDRAWAL_PATH } from './features/withdrawal/WithdrawalLink.tsx';
@@ -27,6 +27,7 @@ import { WITHDRAWAL_PATH } from './features/withdrawal/WithdrawalLink.tsx';
 const account = () => import('./features/account/accountPages.ts');
 const checkout = () => import('./features/checkout/checkoutPages.ts');
 const admin = () => import('./features/admin/adminPages.ts');
+const helpPages = () => import('./features/help/HelpPages.tsx');
 
 /** Feature folders add their routes here (catalog, cart, checkout, account, admin: ARCHITECTURE.md section 11). */
 export const routes: RouteObject[] = [
@@ -48,6 +49,9 @@ export const routes: RouteObject[] = [
         lazy: async () => ({ Component: (await import('./features/withdrawal/WithdrawalPage.tsx')).WithdrawalPage }),
       },
       { path: FAQ_PATH, lazy: async () => ({ Component: (await import('./features/help/FaqPage.tsx')).FaqPage }) },
+      { path: HOW_TO_BUY_PATH, lazy: async () => ({ Component: (await helpPages()).HowToBuyPage }) },
+      { path: RETURNS_POLICY_PATH, lazy: async () => ({ Component: (await helpPages()).ReturnsPolicyPage }) },
+      { path: TERMS_PATH, lazy: async () => ({ Component: (await helpPages()).TermsPage }) },
       { path: REGISTER_PATH, lazy: async () => ({ Component: (await account()).RegisterPage }) },
       { path: SIGN_IN_PATH, lazy: async () => ({ Component: (await account()).SignInPage }) },
       { path: VERIFY_PATH, lazy: async () => ({ Component: (await account()).VerifyEmailPage }) },

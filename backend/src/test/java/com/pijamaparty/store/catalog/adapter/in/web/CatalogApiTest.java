@@ -367,6 +367,9 @@ class CatalogApiTest {
                 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
                 <url><loc>%1$s/</loc></url>
                 <url><loc>%1$s/preguntas-frecuentes</loc></url>
+                <url><loc>%1$s/como-comprar</loc></url>
+                <url><loc>%1$s/cambios-y-devoluciones</loc></url>
+                <url><loc>%1$s/terminos</loc></url>
                 <url><loc>%1$s/categoria/verano</loc></url>
                 <url><loc>%1$s/producto/pijama</loc></url>
                 </urlset>

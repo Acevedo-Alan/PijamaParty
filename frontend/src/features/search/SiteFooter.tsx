@@ -4,7 +4,7 @@ import { es } from '../../i18n/es.ts';
 import { ConsentFooterLink } from '../analytics/ConsentBanner.tsx';
 import type { PaymentProvider } from '../checkout/checkoutForm.ts';
 import { usePaymentProviders } from '../checkout/useCheckout.ts';
-import { FaqLink } from '../help/FaqLink.tsx';
+import { FaqLink, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, TERMS_PATH } from '../help/FaqLink.tsx';
 import { mapsUrl, STORE_CONTACT, whatsAppUrl } from '../help/storeContact.ts';
 import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
 import { StoreLogo } from './StoreLogo.tsx';
@@ -220,7 +220,7 @@ function StoreBlock() {
 /**
  * The footer of every public page (UC-31, T-E7-20, T-E7-24, T-E7-25): the store's block, then Tienda, Ayuda y
  * legales, Contacto and Medios de pago; below them, after a line, the withdrawal button (UC-29, RNF-30.1), the link to change the analytics choice
- * (RNF-25) and the copyright. The exchanges and terms pages of T-E6-06 join Ayuda y legales once they exist.
+ * (RNF-25) and the copyright. The privacy policy of T-E6-06 joins Ayuda y legales once it exists.
  */
 export function SiteFooter() {
   return (
@@ -236,6 +236,15 @@ export function SiteFooter() {
           <ul className="footer-links">
             <li>
               <FaqLink />
+            </li>
+            <li>
+              <Link to={HOW_TO_BUY_PATH}>{messages.howToBuy}</Link>
+            </li>
+            <li>
+              <Link to={RETURNS_POLICY_PATH}>{messages.returns}</Link>
+            </li>
+            <li>
+              <Link to={TERMS_PATH}>{messages.terms}</Link>
             </li>
           </ul>
         </section>

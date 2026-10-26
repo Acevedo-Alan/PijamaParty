@@ -11,6 +11,7 @@ import { trackAddPaymentInfo, trackBeginCheckout, type CheckoutForAnalytics } fr
 import { isCouponOutdone, type Cart, type CartItem } from '../cart/cartApi.ts';
 import { useCartPanel } from '../cart/CartPanelContext.tsx';
 import { useCart, useRemoveCoupon } from '../cart/useCart.ts';
+import { RETURNS_POLICY_PATH, TERMS_PATH } from '../help/FaqLink.tsx';
 import { goToPayment } from '../orders/redirect.ts';
 import type { PlaceOrderAnswer } from './checkoutApi.ts';
 import {
@@ -840,11 +841,11 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
               />
               <label htmlFor={termsId}>
                 {es.checkout.termsBefore}
-                <Link to="/terminos" target="_blank" rel="noopener">
+                <Link to={TERMS_PATH} target="_blank" rel="noopener">
                   {es.checkout.terms}
                 </Link>
                 {es.checkout.termsBetween}
-                <Link to="/cambios-y-devoluciones" target="_blank" rel="noopener">
+                <Link to={RETURNS_POLICY_PATH} target="_blank" rel="noopener">
                   {es.checkout.returns}
                 </Link>
               </label>

@@ -12,6 +12,9 @@ export const es = {
     homeDescription: 'Pijamas y ropa de dormir para mujer, hombre y niños. Tienda online de Pijama Party Santa Fe.',
     categoryDescription: (category: string) => `${category}: pijamas y ropa de dormir de Pijama Party Santa Fe.`,
     faqDescription: 'Costos y plazos de envío, medios de pago y cambios de Pijama Party Santa Fe.',
+    howToBuyDescription: 'Cómo comprar en Pijama Party Santa Fe: elegí tus pijamas, pagá y seguí tu pedido en pocos pasos.',
+    returnsDescription: 'Cambios por talle o color dentro de los 30 días y arrepentimiento de compra en Pijama Party Santa Fe.',
+    termsDescription: 'Términos y condiciones de compra en la tienda online de Pijama Party Santa Fe.',
     withdrawalDescription:
       'Botón de arrepentimiento de Pijama Party Santa Fe: revocá tu compra dentro de los 10 días corridos, sin costo.',
     /** The price (with "Desde" when prices differ), then the description cut at 200 characters. */
@@ -431,6 +434,10 @@ export const es = {
     /** The header's navigation, again. */
     shop: 'Tienda',
     help: 'Ayuda y legales',
+    /** T-E7-28: the help pages, after the FAQ. */
+    howToBuy: 'Cómo comprar',
+    returns: 'Cambios y devoluciones',
+    terms: 'Términos y condiciones',
     contact: 'Contacto',
     social: 'Redes sociales',
     instagram: 'Instagram',
@@ -1494,6 +1501,92 @@ export const es = {
       error: 'No pudimos verificar tu email. Probá abrir el enlace de nuevo.',
       signIn: 'Ir a ingresar',
     },
+  },
+  /** UC-31 (T-E7-28): "Cómo comprar", the steps of the real flow. Payment methods are not named: the server has them. */
+  howToBuy: {
+    title: 'Cómo comprar',
+    intro: 'Comprar en Pijama Party es fácil y no necesitás crear una cuenta.',
+    steps: [
+      {
+        title: 'Elegí tus pijamas',
+        text: 'Recorré las categorías o usá el buscador. En cada producto elegí el talle y el color; si dudás con el talle, abrí la guía de talles de la ficha cuando el producto la tenga.',
+      },
+      {
+        title: 'Revisá tu carrito',
+        text: 'Desde el carrito podés cambiar las cantidades, quitar productos y aplicar un cupón de descuento si tenés uno.',
+      },
+      {
+        title: 'Completá tus datos',
+        text: 'Finalizá la compra en 3 pasos: tus datos y la dirección de entrega, donde ves el costo de envío a tu provincia; el medio de pago; y la revisión de todo antes de confirmar.',
+      },
+      {
+        title: 'Pagá',
+        text: 'Te llevamos al medio de pago que elegiste para que pagues de forma segura. Mientras tanto, reservamos tus productos.',
+      },
+      {
+        title: 'Seguí tu pedido',
+        text: 'Cuando se acredita el pago, te llega un email con la confirmación y el enlace de tu pedido. Ahí vas a ver el número de seguimiento de Correo Argentino cuando lo despachemos.',
+      },
+    ],
+    more: '¿Te quedó alguna duda? Mirá las',
+    moreLink: 'preguntas frecuentes',
+  },
+  /** UC-31 (T-E7-28): the exchanges policy (D-18, draft until T-E6-21) and the withdrawal right (UC-29). */
+  returnsPolicy: {
+    title: 'Cambios y devoluciones',
+    exchangesTitle: 'Cambios',
+    exchanges: [
+      'Podés cambiar tu compra por otro talle o color dentro de los 30 días corridos desde que la recibiste, según el stock disponible.',
+      'La prenda tiene que estar sin uso, sin lavar y con sus etiquetas.',
+      'El envío de ida y vuelta corre por tu cuenta. Si la prenda tiene una falla de fábrica, nos hacemos cargo del envío.',
+    ],
+    howTo:
+      'Para pedir un cambio, escribinos con tu número de pedido; los datos de contacto están al pie de la página. Te indicamos cómo enviarnos la prenda.',
+    withdrawalTitle: 'Arrepentimiento de compra',
+    withdrawal:
+      'Además, tenés 10 días corridos desde que recibiste tu compra para arrepentirte, sin costo. Te devolvemos el dinero por el mismo medio de pago.',
+    withdrawalLink: 'Pedilo desde el',
+  },
+  /**
+   * UC-31 (T-E7-28): the terms of purchase (RNF-30.6), a draft until T-E6-21 validates it; store.ordering.terms-version
+   * changes whenever these texts change. The seller's identification is in the footer (RNF-30.2).
+   */
+  terms: {
+    title: 'Términos y condiciones',
+    sections: {
+      acceptance: {
+        title: 'Aceptación',
+        text: 'Estos términos rigen las compras en la tienda online de Pijama Party Santa Fe. Al confirmar una compra los aceptás, y guardamos con tu pedido la versión vigente en ese momento.',
+      },
+      products: {
+        title: 'Productos y precios',
+        text: 'Los precios están en pesos argentinos y son finales, con impuestos incluidos. Respetamos el precio que confirmaste al pagar. Las fotos son ilustrativas: los colores pueden verse un poco distintos según tu pantalla.',
+      },
+      purchase: {
+        title: 'Compra y pago',
+        text: 'Pagás con los medios de pago que ofrecemos al finalizar la compra. Mientras completás el pago, reservamos tus productos durante 30 minutos. El pedido se confirma cuando el pago se acredita. Si el pago falla, podés reintentarlo desde el enlace de tu pedido mientras dure la reserva; después, el pedido vence y los productos vuelven a estar disponibles.',
+      },
+      shipping: {
+        title: 'Envíos',
+        text: 'Enviamos por Correo Argentino a las provincias que figuran en las preguntas frecuentes, y ves el costo de envío antes de pagar. A Santa Fe llega en 1 a 3 días hábiles y al resto del país en 3 a 7, contados desde que se acredita el pago.',
+      },
+      data: {
+        title: 'Datos personales',
+        text: 'Tratamos tus datos personales según la Ley 25.326 de Protección de los Datos Personales. Si tenés cuenta, podés eliminarla desde Mi cuenta.',
+      },
+      law: {
+        title: 'Ley aplicable',
+        text: 'Estos términos se rigen por las leyes de la República Argentina, incluida la Ley 24.240 de Defensa del Consumidor. Ante un reclamo, podés acudir a los tribunales de tu domicilio.',
+      },
+      contact: {
+        title: 'Contacto',
+        text: 'Para cualquier consulta, escribinos: los datos de contacto están al pie de la página.',
+      },
+    },
+    exchangesTitle: 'Cambios y arrepentimiento',
+    exchangesBefore: 'Podés cambiar tu compra según la',
+    policyLink: 'política de cambios y devoluciones',
+    exchangesBetween: 'y arrepentirte dentro de los 10 días corridos desde que la recibiste con el',
   },
   /** RNF-31.6 (T-E5-12): the FAQ page and its summary on the product page. */
   faq: {

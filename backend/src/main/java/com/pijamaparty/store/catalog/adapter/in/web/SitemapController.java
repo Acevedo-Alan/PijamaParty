@@ -20,7 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * T-E6-23 (RNF-31.1): the sitemap of the storefront (sitemaps.org 0.9), which Caddy serves at {@code /sitemap.xml}:
- * the home page, the FAQ, the active categories and the listed products, as absolute URLs of {@code store.public-url}.
+ * the home page, the FAQ and the help pages (T-E7-28), the active categories and the listed products, as absolute
+ * URLs of {@code store.public-url}.
  */
 @RestController
 @RequestMapping("/api/catalog")
@@ -28,7 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 class SitemapController {
 
     /** The storefront's pages outside the catalog that search engines may index. */
-    static final List<String> FIXED_PATHS = List.of("/", "/preguntas-frecuentes");
+    static final List<String> FIXED_PATHS = List.of("/", "/preguntas-frecuentes", "/como-comprar",
+        "/cambios-y-devoluciones", "/terminos");
 
     private static final MediaType XML = new MediaType(MediaType.APPLICATION_XML, StandardCharsets.UTF_8);
 
@@ -41,7 +43,7 @@ class SitemapController {
     }
 
     @GetMapping(value = "/sitemap", produces = MediaType.APPLICATION_XML_VALUE)
-    @Operation(summary = "The storefront's sitemap", description = "The home page, the FAQ, the active categories and "
+    @Operation(summary = "The storefront's sitemap", description = "The home page, the FAQ and help pages, the active categories and "
         + "the listed products. Caddy serves it at /sitemap.xml.")
     @ApiResponse(responseCode = "200", description = "The sitemap",
         content = @Content(mediaType = "application/xml", schema = @Schema(type = "string")))
