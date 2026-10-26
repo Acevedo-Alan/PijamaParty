@@ -127,6 +127,7 @@ PAGADO | PREPARANDO → CANCELADO
 | Etiqueta "Nuevo" (E7) | Decidido | Productos creados en los últimos 30 días, según el reloj de la aplicación (D-05)
 | Muestras de color y "Completá tu look" (E7) | Decidido | Mapa de nombres de color en el frontend; hasta 4 productos de la misma categoría, los más nuevos (D-04, D-08)
 | Contacto y envío en la ficha (E7) | Decidido | Email y WhatsApp como enlaces, sin formulario; selector de provincia para ver el costo de envío (D-07, D-09)
+| Política de cambios (E7) | Decidido (borrador hasta T-E6-21) | Cambio por otro talle o color dentro de los 30 días corridos desde la entrega, sujeto a stock, con la prenda sin uso, sin lavar y con etiquetas; el envío de ida y vuelta lo paga el cliente, salvo falla de fábrica, que paga la tienda. Aparte del arrepentimiento de 10 días (CU-29) (D-18)
 | Íconos de confianza (E7) | Decidido | "Primer cambio sin cargo" no se muestra: no es una política confirmada (D-12)
 | Animaciones (E7) | Decidido | Librería Motion cargada de forma diferida, sobre tokens de movimiento (D-16)
 | Cuotas sin interés y descuento por transferencia (E7) | Pendiente | No se muestran hasta decidirlo; se revisa antes de la salida a producción (D-01, D-02)
