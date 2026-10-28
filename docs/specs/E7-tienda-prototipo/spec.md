@@ -127,11 +127,13 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Los datos del vendedor de RNF-30.2 se suman al pie con T-E6-21.
 - En el celular, el encabezado queda fijo arriba, pero se esconde mientras el visitante baja por la página y vuelve apenas sube, para dejar más lugar a los productos. No se esconde cerca del principio de la página, con el menú, la búsqueda, el carrito o "Mi cuenta" abiertos, ni con el foco del teclado dentro de él. En la computadora no se esconde nunca.
 - Una vez que la página bajó, el fondo del encabezado se vuelve un poco transparente y difuminado, así se ve lo que pasa por detrás sin perder la lectura del logo y los íconos. Arriba de todo, el fondo es el de siempre.
+- En la computadora, una vez que la página bajó, el encabezado se convierte en una píldora flotante: mantiene el logo, la navegación, la búsqueda, la cuenta y el carrito, un poco más bajo y más angosto que la página, con los bordes completamente redondeados, separado unos milímetros del borde de arriba, con el mismo fondo transparente y difuminado y una sombra suave. Al volver arriba, vuelve a ser la barra de todo el ancho. El cambio es una animación suave (sin animación para quien pidió reducir el movimiento) y la página no salta. En el celular no cambia.
 
 **Criterios de aceptación**
 - Dado un umbral de envío gratis de $50.000, cuando se abre cualquier página pública, entonces la franja dice "Envío gratis desde $50.000"; sin umbral, no hay franja.
 - Dado un celular, cuando el visitante baja por la página, entonces el encabezado se esconde; cuando sube, vuelve. En la computadora siempre se ve.
 - Dada una página bajada, cuando se ve el encabezado, entonces su fondo es un poco transparente; al volver arriba, es el de siempre.
+- Dada una página bajada en la computadora, cuando se ve el encabezado, entonces es una píldora flotante con el logo, la navegación y los íconos; al volver arriba, es la barra de todo el ancho.
 - Dado un celular, cuando se abre el menú, entonces muestra la navegación y el ingreso, se navega con teclado, y Escape lo cierra y devuelve el foco al botón.
 - Dado el enlace "Temporada Invierno", cuando se toca, entonces la grilla muestra solo productos de invierno.
 - Dado el pie, cuando se revisa, entonces el botón de arrepentimiento sigue visible (RNF-30.1).
