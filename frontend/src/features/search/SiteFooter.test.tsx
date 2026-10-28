@@ -17,25 +17,24 @@ describe('store footer (UC-31)', () => {
     clearStoreContact();
   });
 
-  it('given any public page, when the footer is checked, then Ayuda links the FAQ and the withdrawal link is visible without signing in', async () => {
+  it('given any public page, when the footer is checked, then Ayuda links the FAQ and the withdrawal link without signing in', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 
     renderRoute('/categoria/verano');
 
     await screen.findByRole('link', { name: /Pijama rosa/ });
     expect(column(messages.help).getByRole('link', { name: es.faq.title })).toHaveAttribute('href', '/preguntas-frecuentes');
-    expect(footer().getByRole('link', { name: es.withdrawal.link })).toHaveAttribute('href', '/arrepentimiento');
+    expect(column(messages.help).getByRole('link', { name: es.withdrawal.link })).toHaveAttribute('href', '/arrepentimiento');
     expect(footer().getByText(messages.copyright(new Date().getFullYear(), es.store.name))).toBeInTheDocument();
   });
 
-  it('given any public page, when the footer is checked, then the logo links to the home page above the tagline and Tienda has the header navigation', async () => {
+  it('given any public page, when the footer is checked, then it shows the tagline without the store name in large letters, and Tienda has the header navigation', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 
     renderRoute('/categoria/verano');
 
     await screen.findByRole('link', { name: /Pijama rosa/ });
-    const logo = footer().getByRole('link', { name: es.store.name });
-    expect(logo).toHaveAttribute('href', '/');
+    expect(footer().queryByRole('link', { name: es.store.name })).not.toBeInTheDocument();
     expect(footer().getByText(messages.tagline)).toBeInTheDocument();
     const links = column(messages.shop).getAllByRole('link');
     expect(links.map((link) => link.textContent)).toEqual([
@@ -106,14 +105,17 @@ describe('store footer (UC-31)', () => {
     expect(address).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it('given no contact or social links from the business yet (D-15), when the footer is checked, then there are no Contacto and Redes sociales columns', async () => {
+  it('given no contact or social links from the business yet (D-15), when the footer is checked, then there is no Contacto column and Redes sociales shows Instagram and TikTok as placeholders, not links', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 
     renderRoute('/');
 
     await screen.findByRole('link', { name: /Pijama rosa/ });
     expect(screen.queryByRole('region', { name: messages.contact })).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: messages.social })).not.toBeInTheDocument();
+    const social = column(messages.social);
+    expect(social.queryAllByRole('link')).toEqual([]);
+    expect(social.getByText(messages.socialSoon(messages.instagram))).toBeInTheDocument();
+    expect(social.getByText(messages.socialSoon(messages.tiktok))).toBeInTheDocument();
   });
 
   it('given a contact email and WhatsApp number, when the footer is checked, then Contacto links the chat in a new tab and a new email', async () => {
@@ -128,7 +130,6 @@ describe('store footer (UC-31)', () => {
     expect(whatsApp).toHaveAttribute('target', '_blank');
     expect(whatsApp).toHaveAttribute('rel', 'noopener noreferrer');
     expect(column(messages.contact).getByRole('link', { name: 'hola@example.com' })).toHaveAttribute('href', 'mailto:hola@example.com');
-    expect(screen.queryByRole('region', { name: messages.social })).not.toBeInTheDocument();
   });
 
   it('given Instagram and TikTok links, when the footer is checked, then Redes sociales shows both as icons named after them, opening in a new tab', async () => {

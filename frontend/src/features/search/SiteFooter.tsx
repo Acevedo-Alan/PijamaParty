@@ -7,7 +7,6 @@ import { usePaymentProviders } from '../checkout/useCheckout.ts';
 import { FaqLink, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, SIZE_GUIDES_PATH, TERMS_PATH } from '../help/FaqLink.tsx';
 import { mapsUrl, STORE_CONTACT, whatsAppUrl } from '../help/storeContact.ts';
 import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
-import { StoreLogo } from './StoreLogo.tsx';
 import { StoreNavigation } from './StoreNavigation.tsx';
 import './footer.css';
 
@@ -96,7 +95,7 @@ function ContactColumn() {
     return null;
   }
   return (
-    <section className="footer-column" aria-labelledby="footer-contact">
+    <section className="footer-column footer-contact-column" aria-labelledby="footer-contact">
       <h2 id="footer-contact">{messages.contact}</h2>
       <ul className="footer-links">
         {whatsAppNumber !== undefined && (
@@ -134,27 +133,60 @@ function ContactColumn() {
   );
 }
 
-/**
- * Instagram and TikTok as round icon buttons (T-E7-24), as the business sends them (D-15); the network's name is the
- * link's name. Without both, nothing.
- */
-function SocialLinks() {
-  const links = [
-    { name: messages.instagram as string, url: STORE_CONTACT.instagramUrl, icon: instagramIcon },
-    { name: messages.tiktok as string, url: STORE_CONTACT.tiktokUrl, icon: tiktokIcon },
-  ].filter((link): link is { name: string; url: string; icon: React.JSX.Element } => link.url !== undefined);
+interface SocialNetwork {
+  name: string;
+  url: string | undefined;
+  icon: React.JSX.Element;
+}
+
+/** Instagram and TikTok, each with its link once the business sends it (D-15); the network's name is the link's. */
+function socialNetworks(): SocialNetwork[] {
+  return [
+    { name: messages.instagram, url: STORE_CONTACT.instagramUrl, icon: instagramIcon },
+    { name: messages.tiktok, url: STORE_CONTACT.tiktokUrl, icon: tiktokIcon },
+  ];
+}
+
+/** The networks as icon links in a row, in a list of the given class: the phone menu's, with only those linked. */
+export function SocialIconLinks({ className }: { className: string }) {
+  const links = socialNetworks().filter((network) => network.url !== undefined);
   if (links.length === 0) {
     return null;
   }
   return (
+    <ul className={className}>
+      {links.map((link) => (
+        <li key={link.name}>
+          <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name} title={link.name}>
+            {link.icon}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Instagram and TikTok as round icon buttons under their title (T-E7-24), always both: a network without its link yet
+ * is a placeholder, not a link, so its place is ready for when the business sends it (D-15).
+ */
+function SocialLinks() {
+  return (
     <section className="footer-social-block" aria-labelledby="footer-social">
       <h2 id="footer-social">{messages.social}</h2>
       <ul className="footer-social">
-        {links.map((link) => (
-          <li key={link.name}>
-            <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name} title={link.name}>
-              {link.icon}
-            </a>
+        {socialNetworks().map((network) => (
+          <li key={network.name}>
+            {network.url === undefined ? (
+              <span className="footer-social-placeholder" title={messages.socialSoon(network.name)}>
+                {network.icon}
+                <span className="visually-hidden">{messages.socialSoon(network.name)}</span>
+              </span>
+            ) : (
+              <a href={network.url} target="_blank" rel="noopener noreferrer" aria-label={network.name} title={network.name}>
+                {network.icon}
+              </a>
+            )}
           </li>
         ))}
       </ul>
@@ -204,13 +236,10 @@ function PaymentsColumn() {
   );
 }
 
-/** The store's block that opens the footer (T-E7-25): the logo to the home page, the tagline and the networks. */
+/** The store's block before the columns (T-E7-25): the tagline and the networks. */
 function StoreBlock() {
   return (
     <div className="footer-brand">
-      <Link to="/" className="footer-logo">
-        <StoreLogo />
-      </Link>
       <p className="footer-tagline">{messages.tagline}</p>
       <SocialLinks />
     </div>
@@ -219,13 +248,13 @@ function StoreBlock() {
 
 /**
  * The footer of every public page (UC-31, T-E7-20, T-E7-24, T-E7-25): the store's block, then Tienda, Ayuda y
- * legales, Contacto and Medios de pago; below them, after a line, the withdrawal button (UC-29, RNF-30.1), the link to change the analytics choice
- * (RNF-25) and the copyright. The privacy policy of T-E6-06 joins Ayuda y legales once it exists.
+ * legales (the withdrawal button last; UC-29, RNF-30.1), Contacto and Medios de pago; below them, after a line, the
+ * link to change the analytics choice (RNF-25) and the copyright. The privacy policy of T-E6-06 joins Ayuda y legales once it exists.
  */
 export function SiteFooter() {
   return (
     <footer className="site-footer">
-      <div className="wrap site-footer-inner">
+      <div className="site-footer-inner">
         <StoreBlock />
         <section className="footer-column" aria-labelledby="footer-shop">
           <h2 id="footer-shop">{messages.shop}</h2>
@@ -249,12 +278,14 @@ export function SiteFooter() {
             <li>
               <Link to={TERMS_PATH}>{messages.terms}</Link>
             </li>
+            <li>
+              <WithdrawalLink />
+            </li>
           </ul>
         </section>
         <ContactColumn />
         <PaymentsColumn />
         <div className="footer-bottom">
-          <WithdrawalLink />
           <ConsentFooterLink />
           <p>{messages.copyright(new Date().getFullYear(), es.store.name)}</p>
         </div>

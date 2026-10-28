@@ -429,7 +429,7 @@ export const es = {
    * keep their own texts.
    */
   footer: {
-    /** Under the logo. */
+    /** The first line of the footer's store block. */
     tagline: 'Pijamas para toda la familia',
     /** The header's navigation, again. */
     shop: 'Tienda',
@@ -443,6 +443,8 @@ export const es = {
     social: 'Redes sociales',
     instagram: 'Instagram',
     tiktok: 'TikTok',
+    /** A network the business has not sent yet (D-15): its placeholder in the footer. */
+    socialSoon: (network: string) => `${network}, próximamente`,
     payments: 'Medios de pago',
     /** T-E7-26: the carrier, under the payment providers. */
     shipping: 'Envíos',

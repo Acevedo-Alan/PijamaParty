@@ -1,6 +1,6 @@
-/* The store footer (UC-31, T-E7-20, T-E7-24, T-E7-25), from the prototype's footer: the store's block and the columns
-   stacked on phones, the block over two columns from 640 px and everything in one row from 960 px; below
-   them, after a line, the withdrawal button, the Cookies link and the copyright across the whole width. */
+/* The store footer (UC-31, T-E7-20, T-E7-24, T-E7-25), a pink band from edge to edge: the store's block and the columns in two columns on phones (the store's block, Contacto and Medios de pago across both,
+   the latter with its two lists side by side), the block over two columns from 640 px and everything in one row from
+   960 px; below them, after a line, the Cookies link and the copyright across the whole width. */
 
 /* T-E7-21: the benefits bar right above the footer; a row with dividers from 860 px, stacked below. */
 .benefits {
@@ -54,32 +54,50 @@
   margin-top: 0;
 }
 
+/* The footer's pink fills the screen's whole width; its content stays inside the page's width, lined up with .wrap.
+   Its lines are a soft --accent. On --rose-soft the texts are --ink: --ink-soft would stay under 4.5:1. */
 .site-footer {
+  --footer-line: color-mix(in srgb, var(--accent) 32%, transparent);
   margin-top: 40px;
-  border-top: 1px solid var(--line);
-  padding: 36px 0 calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--rose-soft);
   font-size: 14px;
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .site-footer-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 16px;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 32px 20px 20px;
 }
 
-/* T-E7-25: the logo to the home page, the tagline and the networks. */
-.footer-logo {
-  display: inline-block;
+.footer-brand {
+  grid-column: 1 / -1;
 }
 
-.footer-logo img {
-  display: block;
+/* Below 640 px a column is too narrow for an email or an address: Contacto and Medios de pago take the whole row,
+   and the payment providers and the carrier sit side by side. */
+@media (max-width: 639px) {
+  .footer-contact-column,
+  .footer-payments-column {
+    grid-column: 1 / -1;
+  }
+
+  .footer-payments-column {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+  }
 }
 
+/* T-E7-25: the tagline and the networks. */
 .footer-tagline {
-  margin-top: 8px;
   color: var(--ink);
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -90,9 +108,9 @@
 .footer-social-block h2,
 .footer-column h2 {
   margin-bottom: 4px;
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 700;
+  color: var(--accent-text);
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .footer-links {
@@ -103,12 +121,13 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: var(--ink-soft);
+  color: var(--ink);
+  text-decoration: none;
   overflow-wrap: anywhere;
 }
 
 .footer-links a[aria-current='page'] {
-  color: var(--ink);
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -127,8 +146,11 @@
   min-height: 44px;
 }
 
-.footer-payments-column > section + section {
-  margin-top: 20px;
+/* Stacked from 640 px; side by side on phones, where their titles share a line. */
+@media (min-width: 640px) {
+  .footer-payments-column > section + section {
+    margin-top: 20px;
+  }
 }
 
 .footer-links .footer-icon {
@@ -230,7 +252,7 @@
   align-items: center;
   gap: 8px 20px;
   padding-top: 16px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--footer-line);
 }
 
 .footer-bottom p {
@@ -240,12 +262,8 @@
 
 @media (min-width: 640px) {
   .site-footer-inner {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 32px;
-  }
-
-  .footer-brand {
-    grid-column: 1 / -1;
+    padding: 40px 20px 24px;
   }
 
   .footer-bottom p {
@@ -261,12 +279,16 @@
 
   .footer-brand {
     grid-column: auto;
+    padding-right: 24px;
+    border-right: 1px solid var(--footer-line);
   }
 }
 
 @media (hover: hover) {
   .footer-links a:hover {
-    color: var(--ink);
+    color: var(--accent-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .footer-social a:hover {
@@ -303,4 +325,28 @@
     border-left: none;
   }
 
+}
+
+/* A network the business has not sent yet (D-15): the same circle, dimmed and dashed, not a link and without hover. */
+.footer-social-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 50%;
+  color: var(--ink-soft);
+  opacity: 0.7;
+  cursor: default;
+}
+
+.footer-social-placeholder .footer-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }

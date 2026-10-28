@@ -11,7 +11,7 @@ describe('help pages (UC-31, T-E7-28)', () => {
     vi.restoreAllMocks();
   });
 
-  it('given any public page, when the footer is checked, then Ayuda y legales links the FAQ, Cómo comprar, Cambios y devoluciones and Términos', async () => {
+  it('given any public page, when the footer is checked, then Ayuda y legales links the FAQ, Cómo comprar, Cambios y devoluciones, Términos and the withdrawal button', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 
     renderRoute('/');
@@ -24,6 +24,7 @@ describe('help pages (UC-31, T-E7-28)', () => {
       [es.footer.sizeGuides, '/guia-de-talles'],
       [es.footer.returns, '/cambios-y-devoluciones'],
       [es.footer.terms, '/terminos'],
+      [es.withdrawal.link, '/arrepentimiento'],
     ]);
   });
 
