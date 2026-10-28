@@ -1,5 +1,7 @@
 import { useEffect, useId, useState, type SyntheticEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
+import { AlertBox } from '../../components/AlertBox.tsx';
+import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
 import { trackPurchase } from '../analytics/checkoutEvents.ts';
@@ -10,15 +12,15 @@ import { useCorrectEmail, useRetryPayment, useTrackedOrder } from './useTrackedO
 import './orders.css';
 
 /** Why the last tap on "Pagar" did not leave the store; nothing while it works or after a redirect. */
-function PayProblem({ answer, failed }: { answer: RetryAnswer | undefined; failed: boolean }) {
+function payProblem(answer: RetryAnswer | undefined, failed: boolean): string | null {
   if (failed) {
-    return <>{es.tracking.payError}</>;
+    return es.tracking.payError;
   }
   if (answer?.status === 'providerUnavailable') {
-    return <>{es.tracking.providerUnavailable}</>;
+    return es.tracking.providerUnavailable;
   }
   if (answer?.status === 'tooManyAttempts') {
-    return <>{es.tracking.tooManyAttempts}</>;
+    return es.tracking.tooManyAttempts;
   }
   return null;
 }
@@ -89,23 +91,21 @@ function PaymentPanel({ token, order, confirming }: { token: string; order: Trac
       <button type="button" className="btn" disabled={retry.isPending} onClick={pay}>
         {retry.isPending ? es.tracking.paying : es.tracking.pay}
       </button>
-      <p className="tracking-error" role="alert">
-        <PayProblem answer={retry.data} failed={retry.isError} />
-      </p>
+      <AlertBox message={payProblem(retry.data, retry.isError)} />
     </div>
   );
 }
 
 /** Why the email was not saved; nothing while it works, after it is saved or when the order is read again. */
-function EmailProblem({ answer, failed }: { answer: EmailCorrectionAnswer | undefined; failed: boolean }) {
+function emailProblem(answer: EmailCorrectionAnswer | undefined, failed: boolean): string | null {
   if (failed) {
-    return <>{es.tracking.emailCorrection.error}</>;
+    return es.tracking.emailCorrection.error;
   }
   if (answer?.status === 'invalidEmail') {
-    return <>{es.tracking.emailCorrection.invalid}</>;
+    return es.tracking.emailCorrection.invalid;
   }
   if (answer?.status === 'tooManyAttempts') {
-    return <>{es.tracking.emailCorrection.tooManyAttempts}</>;
+    return es.tracking.emailCorrection.tooManyAttempts;
   }
   return null;
 }
@@ -168,9 +168,7 @@ function EmailCorrection({ token, order }: { token: string; order: TrackedOrder 
           <button type="submit" className="btn" disabled={correction.isPending || email.trim() === ''}>
             {correction.isPending ? es.tracking.emailCorrection.saving : es.tracking.emailCorrection.save}
           </button>
-          <p className="tracking-error" role="alert">
-            <EmailProblem answer={correction.data} failed={correction.isError} />
-          </p>
+          <AlertBox message={emailProblem(correction.data, correction.isError)} />
         </form>
       ) : (
         <button
@@ -217,28 +215,36 @@ function usePurchaseEvent(order: TrackedOrder) {
   }, [order.number, paid]);
 }
 
+/**
+ * One column on a phone; from 900 px the order and what can be done with it on the left, the summary on the right
+ * (E7). The name and the city show capitalized, as the buyer may have typed them in lowercase.
+ */
 function TrackedOrderView({ token, order, confirming }: { token: string; order: TrackedOrder; confirming: boolean }) {
   usePurchaseEvent(order);
   return (
-    <>
+    <div className="tracking-layout">
       <title>{`${es.tracking.title(order.number)} | ${es.store.name}`}</title>
-      <p className="tracking-greeting">{es.tracking.greeting(order.buyerFirstName)}</p>
-      <h1>{es.tracking.title(order.number)}</h1>
-      <p className={`tracking-status status-${order.status.toLowerCase()}`}>{es.tracking.statuses[order.status]}</p>
-      <PaymentPanel token={token} order={order} confirming={confirming} />
-      {order.shipmentTrackingNumber !== null && (
-        <dl className="tracking-shipment">
-          <dt>{es.tracking.shipment}</dt>
-          <dd>{order.shipmentTrackingNumber}</dd>
-        </dl>
-      )}
+      <div className="tracking-main">
+        <p className="tracking-greeting">{es.tracking.greeting(capitalizeWords(order.buyerFirstName))}</p>
+        <h1>{es.tracking.title(order.number)}</h1>
+        <p className={`tracking-status status-${order.status.toLowerCase()}`}>{es.tracking.statuses[order.status]}</p>
+        <PaymentPanel token={token} order={order} confirming={confirming} />
+        {order.shipmentTrackingNumber !== null && (
+          <dl className="tracking-shipment">
+            <dt>{es.tracking.shipment}</dt>
+            <dd>{order.shipmentTrackingNumber}</dd>
+          </dl>
+        )}
+      </div>
       <section className="tracking-summary" aria-labelledby="tracking-items">
         <h2 id="tracking-items">{es.tracking.items}</h2>
         <OrderItemsAndAmounts {...order} />
-        <p className="tracking-ship-to">{es.tracking.shipTo(order.city, es.provinces[order.province])}</p>
+        <p className="tracking-ship-to">
+          {es.tracking.shipTo(capitalizeWords(order.city), es.provinces[order.province])}
+        </p>
       </section>
       <EmailCorrection token={token} order={order} />
-    </>
+    </div>
   );
 }
 

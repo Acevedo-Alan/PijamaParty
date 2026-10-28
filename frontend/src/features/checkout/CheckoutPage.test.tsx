@@ -98,10 +98,10 @@ async function chooseProvince(province: string) {
 const summary = () => within(screen.getByRole('complementary', { name: es.checkout.summaryTitle }));
 const totalOfSummary = () => summary().getByText(es.checkout.total).nextElementSibling;
 
-/** Fills step 1 to Santa Fe and goes on to step 2. */
-async function goToPaymentStep() {
+/** Fills step 1 to Santa Fe, with these fields changed, and goes on to step 2. */
+async function goToPaymentStep(shipping: Partial<Record<string, string>> = {}) {
   await screen.findByRole('heading', { name: es.checkout.shippingTitle });
-  await fillShipping();
+  await fillShipping(shipping);
   await chooseProvince('SANTA_FE');
   await waitFor(() => {
     expect(totalOfSummary()).toHaveTextContent(/^\$\s29\.500$/);
@@ -286,6 +286,23 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     expect(get).toHaveBeenCalledWith('/api/checkout/shipping-cost', expect.objectContaining({
       params: { query: { province: 'CORDOBA' } },
     }));
+  });
+
+  it('given a buyer who typed "alan" and "santa fe", when the review shows, then it reads "Alan" and "Santa Fe"', async () => {
+    stubGets();
+    renderRoute('/checkout');
+
+    await goToPaymentStep({
+      [es.checkout.fields.firstName]: 'alan',
+      [es.checkout.fields.lastName]: 'pérez',
+      [es.checkout.fields.city]: 'santa fe',
+    });
+    await userEvent.click(screen.getByRole('button', { name: es.checkout.toReview }));
+    await screen.findByRole('heading', { name: es.checkout.reviewTitle });
+
+    const main = within(screen.getByRole('main'));
+    expect(main.getByText('Alan Pérez')).toBeInTheDocument();
+    expect(main.getByText(es.checkout.place('Santa Fe', 'Santa Fe', '3000'))).toBeInTheDocument();
   });
 
   it('given a confirmed checkout, when the order is placed, then the buyer goes to the provider and the token is kept', async () => {

@@ -18,6 +18,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -27,10 +28,11 @@ class GetTrackedOrderServiceTest {
     private static final Instant PLACED_AT = Instant.parse("2026-10-13T15:00:00Z");
 
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
+    private final InMemoryLinePhotos photos = new InMemoryLinePhotos();
     private final TrackingToken token = new TrackingToken("token-" + UUID.randomUUID());
 
     private GetTrackedOrder.Result findAt(Instant now) {
-        return new GetTrackedOrderService(orders, Clock.fixed(now, ZoneOffset.UTC))
+        return new GetTrackedOrderService(orders, photos, Clock.fixed(now, ZoneOffset.UTC))
             .execute(new GetTrackedOrder.Query(token));
     }
 
@@ -82,6 +84,26 @@ class GetTrackedOrderServiceTest {
 
         assertThat(findAt(PLACED_AT.plusSeconds(60))).isInstanceOfSatisfying(GetTrackedOrder.Result.Found.class,
             found -> assertThat(found.order().shipmentTrackingNumber()).contains("CA123456789AR"));
+    }
+
+    @Test
+    void givenAnItemWhoseProductHasAPhoto_whenOpeningItsTrackingLink_thenThePhotoComesByVariant() {
+        NewOrder order = placed();
+        UUID variant = order.lines().getFirst().variantId();
+        var photo = new LinePhotos.Photo("data:image/webp;base64,UklGRg==",
+            List.of(new LinePhotos.PhotoFile(400, "luna-rosa-400.webp")));
+        photos.add(variant, photo);
+
+        assertThat(findAt(PLACED_AT)).isInstanceOfSatisfying(GetTrackedOrder.Result.Found.class,
+            found -> assertThat(found.photos()).isEqualTo(Map.of(variant, photo)));
+    }
+
+    @Test
+    void givenAnItemWhoseProductHasNoPhoto_whenOpeningItsTrackingLink_thenNoPhotoComes() {
+        placed();
+
+        assertThat(findAt(PLACED_AT)).isInstanceOfSatisfying(GetTrackedOrder.Result.Found.class,
+            found -> assertThat(found.photos()).isEmpty());
     }
 
     @Test

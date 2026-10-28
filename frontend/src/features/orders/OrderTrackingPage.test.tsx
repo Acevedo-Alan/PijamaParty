@@ -103,6 +103,50 @@ describe('tracking link (UC-14, T-E3-08)', () => {
     expect(pay()).toBeEnabled();
   });
 
+  it('given a payment retry the provider does not answer, when the error shows, then it is an alert box with a warning icon', async () => {
+    stubOrder(answer(200, trackedOrder()));
+    vi.spyOn(api, 'POST').mockResolvedValue(answer(503));
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await userEvent.click(await screen.findByRole('button', { name: es.tracking.pay }));
+
+    const box = (await screen.findByText(es.tracking.providerUnavailable)).closest('.alert-box');
+    expect(box).not.toBeNull();
+    expect(box?.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  it('given an item whose product has a photo, when the tracking link opens, then the item shows its thumbnail', async () => {
+    const photo = { placeholder: 'data:image/webp;base64,UklGRg==', files: [{ width: 400, url: '/uploads/luna-rosa-400.webp' }] };
+    const [item] = trackedOrder().items ?? [];
+    stubOrder(answer(200, trackedOrder({ items: [{ ...item, image: photo }] })));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    expect(await screen.findByRole('img', { name: es.cart.photoAlt('Pijama Luna', 'Rosa') })).toHaveAttribute(
+      'src',
+      '/uploads/luna-rosa-400.webp',
+    );
+  });
+
+  it('given an item whose product has no photo, when the tracking link opens, then the item shows the placeholder', async () => {
+    stubOrder(answer(200, trackedOrder()));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    const name = await screen.findByText('Pijama Luna');
+    expect(name.closest('li')?.querySelector('.ph.tracking-item-photo')).not.toBeNull();
+    expect(screen.queryByRole('img', { name: es.cart.photoAlt('Pijama Luna', 'Rosa') })).not.toBeInTheDocument();
+  });
+
+  it('given an order of "alan" in "santa fe", when the tracking link opens, then it greets "Alan" and ships to "Santa Fe"', async () => {
+    stubOrder(answer(200, trackedOrder({ buyerFirstName: 'alan', city: 'santa fe' })));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    expect(await screen.findByText(es.tracking.greeting('Alan'))).toBeInTheDocument();
+    expect(screen.getByText(es.tracking.shipTo('Santa Fe', 'Santa Fe'))).toBeInTheDocument();
+  });
+
   it('given an order whose reservation ended meanwhile, when the buyer taps pay, then the order is read again and says so', async () => {
     stubOrder(answer(200, trackedOrder()), answer(200, trackedOrder({ status: 'EXPIRED', canRetryPayment: false })));
     vi.spyOn(api, 'POST').mockResolvedValue(answer(409));

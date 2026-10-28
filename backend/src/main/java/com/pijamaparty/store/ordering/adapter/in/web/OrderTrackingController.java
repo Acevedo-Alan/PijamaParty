@@ -2,6 +2,7 @@ package com.pijamaparty.store.ordering.adapter.in.web;
 
 import com.pijamaparty.store.ordering.application.CorrectOrderEmail;
 import com.pijamaparty.store.ordering.application.GetTrackedOrder;
+import com.pijamaparty.store.ordering.application.LinePhotos;
 import com.pijamaparty.store.ordering.application.RetryOrderPayment;
 import com.pijamaparty.store.ordering.application.TrackedOrders.TrackedOrder;
 import com.pijamaparty.store.ordering.domain.OrderLine;
@@ -22,7 +23,9 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -70,7 +73,8 @@ class OrderTrackingController {
     @Operation(summary = "The order of a tracking link",
         description = "What following the order needs, never the national ID, the email, the phone or the street: the "
             + "link can be forwarded. canRetryPayment is true while the order awaits payment and its stock is "
-            + "reserved (until reservationExpiresAt). Amounts in cents. Not cached.")
+            + "reserved (until reservationExpiresAt). Each item's image is the photo the catalog shows now of its "
+            + "variant, or null. Amounts in cents. Not cached.")
     @ApiResponse(responseCode = "200", description = "The order", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = TrackedOrderResponse.class)))
     @ApiResponse(responseCode = "404", description = "No order has this token (problem ORDER_NOT_FOUND)",
@@ -205,22 +209,44 @@ class OrderTrackingController {
             TrackedOrder order = found.order();
             var amounts = order.amounts();
             return new TrackedOrderResponse(order.number(), order.status(), order.createdAt(), order.buyerFirstName(),
-                order.lines().stream().map(TrackedItemResponse::of).toList(), amounts.subtotal().cents(),
+                order.lines().stream().map(line -> TrackedItemResponse.of(line, found.photos())).toList(),
+                amounts.subtotal().cents(),
                 amounts.discount().cents(), order.couponCode().orElse(null), amounts.shipping().cents(),
                 amounts.total().cents(), order.city(), order.province(), order.reservationExpiresAt(),
                 order.shipmentTrackingNumber().orElse(null), found.payable());
         }
     }
 
-    /** {@code lineTotalCents} = {@code unitPriceCents} × {@code quantity}. */
+    /**
+     * {@code lineTotalCents} = {@code unitPriceCents} × {@code quantity}. {@code image} is the photo the catalog shows
+     * now of the variant, as a cart item's, or null.
+     */
     record TrackedItemResponse(String sku, String productName, String size, String color, int quantity,
-                               long unitPriceCents, long lineTotalCents) {
+                               long unitPriceCents, long lineTotalCents,
+                               @Schema(nullable = true) TrackedItemImageResponse image) {
 
-        static TrackedItemResponse of(OrderLine line) {
+        static TrackedItemResponse of(OrderLine line, Map<UUID, LinePhotos.Photo> photos) {
+            LinePhotos.Photo photo = photos.get(line.variantId());
             return new TrackedItemResponse(line.sku(), line.productName(), line.size(), line.color(), line.quantity(),
-                line.unitPrice().cents(), line.amount().cents());
+                line.unitPrice().cents(), line.amount().cents(),
+                photo == null ? null : TrackedItemImageResponse.of(photo));
         }
     }
+
+    /** A photo as in the catalog (UC-06): each file is a WebP at most {@code width} pixels wide. */
+    record TrackedItemImageResponse(String placeholder, List<TrackedItemImageFileResponse> files) {
+
+        /** Where Caddy serves the uploads volume (deploy/caddy/Caddyfile), as the catalog's photos. */
+        private static final String UPLOADS_PATH = "/uploads/";
+
+        static TrackedItemImageResponse of(LinePhotos.Photo photo) {
+            return new TrackedItemImageResponse(photo.placeholder(), photo.files().stream()
+                .map(file -> new TrackedItemImageFileResponse(file.width(), UPLOADS_PATH + file.fileName()))
+                .toList());
+        }
+    }
+
+    record TrackedItemImageFileResponse(int width, String url) {}
 
     /** The payment provider's checkout to redirect the buyer to. */
     record RetryResponse(URI paymentUrl) {}

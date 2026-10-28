@@ -1,5 +1,6 @@
 import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
+import { toImage, type ListingImage } from '../catalog/catalogApi.ts';
 
 type TrackedOrderResponse = components['schemas']['TrackedOrderResponse'];
 type TrackedItemResponse = components['schemas']['TrackedItemResponse'];
@@ -16,6 +17,8 @@ export interface TrackedItem {
   quantity: number;
   unitPriceCents: number;
   lineTotalCents: number;
+  /** The photo the catalog shows now of the variant (E7); null without one. */
+  image: ListingImage | null;
 }
 
 /**
@@ -59,6 +62,7 @@ function toItem({
   quantity,
   unitPriceCents,
   lineTotalCents,
+  image,
 }: TrackedItemResponse): TrackedItem {
   if (
     sku === undefined ||
@@ -71,7 +75,7 @@ function toItem({
   ) {
     throw new Error('Incomplete item in the tracked order');
   }
-  return { sku, productName, size, color, quantity, unitPriceCents, lineTotalCents };
+  return { sku, productName, size, color, quantity, unitPriceCents, lineTotalCents, image: toImage(image) };
 }
 
 function toOrder(data: TrackedOrderResponse): TrackedOrder {

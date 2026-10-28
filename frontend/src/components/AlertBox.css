@@ -1,0 +1,25 @@
+/* A failure as a system state (UC-14, E7): light red box, dark red border and text, a warning icon first */
+.alert-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--danger-strong);
+  border-radius: var(--radius-s);
+  background: var(--danger-bg);
+  color: var(--danger-strong);
+  font-size: 14px;
+  text-align: left;
+}
+
+.alert-box svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

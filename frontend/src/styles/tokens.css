@@ -17,6 +17,9 @@
   --accent-soft: #fce4e8;
   --line: #f0dcd0;
   --danger: #b84332;
+  /* The alert box (UC-14, E7): --danger-strong is 7.6:1 on --danger-bg */
+  --danger-bg: #fdeeeb;
+  --danger-strong: #8a2a1e;
 
   /*
    * Corrections (WCAG 2.1 AA, RNF-31.4):

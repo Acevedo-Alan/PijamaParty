@@ -53,6 +53,7 @@ class OrderTrackingApiTest {
     private final MercadoPagoStub mercadoPago;
     private final JdbcTemplate owner;
     private final String cartToken = newToken();
+    private UUID pijama;
 
     OrderTrackingApiTest(MockMvc mvc, ObjectMapper json, MercadoPagoStub mercadoPago, PostgreSQLContainer<?> postgres) {
         this.mvc = mvc;
@@ -65,7 +66,7 @@ class OrderTrackingApiTest {
     /** 2 pijamas at ARS 20,000 in the guest's cart; shipping to Santa Fe ARS 4,500. */
     @BeforeEach
     void setUp() throws Exception {
-        UUID pijama = sellable(2_000_000, 5);
+        pijama = sellable(2_000_000, 5);
         owner.update("insert into shipping_zone_rate (province, cost_cents, updated_at) values ('SANTA_FE', 450000, "
             + "now())");
         mvc.perform(post("/api/cart/items").cookie(new Cookie(CART_COOKIE, cartToken)).with(csrf())
@@ -104,6 +105,7 @@ class OrderTrackingApiTest {
             .andExpect(jsonPath("$.items[0].quantity").value(2))
             .andExpect(jsonPath("$.items[0].unitPriceCents").value(2_000_000))
             .andExpect(jsonPath("$.items[0].lineTotalCents").value(4_000_000))
+            .andExpect(jsonPath("$.items[0].image").value(nullValue()))
             .andExpect(jsonPath("$.subtotalCents").value(4_000_000))
             .andExpect(jsonPath("$.discountCents").value(0))
             .andExpect(jsonPath("$.couponCode").value(nullValue()))
@@ -115,6 +117,24 @@ class OrderTrackingApiTest {
         // PostgreSQL rounds to microseconds; the checkout answered the clock's own precision.
         assertThat(Instant.parse(json.readTree(body).get("reservationExpiresAt").asText()))
             .isCloseTo(Instant.parse(placed.get("reservationExpiresAt").asText()), within(1, ChronoUnit.MICROS));
+    }
+
+    @Test
+    void givenAnItemWhoseProductHasAPhoto_whenOpeningItsTrackingLink_thenTheItemHasItsCurrentPhoto() throws Exception {
+        JsonNode placed = placeOrder();
+        owner.update("""
+            insert into product_image (id, product_id, color, storage_key, placeholder, position, upload_key,
+                                       content_sha256, created_at)
+            select ?, v.product_id, v.color, 'pijama-rosa', 'data:image/webp;base64,UklGRg==', 0, ?, ?, now()
+            from variant v
+            where v.id = ?
+            """, UUID.randomUUID(), UUID.randomUUID(), new byte[32], pijama);
+
+        track(placed.get("trackingToken").asText())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].image.placeholder").value("data:image/webp;base64,UklGRg=="))
+            .andExpect(jsonPath("$.items[0].image.files[0].width").value(400))
+            .andExpect(jsonPath("$.items[0].image.files[0].url").value("/uploads/pijama-rosa-400.webp"));
     }
 
     @Test

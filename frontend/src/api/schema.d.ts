@@ -1261,7 +1261,7 @@ export interface paths {
         };
         /**
          * The order of a tracking link
-         * @description What following the order needs, never the national ID, the email, the phone or the street: the link can be forwarded. canRetryPayment is true while the order awaits payment and its stock is reserved (until reservationExpiresAt). Amounts in cents. Not cached.
+         * @description What following the order needs, never the national ID, the email, the phone or the street: the link can be forwarded. canRetryPayment is true while the order awaits payment and its stock is reserved (until reservationExpiresAt). Each item's image is the photo the catalog shows now of its variant, or null. Amounts in cents. Not cached.
          */
         get: operations["order"];
         put?: never;
@@ -2369,6 +2369,15 @@ export interface components {
             /** Format: int64 */
             costCents?: number;
         };
+        TrackedItemImageFileResponse: {
+            /** Format: int32 */
+            width?: number;
+            url?: string;
+        };
+        TrackedItemImageResponse: {
+            placeholder?: string;
+            files?: components["schemas"]["TrackedItemImageFileResponse"][];
+        };
         TrackedItemResponse: {
             sku?: string;
             productName?: string;
@@ -2380,6 +2389,7 @@ export interface components {
             unitPriceCents?: number;
             /** Format: int64 */
             lineTotalCents?: number;
+            image?: components["schemas"]["TrackedItemImageResponse"];
         };
         TrackedOrderResponse: {
             /** Format: int64 */

@@ -1,8 +1,58 @@
-/* UC-14 (T-E3-08): the tracking link. One column, mobile first. */
+/* UC-14 (T-E3-08): the tracking link. One column, mobile first; from 900 px the order on the left and its summary,
+   sticky, on the right, as the checkout (E7). */
 .tracking {
   max-width: 640px;
   padding-top: 24px;
   padding-bottom: 48px;
+}
+
+.tracking-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'main' 'summary' 'email';
+}
+
+.tracking-main {
+  grid-area: main;
+}
+
+.tracking-summary {
+  grid-area: summary;
+}
+
+.tracking-email {
+  grid-area: email;
+}
+
+@media (min-width: 900px) {
+  .tracking {
+    max-width: var(--maxw);
+  }
+
+  .tracking-layout {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: 'main summary' 'email summary';
+    column-gap: 36px;
+  }
+
+  .tracking-summary {
+    align-self: start;
+    position: sticky;
+    top: 84px;
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--surface);
+  }
+
+  .tracking-summary h2 {
+    margin-top: 0;
+  }
+
+  .tracking-email {
+    align-self: start;
+  }
 }
 
 .tracking h1 {
@@ -40,12 +90,7 @@
 
 .tracking-pay .btn {
   width: 100%;
-}
-
-.tracking-error {
-  color: var(--danger);
-  min-height: 1.5em;
-  margin: 8px 0 0;
+  margin-top: 12px;
 }
 
 .tracking-shipment dd {
@@ -71,6 +116,20 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* E7: the tracking link's items lead with a square thumbnail of their product */
+.tracking-items li.with-photo {
+  grid-template-columns: 56px 1fr auto;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.tracking-item-photo {
+  grid-row: span 2;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-s);
+}
+
 .tracking-item-detail {
   grid-column: 1;
   color: var(--ink-soft);
@@ -80,6 +139,15 @@
 .tracking-item-amount {
   grid-column: 2;
   grid-row: 1;
+}
+
+.with-photo .tracking-item-name,
+.with-photo .tracking-item-detail {
+  grid-column: 2;
+}
+
+.with-photo .tracking-item-amount {
+  grid-column: 3;
 }
 
 .tracking-amounts div {

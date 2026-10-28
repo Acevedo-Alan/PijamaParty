@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState, type ChangeEvent, type ReactNode } 
 import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { ButtonProgress, type ProgressState } from '../../components/ButtonProgress.tsx';
+import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { ADDRESSES_KEY, fetchAddresses, type SavedAddress } from '../account/addressBookApi.ts';
@@ -822,13 +823,13 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 goTo(1);
               }}
             >
-              <p>{`${form.firstName.trim()} ${form.lastName.trim()}`}</p>
+              <p>{capitalizeWords(`${form.firstName.trim()} ${form.lastName.trim()}`)}</p>
               <p>{form.email.trim()}</p>
               <p>{form.phone.trim()}</p>
               <p>{es.checkout.nationalIdLine(form.nationalId.trim())}</p>
               <p>{addressLine(form)}</p>
               {isProvince(form.province) && (
-                <p>{es.checkout.place(form.city.trim(), es.provinces[form.province], form.postalCode.trim().toUpperCase())}</p>
+                <p>{es.checkout.place(capitalizeWords(form.city.trim()), es.provinces[form.province], form.postalCode.trim().toUpperCase())}</p>
               )}
             </ReviewBlock>
             <ReviewBlock
