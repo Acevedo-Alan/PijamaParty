@@ -290,28 +290,8 @@ describe('product page as in the prototype (E7, changes to UC-03)', () => {
     expect(crumbs.getByRole('link', { name: es.product.home })).toHaveAttribute('href', '/');
     expect(crumbs.getByRole('link', { name: 'Pijamas largos' })).toHaveAttribute('href', '/categoria/pijamas-largos');
     expect(crumbs.getByText('Pijama Luna')).toHaveAttribute('aria-current', 'page');
-  });
-
-  it('given a product opened from a shared link, when "Volver al catálogo" is pressed, then the home page opens', async () => {
-    stubPage();
-    const { router } = renderRoute('/producto/luna');
-
-    await userEvent.click(await screen.findByRole('link', { name: es.product.backToCatalog }));
-
-    expect(router.state.location.pathname).toBe('/');
-  });
-
-  it('given a product opened from another store page, when "Volver al catálogo" is pressed, then that page opens again', async () => {
-    stubPage();
-    const { router } = renderRoute('/preguntas-frecuentes?desde=tienda');
-    await act(() => router.navigate('/producto/luna'));
-
-    await userEvent.click(await screen.findByRole('link', { name: es.product.backToCatalog }));
-
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/preguntas-frecuentes');
-    });
-    expect(router.state.location.search).toBe('?desde=tienda');
+    // The breadcrumbs are the only way back (UC-03).
+    expect(screen.queryByRole('link', { name: 'Volver al catálogo' })).not.toBeInTheDocument();
   });
 
   it('given the main photo, when pressed, then the enlarged view shows its 1200 px file and closes again', async () => {
@@ -498,14 +478,27 @@ describe('"Completá tu look" on the product page (E7, D-08)', () => {
     expect(queriesTo(get, LISTING_PATH)).toEqual([{ category: 'pijamas-largos', page: 0 }]);
   });
 
-  it('given related products, when a product page opens, then "Completá tu look" sits in the info column (T-E7-11)', async () => {
+  it('given related products, when a product page opens, then "Completá tu look" sits below the info column (UC-03)', async () => {
     stubPage(NO_SHIPPING_RATES, productDetail(), category(2));
 
     renderRoute('/producto/luna');
 
     const related = await screen.findByRole('region', { name: es.product.related });
     const info = screen.getByRole('heading', { level: 1, name: 'Pijama Luna' }).parentElement;
-    expect(info?.contains(related)).toBe(true);
+    expect(info?.contains(related)).toBe(false);
+    expect(info?.compareDocumentPosition(related)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('given a product page, when it opens, then the collapsed sections come right after the add button and the shipping cost after them (UC-03)', async () => {
+    stubPage(answer(200, { zones: [{ province: 'SANTA_FE', costCents: 0 }], freeShippingThresholdCents: null }));
+
+    renderRoute('/producto/luna');
+
+    const province = await screen.findByRole('combobox', { name: es.product.shipping });
+    const add = screen.getByRole('button', { name: es.product.addToCart });
+    const composition = screen.getByRole('button', { name: es.product.composition });
+    expect(add.compareDocumentPosition(composition)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(composition.compareDocumentPosition(province)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it('given a category with no other products, when a product page opens, then "Completá tu look" is not shown', async () => {

@@ -4,8 +4,11 @@ import { es } from '../../i18n/es.ts';
 import type { DetailImage } from './productDetailApi.ts';
 import { ProductLightbox } from './ProductLightbox.tsx';
 
-/** One column on mobile; from 860 px the gallery takes about half of the 1180 px content width. */
-const MAIN_IMAGE_SIZES = '(min-width: 1180px) 610px, (min-width: 860px) 52vw, calc(100vw - 40px)';
+/**
+ * One column on mobile; from 860 px the gallery takes about half of the 1180 px content width, less the strip of
+ * thumbnails on its left.
+ */
+const MAIN_IMAGE_SIZES = '(min-width: 1180px) 534px, (min-width: 860px) calc(52vw - 76px), calc(100vw - 40px)';
 const THUMB_SIZES = '64px';
 
 interface ProductGalleryProps {
@@ -15,8 +18,8 @@ interface ProductGalleryProps {
 }
 
 /**
- * The main photo with the blurred placeholder (blur-up), pressed to enlarge it (E7), and a row of thumbnails to
- * switch it. The parent remounts
+ * The main photo with the blurred placeholder (blur-up), pressed to enlarge it (E7), and the thumbnails to switch it:
+ * a row below it on phones, a strip on its left from 860 px. The parent remounts
  * the gallery when the color changes, so it starts again from the first photo of that color.
  */
 export function ProductGallery({ name, images }: ProductGalleryProps) {

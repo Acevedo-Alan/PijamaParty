@@ -4,14 +4,6 @@
   padding-bottom: 70px;
 }
 
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  margin-bottom: 12px;
-  font-size: 13px;
-}
-
 .pdp-layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -31,12 +23,52 @@
   border-radius: var(--radius-m);
 }
 
+/* UC-03: the thumbnails in a row below the photo on phones, in a strip on its left from 860 px. */
+.pdp-gallery {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'main'
+    'thumbs';
+}
+
+.pdp-image-frame {
+  grid-area: main;
+}
+
 .pdp-thumbs {
+  grid-area: thumbs;
   list-style: none;
   display: flex;
   gap: 8px;
   margin-top: 10px;
+  /* Room for the outline of the picked one inside the scrolling list */
+  padding: 2px;
   overflow-x: auto;
+}
+
+@media (min-width: 860px) {
+  .pdp-gallery:has(.pdp-thumbs) {
+    grid-template-columns: 68px minmax(0, 1fr);
+    grid-template-areas: 'thumbs main';
+    gap: 8px;
+  }
+
+  /* As tall as the photo, never taller: more thumbnails scroll inside the strip. */
+  .pdp-thumbs {
+    flex-direction: column;
+    height: 0;
+    min-height: 100%;
+    margin-top: 0;
+    overflow: hidden auto;
+  }
+
+  /* UC-03: the info column stays on screen, below the sticky header, while the photo scrolls. */
+  .pdp-info {
+    position: sticky;
+    top: 96px;
+    align-self: flex-start;
+  }
 }
 
 .pdp-thumb {
@@ -176,20 +208,7 @@
   }
 }
 
-/* E7: "Volver al catálogo" and the breadcrumbs Inicio / category / product. */
-.back-link {
-  gap: 6px;
-  color: var(--ink-soft);
-}
-
-.back-link svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-}
-
+/* E7: the breadcrumbs Inicio / category / product. */
 .breadcrumbs {
   margin-bottom: 16px;
   font-size: 12.5px;
@@ -542,7 +561,7 @@
   padding-bottom: 12px;
 }
 
-/* E7 (D-08): "Completá tu look", the listing grid below the product. */
+/* E7 (D-08): "Completá tu look", the listing grid below both columns of the product (UC-03). */
 .related {
   margin-top: 56px;
 }
@@ -552,10 +571,4 @@
   font-size: 19px;
   font-weight: 600;
   margin-bottom: 16px;
-}
-
-/* Small cards in the info column, as in the prototype (T-E7-11) */
-.related .card .card-title,
-.related .card .price {
-  font-size: 12.5px;
 }

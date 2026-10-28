@@ -102,7 +102,6 @@ export const es = {
   },
   product: {
     /** E7: back in history when the visitor came from the store, otherwise to the home page. */
-    backToCatalog: 'Volver al catálogo',
     breadcrumbs: 'Ruta de navegación',
     home: 'Inicio',
     loading: 'Cargando producto…',

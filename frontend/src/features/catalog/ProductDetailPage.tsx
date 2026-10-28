@@ -18,7 +18,7 @@ import { REVIEWS_SHOWN } from '../reviews/reviewsShown.ts';
 import { PageMeta } from '../seo/PageMeta.tsx';
 import { productDescription } from '../seo/productMeta.ts';
 import { ProductStructuredData } from '../seo/ProductStructuredData.tsx';
-import { BackToCatalog, ProductBreadcrumbs } from './ProductBreadcrumbs.tsx';
+import { ProductBreadcrumbs } from './ProductBreadcrumbs.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
 import { ProductSections } from './ProductSections.tsx';
@@ -97,7 +97,7 @@ function Price({ price }: { price: { cents: number; from: boolean } }) {
 
 /**
  * Gallery, description, price, the size and color picker, the quantity and the add to cart of one product, then the
- * shipping by province, the trust icons and the collapsed sections (E7).
+ * collapsed sections, the shipping by province and the trust icons (E7); "Completá tu look" below both columns.
  */
 function ProductDetailView({ product }: { product: ProductDetail }) {
   const [selection, setSelection] = useState(() => initialSelection(product));
@@ -219,11 +219,9 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         <p className="pdp-add-error" role="alert">
           <AddProblem answer={add.data} failed={add.isError} />
         </p>
+        <ProductSections product={product} />
         <ShippingByProvince />
         <PurchaseInfoSummary />
-        <ProductSections product={product} />
-        {/* In the info column, as in the prototype (T-E7-11) */}
-        <RelatedProducts category={product.category.slug} slug={product.slug} />
       </div>
       <StickyAddToCart target={addButton}>
         <Price price={price} />
@@ -259,7 +257,6 @@ export function ProductDetailPage() {
 
   return (
     <main className="wrap pdp">
-      <BackToCatalog />
       {detail.data?.status === 'found' && <ProductBreadcrumbs product={detail.data.product} />}
       {detail.isPending && <Skeleton />}
       {detail.isError && (
@@ -276,6 +273,8 @@ export function ProductDetailPage() {
           <PageMeta description={productDescription(detail.data.product)} />
           <ProductStructuredData product={detail.data.product} />
           <ProductDetailView key={detail.data.product.slug} product={detail.data.product} />
+          {/* Below both columns, so the info column is short enough to stay on screen (UC-03) */}
+          <RelatedProducts category={detail.data.product.category.slug} slug={detail.data.product.slug} />
           {REVIEWS_SHOWN && (
             <>
               <ProductReviewsSection key={detail.data.product.slug} slug={detail.data.product.slug} />
