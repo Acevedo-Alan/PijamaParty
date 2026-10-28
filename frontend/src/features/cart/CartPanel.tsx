@@ -381,7 +381,7 @@ export function CartPanel() {
             </svg>
           </button>
         </header>
-        {/* Inside the panel, in its flow below the header, over nothing: the modal dialog leaves the page inert. */}
+        {/* Inside the panel, over its title (cart.css): the modal dialog leaves the page inert. */}
         <Toast open={notice.shown} closeLabel={es.cart.closeNotice} onClose={notice.hide}>
           {es.cart.addedNotice}
         </Toast>

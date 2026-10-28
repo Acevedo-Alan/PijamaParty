@@ -325,3 +325,25 @@ html:has(.cart-panel[open]) {
   margin-top: 14px;
   border-radius: 999px;
 }
+
+/* E7: "Agregado al carrito" drops into the header over the title, up to the close button, as tall as the header's
+   buttons, so the items keep their place and the added product stays in sight on a phone. */
+.cart-panel-inner {
+  position: relative;
+}
+
+.cart-panel .toast-region {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 72px;
+  z-index: 1;
+  padding: 0;
+  pointer-events: none;
+}
+
+.cart-panel .toast {
+  margin-top: 0;
+  padding: 0 0 0 18px;
+  pointer-events: auto;
+}

@@ -1,4 +1,4 @@
-/* A notice in the flow of its container, across its width: the cart panel puts it below its header (E7) */
+/* A notice in the flow of its container, across its width; the cart panel lays it over its header (E7) */
 .toast-region {
   padding: 0 20px;
 }
@@ -20,4 +20,9 @@
 
 .toast .icon-btn {
   color: inherit;
+}
+
+/* search.css strokes every .icon-btn in --ink, which disappears on the dark notice */
+.toast .icon-btn svg {
+  stroke: currentColor;
 }
