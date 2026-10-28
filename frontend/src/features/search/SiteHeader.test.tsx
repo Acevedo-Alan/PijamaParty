@@ -374,3 +374,35 @@ describe('header account entry (UC-31)', () => {
     expect(button).toHaveAttribute('aria-expanded', 'false');
   });
 });
+
+describe('header on the purchase pages (UC-31)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const header = () => within(screen.getByRole('banner'));
+
+  it.each(['/checkout', `/pedido/${'b'.repeat(43)}`])(
+    'given %s, when the header shows, then it has the logo, the account and the cart, but no navigation, menu or search',
+    async (path) => {
+      vi.spyOn(api, 'GET').mockImplementation(withHeader((get: string) => Promise.resolve(headerRead(get) ?? answer(404))));
+      renderRoute(path);
+
+      expect(await header().findByRole('link', { name: es.account.signInLink })).toBeInTheDocument();
+      expect(header().getByRole('link', { name: es.store.name })).toHaveAttribute('href', '/');
+      expect(header().getByRole('button', { name: es.cart.open(0) })).toBeInTheDocument();
+      expect(screen.queryByRole('navigation', { name: es.header.navigation })).not.toBeInTheDocument();
+      expect(header().queryByLabelText(es.header.openMenu, { selector: 'button' })).not.toBeInTheDocument();
+      expect(header().queryByRole('search')).not.toBeInTheDocument();
+      expect(header().queryByRole('button', { name: es.search.open })).not.toBeInTheDocument();
+    },
+  );
+
+  it('given a page outside the purchase, when the header shows, then it keeps the navigation and the search', async () => {
+    vi.spyOn(api, 'GET').mockImplementation(withHeader((get: string) => Promise.resolve(headerRead(get) ?? purchaseInfo(get))));
+    renderRoute('/preguntas-frecuentes');
+
+    expect(await screen.findByRole('navigation', { name: es.header.navigation })).toBeInTheDocument();
+    expect(header().getByRole('search')).toBeInTheDocument();
+  });
+});
