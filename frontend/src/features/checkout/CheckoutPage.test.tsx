@@ -484,6 +484,19 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     expect(confirmButton()).toHaveAttribute('data-state', 'failed');
   });
 
+  it('given a refused confirmation, when its reason shows, then it is an alert box with a warning icon', async () => {
+    stubGets();
+    stubPost(answer(409, { problem: 'CART_NOT_READY' }));
+    renderRoute('/checkout');
+    await goToReview();
+
+    await acceptAndConfirm();
+
+    const box = (await screen.findByText(es.checkout.refused.cartNotReady)).closest('.alert-box');
+    expect(box?.closest('[role="alert"]')).not.toBeNull();
+    expect(box?.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+  });
+
   it('given a confirmation without an answer, when retried, then the same Idempotency-Key is repeated', async () => {
     stubGets();
     const post = stubPost(answer(503), answer(409, { problem: 'CART_NOT_READY' }), placed(PAYMENT_URL));

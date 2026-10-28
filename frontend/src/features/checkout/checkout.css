@@ -125,14 +125,7 @@
 }
 
 .checkout-field-error,
-.checkout-error {
-  margin-top: 5px;
-  color: var(--danger);
-  font-size: 13px;
-}
-
-.checkout-field-error:empty,
-.checkout-error:empty {
+.checkout-field-error:empty {
   display: none;
 }
 

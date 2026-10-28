@@ -95,6 +95,7 @@ Nobody deletes orders or payments (R-15). Correcting the email (UC-17) adds its 
 
 **Acceptance criteria**
 - Given an empty required field, when trying to go on, then it does not go on and the missing field is shown.
+- Given a refused confirmation, a shipping cost that cannot be read or a coupon that cannot be removed, when the error shows, then it is an alert box with a warning icon (E7, as on the tracking page); field errors stay under their field.
 - Given a national ID with an invalid format, when validated, then it is rejected.
 - Given a cart with a variant out of stock, when the checkout opens, then it is announced and the item must be removed to go on.
 - Given a buyer who goes back a step, when the province changes, then the shipping cost and the total are recalculated.

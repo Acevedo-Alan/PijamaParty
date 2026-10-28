@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
+import { AlertBox } from '../../components/AlertBox.tsx';
 import { ButtonProgress, type ProgressState } from '../../components/ButtonProgress.tsx';
 import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
 import { es } from '../../i18n/es.ts';
@@ -274,9 +275,7 @@ function Summary({ cart, amounts }: { cart: Cart; amounts: Amounts }) {
             </button>
           </div>
           {note !== null && <p className="checkout-coupon-note">{note}</p>}
-          <p className="checkout-error" role="alert">
-            {remove.isError ? es.cart.couponRemoveError : null}
-          </p>
+          <AlertBox message={remove.isError ? es.cart.couponRemoveError : null} />
         </div>
       )}
       <dl className="checkout-amounts">
@@ -574,14 +573,14 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   const shippingNotes = (
     <>
       {form.province !== '' && shipping.isFetching && <p className="checkout-note">{es.checkout.shippingLoading}</p>}
-      {shipping.isError && (
-        <p className="checkout-error" role="alert">
-          {es.checkout.shippingError}{' '}
+      <AlertBox
+        message={shipping.isError ? es.checkout.shippingError : null}
+        action={
           <button type="button" className="link-btn" onClick={() => void shipping.refetch()}>
             {es.checkout.retry}
           </button>
-        </p>
-      )}
+        }
+      />
     </>
   );
 
@@ -787,9 +786,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 </label>
               ))}
             </fieldset>
-            <p className="checkout-error" role="alert">
-              {refusal}
-            </p>
+            <AlertBox message={refusal} />
             <div className="checkout-actions">
               <button
                 type="button"
@@ -868,9 +865,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 </p>
               )}
             </div>
-            <p className="checkout-error" role="alert">
-              {refusal}
-            </p>
+            <AlertBox message={refusal} />
             <div className="checkout-actions">
               <button
                 type="button"
