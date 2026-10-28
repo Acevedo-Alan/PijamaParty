@@ -5,6 +5,7 @@ import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { Toast } from '../../components/motion/Toast.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { NewestProducts } from '../catalog/NewestProducts.tsx';
 import { isCouponOutdone, type Cart, type CartItem, type CouponRefusal } from './cartApi.ts';
 import { useCartPanel } from './CartPanelContext.tsx';
 import { FreeShippingProgress } from './FreeShippingProgress.tsx';
@@ -405,8 +406,10 @@ export function CartPanel() {
             <button type="button" className="btn" onClick={panel.close}>
               {es.cart.keepShopping}
             </button>
-            {/* T-E7-19: where "Productos sugeridos" goes once it exists. */}
-            <div className="cart-suggestions" />
+            {/* T-E7-19: the place of "Productos sugeridos", which "Lo más nuevo" fills (T-E7-34). */}
+            <div className="cart-suggestions">
+              <NewestProducts onOpen={panel.close} />
+            </div>
           </div>
         )}
         {cart.data !== undefined && cart.data.items.length > 0 && (

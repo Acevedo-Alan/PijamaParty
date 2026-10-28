@@ -4,6 +4,7 @@ import { es } from '../../i18n/es.ts';
 import { trackSearch } from '../analytics/catalogEvents.ts';
 import { FilterPanel } from '../catalog/FilterPanel.tsx';
 import { NO_FILTERS } from '../catalog/listingCriteria.ts';
+import { NewestProducts } from '../catalog/NewestProducts.tsx';
 import { ProductListing, ResultCount } from '../catalog/ProductListing.tsx';
 import { SortSelect } from '../catalog/SortSelect.tsx';
 import { useListingCriteria } from '../catalog/useListingCriteria.ts';
@@ -31,6 +32,7 @@ function NoResults({ text }: { text: string }) {
           </li>
         </ul>
       </nav>
+      <NewestProducts />
     </div>
   );
 }

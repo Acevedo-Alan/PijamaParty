@@ -1,4 +1,4 @@
-import { act, screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
@@ -7,8 +7,10 @@ import { cart, cartItem } from '../../test/cartApi.ts';
 import {
   answer,
   detailOrNoReviews,
+  listed,
   NO_CART,
   NO_SHIPPING_RATES,
+  product,
   SHIPPING_RATES_PATH,
   withHeader,
 } from '../../test/catalogApi.ts';
@@ -143,6 +145,31 @@ describe('cart side panel (UC-08)', () => {
     expect(empty.previousElementSibling?.tagName.toLowerCase()).toBe('svg');
     await userEvent.click(within(panel()).getByRole('button', { name: es.cart.keepShopping }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('given an empty cart, when the panel opens, then "Lo más nuevo" shows the 4 newest not sold out and opening one closes it (T-E7-34)', async () => {
+    const newest = listed([
+      product('a'),
+      product('b', { soldOut: true }),
+      product('c'),
+      product('d'),
+      product('e'),
+      product('f'),
+    ]);
+    vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
+      Promise.resolve(path === '/api/cart' ? NO_CART : path === '/api/catalog/products' ? newest : detailOrNoReviews(path))));
+    const { router } = renderRoute('/producto/luna');
+
+    await userEvent.click(await screen.findByRole('button', { name: es.cart.open(0) }));
+
+    const section = within(await within(panel()).findByRole('region', { name: es.catalog.newest }));
+    expect(section.getAllByRole('link').map((link) => link.getAttribute('href')))
+      .toEqual(['/producto/a', '/producto/c', '/producto/d', '/producto/e']);
+    await userEvent.click(section.getByRole('link', { name: /Pijama c/ }));
+    expect(router.state.location.pathname).toBe('/producto/c');
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 
   it('given an item the catalog no longer has, when the panel opens, then it still shows its line', async () => {

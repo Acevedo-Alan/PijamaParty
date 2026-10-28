@@ -330,9 +330,12 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - With a threshold, a bar shows "Te faltan $X para envío gratis" or "¡Tenés envío gratis!". X is the threshold minus the subtotal after discount as the server sent it. The checkout still decides the final cost (UC-12).
 - Adding from the product page also shows a short "Agregado al carrito" notice (`role="status"`), closed by itself after 4 s or with its close button.
 - Empty, the panel shows a shopping-bag icon above "Tu carrito está vacío.", and "Empezar a comprar" takes the panel's whole width inside its side padding. Below it, the rest of the panel's height is kept for "Productos sugeridos", a future task; until then that place renders nothing (T-E7-19).
+- "Lo más nuevo" (T-E7-34) fills that place: the 4 newest listed products that are not sold out, as cards in two columns, from the first page of the listing sorted by newest (UC-01). Opening one closes the panel. The same block shows below the links of a search without results (UC-26). Nothing shows while it loads, when it fails or when there is no product to show.
 
 **Acceptance criteria**
 - Given an empty cart, when the panel opens, then it shows the icon, "Tu carrito está vacío." and a full-width "Empezar a comprar" that closes the panel.
+- Given an empty cart and 6 listed products, one of the 4 newest sold out, when the panel opens, then "Lo más nuevo" shows the 4 newest not sold out; opening one closes the panel and opens its page.
+- Given a search without results, when its page shows, then "Lo más nuevo" shows below the category links.
 - Given a $50,000 threshold and a $24,999 subtotal after discount, when the panel opens, then it reads "Te faltan $25.001 para envío gratis".
 - Given a subtotal after discount of $50,000 or more, when the panel opens, then it reads "¡Tenés envío gratis!".
 - Given no threshold, when the panel opens, then there is no bar.

@@ -29,6 +29,8 @@ export const es = {
     soldOut: 'Agotado',
     /** D-05: a product created in the last 30 days. */
     isNew: 'Nuevo',
+    /** T-E7-34: the newest products, in the empty cart and a search without results. */
+    newest: 'Lo más nuevo',
     /** D-04: what a screen reader hears for the swatches of a card, e.g. "Colores: Rosa, Beige y Salvia". */
     colors: (colors: readonly string[]) =>
       `${colors.length === 1 ? 'Color' : 'Colores'}: ${new Intl.ListFormat('es', { type: 'conjunction' }).format(colors)}`,

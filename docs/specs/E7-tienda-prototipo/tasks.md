@@ -32,6 +32,7 @@
 - [x] **T-E7-31** Ficha: las fotos se deslizan al elegir otra (miniatura, dedo, mouse o flechas del teclado), y la vista ampliada pasa de una foto a otra con un fundido, botones anterior y siguiente, "n / total" y zoom al tocar la foto (cambios a CU-03).
 - [x] **T-E7-32** Tarjeta en el celular: deslizar con el dedo entre la primera y la segunda foto, con dos puntos que marcan cuál se ve (cambios a CU-01).
 - [x] **T-E7-33** "Vistos recientemente": los últimos productos abiertos, guardados en el navegador, en la portada y en la ficha (cambios a CU-03 y CU-30).
+- [x] **T-E7-34** "Lo más nuevo" en el carrito vacío y en la búsqueda sin resultados (cambios a CU-08 y CU-26).
 - [x] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 
 **Orden:** T-E7-01 primero (sus decisiones cambian T-E7-02, T-E7-05, T-E7-07, T-E7-09 y T-E7-12), después T-E7-12 (las pantallas usan sus tokens). T-E7-13 va antes de T-E7-04 (la portada muestra el banner). T-E7-02 a T-E7-04 no esperan las fotos: usan los fondos degradados hasta que lleguen.

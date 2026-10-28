@@ -791,3 +791,15 @@ html:has(.filters-panel[open]) {
   font-weight: 600;
   margin-bottom: 16px;
 }
+
+/* T-E7-34: "Lo más nuevo" in the empty cart panel (two columns, whatever the screen) and below the links of a
+   search without results (the listing's columns). */
+.newest {
+  align-self: stretch;
+  margin-top: 32px;
+  text-align: start;
+}
+
+.cart-suggestions .newest-grid {
+  grid-template-columns: repeat(2, 1fr);
+}

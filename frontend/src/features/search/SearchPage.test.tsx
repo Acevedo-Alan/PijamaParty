@@ -42,9 +42,10 @@ describe('search results page (UC-26)', () => {
     expect(queriesTo(get, PRODUCTS).at(-1)).toEqual({ q: 'pijama', size: ['M'], sort: 'NEWEST', page: 0 });
   });
 
-  it('given a search with no results, when shown, then a message and links to the categories appear', async () => {
-    stubCatalogApi({
-      listings: [listed([])],
+  it('given a search with no results, when shown, then a message, links to the categories and "Lo más nuevo" appear', async () => {
+    // The search first; "Lo más nuevo" asks only once nothing matched (T-E7-34).
+    const get = stubCatalogApi({
+      listings: [listed([]), listed([product('rosa')])],
       categories: shopCategories([
         { slug: 'verano', name: 'Verano' },
         { slug: 'invierno', name: 'Invierno' },
@@ -58,6 +59,10 @@ describe('search results page (UC-26)', () => {
     expect(await links.findByRole('link', { name: 'Verano' })).toHaveAttribute('href', '/categoria/verano');
     expect(links.getByRole('link', { name: 'Invierno' })).toHaveAttribute('href', '/categoria/invierno');
     expect(links.getByRole('link', { name: es.catalog.seeAll })).toHaveAttribute('href', '/');
+    const newest = within(await screen.findByRole('region', { name: es.catalog.newest }));
+    expect(newest.getByRole('link', { name: /Pijama rosa/ })).toHaveAttribute('href', '/producto/rosa');
+    // NEWEST is the default sort, so the query leaves it out
+    expect(queriesTo(get, '/api/catalog/products').at(-1)).toEqual({ page: 0 });
   });
 
   it('given filters with no matches, when shown, then they can be cleared keeping the text', async () => {
