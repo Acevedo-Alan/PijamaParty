@@ -28,6 +28,9 @@
   --accent-text: var(--accent-hover);
   --line-strong: #958178;
 
+  /* The header's hover fill (UC-31): a pastel rainbow from the bottom up. --ink keeps 7:1 or more on every stop. */
+  --rainbow: linear-gradient(to top, #ffc9c9, #ffe0bd, #fff3b8, #cdf0cb, #c4e4ff, #dccdff);
+
   /* Shape and layout (prototype) */
   --radius-s: 12px;
   --radius-m: 16px;
