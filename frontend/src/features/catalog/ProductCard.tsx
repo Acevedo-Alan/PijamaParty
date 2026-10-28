@@ -4,6 +4,7 @@ import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import type { ListedProduct } from './catalogApi.ts';
+import { CardSizes } from './CardSizes.tsx';
 import { ColorSwatches } from './ColorSwatches.tsx';
 import type { ListingView } from './useListingView.ts';
 import { useSwipe } from './useSwipe.ts';
@@ -19,7 +20,7 @@ export type CardPhotoPriority = 'lazy' | 'eager' | 'high';
 /**
  * A product of the grid (UC-01): first photo, the second one on hover in the grid view (T-E7-14) or by a swipe on
  * touch devices (T-E7-32), the "Nuevo" (D-05)
- * and "Sold out" labels, the colors with stock (D-04), name and "from" price.
+ * and "Sold out" labels, the colors with stock (D-04), the sizes (T-E7-35), name and "from" price.
  */
 export function ProductCard({
   product,
@@ -30,7 +31,7 @@ export function ProductCard({
   photo?: CardPhotoPriority;
   view?: ListingView;
 }) {
-  const { slug, name, image, secondImage, fromPriceCents, soldOut, colors, isNew } = product;
+  const { slug, name, image, secondImage, fromPriceCents, soldOut, colors, sizes, isNew } = product;
   const swipeable = image !== null && secondImage !== null && view === 'grid';
   const [shown, setShown] = useState(0);
   // The second photo is requested on touch devices only once a finger touches this card's photo (T-E7-32).
@@ -97,6 +98,7 @@ export function ProductCard({
         )}
       </div>
       <ColorSwatches colors={colors} />
+      <CardSizes sizes={sizes} />
       <h2 className="card-title">{name}</h2>
       <p className="price">
         {es.catalog.fromPrice} {formatMoney(fromPriceCents)}

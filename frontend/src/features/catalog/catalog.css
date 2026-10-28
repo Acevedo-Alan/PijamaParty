@@ -467,6 +467,7 @@
 }
 
 .list-view .swatches-mini,
+.list-view .card-sizes,
 .list-view .card-title,
 .list-view .card .price {
   grid-column: 2;
@@ -802,4 +803,28 @@ html:has(.filters-panel[open]) {
 
 .cart-suggestions .newest-grid {
   grid-template-columns: repeat(2, 1fr);
+}
+
+/* T-E7-35: the sizes below the swatches, "S · M · L"; one without stock is struck through and dimmed. */
+.card-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.card-sizes span + span::before {
+  content: '·';
+  padding: 0 5px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.card-sizes .out {
+  color: var(--ink-soft);
+  text-decoration: line-through;
 }

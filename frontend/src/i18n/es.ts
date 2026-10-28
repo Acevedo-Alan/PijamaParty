@@ -34,6 +34,9 @@ export const es = {
     /** D-04: what a screen reader hears for the swatches of a card, e.g. "Colores: Rosa, Beige y Salvia". */
     colors: (colors: readonly string[]) =>
       `${colors.length === 1 ? 'Color' : 'Colores'}: ${new Intl.ListFormat('es', { type: 'conjunction' }).format(colors)}`,
+    /** T-E7-35: what a screen reader hears for the sizes in stock of a card, e.g. "Talles: S y L". */
+    sizes: (sizes: readonly string[]) =>
+      `${sizes.length === 1 ? 'Talle' : 'Talles'}: ${new Intl.ListFormat('es', { type: 'conjunction' }).format(sizes)}`,
     /** D-11: the number of products that match, e.g. "1 producto" or "1.250 productos". */
     productCount: (count: number) =>
       `${count.toLocaleString('es-AR')} ${count === 1 ? 'producto' : 'productos'}`,

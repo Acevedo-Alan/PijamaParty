@@ -13,7 +13,7 @@ import java.util.Optional;
  */
 public record ListedProduct(String slug, String name, Optional<ProductListingItem.ListingImage> image,
                             Optional<ProductListingItem.ListingImage> secondImage, Money fromPrice, boolean soldOut,
-                            List<String> colors, Instant createdAt) {
+                            List<String> colors, List<ProductListingItem.SizeOffer> sizes, Instant createdAt) {
 
     public ListedProduct {
         Objects.requireNonNull(slug, "slug");
@@ -22,11 +22,12 @@ public record ListedProduct(String slug, String name, Optional<ProductListingIte
         Objects.requireNonNull(secondImage, "secondImage");
         Objects.requireNonNull(fromPrice, "fromPrice");
         colors = List.copyOf(colors);
+        sizes = List.copyOf(sizes);
         Objects.requireNonNull(createdAt, "createdAt");
     }
 
     public ProductListingItem toItem(Instant now) {
-        return new ProductListingItem(slug, name, image, secondImage, fromPrice, soldOut, colors,
+        return new ProductListingItem(slug, name, image, secondImage, fromPrice, soldOut, colors, sizes,
             Product.isNew(createdAt, now));
     }
 }

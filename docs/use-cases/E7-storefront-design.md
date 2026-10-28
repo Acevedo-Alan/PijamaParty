@@ -258,6 +258,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Business rules (new)**
 - A card shows the product's colors with available stock as swatches (D-04), at most 5 plus "+N", and the "Nuevo" label (D-05). The "Sold out" label of UC-01 stays.
+- A card shows the product's sizes below its swatches, "S · M · L" (T-E7-35): those of its active priced variants, in display order, at most 6 plus "+N". A size without available stock in any color is struck through and dimmed. Screen readers hear only the sizes with stock ("Talles: S y L"), as the swatches read only the colors with stock; with none, they hear nothing, since "Sold out" already says it.
 - The filters open from a bar of buttons (Público, Talle, Color, Material, Temporada, Precio). Each button opens the UC-02 panel at its group; a button whose group has values chosen says how many. The UC-02 rules, panel and URL keys do not change. Buttons of groups without options are not shown, unless a shared link chose a value in that group (the panel keeps it to uncheck, UC-02).
 - The listing shows the number of matches (D-11): "1 producto" or "N productos", at the right end of the filter bar row, as in the prototype. On phones it stays in view while the buttons scroll (T-E7-11).
 - The visitor can switch between grid and list views. The choice is per visit and does not change the URL.
@@ -267,6 +268,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 
 **Acceptance criteria**
 - Given a product with stock in pink and none in beige, when listed, then its card shows only the pink swatch.
+- Given a product with sizes S, M and L where M has no stock in any color, when listed, then its card shows "S · M · L" with M struck through, and screen readers hear "Talles: S y L".
 - Given a product with two photos on a computer, when the pointer rests on its card, then the second photo shows over the first; given a product with one photo, then the first one stays.
 - Given a phone, when a listing with products of two photos loads, then no second photo is requested.
 - Given a phone and a product with two photos, when its card's photo is swiped to the left, then the second photo shows, its dot is marked and the product does not open; when a card's photo is tapped, then the product opens.
@@ -279,6 +281,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - `ProductListingQuery` and `ProductSearchQuery` gain `count`: a `count(*)` over the same constant SQL conditions as the page (one shared `matching` part, RNF-28), in the same read-only transaction. The use case skips it when the page is the last one and not past the end: its offset plus its size is the total.
 - Endpoint: `GET /api/catalog/products`, with or without `q` (UC-26) → `200` `{items, hasMore, total}`, each item adding `colors` and `isNew`. OpenAPI and the typed client are updated.
 - Second photo (T-E7-14): `ListedProduct` and `ProductListingItem` gain `secondImage` (the photo after the first, in the same order: position, then id); the listing query reads both in its lateral join. Each item of `GET /api/catalog/products` adds `secondImage` (null without one). The card renders it as a second `img` with `loading="lazy"`, `display: none` except on hover devices, empty alternative text (the first photo carries the name), faded in with `opacity`.
+- Sizes (T-E7-35): `ListedProduct` and `ProductListingItem` gain `sizes: List<SizeOffer>`, `SizeOffer(size, inStock)`: the sizes of the active priced variants in display order (size position, then text, the order of the UC-02 size filter), `inStock` when one of them has available stock. The listing query reads them in the same statement as `colors`. Each item of `GET /api/catalog/products`, with or without `q`, adds `sizes: [{size, inStock}]`.
 - Frontend: `ColorSwatches` (shared with UC-03), `FilterBar`, the view toggle (`ViewToggle`; the view is kept in `sessionStorage` for the visit, grid when storage is refused). The color map normalizes names (lowercase, no accents) and is unit tested, including the swatch border contrast against the card background (3:1).
 
 ---

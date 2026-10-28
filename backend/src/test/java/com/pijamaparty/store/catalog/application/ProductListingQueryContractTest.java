@@ -88,6 +88,24 @@ public abstract class ProductListingQueryContractTest<T extends ProductListingQu
     }
 
     @Test
+    void givenStockInSomeSizes_whenListing_thenTheSizesAreThoseOfActivePricedVariantsInDisplayOrderWithTheirStock() {
+        Product product = stored(product(summer, "Pijama", 0, List.of("S", "M", "L", "XL"), List.of("Rosa", "Lila"),
+            1000, p -> p.inactive("XL", "Rosa").unpriced("XL", "Lila")));
+        givenAvailable(variant(product, "S", "Rosa"), 2);
+        givenAvailable(variant(product, "L", "Lila"), 1);
+        givenAvailable(variant(product, "XL", "Rosa"), 4);
+        stored(product(summer, "Agotado", 1, M, ROSA, 1000));
+        persistAndForget();
+
+        assertThat(list(ProductFilter.none(), ProductSort.NEWEST))
+            .extracting(ListedProduct::name, ListedProduct::sizes)
+            .containsExactly(
+                tuple("Agotado", List.of(new ProductListingItem.SizeOffer("M", false))),
+                tuple("Pijama", List.of(new ProductListingItem.SizeOffer("S", true),
+                    new ProductListingItem.SizeOffer("M", false), new ProductListingItem.SizeOffer("L", true))));
+    }
+
+    @Test
     void givenFilters_whenCounting_thenEveryListedMatchCountsWhateverThePage() {
         for (int i = 1; i <= 5; i++) {
             stocked(product(summer, "Pijama " + i, i, M, ROSA, 1000L * i), 1);

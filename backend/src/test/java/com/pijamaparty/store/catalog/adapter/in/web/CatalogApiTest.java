@@ -130,10 +130,14 @@ class CatalogApiTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items[*].name", contains("Reciente", "Viejo")))
             .andExpect(jsonPath("$.items[0].colors", contains("Rosa")))
+            // T-E7-35: every size, the one without stock too (same position, so by text)
+            .andExpect(jsonPath("$.items[0].sizes[*].size", contains("L", "M")))
+            .andExpect(jsonPath("$.items[0].sizes[*].inStock", contains(false, true)))
             .andExpect(jsonPath("$.items[0].isNew").value(true))
             .andExpect(jsonPath("$.items[1].isNew").value(false));
         mvc.perform(get(PRODUCTS).param("q", "reciente"))
             .andExpect(jsonPath("$.items[0].colors", contains("Rosa")))
+            .andExpect(jsonPath("$.items[0].sizes[*].size", contains("L", "M")))
             .andExpect(jsonPath("$.items[0].isNew").value(true))
             .andExpect(jsonPath("$.total").value(1));
     }

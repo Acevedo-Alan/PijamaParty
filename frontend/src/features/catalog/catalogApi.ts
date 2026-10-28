@@ -27,8 +27,15 @@ export interface ListedProduct {
   soldOut: boolean;
   /** The colors with stock, in display order (D-04). */
   colors: string[];
+  /** Every size, in display order, each saying whether one of its colors has stock (T-E7-35). */
+  sizes: SizeOffer[];
   /** Created in the last 30 days (D-05). */
   isNew: boolean;
+}
+
+export interface SizeOffer {
+  size: string;
+  inStock: boolean;
 }
 
 /**
@@ -75,6 +82,7 @@ function toProduct(item: ListItemResponse): ListedProduct {
     fromPriceCents,
     soldOut: item.soldOut === true,
     colors: item.colors ?? [],
+    sizes: (item.sizes ?? []).flatMap(({ size, inStock }) => (size === undefined ? [] : [{ size, inStock: inStock === true }])),
     isNew: item.isNew === true,
   };
 }

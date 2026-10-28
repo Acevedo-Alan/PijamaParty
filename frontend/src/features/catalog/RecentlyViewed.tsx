@@ -14,6 +14,8 @@ const SHOWN = 4;
 function toListed(product: ProductDetail): ListedProduct {
   const inStock = (color: string) =>
     product.variants.some((variant) => variant.color === color && variant.available > 0);
+  const sizeInStock = (size: string) =>
+    product.variants.some((variant) => variant.size === size && variant.available > 0);
   return {
     slug: product.slug,
     name: product.name,
@@ -22,6 +24,7 @@ function toListed(product: ProductDetail): ListedProduct {
     fromPriceCents: product.fromPriceCents,
     soldOut: product.variants.every((variant) => variant.available === 0),
     colors: product.colors.filter(inStock),
+    sizes: product.sizes.map((size) => ({ size, inStock: sizeInStock(size) })),
     // The detail does not say it (T-E7-33).
     isNew: false,
   };

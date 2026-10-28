@@ -2469,6 +2469,7 @@ export interface components {
             fromPriceCents?: number;
             soldOut?: boolean;
             colors?: string[];
+            sizes?: components["schemas"]["SizeOfferResponse"][];
             isNew?: boolean;
         };
         ProductListPageResponse: {
@@ -2476,6 +2477,10 @@ export interface components {
             hasMore?: boolean;
             /** Format: int64 */
             total?: number;
+        };
+        SizeOfferResponse: {
+            size?: string;
+            inStock?: boolean;
         };
         DetailImageResponse: {
             color?: string | null;

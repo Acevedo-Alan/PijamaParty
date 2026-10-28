@@ -12,6 +12,7 @@ import com.pijamaparty.store.catalog.domain.Season;
 import com.pijamaparty.store.catalog.domain.Size;
 import com.pijamaparty.store.catalog.domain.StorageKey;
 import com.pijamaparty.store.platform.domain.Money;
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -20,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 /**
@@ -74,10 +76,11 @@ final class ListedProductsSql {
 
     // One page of the matching products with their first two photos (the second shows on hover, T-E7-14) and the
     // colors of their active priced variants with available stock, in display order (D-04, the rule of the color
-    // filter).
+    // filter), and the sizes of all of them in display order, each with whether one has available stock (T-E7-35, the
+    // order of the size filter): two arrays of the same length.
     static final String LIST = MATCHING + """
         SELECT m.slug, m.name, m.from_price_cents, m.sold_out, m.created_at, i.storage_key, i.placeholder,
-               s.second_storage_key, s.second_placeholder,
+               s.second_storage_key, s.second_placeholder, z.sizes, z.sizes_in_stock,
                ARRAY(SELECT v.color
                      FROM variant v
                      JOIN v_variant_availability a ON a.variant_id = v.id AND a.available > 0
@@ -99,6 +102,17 @@ final class ListedProductsSql {
             ORDER BY position, id
             LIMIT 1 OFFSET 1
         ) s ON true
+        LEFT JOIN LATERAL (
+            SELECT array_agg(o.size ORDER BY o.position, o.size COLLATE "C") AS sizes,
+                   array_agg(o.in_stock ORDER BY o.position, o.size COLLATE "C") AS sizes_in_stock
+            FROM (
+                SELECT v.size, min(v.size_position) AS position, bool_or(coalesce(a.available, 0) > 0) AS in_stock
+                FROM variant v
+                LEFT JOIN v_variant_availability a ON a.variant_id = v.id
+                WHERE v.product_id = m.id AND v.active AND v.price_cents IS NOT NULL
+                GROUP BY v.size
+            ) o
+        ) z ON true
         ORDER BY CASE WHEN :sort = 'RELEVANCE' THEN ts_rank(m.search_vector, (SELECT query FROM search)) END DESC,
                  CASE WHEN :sort = 'PRICE_ASC' THEN m.from_price_cents END ASC,
                  CASE WHEN :sort = 'PRICE_DESC' THEN m.from_price_cents END DESC,
@@ -140,8 +154,22 @@ final class ListedProductsSql {
         return new ListedProduct(row.getString("slug"), row.getString("name"), image(row),
             image(row, "second_storage_key", "second_placeholder"),
             Money.of(row.getLong("from_price_cents")), row.getBoolean("sold_out"),
-            List.of((String[]) row.getArray("colors").getArray()),
+            List.of((String[]) row.getArray("colors").getArray()), sizes(row),
             row.getObject("created_at", OffsetDateTime.class).toInstant());
+    }
+
+    /** The sizes and their stock, from the two arrays of the same length. */
+    private static List<ProductListingItem.SizeOffer> sizes(ResultSet row) throws SQLException {
+        Array sizes = row.getArray("sizes");
+        Array inStock = row.getArray("sizes_in_stock");
+        if (sizes == null || inStock == null) {
+            return List.of();
+        }
+        String[] values = (String[]) sizes.getArray();
+        Boolean[] stocked = (Boolean[]) inStock.getArray();
+        return IntStream.range(0, values.length)
+            .mapToObj(index -> new ProductListingItem.SizeOffer(values[index], Boolean.TRUE.equals(stocked[index])))
+            .toList();
     }
 
     /** The first photo from the columns {@code storage_key} and {@code placeholder}, if the product has one. */

@@ -219,6 +219,26 @@ describe('catalog grid (UC-01)', () => {
     expect(within(single).queryByTestId('second-photo')).not.toBeInTheDocument();
   });
 
+  it('given sizes S, M and L with M out of stock, when listed, then the card shows all three with M struck through (T-E7-35)', async () => {
+    const sizes = [
+      { size: 'S', inStock: true },
+      { size: 'M', inStock: false },
+      { size: 'L', inStock: true },
+    ];
+    stubCatalogApi({ listings: [listed([product('rosa', { sizes })])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    expect(card).toHaveAccessibleName(expect.stringContaining(es.catalog.sizes(['S', 'L'])) as string);
+    const shown = card.querySelectorAll('.card-sizes span[aria-hidden]');
+    expect([...shown].map((size) => [size.textContent, size.classList.contains('out')])).toEqual([
+      ['S', false],
+      ['M', true],
+      ['L', false],
+    ]);
+  });
+
   it('given a phone and a product with two photos, when its photo is swiped, then the second shows and it does not open (T-E7-32)', async () => {
     // jsdom has no pointer capture.
     HTMLElement.prototype.setPointerCapture = vi.fn();

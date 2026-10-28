@@ -121,7 +121,15 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
                 .map(image -> ProductListingItem.ListingImage.of(image.storageKey(), image.placeholder())),
             fromPrice(product), inStock.isEmpty(),
             byPositionThenText(inStock, variant -> variant.color().value(), Variant::colorPosition),
-            product.createdAt());
+            sizes(product), product.createdAt());
+    }
+
+    private List<ProductListingItem.SizeOffer> sizes(Product product) {
+        List<Variant> sellable = sellable(product);
+        return byPositionThenText(sellable, variant -> variant.size().value(), Variant::sizePosition).stream()
+            .map(size -> new ProductListingItem.SizeOffer(size, sellable.stream()
+                .anyMatch(variant -> variant.size().value().equals(size) && hasStock(variant))))
+            .toList();
     }
 
     private boolean hasStock(Variant variant) {
