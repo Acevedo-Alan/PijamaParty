@@ -7,6 +7,7 @@ import { AudienceCards } from './AudienceCards.tsx';
 import { CatalogListing } from './CatalogListing.tsx';
 import { CharacterBanner, useHomeBanner } from './CharacterBanner.tsx';
 import { HeroCarousel } from './HeroCarousel.tsx';
+import { RecentlyViewed } from './RecentlyViewed.tsx';
 import { toSearchParams, withoutText } from './listingCriteria.ts';
 import { useListingCriteria } from './useListingCriteria.ts';
 import './catalog.css';
@@ -65,6 +66,7 @@ export function HomePage() {
       <div className="wrap home-sections">
         <AudienceCards sort={criteria.sort} onChoose={showListing} />
       </div>
+      <RecentlyViewed className="wrap" />
       <section className="wrap catalog" aria-labelledby="todos-los-productos">
         <CatalogListing
           photosBelowFold

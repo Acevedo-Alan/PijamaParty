@@ -778,3 +778,16 @@ html:has(.filters-panel[open]) {
     width: 100%;
   }
 }
+
+/* E7 (D-08, T-E7-33): "Completá tu look" and "Vistos recientemente", listing grids below the product (UC-03) and,
+   for the second, on the home page (UC-30). */
+.related {
+  margin-top: 56px;
+}
+
+.related-title {
+  font-family: var(--ff-display);
+  font-size: 19px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}

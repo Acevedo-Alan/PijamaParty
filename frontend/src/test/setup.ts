@@ -7,6 +7,8 @@ configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => {
   cleanup();
+  // What a test stored (consent, "Vistos recientemente") never leaks into the next one.
+  localStorage.clear();
 });
 
 // jsdom has no modal dialogs (no top layer): opening and closing only toggle the open attribute.

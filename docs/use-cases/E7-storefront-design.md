@@ -116,6 +116,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - The audience cards set the UC-02 URL key `publico` (`mujer`, `hombre`, `infantil`) and keep the sort.
 - `/categoria/{slug}` keeps showing only the listing, without the home sections.
 - The carousel follows D-14.
+- A returning visitor sees "Vistos recientemente" between "Elegí para quién" and "Todos los productos" (T-E7-33, rules in *Changes to UC-03*).
 
 **Acceptance criteria**
 - Given the home page on a phone, when it loads, then the carousel, the character banner, "Elegí para quién", the grid and the contact section appear in that order, with no withdrawal block of their own: the withdrawal link is in the footer.
@@ -298,6 +299,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Order of the info column: name, price, description, picker, quantity and add button, then the collapsible sections, then the shipping cost by province and the trust icons last. From 860 px the info column is sticky (`position: sticky`, `align-self: flex-start`), so the add button stays on screen while the photo scrolls.
 - "Completá tu look" (D-08), full width below the page layout, above the reviews (UC-24); no longer in the info column, which would always be taller than the photo and could not stick.
 - The UC-03 variant rules do not change.
+- "Vistos recientemente" (T-E7-33): every product page that loads remembers its slug in the browser (`localStorage`, at most 8, the newest first, the same product once). It holds no personal data and is never sent to the server or to analytics. Below "Completá tu look", it shows the last 4 viewed products other than the open one as cards, newest first; on the home page (UC-30) it shows the last 4, between "Elegí para quién" and "Todos los productos". Each card reads the product's current detail (`GET /api/catalog/products/{slug}`), so name, photos, price and stock are the server's: a product no longer listed is dropped from the list. These cards carry no "Nuevo" label (the detail does not say it). Nothing shows while they load, when there is none to show, or when the browser refuses its storage.
 
 **Alternative flows**
 - The category has no other listed products: no "Completá tu look".
@@ -310,6 +312,9 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Given a province without shipping, when chosen on the product page, then it says there is no shipping to it.
 - Given a category with 6 other products, when a product page opens, then "Completá tu look" shows the 4 newest, without the open product.
 - Given a category with no other products, when a product page opens, then "Completá tu look" is not shown.
+- Given products A, B and C viewed in that order, when the home page opens, then "Vistos recientemente" shows C, B and A; when B's page opens, then it shows C and A.
+- Given a viewed product no longer listed, when "Vistos recientemente" shows, then it is left out and forgotten.
+- Given a first visit, when the home page opens, then "Vistos recientemente" is not shown.
 
 **Design notes**
 - `GET /api/catalog/products/{slug}` adds `category` `{slug, name}` (`ProductDetail` gets it from `LoadCategories`, already read by `GetProductDetail`).

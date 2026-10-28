@@ -21,6 +21,8 @@ import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
 import { ProductSections } from './ProductSections.tsx';
 import { QuantityInput } from './QuantityInput.tsx';
+import { RecentlyViewed } from './RecentlyViewed.tsx';
+import { rememberViewed } from './recentlyViewed.ts';
 import { RelatedProducts } from './RelatedProducts.tsx';
 import { ShippingByProvince } from './ShippingByProvince.tsx';
 import { StickyAddToCart } from './StickyAddToCart.tsx';
@@ -227,6 +229,14 @@ function Skeleton() {
 export function ProductDetailPage() {
   const { productSlug = '' } = useParams();
   const detail = useProductDetail(productSlug);
+  const shownSlug = detail.data?.status === 'found' ? detail.data.product.slug : null;
+
+  // T-E7-33: a product that loads joins the browser's "Vistos recientemente".
+  useEffect(() => {
+    if (shownSlug !== null) {
+      rememberViewed(shownSlug);
+    }
+  }, [shownSlug]);
 
   if (detail.data?.status === 'notFound') {
     return <NotFoundPage />;
@@ -252,6 +262,7 @@ export function ProductDetailPage() {
           <ProductDetailView key={detail.data.product.slug} product={detail.data.product} />
           {/* Below both columns, so the info column is short enough to stay on screen (UC-03) */}
           <RelatedProducts category={detail.data.product.category.slug} slug={detail.data.product.slug} />
+          <RecentlyViewed key={detail.data.product.slug} exclude={detail.data.product.slug} />
           {REVIEWS_SHOWN && (
             <>
               <ProductReviewsSection key={detail.data.product.slug} slug={detail.data.product.slug} />

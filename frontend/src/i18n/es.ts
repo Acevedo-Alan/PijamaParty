@@ -163,6 +163,8 @@ export const es = {
     noShippingTo: 'No hacemos envíos a esa provincia',
     /** E7 (D-08): the newest products of the same category, below the product. */
     related: 'Completá tu look',
+    /** T-E7-33: the last products this browser opened. */
+    recentlyViewed: 'Vistos recientemente',
   },
   reviews: {
     /** UC-24 (T-E5-07): the approved reviews on the product page. */
