@@ -16,17 +16,67 @@ header.site {
   position: sticky;
   top: 0;
   z-index: 46;
+}
+
+/* The full-width bar. It is a layer under the row, not the header's own background, so that it can fade out under
+   the pill (T-E7-30): a parent with backdrop-filter would keep the pill's blur from reaching the page. */
+header.site::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
-  transition: background-color var(--dur-base) var(--ease-standard);
 }
 
 /* T-E7-16: once the page has scrolled (useHeaderScroll), the page shows through a little; the stronger blur keeps the
    logo and the icons readable over photos. */
-header.site[data-scrolled] {
+header.site[data-scrolled]::before {
   background-color: color-mix(in srgb, var(--bg) 75%, transparent);
   backdrop-filter: blur(12px) saturate(1.2);
+}
+
+/* T-E7-30: from 860 px the scrolled header is a floating pill, narrower and shorter than the bar, with the same
+   translucent background. The header keeps its 64 px (the 52 px row moved 12 px down), so the page never jumps; around
+   the pill, clicks reach the page. */
+@media (min-width: 860px) {
+  header.site {
+    height: 64px;
+  }
+
+  header.site[data-scrolled] {
+    pointer-events: none;
+  }
+
+  header.site[data-scrolled]::before {
+    opacity: 0;
+  }
+
+  header.site .header-row {
+    pointer-events: auto;
+    border-radius: 0;
+    box-shadow:
+      0 0 0 1px transparent,
+      0 0 0 0 transparent;
+  }
+
+  header.site[data-scrolled] .header-row {
+    max-width: min(calc(var(--maxw) - 80px), calc(100% - 32px));
+    height: 52px;
+    padding: 0 12px 0 24px;
+    border-radius: 26px;
+    background-color: color-mix(in srgb, var(--bg) 75%, transparent);
+    backdrop-filter: blur(12px) saturate(1.2);
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 12px 32px -12px rgba(58, 50, 45, 0.28);
+    transform: translateY(12px);
+  }
+
+  header.site[data-scrolled] .logo img {
+    height: 40px;
+  }
 }
 
 /* T-E7-15: on a phone the header slides up while scrolling down (useHeaderScroll) and stays while the keyboard focus
@@ -43,9 +93,31 @@ header.site[data-scrolled] {
 
 @media (prefers-reduced-motion: no-preference) {
   header.site {
+    transition: transform var(--dur-base) var(--ease-standard);
+  }
+
+  header.site::before {
+    transition: background-color var(--dur-base) var(--ease-standard);
+  }
+}
+
+/* T-E7-30: the bar and the pill morph into each other, everything at once. */
+@media (min-width: 860px) and (prefers-reduced-motion: no-preference) {
+  header.site::before {
     transition:
-      transform var(--dur-base) var(--ease-standard),
-      background-color var(--dur-base) var(--ease-standard);
+      opacity var(--dur-slow) var(--ease-out),
+      background-color var(--dur-slow) var(--ease-out);
+  }
+
+  header.site .header-row {
+    transition-property: max-width, height, padding, border-radius, background-color, backdrop-filter, box-shadow,
+      transform;
+    transition-duration: var(--dur-slow);
+    transition-timing-function: var(--ease-out);
+  }
+
+  header.site .logo img {
+    transition: height var(--dur-slow) var(--ease-out);
   }
 }
 

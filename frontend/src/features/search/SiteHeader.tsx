@@ -24,7 +24,7 @@ function FreeShippingStrip() {
  * The header of every public page (UC-31): the free-shipping strip, the logo, the navigation (from 860 px; below,
  * in the phone menu), the search (UC-26), the account entry (UC-19) and the cart button (UC-08). On a phone it hides
  * while the visitor scrolls down and comes back when they scroll up (T-E7-15); once the page has scrolled, its
- * background turns translucent (T-E7-16).
+ * background turns translucent (T-E7-16), and from 860 px it becomes a floating pill (T-E7-30).
  */
 export function SiteHeader() {
   const header = useRef<HTMLElement>(null);

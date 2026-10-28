@@ -4,7 +4,7 @@ import { useEffect, useState, type RefObject } from 'react';
 const SCROLL_DELTA = 8;
 
 export interface HeaderScroll {
-  /** The page is past the header's height: its background turns translucent (T-E7-16). */
+  /** The page is past the header's height: its background turns translucent (T-E7-16), a pill from 860 px (T-E7-30). */
   scrolled: boolean;
   /** The visitor is scrolling down past the header: it hides below 860 px (T-E7-15). */
   hidden: boolean;
