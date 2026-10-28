@@ -527,7 +527,11 @@ describe('cart side panel free shipping and notice (UC-08, E7)', () => {
 
     const notice = await within(await screen.findByRole('dialog', { name: es.cart.title }))
       .findByText(es.cart.addedNotice);
-    expect(notice.closest('[role="status"]')).not.toBeNull();
+    const region = notice.closest<HTMLElement>('[role="status"]');
+    expect(region).not.toBeNull();
+    // Right below the panel's header and in its flow, so it covers neither the items nor the total.
+    expect(region?.previousElementSibling).toHaveClass('cart-head');
+    expect(['static', 'relative', '']).toContain(getComputedStyle(region as HTMLElement).position);
     await userEvent.click(within(panel()).getByRole('button', { name: es.cart.closeNotice }));
     expect(within(panel()).queryByText(es.cart.addedNotice)).not.toBeInTheDocument();
   });

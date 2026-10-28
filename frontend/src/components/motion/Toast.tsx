@@ -12,12 +12,12 @@ interface ToastProps {
 }
 
 /**
- * A short notice at the bottom of the screen (E7 motion): it rises in answer to an action and sinks on close. The
- * status region stays on the page, so screen readers announce what enters it.
+ * A short notice where it is placed, across its container (E7 motion): it drops in in answer to an action and rises
+ * away on close. The status region stays on the page, so screen readers announce what enters it.
  */
 export function Toast({ open, closeLabel, onClose, children }: ToastProps) {
   const motion = useActionMotion({
-    hidden: { y: 24, opacity: 0 },
+    hidden: { y: -12, opacity: 0 },
     shown: { y: 0, opacity: 1 },
     transition: { duration: duration.base, ease: ease.pop },
   });

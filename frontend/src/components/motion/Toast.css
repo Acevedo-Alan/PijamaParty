@@ -1,20 +1,14 @@
-/* A notice over the bottom of the page, centered, clear of the phone's edges */
+/* A notice in the flow of its container, across its width: the cart panel puts it below its header (E7) */
 .toast-region {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  left: 16px;
-  z-index: 20;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
+  padding: 0 20px;
 }
 
 .toast {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  max-width: 420px;
+  margin-top: 12px;
   padding: 6px 6px 6px 18px;
   border-radius: 999px;
   background: var(--ink);
@@ -22,7 +16,6 @@
   font-size: 14px;
   font-weight: 600;
   box-shadow: 0 10px 24px rgba(74, 58, 58, 0.18);
-  pointer-events: auto;
 }
 
 .toast .icon-btn {

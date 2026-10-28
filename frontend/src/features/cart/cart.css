@@ -298,13 +298,6 @@ html:has(.cart-panel[open]) {
   }
 }
 
-/* The "Agregado al carrito" notice goes inside the modal panel, below its header, as the prototype moves it there */
-.cart-panel .toast-region {
-  position: absolute;
-  top: 76px;
-  bottom: auto;
-}
-
 .cart-row {
   display: flex;
   justify-content: space-between;

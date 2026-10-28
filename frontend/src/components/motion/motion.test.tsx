@@ -189,13 +189,13 @@ describe('notice (E7 motion)', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('given motion allowed, when the notice appears, then it rises from below', async () => {
+  it('given motion allowed, when the notice appears, then it drops in from above', async () => {
     preferReducedMotion(false);
     await renderAnimated(<Notice />);
 
     const notice = showNotice();
 
-    expect(notice?.style.transform).toBe('translateY(24px)');
+    expect(notice?.style.transform).toBe('translateY(-12px)');
     expect(notice?.style.opacity).toBe('0');
   });
 
