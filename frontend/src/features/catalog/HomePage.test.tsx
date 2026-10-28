@@ -141,7 +141,7 @@ describe('welcome carousel (UC-30, D-14)', () => {
     });
   }
 
-  it('given the carousel, when 6 seconds pass, then the next slide shows, and after the last the first again', () => {
+  it('given the carousel, when 4 seconds pass, then the next slide shows, and after the last the first again', () => {
     preferReducedMotion(false);
     renderCarousel();
     expect(slide(1)).toHaveAttribute('aria-current', 'true');

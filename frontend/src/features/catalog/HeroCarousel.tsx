@@ -7,8 +7,8 @@ import { es } from '../../i18n/es.ts';
 import { duration, ease } from '../../styles/motion.ts';
 import { HERO_SLIDES, type HeroSlide } from './homeContent.ts';
 
-/** D-14: a slide stays 6 seconds. */
-export const SLIDE_MS = 6000;
+/** D-14: a slide stays 4 seconds. */
+export const SLIDE_MS = 4000;
 
 const HERO_SIZES = '100vw';
 /** The welcome text enters once, its lines 80 ms apart (E7 motion). */
@@ -37,7 +37,7 @@ interface HeroCarouselProps {
 }
 
 /**
- * The welcome carousel of the home page (UC-30, D-14): the slides crossfade every 6 seconds under the fixed welcome
+ * The welcome carousel of the home page (UC-30, D-14): the slides crossfade every 4 seconds under the fixed welcome
  * text, with a pause button first in tab order. Under reduced motion they never advance by themselves. The first
  * photo is the page's largest paint: it is preloaded, loads first and is never animated (RNF-11).
  */
