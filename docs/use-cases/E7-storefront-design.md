@@ -274,14 +274,15 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 ## Changes to UC-03 (product page)
 
 **Business rules (new)**
-- Breadcrumbs: Inicio / {category} / {product}, and "Volver al catálogo" (back in history when the visitor came from the store, otherwise `/`).
-- Gallery: main photo, thumbnails, and an enlarged view (the 1200 px file) when the photo is pressed.
+- Breadcrumbs: Inicio / {category} / {product}. No separate "Volver al catálogo" link: the breadcrumbs already lead back.
+- Gallery: main photo, thumbnails, and an enlarged view (the 1200 px file) when the photo is pressed. From 860 px the thumbnails are a vertical strip to the left of the main photo; on phones they stay a row below it.
 - Color as swatches (D-04) with the chosen color's name; sizes as square buttons; a quantity input from 1 to the available stock of the chosen variant.
 - On phones, when the add button leaves the screen, a fixed bar at the bottom shows the price and the add button.
 - Trust icons (D-12) take the place of the RNF-31.6 purchase summary below the add button, so its lines are not repeated: "Envío gratis desde $X" (only with a threshold), the delivery times, and "Pagá con …" naming the payment methods enabled now (MercadoPago, MODO), with the link to the FAQ. A line that could not be read is left out.
 - The price stands out over the description: 22 px, bold, in `--ink`. The picked color carries a 3 px ring; the picked size is filled with `--accent` (T-E7-22).
 - The shipping cost by province (D-07), on one row ("Calculá el envío" and the province select) with the cost below, without a box (T-E7-22); still by province, never by postal code. Collapsible sections: size guide (RNF-31.5, moved from its current place), composition (material and season) and exchanges and returns (link to the FAQ).
-- "Completá tu look" (D-08), in the info column below the collapsible sections, as in the prototype (T-E7-11). Reviews (UC-24) stay below the page layout.
+- Order of the info column: name, price, description, picker, quantity and add button, then the collapsible sections, then the shipping cost by province and the trust icons last. From 860 px the info column is sticky (`position: sticky`, `align-self: flex-start`), so the add button stays on screen while the photo scrolls.
+- "Completá tu look" (D-08), full width below the page layout, above the reviews (UC-24); no longer in the info column, which would always be taller than the photo and could not stick.
 - The UC-03 variant rules do not change.
 
 **Alternative flows**

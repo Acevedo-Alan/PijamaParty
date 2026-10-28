@@ -211,14 +211,15 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 ## Cambios a CU-03 (ficha)
 
 **Reglas nuevas**
-- Migas de pan: Inicio / categoría / producto, y "Volver al catálogo".
-- Galería: foto principal con miniaturas y una vista ampliada al tocar la foto.
+- Migas de pan: Inicio / categoría / producto. Sin un enlace aparte "Volver al catálogo": las migas ya llevan de vuelta.
+- Galería: foto principal con miniaturas y una vista ampliada al tocar la foto. En la computadora las miniaturas van en una columna a la izquierda de la foto; en el celular, en una fila debajo.
 - Color con círculos (D-04) y el nombre del color elegido; talle con botones cuadrados; selector de cantidad.
 - En el celular, cuando el botón de agregar sale de la pantalla, una barra fija abajo muestra el precio y el botón.
 - Íconos de confianza (D-12), que reemplazan al resumen de envíos y pagos de RNF-31.6 debajo del botón para no repetirlo: "Envío gratis desde $X" (solo con umbral), los plazos de entrega y "Pagá con …" con los medios de pago habilitados (MercadoPago, MODO), con el enlace a preguntas frecuentes.
 - El precio se destaca sobre la descripción: más grande y en negrita. El color elegido lleva un anillo grueso y el talle elegido se rellena con el color de la tienda.
 - El costo de envío por provincia (D-07) va en una sola fila ("Calculá el envío" y la provincia), con el costo debajo, sin recuadro. Sigue siendo por provincia, no por código postal. Secciones desplegables: guía de talles (RNF-31.5), composición (material y temporada) y cambios y devoluciones (enlace a preguntas frecuentes).
-- "Completá tu look" (D-08), en la columna de la información, debajo de las secciones desplegables, como en el prototipo. Las opiniones (CU-24) se mantienen debajo.
+- Orden de la columna de la información: nombre, precio, descripción, talle y color, cantidad y botón de agregar; después las secciones desplegables; al final el costo de envío por provincia y los íconos de confianza. En la computadora esa columna queda fija al bajar, así el botón de agregar sigue a la vista mientras se recorre la foto.
+- "Completá tu look" (D-08), a todo el ancho debajo de la ficha y arriba de las opiniones (CU-24).
 
 **Criterios de aceptación**
 - Dada una ficha, cuando se elige cantidad 2 y se agrega, entonces el carrito suma 2 unidades de esa variante.
