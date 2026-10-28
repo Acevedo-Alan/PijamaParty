@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
@@ -139,6 +139,54 @@ describe('product detail (UC-03)', () => {
     const main = screen.getByRole('img', { name: 'Pijama Luna, foto 2' });
     expect(main).toHaveAttribute('src', '/media/espalda-400.webp');
     expect(main.closest('.ph')).not.toHaveClass('loaded');
+    expect(screen.getByRole('button', { name: es.product.showPhoto(2) })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('given several photos, when the main photo is swiped or the arrow keys are pressed, then it slides to the next one', async () => {
+    // jsdom has no pointer capture.
+    HTMLElement.prototype.setPointerCapture = vi.fn();
+    stubDetail(answer(200, productDetail({ images: [detailImage('frente', null), detailImage('espalda', null)] })));
+    renderRoute('/producto/luna');
+    const enlarge = await screen.findByRole('button', { name: es.product.enlargePhoto });
+
+    fireEvent.pointerDown(enlarge, { pointerId: 1, clientX: 300, clientY: 100 });
+    fireEvent.pointerMove(enlarge, { pointerId: 1, clientX: 200, clientY: 105 });
+    fireEvent.pointerUp(enlarge, { pointerId: 1, clientX: 120, clientY: 105 });
+    fireEvent.click(enlarge);
+
+    expect(screen.getByRole('img', { name: 'Pijama Luna, foto 2' })).toHaveAttribute('src', '/media/espalda-400.webp');
+    expect(screen.getByRole('button', { name: es.product.showPhoto(2) })).toHaveAttribute('aria-pressed', 'true');
+    // The click that ends the drag does not open the enlarged view.
+    expect(screen.queryByRole('dialog', { name: es.product.enlarged })).not.toBeInTheDocument();
+
+    enlarge.focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(screen.getByRole('button', { name: es.product.showPhoto(1) })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('img', { name: 'Pijama Luna, foto 2' })).not.toBeInTheDocument();
+  });
+
+  it('given the enlarged view, when moving to the next photo and pressing it, then it counts, zooms and stays the main photo', async () => {
+    stubDetail(answer(200, productDetail({ images: [detailImage('frente', null), detailImage('espalda', null)] })));
+    renderRoute('/producto/luna');
+    await userEvent.click(await screen.findByRole('button', { name: es.product.enlargePhoto }));
+    const view = within(screen.getByRole('dialog', { name: es.product.enlarged }));
+    expect(view.getByText(es.product.photoCount(1, 2))).toBeInTheDocument();
+    expect(view.getByRole('button', { name: es.product.previousPhoto })).toBeDisabled();
+
+    await userEvent.click(view.getByRole('button', { name: es.product.nextPhoto }));
+
+    const photo = view.getByRole('img', { name: 'Pijama Luna, foto 2' });
+    expect(photo).toHaveAttribute('src', '/media/espalda-1200.webp');
+    expect(view.getByText(es.product.photoCount(2, 2))).toBeInTheDocument();
+    await userEvent.click(photo);
+    expect(photo).toHaveStyle({ transform: 'scale(2)' });
+    await userEvent.click(photo);
+    expect(photo).not.toHaveStyle({ transform: 'scale(2)' });
+
+    await userEvent.click(view.getByRole('button', { name: es.product.closeEnlarged }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: es.product.enlarged })).not.toBeInTheDocument();
+    });
     expect(screen.getByRole('button', { name: es.product.showPhoto(2) })).toHaveAttribute('aria-pressed', 'true');
   });
 

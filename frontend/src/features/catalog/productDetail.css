@@ -38,6 +38,9 @@
 
 .pdp-thumbs {
   grid-area: thumbs;
+  /* The offsets of the thumbnails count from the strip, which scrolls to keep the picked one in sight. */
+  position: relative;
+  scroll-behavior: smooth;
   list-style: none;
   display: flex;
   gap: 8px;
@@ -265,6 +268,23 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-m);
+  /* A vertical move scrolls the page; a horizontal one swipes between the photos (E7 gallery motion). */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* The photos side by side, sliding to the picked one; while a finger drags they follow it without delay. */
+.pdp-track {
+  display: flex;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.pdp-track.dragging {
+  transition: none;
+}
+
+.pdp-slide {
+  flex: 0 0 100%;
 }
 
 .pdp-zoom {
@@ -310,20 +330,85 @@
   background: rgba(58, 50, 45, 0.72);
 }
 
-.product-lightbox img {
-  display: block;
-  width: min(82vw, 620px);
-  max-height: 80vh;
+/* E7 enlarged view: one photo fades into the next over the one left; pressed, it zooms in around that point. */
+.product-lightbox-stage {
+  position: relative;
+  width: min(82vw, 620px, calc(80vh * 3 / 4));
   aspect-ratio: 3 / 4;
-  object-fit: cover;
+  overflow: hidden;
   border-radius: var(--radius-s);
+  background: var(--peach-soft);
+  cursor: zoom-in;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* Zoomed, the finger pans the photo instead of scrolling. */
+.product-lightbox-stage.zoomed {
+  cursor: zoom-out;
+  touch-action: none;
+}
+
+.product-lightbox-stage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-lightbox-photo {
+  animation: lightbox-fade var(--dur-slow) var(--ease-out);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+@keyframes lightbox-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 .product-lightbox-close {
   position: absolute;
   top: 22px;
   right: 22px;
+  z-index: 1;
   background: var(--surface);
+}
+
+.product-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.94);
+  transform: translateY(-50%);
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+
+.product-lightbox-nav.prev {
+  left: 22px;
+}
+
+.product-lightbox-nav.next {
+  right: 22px;
+}
+
+.product-lightbox-nav:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.product-lightbox-count {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 /* E7 (D-04): colors as swatches with the picked one's name; sizes as square buttons. */

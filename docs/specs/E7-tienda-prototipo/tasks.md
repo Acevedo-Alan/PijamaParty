@@ -29,6 +29,7 @@
 - [x] **T-E7-28** Páginas de ayuda: Cómo comprar, y borradores de Términos y condiciones y de Cambios y devoluciones (D-18) para revisar con el abogado en T-E6-21 (adelanta parte de T-E6-06; cambios a CU-31).
 - [x] **T-E7-29** Página Guía de talles con las guías que se cargan en el backoffice para cada categoría activa: `GET /api/catalog/size-guides` (público) y la página `/guia-de-talles` (cambios a CU-31 y RNF-31.5).
 - [x] **T-E7-30** Encabezado en forma de píldora flotante en la computadora una vez que la página bajó, con una animación suave (cambios a CU-31).
+- [x] **T-E7-31** Ficha: las fotos se deslizan al elegir otra (miniatura, dedo, mouse o flechas del teclado), y la vista ampliada pasa de una foto a otra con un fundido, botones anterior y siguiente, "n / total" y zoom al tocar la foto (cambios a CU-03).
 - [x] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 
 **Orden:** T-E7-01 primero (sus decisiones cambian T-E7-02, T-E7-05, T-E7-07, T-E7-09 y T-E7-12), después T-E7-12 (las pantallas usan sus tokens). T-E7-13 va antes de T-E7-04 (la portada muestra el banner). T-E7-02 a T-E7-04 no esperan las fotos: usan los fondos degradados hasta que lleguen.

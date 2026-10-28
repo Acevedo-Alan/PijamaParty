@@ -120,6 +120,10 @@ export const es = {
     enlargePhoto: 'Ampliar foto',
     enlarged: 'Foto ampliada',
     closeEnlarged: 'Cerrar foto ampliada',
+    previousPhoto: 'Foto anterior',
+    nextPhoto: 'Foto siguiente',
+    /** The position in the enlarged view, e.g. "2 / 5". */
+    photoCount: (position: number, total: number) => `${String(position)} / ${String(total)}`,
     size: 'Talle',
     color: 'Color',
     /** The units to add (E7), from 1 to the available stock of the picked variant. */
