@@ -18,9 +18,11 @@
   border-radius: 8px;
 }
 
+/* The scrollbar's room stays when a side panel locks the scroll, so the page behind does not jump sideways. */
 html {
   scroll-behavior: smooth;
   overflow-x: clip;
+  scrollbar-gutter: stable;
 }
 
 body {

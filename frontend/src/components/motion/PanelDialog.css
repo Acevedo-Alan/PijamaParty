@@ -12,3 +12,7 @@
 .panel-dialog.closing::backdrop {
   opacity: 0;
 }
+
+.panel-dialog {
+  will-change: transform;
+}

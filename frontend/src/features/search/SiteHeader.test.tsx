@@ -31,6 +31,16 @@ function menuButton() {
   return screen.findByLabelText(es.header.openMenu, { selector: 'button' });
 }
 
+/** The phone's width as matchMedia answers it; only the menu's own query matches. */
+function narrowerThan700(narrower: boolean) {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: narrower && query === '(max-width: 699px)',
+    media: query,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }));
+}
+
 function menu() {
   return within(screen.getByRole('dialog', { name: es.header.menuTitle }));
 }
@@ -148,6 +158,7 @@ describe('store navigation (UC-31)', () => {
 describe('phone menu (UC-31)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('given a visitor, when the menu opens, then it shows the navigation and the account links', async () => {
@@ -165,15 +176,28 @@ describe('phone menu (UC-31)', () => {
     expect(menu().getByRole('link', { name: es.account.registerLink })).toHaveAttribute('href', '/cuenta/registro');
   });
 
-  it('given a visitor, when the menu opens, then the store logo heads it (T-E7-17)', async () => {
+  it('given a phone below 700 px, when the menu opens, then it is a sheet from the bottom with the close button above the links (T-E7-17)', async () => {
+    narrowerThan700(true);
     stubCatalogApi({ listings: [listed([])] });
     renderRoute('/buscar');
 
     await userEvent.click(await menuButton());
 
-    const logo = menu().getByRole('img', { name: es.store.name });
-    expect(logo).toHaveAttribute('srcset', expect.stringContaining('3x'));
-    expect(logo.closest('.menu-head')).not.toBeNull();
+    const dialog = screen.getByRole('dialog', { name: es.header.menuTitle });
+    expect(dialog).toHaveClass('menu-panel-sheet');
+    const close = menu().getByRole('button', { name: es.header.closeMenu });
+    const navigation = menu().getByRole('navigation', { name: es.header.navigation });
+    expect(close.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('given a tablet from 700 px, when the menu opens, then it is the side panel from the left', async () => {
+    narrowerThan700(false);
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+
+    await userEvent.click(await menuButton());
+
+    expect(screen.getByRole('dialog', { name: es.header.menuTitle })).not.toHaveClass('menu-panel-sheet');
   });
 
   it('given the open menu, when Escape is pressed, then it closes and the focus goes back to the menu button', async () => {

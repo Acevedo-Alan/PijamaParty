@@ -1,5 +1,5 @@
 import { AnimatePresence, m, useIsPresent } from 'motion/react';
-import { useEffect, useRef, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
+import { useLayoutEffect, useRef, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
 import { duration, ease } from '../../styles/motion.ts';
 import { useActionMotion } from './useActionMotion.ts';
 import './PanelDialog.css';
@@ -43,13 +43,21 @@ interface OpenPanelProps extends Omit<PanelDialogProps, 'open' | 'ref'> {
 
 function OpenPanel({ dialog, from, className, labelledBy, onDismiss, onClosed, children }: OpenPanelProps) {
   const isPresent = useIsPresent();
+  // The whole `transform`, not `x` or `y`: Motion hands it to the compositor, so the slide stays smooth while the
+  // panel's content mounts on the main thread. What rises from the bottom travels further: it opens slower and settles
+  // softly, and leaves as fast as the side panels.
+  const close = { duration: duration.panel, ease: ease.standard };
   const motion = useActionMotion({
-    hidden: from === 'bottom' ? { y: '100%' } : { x: from === 'right' ? '100%' : '-100%' },
-    shown: from === 'bottom' ? { y: 0 } : { x: 0 },
-    transition: { duration: duration.panel, ease: ease.standard },
+    hidden: {
+      transform: from === 'bottom' ? 'translateY(100%)' : `translateX(${from === 'right' ? '' : '-'}100%)`,
+      transition: close,
+    },
+    shown: { transform: 'none' },
+    transition: from === 'bottom' ? { duration: duration.slow, ease: ease.out } : close,
   });
 
-  useEffect(() => {
+  // Before the first paint, so the panel is in the top layer when its slide starts.
+  useLayoutEffect(() => {
     const element = dialog.current;
     if (element !== null && !element.open) {
       element.showModal();

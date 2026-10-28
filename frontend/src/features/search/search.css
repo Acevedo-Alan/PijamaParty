@@ -345,111 +345,211 @@ header.site[data-scrolled]::before {
   }
 }
 
-/* The phone menu: a modal dialog from the left edge, full height, over the dimmed page */
+/* The phone menu (UC-31): a modal dialog over the dimmed page. Below 700 px a sheet rises from the bottom, 8 px from
+   the edges, under its round close button; from 700 px it is a panel from the left, 12 px from the edges, with the
+   button at its top right. The dialog itself is transparent: the sheet inside it is the card, so a tap around the
+   button falls on the dialog and closes it like a tap on the dimmed page. */
 html:has(.menu-panel[open]) {
   overflow: hidden;
 }
 
 .menu-panel {
-  width: min(360px, 90vw);
+  width: min(420px, 100vw);
   max-width: none;
   height: 100dvh;
   max-height: none;
   margin: 0 auto 0 0;
-  padding: 0;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(12px + env(safe-area-inset-bottom, 0px));
   border: none;
-  border-radius: 0 18px 18px 0;
-  background: var(--surface);
+  background: transparent;
   color: var(--ink);
+  overflow: visible;
 }
 
 .menu-panel::backdrop {
-  background: rgba(74, 58, 58, 0.4);
+  background: rgba(58, 44, 44, 0.45);
 }
 
 .menu-inner {
+  position: relative;
+  height: 100%;
+}
+
+.menu-sheet {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding-top: env(safe-area-inset-top, 0px);
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--ink) 22%, transparent);
 }
 
-.menu-head {
-  position: relative;
-  padding: 12px 56px 10px;
-  border-bottom: 1px solid var(--line);
-  text-align: center;
-}
-
-/* The logo at the top of the menu (T-E7-17), the same 48 px as in the header */
-.menu-brand {
-  min-height: 48px;
+.menu-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.menu-brand img {
-  display: block;
+  width: 48px;
   height: 48px;
-  width: auto;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  transition: transform var(--dur-fast) var(--ease-standard);
 }
 
-.menu-title {
-  margin-top: 6px;
-  color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 700;
+.menu-close svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
 }
 
-.menu-head .icon-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+.menu-close:active {
+  transform: scale(0.92);
 }
 
 .menu-body {
   flex: 1;
   overflow-y: auto;
-  padding: 6px 12px 18px;
+  overscroll-behavior: contain;
+  padding: 68px 24px 12px;
 }
 
+/* The links in large uppercase type, as in the sheet of the reference store; written in sentence case and
+   uppercased here, so screen readers do not spell them. */
 .menu-links {
   list-style: none;
 }
 
-.menu-links a,
+.menu-links a {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-standard);
+}
+
+/* The current listing: --accent-text, bolder and with a dot, not by color alone. */
+.menu-links a[aria-current='page'] {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.menu-links a[aria-current='page']::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-left: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.menu-links a:active {
+  color: var(--accent-text);
+}
+
+/* Instagram and TikTok as bare icons under the links (D-15: only those the business sent). */
+.menu-social {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 0 -10px;
+}
+
+.menu-social a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--ink);
+  transition: color var(--dur-fast) var(--ease-standard);
+}
+
+.menu-social .footer-icon {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .menu-account .account-links a,
 .menu-account .account-sign-out {
   width: 100%;
   min-height: 48px;
   display: flex;
   align-items: center;
-  padding: 12px 10px;
-  border-radius: var(--radius-s);
+  padding: 12px 0;
   color: var(--ink);
-  font-size: 14.5px;
+  font-size: 16px;
+  font-weight: 500;
   text-decoration: none;
-}
-
-.menu-links a[aria-current='page'] {
-  background: var(--peach-soft);
-  color: var(--accent-text);
-  font-weight: 700;
 }
 
 @media (hover: hover) {
   .menu-links a:hover,
+  .menu-social a:hover,
   .menu-account .account-links a:hover,
   .menu-account .account-sign-out:hover {
-    background: var(--peach-soft);
+    color: var(--accent-text);
   }
 }
 
 .menu-foot {
-  padding: 14px 18px calc(14px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--line);
-  background: var(--surface);
+  margin: 0 24px;
+  padding: 16px 0 20px;
+  border-top: 1px solid var(--rose);
+}
+
+/* Below 700 px: the sheet at the bottom, as tall as its contents, under the close button centered above it. */
+.menu-panel-sheet {
+  width: 100%;
+  height: auto;
+  max-height: 100dvh;
+  margin: auto 0 0;
+  padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+.menu-panel-sheet .menu-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  height: auto;
+}
+
+.menu-panel-sheet .menu-close {
+  position: static;
+  flex: none;
+  border: none;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+.menu-panel-sheet .menu-sheet {
+  width: 100%;
+  height: auto;
+  max-height: calc(100dvh - 96px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+
+.menu-panel-sheet .menu-body {
+  flex: 0 1 auto;
+  padding-top: 16px;
 }
 
 /* The field and its suggestions */
