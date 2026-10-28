@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
@@ -217,6 +217,30 @@ describe('catalog grid (UC-01)', () => {
     expect(within(card).getAllByRole('img')).toHaveLength(1);
     const single = screen.getByRole('link', { name: /Pijama una-foto/ });
     expect(within(single).queryByTestId('second-photo')).not.toBeInTheDocument();
+  });
+
+  it('given a phone and a product with two photos, when its photo is swiped, then the second shows and it does not open (T-E7-32)', async () => {
+    // jsdom has no pointer capture.
+    HTMLElement.prototype.setPointerCapture = vi.fn();
+    const second = { files: [{ width: 400, url: '/media/rosa-2-400.webp' }] };
+    stubCatalogApi({ listings: [listed([product('rosa', { secondImage: second })])] });
+    const { router } = renderRoute('/');
+    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const photo = within(card).getByRole('img');
+    expect(within(card).getByTestId('second-photo')).not.toHaveClass('touched');
+
+    fireEvent.pointerDown(photo, { pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(photo, { pointerId: 1, pointerType: 'touch', clientX: 140, clientY: 102 });
+    fireEvent.pointerUp(photo, { pointerId: 1, pointerType: 'touch', clientX: 90, clientY: 102 });
+    fireEvent.click(photo);
+
+    // Requested only now that a finger touched it
+    expect(within(card).getByTestId('second-photo')).toHaveClass('touched');
+    expect(within(card).getByTestId('photo-dots').children[1]).toHaveClass('on');
+    expect(router.state.location.pathname).toBe('/');
+
+    fireEvent.click(photo);
+    expect(router.state.location.pathname).toBe('/producto/rosa');
   });
 
   it('given the listing fails, when the shop opens, then an error offers to retry', async () => {

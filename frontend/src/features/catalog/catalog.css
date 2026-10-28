@@ -84,6 +84,73 @@
   }
 }
 
+/* T-E7-32: on touch devices both photos sit side by side and a swipe slides between them; the second one is only
+   displayed, and so requested, once the card's photo has been touched. */
+.card-dots {
+  display: none;
+}
+
+@media (hover: none) {
+  .card-media.swipeable {
+    overflow: hidden;
+    border-radius: var(--radius-m);
+    touch-action: pan-y;
+    user-select: none;
+  }
+
+  .card-media.swipeable > .ph,
+  .card-media.swipeable .card-second-photo {
+    transition: transform var(--dur-slow) var(--ease-out);
+  }
+
+  .card-media.swipeable.dragging > .ph,
+  .card-media.swipeable.dragging .card-second-photo {
+    transition: none;
+  }
+
+  .card-media.swipeable > .ph {
+    transform: translateX(calc(var(--photo) * -100% + var(--drag)));
+  }
+
+  .card-second-photo.touched {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-m);
+    background: var(--peach-soft);
+    transform: translateX(calc((1 - var(--photo)) * 100% + var(--drag)));
+  }
+
+  .card-dots {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    z-index: 2;
+    display: flex;
+    gap: 5px;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .card-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 0 1px rgba(58, 50, 45, 0.18);
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+
+  .card-dots span.on {
+    background: var(--ink);
+    transform: scale(1.2);
+  }
+}
+
 .card-title {
   font-size: 13px;
   font-weight: 500;

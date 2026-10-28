@@ -261,12 +261,14 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - The listing shows the number of matches (D-11): "1 producto" or "N productos", at the right end of the filter bar row, as in the prototype. On phones it stays in view while the buttons scroll (T-E7-11).
 - The visitor can switch between grid and list views. The choice is per visit and does not change the URL.
 - "Ver más" stays (D-10).
-- On a device with hover (`(hover: hover) and (pointer: fine)`), a card whose product has a second photo shows it while the pointer is over the card (T-E7-14). Touch devices and the list view show the first photo only and never download the second.
+- On a device with hover (`(hover: hover) and (pointer: fine)`), a card whose product has a second photo shows it while the pointer is over the card (T-E7-14). The list view shows the first photo only and never downloads the second.
+- On a touch device (`(hover: none)`), in the grid view, a card whose product has a second photo shows two dots under its photo, and a horizontal swipe on the photo slides between the first and the second (T-E7-32), with the gallery's swipe rules (UC-03): the photo follows the finger, a short or slow swipe springs back, a vertical move scrolls the page, and the swipe does not open the product. The second photo is requested only when a finger first touches that card's photo. The dots are decorative; a tap still opens the product.
 
 **Acceptance criteria**
 - Given a product with stock in pink and none in beige, when listed, then its card shows only the pink swatch.
 - Given a product with two photos on a computer, when the pointer rests on its card, then the second photo shows over the first; given a product with one photo, then the first one stays.
 - Given a phone, when a listing with products of two photos loads, then no second photo is requested.
+- Given a phone and a product with two photos, when its card's photo is swiped to the left, then the second photo shows, its dot is marked and the product does not open; when a card's photo is tapped, then the product opens.
 - Given a product created 10 days ago and one created 40 days ago, when listed, then only the first carries "Nuevo".
 - Given 30 products matching the filters, when the listing opens, then it reads "30 productos", and 24 cards show with "Ver más".
 - Given the "Talle" button, when pressed, then the filter panel opens with the focus on the size group.
