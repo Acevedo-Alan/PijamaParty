@@ -1,11 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { m } from 'motion/react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useParams } from 'react-router';
-import { useActionMotion } from '../../components/motion/useActionMotion.ts';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
-import { duration, ease } from '../../styles/motion.ts';
 import { trackAddToCart } from '../analytics/cartEvents.ts';
 import { trackItemView } from '../analytics/catalogEvents.ts';
 import type { AddAnswer } from '../cart/cartApi.ts';
@@ -18,6 +15,7 @@ import { REVIEWS_SHOWN } from '../reviews/reviewsShown.ts';
 import { PageMeta } from '../seo/PageMeta.tsx';
 import { productDescription } from '../seo/productMeta.ts';
 import { ProductStructuredData } from '../seo/ProductStructuredData.tsx';
+import { AddButtonLabel, addButtonState } from './AddButtonLabel.tsx';
 import { ProductBreadcrumbs } from './ProductBreadcrumbs.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
@@ -62,29 +60,6 @@ function AddProblem({ answer, failed }: { answer: AddAnswer | undefined; failed:
 
 /** How long the add button says "Agregado" after a successful add (E7 motion). */
 const ADDED_FOR_MS = 1500;
-
-/** The label of the add button: what it does, that it is adding, or for a moment that it added. */
-function AddLabel({ pending, added }: { pending: boolean; added: boolean }) {
-  const check = useActionMotion({
-    hidden: { scale: 0 },
-    shown: { scale: 1 },
-    transition: { duration: duration.base, ease: ease.pop },
-  });
-  if (pending) {
-    return <>{es.product.adding}</>;
-  }
-  if (!added) {
-    return <>{es.product.addToCart}</>;
-  }
-  return (
-    <>
-      <m.svg className="add-cart-check" viewBox="0 0 24 24" aria-hidden="true" {...check}>
-        <path d="M5 12.5l4.5 4.5L19 7.5" />
-      </m.svg>
-      {es.product.added}
-    </>
-  );
-}
 
 function Price({ price }: { price: { cents: number; from: boolean } }) {
   return (
@@ -169,14 +144,16 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
   }
 
   // The main button and the one of the fixed bar on phones do the same.
+  const addState = addButtonState(add, confirmed > 0);
   const addButtonProps = {
     type: 'button',
-    className: 'btn add-cart',
+    className: 'btn add-cart btn-progress',
+    'data-state': addState,
     disabled: !canAdd || add.isPending,
     onClick: addPicked,
     ...(variant === undefined ? { 'aria-describedby': hintId } : {}),
   } as const;
-  const addLabel = <AddLabel pending={add.isPending} added={confirmed > 0} />;
+  const addLabel = <AddButtonLabel state={addState} />;
 
   return (
     <div className="pdp-layout">

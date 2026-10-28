@@ -539,7 +539,9 @@ describe('cart side panel free shipping and notice (UC-08, E7)', () => {
     renderRoute('/producto/luna');
 
     await addPinkM();
-    expect(await within(panel()).findByText(es.cart.addedNotice)).toBeInTheDocument();
+    // The panel opens once the add's minimum wait (PROGRESS_MIN_MS) is over.
+    const opened = await screen.findByRole('dialog', { name: es.cart.title });
+    expect(await within(opened).findByText(es.cart.addedNotice)).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(3900);

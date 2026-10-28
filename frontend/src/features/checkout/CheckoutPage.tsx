@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
+import { ButtonProgress, type ProgressState } from '../../components/ButtonProgress.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { ADDRESSES_KEY, fetchAddresses, type SavedAddress } from '../account/addressBookApi.ts';
@@ -71,6 +72,17 @@ function refusalMessage(answer: PlaceOrderAnswer): string | null {
     default:
       return null;
   }
+}
+
+/** Where the pay button's progress bar is: confirming, placed while the page leaves, or refused or failed (E7). */
+function payButtonState(place: { isPending: boolean; isError: boolean; data: PlaceOrderAnswer | undefined }): ProgressState {
+  if (place.isPending) {
+    return 'loading';
+  }
+  if (place.data?.status === 'placed') {
+    return 'done';
+  }
+  return place.isError || place.data !== undefined ? 'failed' : 'idle';
 }
 
 /** MercadoPago is always enabled: it is the only option while the providers are being read or could not be. */
@@ -870,10 +882,12 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
               </button>
               <button
                 type="button"
-                className="btn checkout-next"
+                className="btn checkout-next btn-progress"
+                data-state={payButtonState(place)}
                 disabled={!ready || place.isPending}
                 onClick={confirm}
               >
+                <ButtonProgress />
                 {place.isPending ? es.checkout.confirming : es.checkout.confirm}
               </button>
             </div>

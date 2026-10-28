@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
+import { PROGRESS_MIN_MS } from '../../components/minimumWait.ts';
 import { es } from '../../i18n/es.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
 import { answer, detailOrNoReviews, NO_CART, SHIPPING_RATES_PATH, withHeader } from '../../test/catalogApi.ts';
@@ -80,6 +81,73 @@ describe('add to cart motion (E7, D-16)', () => {
     expect(badge(1)?.style.transform).toMatch(NOT_MOVED);
     const check = screen.getByRole('button', { name: es.product.added, hidden: true }).querySelector('svg');
     expect(check?.style.transform).toMatch(NOT_MOVED);
+  });
+});
+
+describe('add button rainbow bar (E7, D-16)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    forgetMotionPreference();
+  });
+
+  const sparkles = (button: HTMLElement) => button.querySelector('.add-cart-sparkles');
+
+  it('given an add, when the API answers before 600 ms, then the button keeps "Agregando…" with the bar until 600 ms have passed', async () => {
+    preferReducedMotion(false);
+    stubStore();
+    vi.spyOn(api, 'POST').mockResolvedValue(cart([cartItem()]));
+    renderRoute('/producto/luna', { motion: true });
+    await userEvent.click(await screen.findByRole('radio', { name: 'Rosa' }));
+    const started = performance.now();
+
+    await userEvent.click(screen.getByRole('button', { name: es.product.addToCart }));
+
+    const waiting = screen.getByRole('button', { name: es.product.adding, hidden: true });
+    expect(waiting).toHaveAttribute('data-state', 'loading');
+    expect(waiting.querySelector('.btn-progress-bar')).toBeInTheDocument();
+    expect(waiting.querySelector('.btn-progress-chibi')).toBeInTheDocument();
+    const added = await screen.findByRole('button', { name: es.product.added, hidden: true });
+    expect(performance.now() - started).toBeGreaterThanOrEqual(PROGRESS_MIN_MS - 10);
+    expect(added).toHaveAttribute('data-state', 'done');
+  });
+
+  it('given a successful add, when the bar completes, then sparkles burst out of the button', async () => {
+    preferReducedMotion(false);
+    stubStore();
+    vi.spyOn(api, 'POST').mockResolvedValue(cart([cartItem()]));
+    renderRoute('/producto/luna', { motion: true });
+
+    await addPinkM();
+
+    const added = await screen.findByRole('button', { name: es.product.added, hidden: true });
+    expect(sparkles(added)?.children.length).toBeGreaterThan(0);
+  });
+
+  it('given reduced motion, when an add succeeds, then no sparkles show', async () => {
+    preferReducedMotion(true);
+    stubStore();
+    vi.spyOn(api, 'POST').mockResolvedValue(cart([cartItem()]));
+    renderRoute('/producto/luna', { motion: true });
+
+    await addPinkM();
+
+    expect(sparkles(await screen.findByRole('button', { name: es.product.added, hidden: true }))).toBeNull();
+  });
+
+  it('given a rejected add, when the API answers 409, then the bar turns to its failed state with no sparkles', async () => {
+    preferReducedMotion(false);
+    stubStore(cart([cartItem({ quantity: 2 })]));
+    vi.spyOn(api, 'POST').mockResolvedValue(
+      answer(409, { problem: 'INSUFFICIENT_STOCK', variantId: 'M-Rosa', available: 3 }),
+    );
+    renderRoute('/producto/luna', { motion: true });
+
+    await addPinkM();
+
+    expect(await screen.findByText(es.product.onlyLeft(3))).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: es.product.addToCart });
+    expect(button).toHaveAttribute('data-state', 'failed');
+    expect(sparkles(button)).toBeNull();
   });
 });
 

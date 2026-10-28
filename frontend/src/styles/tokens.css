@@ -30,6 +30,9 @@
 
   /* The header's hover fill (UC-31): a pastel rainbow from the bottom up. --ink keeps 7:1 or more on every stop. */
   --rainbow: linear-gradient(to top, #ffc9c9, #ffe0bd, #fff3b8, #cdf0cb, #c4e4ff, #dccdff);
+  /* The add button's bar (E7 motion): the same rainbow from left to right, and a soft red for a rejected add. */
+  --rainbow-across: linear-gradient(to right, #ffc9c9, #ffe0bd, #fff3b8, #cdf0cb, #c4e4ff, #dccdff);
+  --danger-soft: linear-gradient(to right, #fbd3cd, #f4aaa0);
 
   /* Shape and layout (prototype) */
   --radius-s: 12px;

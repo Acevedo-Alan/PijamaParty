@@ -46,7 +46,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Rules**
 - **Motion answers an action** (add, open, choose, go to the next step) and shows what changed. Nothing moves by itself except the carousel (D-14).
 - **Entrances:** the home welcome text enters once on load; product cards enter when they join the grid (its first page, "Ver más", a new filter or sort), never because the page scrolled to them; a new page enters on a route change, never on the first load of the store. Sections do not fade in on scroll (T-E7-17).
-- **Short and soft:** 120 to 450 ms (the home entrance up to 700 ms), easing that slows on arrival.
+- **Short and soft:** 120 to 450 ms (the home entrance up to 700 ms, the wait of the add and pay buttons at least 600 ms), easing that slows on arrival.
 - **Accessible:** movement and scaling only under `@media (prefers-reduced-motion: no-preference)`; under `reduce`, at most a short opacity change. Hover effects only under `@media (hover: hover)`.
 - **Motion, without delaying the first load (D-16):** enter and exit animations, step changes and pops use the Motion library, loaded after first paint; until it loads, everything shows in place, unanimated. Simple effects (hover, color changes) stay in CSS. Only `transform` and `opacity` are animated, never layout properties. The home LCP image is never animated (RNF-11).
 
@@ -60,7 +60,9 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 | Product card (hover devices) | Photo scales to 1.03; a second photo, if any, crossfades in (UC-01) | `--dur-base`, `--ease-out` |
 | Header (below 860 px) | Slides up out of view while scrolling down, back while scrolling up (UC-31) | `--dur-base`, `--ease-standard` |
 | Swatches and size buttons | The selection ring grows in | `--dur-fast`, `--ease-pop` |
-| Add to cart | Button shows "Agregado" with a check for 1.5 s; cart icon bumps once; the notice rises from the bottom | `--dur-base`, `--ease-pop` |
+| Add to cart and "Confirmar y pagar": waiting | The pastel rainbow (`--rainbow-across`) fills the whole button from left to right in jumps, as a real load does (a push, a pause, another push, to `scaleX` 0.85 in 600 ms), then creeps on to 0.95 while the answer has not come, with a shine sweeping across it, under "Agregando…" or "Confirmando…". A chibi in pajamas and nightcap (an original drawing, `ButtonProgress`) runs on the button's top edge at the tip of the bar, bobbing and swinging its legs. The wait lasts at least 600 ms even when the server answers sooner, so the bar is seen. Under reduced motion the full rainbow only fades in, with no shine and no chibi | 600 ms, `--ease-out`; creep 8 s; shine 1.2 s loop; steps 280 ms loop |
+| Add to cart and "Confirmar y pagar": done | The bar completes and the chibi jumps at its end; the add button also bursts a few sparkles once and shows "Agregado" with a check on the rainbow for 1.5 s; cart icon bumps once; the notice rises from the bottom. The pay button stays filled while the page goes to the payment. Under reduced motion, no sparkles | `--dur-base`, `--ease-pop`; jump and sparkles `--dur-slow` |
+| Add to cart and "Confirmar y pagar": refused or failed | The bar turns soft red and drains back to the left while the chibi fades out; the message near the button says why. Under reduced motion it only fades out | `--dur-slow`, `--ease-standard` |
 | Cart panel, menu, filters, lightbox | Slide from their edge over a fading overlay; reverse on close. What rises from the bottom (the phone menu below 700 px, the lightbox) opens slower and settles softly | `--dur-panel`, `--ease-standard`; from the bottom `--dur-slow`, `--ease-out` to open |
 | Phone menu contents | Each navigation link rises 12 px and fades in, 40 ms apart, while the sheet rises; in the side panel (700 to 859 px) they come 12 px in from the left (T-E7-17) | `--dur-base`, `--ease-out` |
 | Product cards joining the grid | Rise 12 px and fade in, 40 ms apart within a page (at most 6 steps); cards already shown do not move (T-E7-17) | `--dur-base`, `--ease-out` |
@@ -73,6 +75,9 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 **Acceptance criteria**
 - Given reduced motion, when the shopper adds a product, opens the cart or changes checkout step, then nothing translates or scales.
 - Given a product added from the product page, when the API answers `200`, then the cart icon bumps once and the notice appears; a rejected add does neither.
+- Given an add from the product page, when the API answers before 600 ms, then the button keeps "Agregando…" with the rainbow bar until 600 ms have passed, and only then says "Agregado".
+- Given a successful add, when the bar completes, then sparkles burst out of the button once; under reduced motion none are shown. Given a rejected or failed add, then the bar turns soft red and drains, and no sparkles are shown.
+- Given "Confirmar y pagar", when it waits for the answer, then the button shows the rainbow bar with the chibi running on it; a refusal drains the bar in soft red.
 - Given the home page, when Lighthouse measures it, then LCP stays under 3 s and Cumulative Layout Shift under 0.1.
 - Given a touch device, when a card is tapped, then no hover effect sticks.
 

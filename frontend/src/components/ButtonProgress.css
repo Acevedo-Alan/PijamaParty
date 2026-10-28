@@ -1,0 +1,348 @@
+/*
+ * E7 motion: the progress bar of a button (add to cart, confirm and pay). The pastel rainbow fills the whole button from
+ * the left in jumps, as a real load does (at least 600 ms, PROGRESS_MIN_MS), then creeps on while the server is slower,
+ * with a shine sweeping across; a chibi runs on the button's top edge at the tip of the bar and jumps when it is done.
+ * Done, the bar completes and fades out with the button's text; refused or failed, it drains in soft red while the
+ * chibi runs back and fades. The fill is scaled and the chibi translated, never resized, so only transform and opacity
+ * move. The text sits above the bar in --ink (7:1 or more).
+ */
+.btn-progress {
+  position: relative;
+  isolation: isolate;
+}
+
+.btn-progress[data-state='loading'],
+.btn-progress[data-state='done'] {
+  color: var(--ink);
+}
+
+.btn-progress-bar {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.btn-progress-bar::before,
+.btn-progress-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.btn-progress-bar::before {
+  background: var(--rainbow-across);
+  transform-origin: left;
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-standard);
+}
+
+/* The chibi's track spans the button, so translating it by a share of its width follows the tip of the bar. */
+.btn-progress-track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* At the end, so after "done" it fades out where it jumped. */
+  transform: translateX(100%);
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-standard);
+}
+
+.btn-progress-runner {
+  position: absolute;
+  bottom: calc(100% - 6px);
+  left: -17px;
+  display: block;
+  width: 34px;
+  height: 39px;
+}
+
+.btn-progress[data-state='loading'] .btn-progress-bar::before,
+.btn-progress[data-state='done'] .btn-progress-bar::before,
+.btn-progress[data-state='loading'] .btn-progress-track,
+.btn-progress[data-state='done'] .btn-progress-track {
+  opacity: 1;
+}
+
+.btn-progress[data-state='loading'] .btn-progress-bar::before {
+  animation:
+    btn-progress-fill 600ms forwards,
+    btn-progress-creep 8s 600ms var(--ease-out) forwards;
+}
+
+.btn-progress[data-state='loading'] .btn-progress-track {
+  animation:
+    btn-progress-run 600ms forwards,
+    btn-progress-run-on 8s 600ms var(--ease-out) forwards;
+}
+
+.btn-progress[data-state='done'] .btn-progress-bar::before {
+  animation: btn-progress-complete var(--dur-base) var(--ease-pop) forwards;
+}
+
+.btn-progress[data-state='done'] .btn-progress-track {
+  animation: btn-progress-run-end var(--dur-base) var(--ease-pop) forwards;
+}
+
+.btn-progress[data-state='failed'] .btn-progress-bar::before {
+  background: var(--danger-soft);
+  animation: btn-progress-drain var(--dur-slow) var(--ease-standard) forwards;
+}
+
+.btn-progress[data-state='failed'] .btn-progress-track {
+  animation: btn-progress-run-back var(--dur-slow) var(--ease-standard) forwards;
+}
+
+/* The shine: a soft white streak crossing the bar while it waits. */
+.btn-progress-bar::after {
+  background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 70%) 50%, transparent 70%);
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.btn-progress[data-state='loading'] .btn-progress-bar::after {
+  opacity: 1;
+  animation: btn-progress-shine 1.2s linear infinite;
+}
+
+/* The chibi bobs and swings its legs while running, and jumps once when done. */
+.btn-progress-chibi {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.btn-progress[data-state='loading'] .btn-progress-chibi {
+  animation: btn-progress-bob 280ms ease-in-out infinite alternate;
+}
+
+.btn-progress[data-state='done'] .btn-progress-chibi {
+  animation: btn-progress-jump var(--dur-slow) var(--ease-pop);
+}
+
+.btn-progress-leg-a,
+.btn-progress-leg-b {
+  transform-box: fill-box;
+  transform-origin: top center;
+}
+
+.btn-progress[data-state='loading'] .btn-progress-leg-a {
+  animation: btn-progress-step 280ms ease-in-out infinite alternate;
+}
+
+.btn-progress[data-state='loading'] .btn-progress-leg-b {
+  animation: btn-progress-step 280ms ease-in-out infinite alternate-reverse;
+}
+
+.btn-progress-leg-a path,
+.btn-progress-leg-b path {
+  fill: none;
+  stroke: #9cc8f2;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+
+.btn-progress-arm {
+  fill: none;
+  stroke: #ffe3d6;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.btn-progress-pajama {
+  fill: #c4e4ff;
+}
+
+.btn-progress-dot,
+.btn-progress-shine,
+.btn-progress-pompom {
+  fill: #fff;
+}
+
+.btn-progress-pompom {
+  stroke: #f2a7c3;
+  stroke-width: 0.6;
+}
+
+.btn-progress-skin {
+  fill: #ffe8dc;
+}
+
+.btn-progress-hair {
+  fill: #7a5240;
+}
+
+.btn-progress-cap {
+  fill: #f7c6cf;
+}
+
+.btn-progress-eye {
+  fill: var(--ink);
+}
+
+.btn-progress-blush {
+  fill: #f7a8b8;
+  opacity: 0.7;
+}
+
+.btn-progress-mouth {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+
+/* The load in jumps: a push, a pause, another push, then a slow creep while the answer has not come. */
+@keyframes btn-progress-fill {
+  0% {
+    transform: scaleX(0);
+    animation-timing-function: var(--ease-out);
+  }
+
+  25% {
+    transform: scaleX(0.42);
+    animation-timing-function: linear;
+  }
+
+  55% {
+    transform: scaleX(0.5);
+    animation-timing-function: var(--ease-out);
+  }
+
+  80% {
+    transform: scaleX(0.8);
+    animation-timing-function: linear;
+  }
+
+  100% {
+    transform: scaleX(0.85);
+  }
+}
+
+@keyframes btn-progress-creep {
+  from {
+    transform: scaleX(0.85);
+  }
+
+  to {
+    transform: scaleX(0.95);
+  }
+}
+
+@keyframes btn-progress-complete {
+  from {
+    transform: scaleX(0.88);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes btn-progress-drain {
+  from {
+    transform: scaleX(0.85);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes btn-progress-run {
+  0% {
+    transform: translateX(0);
+    animation-timing-function: var(--ease-out);
+  }
+
+  25% {
+    transform: translateX(42%);
+    animation-timing-function: linear;
+  }
+
+  55% {
+    transform: translateX(50%);
+    animation-timing-function: var(--ease-out);
+  }
+
+  80% {
+    transform: translateX(80%);
+    animation-timing-function: linear;
+  }
+
+  100% {
+    transform: translateX(85%);
+  }
+}
+
+@keyframes btn-progress-run-on {
+  from {
+    transform: translateX(85%);
+  }
+
+  to {
+    transform: translateX(95%);
+  }
+}
+
+@keyframes btn-progress-run-end {
+  from {
+    transform: translateX(88%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes btn-progress-run-back {
+  from {
+    transform: translateX(85%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes btn-progress-shine {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes btn-progress-bob {
+  to {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes btn-progress-step {
+  from {
+    transform: rotate(-28deg);
+  }
+
+  to {
+    transform: rotate(28deg);
+  }
+}
+
+@keyframes btn-progress-jump {
+  50% {
+    transform: translateY(-10px) rotate(-8deg);
+  }
+}
+
+/* Under reduced motion the full bar only fades in and out: no shine and no chibi. */
+@media (prefers-reduced-motion: reduce) {
+  .btn-progress[data-state] .btn-progress-bar::before {
+    animation: none;
+  }
+
+  .btn-progress-bar::after,
+  .btn-progress-track {
+    display: none;
+  }
+}

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { atLeast, PROGRESS_MIN_MS } from '../../components/minimumWait.ts';
 import {
   acknowledgePrices,
   addToCart,
@@ -17,12 +18,16 @@ export function useCart() {
   return useQuery({ queryKey: CART_KEY, queryFn: ({ signal }) => fetchCart(signal) });
 }
 
-/** UC-08: adds units of a variant; on success the answer is the new cart and the panel shows it. */
+/**
+ * UC-08: adds units of a variant; on success the answer is the new cart and the panel shows it. The answer waits for
+ * the add button's progress bar (E7 motion).
+ */
 export function useAddToCart() {
   const queryClient = useQueryClient();
   const panel = useCartPanel();
   return useMutation({
-    mutationFn: ({ variantId, quantity }: { variantId: string; quantity: number }) => addToCart(variantId, quantity),
+    mutationFn: ({ variantId, quantity }: { variantId: string; quantity: number }) =>
+      atLeast(addToCart(variantId, quantity), PROGRESS_MIN_MS),
     onSuccess: (answer) => {
       if (answer.status === 'added') {
         queryClient.setQueryData(CART_KEY, answer.cart);

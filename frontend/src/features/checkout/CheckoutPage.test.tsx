@@ -388,8 +388,9 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
 
     await acceptAndConfirm();
 
-    expect(await screen.findByRole('heading', { name: es.checkout.paymentTitle })).toHaveFocus();
-    expect(screen.getByText(es.checkout.refused.paymentProviderNotEnabled)).toBeInTheDocument();
+    // The review also has a "Medio de pago" heading: wait for the answer before looking for the step's.
+    expect(await screen.findByText(es.checkout.refused.paymentProviderNotEnabled)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: es.checkout.paymentTitle })).toHaveFocus();
     await waitFor(() => {
       expect(providerOptions()).toEqual(['MERCADOPAGO']);
     });
@@ -448,6 +449,22 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     await acceptAndConfirm();
 
     expect(await screen.findByText(es.checkout.refused.couponNotApplicable)).toBeInTheDocument();
+  });
+
+  it('given a confirmation, when it waits for the answer, then the pay button shows the progress bar with the chibi, and a refusal drains it', async () => {
+    stubGets();
+    stubPost(answer(409, { problem: 'CART_NOT_READY' }));
+    renderRoute('/checkout');
+    await goToReview();
+
+    await acceptAndConfirm();
+
+    const waiting = screen.getByRole('button', { name: es.checkout.confirming });
+    expect(waiting).toHaveAttribute('data-state', 'loading');
+    expect(waiting.querySelector('.btn-progress-bar')).toBeInTheDocument();
+    expect(waiting.querySelector('.btn-progress-chibi')).toBeInTheDocument();
+    expect(await screen.findByText(es.checkout.refused.cartNotReady)).toBeInTheDocument();
+    expect(confirmButton()).toHaveAttribute('data-state', 'failed');
   });
 
   it('given a confirmation without an answer, when retried, then the same Idempotency-Key is repeated', async () => {

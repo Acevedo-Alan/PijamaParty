@@ -46,7 +46,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 **Principios**
 - **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14).
 - **Entradas:** el texto de bienvenida de la portada aparece una vez al cargar; las tarjetas de producto aparecen cuando se suman a la grilla (la primera tanda, "Ver más", un filtro u orden nuevo), nunca por bajar hasta ellas; al cambiar de página, el contenido nuevo entra, pero no en la primera carga de la tienda. Las secciones no aparecen de a una al bajar.
-- **Rápido y suave:** entre 120 y 450 ms (la entrada de la portada, hasta 700 ms), con curvas que frenan al llegar.
+- **Rápido y suave:** entre 120 y 450 ms (la entrada de la portada, hasta 700 ms; la espera de los botones de agregar y pagar, al menos 600 ms), con curvas que frenan al llegar.
 - **Accesible:** con `prefers-reduced-motion` no hay desplazamientos ni escalas, solo cambios de opacidad cortos; los efectos de hover solo con `@media (hover: hover)`.
 - **Con Motion, sin demorar la carga (D-16):** las animaciones de entrada y salida, los pasos y los rebotes usan la librería Motion, que se carga después de mostrar la página; hasta entonces, todo se ve en su lugar sin animar. Los efectos simples (hover, colores) siguen en CSS. Solo se anima `transform` y `opacity`, nunca el tamaño o la posición. La foto principal de la portada no se anima, para no demorar el LCP (RNF-11).
 
@@ -58,7 +58,9 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 | Tarjeta de producto | En computadora, la foto se acerca apenas al pasar el mouse; si el producto tiene una segunda foto, aparece con un fundido. |
 | Encabezado (celular) | Al bajar por la página se esconde hacia arriba; al subir, vuelve. |
 | Círculos de color y talles | El elegido se marca con un anillo que crece. |
-| Agregar al carrito | El botón muestra "Agregado" con un tilde un momento; el ícono del carrito da un salto y su número se actualiza; aparece el aviso desde abajo. |
+| Agregar al carrito y "Confirmar y pagar": esperando | Un arcoíris pastel llena todo el botón de izquierda a derecha a saltitos, como una carga real (un empujón, una pausa, otro empujón), y sigue avanzando despacio si el servidor tarda, con un brillo que lo recorre. Una chibi en pijama y gorro de dormir (dibujo propio) corre sobre el borde del botón en la punta de la barra. La espera dura al menos 0,6 s aunque el servidor conteste antes, para que la barra se vea. Con movimiento reducido, el arcoíris solo aparece con un fundido, sin brillo ni chibi. |
+| Agregar al carrito y "Confirmar y pagar": listo | La barra se completa y la chibi salta al final. En agregar, además salen unos destellos del botón y muestra "Agregado" con un tilde un momento; el ícono del carrito da un salto y su número se actualiza; aparece el aviso desde abajo. En pagar, la barra queda llena mientras se abre el pago. Con movimiento reducido, sin destellos. |
+| Agregar al carrito y "Confirmar y pagar": rechazado o con error | La barra se pone rojo suave y se vacía hacia la izquierda y la chibi desaparece; el mensaje junto al botón dice por qué. |
 | Panel del carrito, menú, filtros, vista ampliada | Se deslizan desde su borde con el fondo oscureciéndose; al cerrar, el camino inverso. Lo que sube desde abajo (el menú del celular, la vista ampliada) se abre más despacio y frena suave. |
 | Enlaces del encabezado, lupa, ícono de usuario y carrito (con mouse) | Al pasar el mouse, un arcoíris pastel llena el fondo desde abajo hacia arriba; al salir, baja. Con movimiento reducido, solo aparece con un fundido. |
 | Contenido del menú del celular | Cada enlace sube un poco y aparece, uno tras otro, mientras sube el menú. |
@@ -74,6 +76,9 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Dada la grilla con productos, cuando "Ver más" suma otros, entonces solo los nuevos entran; con movimiento reducido, solo aparecen con un fundido.
 - Dado el menú del celular, cuando se abre, entonces sube desde abajo con el botón de cerrar arriba y los enlaces entran uno tras otro.
 - Dado un producto agregado desde la ficha, cuando la respuesta llega, entonces el ícono del carrito salta una vez y el aviso aparece.
+- Dado un agregado desde la ficha, cuando el servidor contesta antes de 0,6 s, entonces el botón sigue en "Agregando…" con la barra de arcoíris hasta cumplir 0,6 s, y recién ahí dice "Agregado".
+- Dado un agregado exitoso, cuando la barra se completa, entonces salen destellos del botón una vez; con movimiento reducido, no. Dado un agregado rechazado o con error, entonces la barra se pone rojo suave y se vacía, sin destellos.
+- Dado "Confirmar y pagar", cuando espera la respuesta, entonces el botón muestra la barra de arcoíris con la chibi corriendo encima; un rechazo la vacía en rojo suave.
 - Dada la portada, cuando se mide con Lighthouse, entonces el LCP sigue debajo de 3 s y el "Cumulative Layout Shift" debajo de 0,1.
 - Dado un teléfono, cuando se toca una tarjeta, entonces no queda trabado ningún efecto de hover.
 

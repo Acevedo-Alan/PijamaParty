@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { atLeast, PROGRESS_MIN_MS } from '../../components/minimumWait.ts';
 import { EMPTY_CART, type Cart } from '../cart/cartApi.ts';
 import { CART_KEY } from '../cart/useCart.ts';
 import { fetchPaymentProviders, fetchShippingCost, placeOrder } from './checkoutApi.ts';
@@ -30,12 +31,13 @@ export function usePaymentProviders() {
 
 /**
  * POST /api/checkout. A placed order keeps its token for the return from the provider; a refusal about the cart
- * reads it again, so the page shows why.
+ * reads it again, so the page shows why. The answer waits for the pay button's progress bar (E7 motion).
  */
 export function usePlaceOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ key, body }: { key: string; body: Parameters<typeof placeOrder>[1] }) => placeOrder(key, body),
+    mutationFn: ({ key, body }: { key: string; body: Parameters<typeof placeOrder>[1] }) =>
+      atLeast(placeOrder(key, body), PROGRESS_MIN_MS),
     onSuccess: (answer) => {
       switch (answer.status) {
         case 'placed':
