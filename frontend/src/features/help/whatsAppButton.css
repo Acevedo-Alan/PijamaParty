@@ -12,20 +12,38 @@
   border-radius: 50%;
   background: var(--accent);
   color: var(--surface);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--ink) 18%, transparent);
+  box-shadow:
+    0 2px 6px color-mix(in srgb, var(--ink) 14%, transparent),
+    0 10px 24px color-mix(in srgb, var(--ink) 20%, transparent);
+  /* It pops in once with the page; `scale`, not `transform`, so it never fights the lift above the add-to-cart bar. */
+  animation: whatsapp-in var(--dur-slow) var(--ease-pop) 300ms backwards;
   transition:
     background-color var(--dur-base) var(--ease-standard),
-    transform var(--dur-base) var(--ease-pop);
+    scale var(--dur-base) var(--ease-pop),
+    transform var(--dur-base) var(--ease-standard);
+}
+
+@keyframes whatsapp-in {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
 }
 
 .whatsapp-button svg {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
+}
+
+.whatsapp-bubble {
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
+  stroke-width: 1.9;
   stroke-linejoin: round;
+}
+
+.whatsapp-phone {
+  fill: currentColor;
 }
 
 /* Its space stays free: keyboard focus scrolls clear of it (WCAG 2.4.11), and the footer ends above it. */
@@ -49,24 +67,22 @@ body:has(.pdp-sticky-cta) .whatsapp-button {
 @media (hover: hover) {
   .whatsapp-button:hover {
     background-color: var(--accent-hover);
-    transform: translateY(-2px);
+    scale: 1.07;
   }
+}
 
-  body:has(.pdp-sticky-cta) .whatsapp-button:hover {
-    transform: translateY(-70px);
-  }
+.whatsapp-button:active {
+  scale: 0.94;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .whatsapp-button {
+    animation: none;
     transition: background-color var(--dur-base) var(--ease-standard);
   }
 
-  .whatsapp-button:hover {
-    transform: none;
-  }
-
-  body:has(.pdp-sticky-cta) .whatsapp-button:hover {
-    transform: translateY(-68px);
+  .whatsapp-button:hover,
+  .whatsapp-button:active {
+    scale: none;
   }
 }

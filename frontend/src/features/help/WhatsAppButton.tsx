@@ -30,10 +30,13 @@ export function WhatsAppButton() {
       aria-label={es.contact.whatsAppButton}
       title={es.contact.whatsAppButton}
     >
-      {/* The store's own drawing of a speech bubble with a phone, not WhatsApp's logo. */}
+      {/* The store's own drawing in WhatsApp's style, not its logo: a round speech bubble with a filled phone. */}
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3.5a8.5 8.5 0 0 0-7.4 12.7L3.5 20.5l4.4-1.1A8.5 8.5 0 1 0 12 3.5Z" />
-        <path d="M9.2 8.2h1.4l.7 1.8-.9.7a5 5 0 0 0 2.9 2.9l.7-.9 1.8.7v1.4a1 1 0 0 1-1 1A6.6 6.6 0 0 1 8.2 9.2a1 1 0 0 1 1-1Z" />
+        <path className="whatsapp-bubble" d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2Z" />
+        <path
+          className="whatsapp-phone"
+          d="M9.3 7.6h-.8c-.3 0-.7.1-1 .5-.4.4-.9 1.1-.9 2.3 0 1.4 1 2.8 1.2 3 .2.2 2 3 4.9 4.2 2.4 1 2.9.8 3.5.7.5-.1 1.6-.7 1.9-1.4.2-.6.2-1.2.1-1.3l-.5-.4-1.8-.9c-.3-.1-.4-.1-.6.1l-.8 1c-.2.2-.3.2-.6.1a7 7 0 0 1-3.6-3.2c-.2-.3 0-.4.1-.6l.4-.5.3-.5v-.5l-.8-2c-.2-.5-.4-.5-.6-.5Z"
+        />
       </svg>
     </a>
   );
