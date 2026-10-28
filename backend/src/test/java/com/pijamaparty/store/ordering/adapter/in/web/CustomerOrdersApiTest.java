@@ -111,6 +111,7 @@ class CustomerOrdersApiTest {
         assertThat(order.get("items")).hasSize(1);
         assertThat(order.get("items").get(0).get("productName").asText()).isEqualTo("Pijama");
         assertThat(order.get("items").get(0).get("lineTotalCents").asLong()).isEqualTo(2_000_000);
+        assertThat(order.get("items").get(0).get("image").isNull()).isTrue();
         assertThat(order.get("address").get("street").asText()).isEqualTo("San Martín");
         assertThat(order.get("address").get("floor").isNull()).isTrue();
         assertThat(order.get("address").get("postalCode").asText()).isEqualTo("S3000ABC");
@@ -118,6 +119,25 @@ class CustomerOrdersApiTest {
         assertThat(order.get("totalCents").asLong()).isEqualTo(2_450_000);
         assertThat(opened.getBody()).as("never the national ID, the email or the phone")
             .doesNotContain("30111222", "ana@example.com", "3425551234");
+    }
+
+    @Test
+    void givenAnItemWhoseProductHasAPhoto_whenTheCustomerOpensTheOrder_thenTheItemHasItsCurrentPhoto() {
+        Browser ana = signedIn("ana@example.com");
+        long number = buy(ana);
+        owner.update("""
+            insert into product_image (id, product_id, color, storage_key, placeholder, position, upload_key,
+                                       content_sha256, created_at)
+            select ?, v.product_id, v.color, 'pijama-rosa', 'data:image/webp;base64,UklGRg==', 0, ?, ?, now()
+            from variant v
+            where v.id = ?
+            """, UUID.randomUUID(), UUID.randomUUID(), new byte[32], pijama);
+
+        JsonNode image = read(ana.get(ORDERS + "/" + idOf(number))).get("items").get(0).get("image");
+
+        assertThat(image.get("placeholder").asText()).isEqualTo("data:image/webp;base64,UklGRg==");
+        assertThat(image.get("files").get(0).get("width").asInt()).isEqualTo(400);
+        assertThat(image.get("files").get(0).get("url").asText()).isEqualTo("/uploads/pijama-rosa-400.webp");
     }
 
     @Test

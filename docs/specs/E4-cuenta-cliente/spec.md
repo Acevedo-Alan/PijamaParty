@@ -69,7 +69,7 @@
 
 **Flujo principal**
 1. El cliente abre "Mis pedidos" y ve la lista con estado y total.
-2. Abre un pedido y ve ítems, dirección, estado, número de seguimiento y un enlace al seguimiento de Correo Argentino.
+2. Abre un pedido y ve ítems (cada uno con la miniatura de su foto actual, como en la página del pedido), dirección, estado, número de seguimiento y un enlace al seguimiento de Correo Argentino.
 
 **Reglas**
 - Los pedidos hechos como invitado con el mismo email se asocian a la cuenta una vez verificado el email: en cada ingreso del cliente con el email verificado, así que también se suman los que haga después como invitado (*Decidido*). Un pedido desvinculado al eliminar una cuenta (CU-28) no se vuelve a asociar.

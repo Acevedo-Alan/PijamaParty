@@ -18,6 +18,7 @@ import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.shipping.api.Province;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,8 @@ class GetMyOrderServiceTest {
     private static final Instant PLACED_AT = Instant.parse("2026-10-13T15:00:00Z");
 
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
-    private final GetMyOrderService service = new GetMyOrderService(orders);
+    private final InMemoryLinePhotos photos = new InMemoryLinePhotos();
+    private final GetMyOrderService service = new GetMyOrderService(orders, photos);
     private final UserId ana = UserId.of(UUID.randomUUID());
 
     @Test
@@ -43,6 +45,19 @@ class GetMyOrderServiceTest {
             assertThat(found.order().status()).isEqualTo(OrderStatus.SHIPPED);
             assertThat(found.order().shipmentTrackingNumber()).contains("CA123456789AR");
         });
+    }
+
+    @Test
+    void givenAnItemWhoseProductHasAPhoto_whenTheCustomerOpensTheOrder_thenThePhotoComesByVariant() {
+        NewOrder order = placed(Optional.of(ana));
+        UUID variant = order.lines().getFirst().variantId();
+        var photo = new LinePhotos.Photo("data:image/webp;base64,UklGRg==",
+            List.of(new LinePhotos.PhotoFile(400, "luna-rosa-400.webp")));
+        photos.add(variant, photo);
+
+        assertThat(service.execute(new GetMyOrder.Query(customer(ana), order.id())))
+            .isInstanceOfSatisfying(GetMyOrder.Result.Found.class,
+                found -> assertThat(found.photos()).isEqualTo(Map.of(variant, photo)));
     }
 
     @Test

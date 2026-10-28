@@ -1,5 +1,6 @@
 import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
+import { toImage, type ListingImage } from '../catalog/catalogApi.ts';
 import { isProvince, type Province } from '../checkout/checkoutForm.ts';
 import type { OrderStatus } from '../orders/orderTrackingApi.ts';
 
@@ -37,6 +38,8 @@ export interface MyOrderItem {
   quantity: number;
   unitPriceCents: number;
   lineTotalCents: number;
+  /** The photo the catalog shows now of the variant (E7); null without one. */
+  image: ListingImage | null;
 }
 
 /** The order's own copy of the address (R-04). */
@@ -97,6 +100,7 @@ function toItem({
   quantity,
   unitPriceCents,
   lineTotalCents,
+  image,
 }: MyOrderItemResponse): MyOrderItem {
   if (
     sku === undefined ||
@@ -109,7 +113,7 @@ function toItem({
   ) {
     throw new Error('Incomplete item in my order');
   }
-  return { sku, productName, size, color, quantity, unitPriceCents, lineTotalCents };
+  return { sku, productName, size, color, quantity, unitPriceCents, lineTotalCents, image: toImage(image) };
 }
 
 function toAddress(data: MyOrderAddressResponse | undefined): MyOrderAddress {

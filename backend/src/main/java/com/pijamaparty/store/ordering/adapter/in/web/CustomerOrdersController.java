@@ -3,6 +3,7 @@ package com.pijamaparty.store.ordering.adapter.in.web;
 import com.pijamaparty.store.ordering.application.CustomerOrderSummary;
 import com.pijamaparty.store.ordering.application.CustomerOrderViews.CustomerOrder;
 import com.pijamaparty.store.ordering.application.GetMyOrder;
+import com.pijamaparty.store.ordering.application.LinePhotos;
 import com.pijamaparty.store.ordering.application.ListMyOrders;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderLine;
@@ -20,6 +21,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -67,8 +69,8 @@ class CustomerOrdersController {
 
     @GetMapping("/{id}")
     @Operation(summary = "One of the customer's orders, with its tracking",
-        description = "The items, the amounts in cents, the order's own copy of the address and the shipment "
-            + "tracking number once shipped. Not cached.")
+        description = "The items, each with the photo the catalog shows now of its variant or null, the amounts in "
+            + "cents, the order's own copy of the address and the shipment tracking number once shipped. Not cached.")
     @ApiResponse(responseCode = "200", description = "The order", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = MyOrderResponse.class)))
     @ApiResponse(responseCode = "401", description = "Not signed in as a customer",
@@ -79,7 +81,7 @@ class CustomerOrdersController {
     ResponseEntity<?> order(@PathVariable UUID id) {
         return switch (getMyOrder.execute(new GetMyOrder.Query(actor(), OrderId.of(id)))) {
             case GetMyOrder.Result.Found found -> ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(MyOrderResponse.of(found.order()));
+                .body(MyOrderResponse.of(found.order(), found.photos()));
             case GetMyOrder.Result.NotFound notFound -> problem(HttpStatus.NOT_FOUND, "Order not found",
                 "ORDER_NOT_FOUND");
             case GetMyOrder.Result.NotSignedIn notSignedIn -> notSignedIn();
@@ -120,10 +122,11 @@ class CustomerOrdersController {
                            @Schema(nullable = true, requiredMode = Schema.RequiredMode.REQUIRED)
                            String shipmentTrackingNumber) {
 
-        static MyOrderResponse of(CustomerOrder order) {
+        static MyOrderResponse of(CustomerOrder order, Map<UUID, LinePhotos.Photo> photos) {
             var amounts = order.amounts();
             return new MyOrderResponse(order.id().value(), order.number(), order.status(), order.createdAt(),
-                order.lines().stream().map(MyOrderItemResponse::of).toList(), amounts.subtotal().cents(),
+                order.lines().stream().map(line -> MyOrderItemResponse.of(line, photos)).toList(),
+                amounts.subtotal().cents(),
                 amounts.discount().cents(), order.couponCode().orElse(null), amounts.shipping().cents(),
                 amounts.total().cents(), MyOrderAddressResponse.of(order.address(), order.province()),
                 order.shipmentTrackingNumber().orElse(null));
@@ -135,13 +138,19 @@ class CustomerOrdersController {
         }
     }
 
-    /** {@code lineTotalCents} = {@code unitPriceCents} × {@code quantity}. */
+    /**
+     * {@code lineTotalCents} = {@code unitPriceCents} × {@code quantity}. {@code image} is the photo the catalog shows
+     * now of the variant, or null.
+     */
     record MyOrderItemResponse(String sku, String productName, String size, String color, int quantity,
-                               long unitPriceCents, long lineTotalCents) {
+                               long unitPriceCents, long lineTotalCents,
+                               @Schema(nullable = true) OrderItemImageResponse image) {
 
-        static MyOrderItemResponse of(OrderLine line) {
+        static MyOrderItemResponse of(OrderLine line, Map<UUID, LinePhotos.Photo> photos) {
+            LinePhotos.Photo photo = photos.get(line.variantId());
             return new MyOrderItemResponse(line.sku(), line.productName(), line.size(), line.color(), line.quantity(),
-                line.unitPrice().cents(), line.amount().cents());
+                line.unitPrice().cents(), line.amount().cents(),
+                photo == null ? null : OrderItemImageResponse.of(photo));
         }
     }
 

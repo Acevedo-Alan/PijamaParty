@@ -223,30 +223,15 @@ class OrderTrackingController {
      */
     record TrackedItemResponse(String sku, String productName, String size, String color, int quantity,
                                long unitPriceCents, long lineTotalCents,
-                               @Schema(nullable = true) TrackedItemImageResponse image) {
+                               @Schema(nullable = true) OrderItemImageResponse image) {
 
         static TrackedItemResponse of(OrderLine line, Map<UUID, LinePhotos.Photo> photos) {
             LinePhotos.Photo photo = photos.get(line.variantId());
             return new TrackedItemResponse(line.sku(), line.productName(), line.size(), line.color(), line.quantity(),
                 line.unitPrice().cents(), line.amount().cents(),
-                photo == null ? null : TrackedItemImageResponse.of(photo));
+                photo == null ? null : OrderItemImageResponse.of(photo));
         }
     }
-
-    /** A photo as in the catalog (UC-06): each file is a WebP at most {@code width} pixels wide. */
-    record TrackedItemImageResponse(String placeholder, List<TrackedItemImageFileResponse> files) {
-
-        /** Where Caddy serves the uploads volume (deploy/caddy/Caddyfile), as the catalog's photos. */
-        private static final String UPLOADS_PATH = "/uploads/";
-
-        static TrackedItemImageResponse of(LinePhotos.Photo photo) {
-            return new TrackedItemImageResponse(photo.placeholder(), photo.files().stream()
-                .map(file -> new TrackedItemImageFileResponse(file.width(), UPLOADS_PATH + file.fileName()))
-                .toList());
-        }
-    }
-
-    record TrackedItemImageFileResponse(int width, String url) {}
 
     /** The payment provider's checkout to redirect the buyer to. */
     record RetryResponse(URI paymentUrl) {}

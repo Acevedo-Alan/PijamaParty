@@ -10,7 +10,7 @@ export interface OrderItemLine {
   color: string;
   quantity: number;
   lineTotalCents: number;
-  /** The tracking link's thumbnail (E7): the photo, or null for the placeholder; left out, no thumbnail. */
+  /** The thumbnail (E7): the photo, or null for the placeholder; left out, no thumbnail. */
   image?: ListingImage | null;
 }
 

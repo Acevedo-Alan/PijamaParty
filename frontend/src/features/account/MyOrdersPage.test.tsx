@@ -169,6 +169,33 @@ describe('my orders (UC-22, T-E4-07)', () => {
     expect(within(shipment).getByRole('button', { name: messages.copied })).toBeInTheDocument();
   });
 
+  it('given an item whose product has a photo, when the customer opens the order, then the item shows its thumbnail', async () => {
+    const photo = { placeholder: 'data:image/webp;base64,UklGRg==', files: [{ width: 400, url: '/uploads/luna-rosa-400.webp' }] };
+    const [item] = detail().items;
+    stubOrders(
+      () => answer(200, { orders: [], hasMore: false }),
+      () => answer(200, detail({ items: [{ ...item, image: photo }] })),
+    );
+    renderRoute(`/cuenta/pedidos/${SECOND}`);
+
+    const items = await screen.findByRole('region', { name: messages.items });
+    expect(within(items).getByRole('img', { name: es.cart.photoAlt('Pijama Luna', 'Rosa') })).toHaveAttribute(
+      'src',
+      '/uploads/luna-rosa-400.webp',
+    );
+  });
+
+  it('given an item whose product has no photo, when the customer opens the order, then the item shows the placeholder', async () => {
+    stubOrders(
+      () => answer(200, { orders: [], hasMore: false }),
+      () => answer(200, detail()),
+    );
+    renderRoute(`/cuenta/pedidos/${SECOND}`);
+
+    const name = await screen.findByText('Pijama Luna');
+    expect(name.closest('li')?.querySelector('.ph.tracking-item-photo')).not.toBeNull();
+  });
+
   it('given a paid order not yet shipped, when the customer opens it, then it says the tracking number is to come', async () => {
     stubOrders(
       () => answer(200, { orders: [], hasMore: false }),

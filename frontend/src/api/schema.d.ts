@@ -1709,7 +1709,7 @@ export interface paths {
         };
         /**
          * One of the customer's orders, with its tracking
-         * @description The items, the amounts in cents, the order's own copy of the address and the shipment tracking number once shipped. Not cached.
+         * @description The items, each with the photo the catalog shows now of its variant or null, the amounts in cents, the order's own copy of the address and the shipment tracking number once shipped. Not cached.
          */
         get: operations["order_1"];
         put?: never;
@@ -2369,14 +2369,14 @@ export interface components {
             /** Format: int64 */
             costCents?: number;
         };
-        TrackedItemImageFileResponse: {
+        OrderItemImageFileResponse: {
             /** Format: int32 */
             width?: number;
             url?: string;
         };
-        TrackedItemImageResponse: {
+        OrderItemImageResponse: {
             placeholder?: string;
-            files?: components["schemas"]["TrackedItemImageFileResponse"][];
+            files?: components["schemas"]["OrderItemImageFileResponse"][];
         };
         TrackedItemResponse: {
             sku?: string;
@@ -2389,7 +2389,7 @@ export interface components {
             unitPriceCents?: number;
             /** Format: int64 */
             lineTotalCents?: number;
-            image?: components["schemas"]["TrackedItemImageResponse"];
+            image?: components["schemas"]["OrderItemImageResponse"];
         };
         TrackedOrderResponse: {
             /** Format: int64 */
@@ -2780,6 +2780,7 @@ export interface components {
             unitPriceCents?: number;
             /** Format: int64 */
             lineTotalCents?: number;
+            image?: components["schemas"]["OrderItemImageResponse"];
         };
         MyOrderResponse: {
             /** Format: uuid */
