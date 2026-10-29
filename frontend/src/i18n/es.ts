@@ -140,7 +140,11 @@ export const es = {
     /** The exact available stock of the picked size and color (UC-03). */
     available: (count: number) => (count === 1 ? 'Queda 1 disponible' : `Hay ${String(count)} disponibles`),
     noStock: 'Sin stock en este talle y color',
-    pickSizeAndColor: 'Elegí talle y color para agregarlo al carrito.',
+    /** T-E7-36: a picked color sold out in every size. */
+    noStockInColor: 'Sin stock en este color',
+    /** T-E7-36: below a group still without a pick, once the add button was pressed. */
+    pickSize: 'Elegí un talle',
+    pickColor: 'Elegí un color',
     addToCart: 'Agregar al carrito',
     adding: 'Agregando…',
     /** E7 motion: the add button confirms a successful add for a moment. */
@@ -150,8 +154,9 @@ export const es = {
       count === 0 ? 'Sin stock' : count === 1 ? 'Solo queda 1' : `Solo quedan ${String(count)}`,
     noLongerAvailable: 'Este producto ya no está disponible.',
     addError: 'No pudimos agregar el producto. Probá de nuevo.',
-    /** RNF-31.5: the collapsed size guide of the category, among the sections of the page (E7). */
+    /** RNF-31.5: the size guide of the category, in a dialog opened beside "Talle" (T-E7-36). */
     sizeGuide: 'Guía de talles',
+    closeSizeGuide: 'Cerrar guía de talles',
     sizeGuideTable: 'Tabla de talles',
     /** A blank value of the size guide. */
     noMeasure: '–',

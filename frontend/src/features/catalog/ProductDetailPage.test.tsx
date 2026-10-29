@@ -93,14 +93,72 @@ describe('product detail (UC-03)', () => {
     expect(addToCart()).toBeEnabled();
   });
 
-  it('given only one of size and color picked, when shown, then the buy button stays disabled', async () => {
+  it('given only the size picked, when the buy button is pressed, then nothing is added, it asks for a color and the focus moves to the colors', async () => {
     stubDetail(answer(200, productDetail()));
-
+    const post = vi.spyOn(api, 'POST');
     renderRoute('/producto/luna');
-
     expect(await screen.findByRole('radio', { name: 'M' })).toBeChecked();
+    expect(screen.queryByText(es.product.pickColor)).not.toBeInTheDocument();
+
+    await userEvent.click(addToCart());
+
+    expect(post).not.toHaveBeenCalled();
+    const colors = screen.getByRole('group', { name: es.product.color });
+    expect(colors).toHaveAccessibleDescription(es.product.pickColor);
+    expect(within(colors).getByRole('radio', { name: 'Rosa' })).toHaveFocus();
+    expect(screen.queryByText(es.product.pickSize)).not.toBeInTheDocument();
+
+    await userEvent.click(within(colors).getByRole('radio', { name: 'Rosa' }));
+
+    expect(screen.queryByText(es.product.pickColor)).not.toBeInTheDocument();
+  });
+
+  it('given no size and no color picked, when the buy button is pressed, then both are asked for and the focus moves to the sizes; picking a size clears its message (T-E7-36)', async () => {
+    stubDetail(answer(200, productDetail({
+      sizes: ['S', 'M'],
+      variants: [detailVariant('S', 'Rosa', 2), detailVariant('M', 'Rosa', 3), detailVariant('M', 'Celeste', 1)],
+    })));
+    const post = vi.spyOn(api, 'POST');
+    renderRoute('/producto/luna');
+    await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' });
+
+    await userEvent.click(addToCart());
+
+    expect(post).not.toHaveBeenCalled();
+    const sizes = screen.getByRole('group', { name: es.product.size });
+    expect(sizes).toHaveAccessibleDescription(es.product.pickSize);
+    expect(screen.getByRole('group', { name: es.product.color })).toHaveAccessibleDescription(es.product.pickColor);
+    expect(within(sizes).getByRole('radio', { name: 'S' })).toHaveFocus();
+
+    await userEvent.click(within(sizes).getByRole('radio', { name: 'S' }));
+
+    expect(screen.queryByText(es.product.pickSize)).not.toBeInTheDocument();
+    expect(screen.getByText(es.product.pickColor)).toBeInTheDocument();
+  });
+
+  it('given a color sold out in every size, when it is picked after pressing the buy button, then there is nothing to add, the stock note says why and no size is asked for (T-E7-36)', async () => {
+    stubDetail(answer(200, productDetail({
+      sizes: ['S', 'M'],
+      variants: [
+        detailVariant('S', 'Rosa', 2),
+        detailVariant('M', 'Rosa', 3),
+        detailVariant('S', 'Celeste', 0),
+        detailVariant('M', 'Celeste', 0),
+      ],
+    })));
+    renderRoute('/producto/luna');
+    await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' });
+
+    await userEvent.click(addToCart());
+    expect(screen.getByText(es.product.pickSize)).toBeInTheDocument();
+    const celeste = screen.getByRole('radio', { name: es.product.soldOutOption('Celeste') });
+    await userEvent.click(celeste);
+
     expect(addToCart()).toBeDisabled();
-    expect(addToCart()).toHaveAccessibleDescription(es.product.pickSizeAndColor);
+    expect(screen.getByRole('status')).toHaveTextContent(es.product.noStockInColor);
+    expect(screen.queryByText(es.product.pickSize)).not.toBeInTheDocument();
+    // The diagonal line of a sold-out swatch hangs on this class (productDetail.css).
+    expect(celeste.closest('.swatch-option')).toHaveClass('sold-out');
   });
 
   it('given a combination with available stock 0, when selected, then the buy button is disabled', async () => {
@@ -252,9 +310,13 @@ describe('size guide on the product page (RNF-31.5)', () => {
 
     renderRoute('/producto/luna');
 
-    const summary = await within(await screen.findByRole('main')).findByText(es.product.sizeGuide);
-    await userEvent.click(summary);
-    const table = within(screen.getByRole('table'));
+    const link = await screen.findByRole('button', { name: es.product.sizeGuide });
+    // The link sits beside the size label without becoming part of the group's name (T-E7-36).
+    expect(within(screen.getByRole('group', { name: es.product.size })).getByRole('button', { name: es.product.sizeGuide })).toBe(link);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    await userEvent.click(link);
+    const dialog = within(screen.getByRole('dialog', { name: es.product.sizeGuide }));
+    const table = within(dialog.getByRole('table'));
     expect(table.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
       es.product.size,
       'Busto (cm)',
@@ -267,6 +329,13 @@ describe('size guide on the product page (RNF-31.5)', () => {
       es.product.noMeasure,
     ]);
     expect(screen.getByText('Medí sobre la ropa interior.')).toBeVisible();
+
+    await userEvent.click(dialog.getByRole('button', { name: es.product.closeSizeGuide }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: es.product.sizeGuide })).not.toBeInTheDocument();
+    });
+    expect(link).toHaveFocus();
   });
 
   it('given a category without a guide, when one of its products opens, then no size guide link is shown', async () => {
@@ -275,7 +344,7 @@ describe('size guide on the product page (RNF-31.5)', () => {
     renderRoute('/producto/luna');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' })).toBeInTheDocument();
-    expect(within(screen.getByRole('main')).queryByText(es.product.sizeGuide)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: es.product.sizeGuide })).not.toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 });

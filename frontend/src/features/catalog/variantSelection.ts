@@ -27,6 +27,11 @@ export function isColorSoldOut(variants: DetailVariant[], color: string, size: s
   return !variants.some((variant) => matches(variant, { size, color }) && variant.available > 0);
 }
 
+/** Whether some variant that matches the picks so far has available stock: false for a sold-out color (T-E7-36). */
+export function hasStockFor(variants: DetailVariant[], selection: Selection): boolean {
+  return variants.some((variant) => matches(variant, selection) && variant.available > 0);
+}
+
 /**
  * A group with a single option starts picked, so a one-size or one-color product needs one choice less. A size
  * without stock is never picked for the visitor.

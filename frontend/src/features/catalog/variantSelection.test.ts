@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DetailImage, DetailVariant, ProductDetail } from './productDetailApi.ts';
 import {
   galleryFor,
+  hasStockFor,
   initialSelection,
   isColorSoldOut,
   isSizeAvailable,
@@ -57,6 +58,13 @@ describe('variant selection (UC-03)', () => {
     expect(isColorSoldOut(VARIANTS, 'Rosa', 'M')).toBe(true);
     expect(isColorSoldOut(VARIANTS, 'Celeste', 'M')).toBe(false);
     expect(isColorSoldOut(VARIANTS, 'Rosa', null)).toBe(false);
+  });
+
+  it('given the picks so far, when no matching variant has stock, then there is nothing to add (T-E7-36)', () => {
+    expect(hasStockFor(VARIANTS, { size: null, color: null })).toBe(true);
+    expect(hasStockFor(VARIANTS, { size: null, color: 'Celeste' })).toBe(true);
+    expect(hasStockFor(VARIANTS, { size: 'M', color: 'Rosa' })).toBe(false);
+    expect(hasStockFor([variant('S', 'Rosa', 0)], { size: null, color: 'Rosa' })).toBe(false);
   });
 
   it('given single-option groups, when the page opens, then they start picked unless the size has no stock', () => {

@@ -1,4 +1,5 @@
-import { Collapsible } from '../../components/Collapsible.tsx';
+import { useId, useRef, useState } from 'react';
+import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { es } from '../../i18n/es.ts';
 import type { SizeGuide } from './productDetailApi.ts';
 import './sizeGuide.css';
@@ -39,11 +40,54 @@ export function SizeGuideTable({ guide, label }: { guide: SizeGuide; label: stri
   );
 }
 
-/** RNF-31.5: the size guide of the product's category, the first of the collapsed sections of the page (E7). */
-export function SizeGuideSection({ guide }: { guide: SizeGuide }) {
+/**
+ * RNF-31.5 (T-E7-36): "Guía de talles" beside the size label, opening the guide of the product's category in a modal
+ * dialog that rises from the bottom. The focus returns to the link once the dialog has closed.
+ */
+export function SizeGuideLink({ guide }: { guide: SizeGuide }) {
+  const [open, setOpen] = useState(false);
+  const titleId = useId();
+  const link = useRef<HTMLButtonElement>(null);
+  const close = () => {
+    setOpen(false);
+  };
   return (
-    <Collapsible title={es.product.sizeGuide} className="pdp-section size-guide">
-      <SizeGuideTable guide={guide} label={es.product.sizeGuideTable} />
-    </Collapsible>
+    <>
+      <button
+        ref={link}
+        type="button"
+        className="size-guide-link"
+        aria-haspopup="dialog"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="2.5" y="8" width="19" height="8" rx="1.5" />
+          <path d="M6.5 8v3M10 8v4.5M13.5 8v3M17 8v4.5" />
+        </svg>
+        {es.product.sizeGuide}
+      </button>
+      <PanelDialog
+        open={open}
+        from="bottom"
+        className="size-guide-dialog"
+        labelledBy={titleId}
+        onDismiss={close}
+        onClosed={() => {
+          link.current?.focus();
+        }}
+      >
+        <div className="size-guide-dialog-head">
+          <h2 id={titleId}>{es.product.sizeGuide}</h2>
+          <button type="button" className="icon-btn" aria-label={es.product.closeSizeGuide} onClick={close}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+        <SizeGuideTable guide={guide} label={es.product.sizeGuideTable} />
+      </PanelDialog>
+    </>
   );
 }

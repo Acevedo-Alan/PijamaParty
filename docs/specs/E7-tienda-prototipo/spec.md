@@ -234,9 +234,12 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - En el celular, cuando el botón de agregar sale de la pantalla, una barra fija abajo muestra el precio y el botón.
 - Íconos de confianza (D-12), que reemplazan al resumen de envíos y pagos de RNF-31.6 debajo del botón para no repetirlo: "Envío gratis desde $X" (solo con umbral), los plazos de entrega y "Pagá con …" con los medios de pago habilitados (MercadoPago, MODO), con el enlace a preguntas frecuentes.
 - El precio se destaca sobre la descripción: más grande y en negrita. El color elegido lleva un anillo grueso y el talle elegido se rellena con el color de la tienda.
-- El costo de envío por provincia (D-07) va en una sola fila ("Calculá el envío" y la provincia), con el costo debajo, sin recuadro. Sigue siendo por provincia, no por código postal. Secciones desplegables: guía de talles (RNF-31.5), composición (material y temporada) y cambios y devoluciones (enlace a preguntas frecuentes).
+- El costo de envío por provincia (D-07) va en una sola fila ("Calculá el envío" y la provincia), con el costo debajo, sin recuadro. Sigue siendo por provincia, no por código postal. Secciones desplegables: composición (material y temporada) y cambios y devoluciones (enlace a preguntas frecuentes). La guía de talles se abre desde "Talle" (T-E7-36).
 - Orden de la columna de la información: nombre, precio, descripción, talle y color, cantidad y botón de agregar; después las secciones desplegables; al final el costo de envío por provincia y los íconos de confianza. En la computadora esa columna queda fija al bajar, así el botón de agregar sigue a la vista mientras se recorre la foto.
 - "Completá tu look" (D-08), a todo el ancho debajo de la ficha y arriba de las opiniones (CU-24).
+- Guía de talles (T-E7-36, RNF-31.5): si la categoría tiene guía, un enlace "Guía de talles" a la derecha de "Talle" la abre (la misma tabla y nota de `/guia-de-talles`) en una ventana que sube desde abajo; se cierra con Escape, tocando afuera o con su botón, y el foco vuelve al enlace. Sin guía no hay enlace.
+- Talle o color sin elegir (T-E7-36): el botón de agregar sigue habilitado. Si se toca sin elegirlos, no agrega, dice qué falta debajo de cada grupo ("Elegí un talle", "Elegí un color") y lleva el foco al primer grupo que falta (primero el talle). Cada aviso se va al elegir en su grupo; el del talle no aparece si con el color elegido no hay ningún talle para elegir, porque el aviso de stock ya dice por qué. El botón de la barra fija hace lo mismo. Sigue deshabilitado mientras agrega y cuando nada de lo elegido tiene stock (el talle y el color elegidos, o un color agotado en todos los talles). Con un color agotado en todos los talles elegido y todavía sin talle, debajo de los talles dice "Sin stock en este color", para que se entienda por qué no se puede agregar.
+- Un color sin stock en el talle elegido (T-E7-36) se tacha con una línea en diagonal además de verse más claro, para no depender solo del tono.
 
 **Criterios de aceptación**
 - Dada una ficha, cuando se elige cantidad 2 y se agrega, entonces el carrito suma 2 unidades de esa variante.
@@ -245,6 +248,10 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Dada una provincia sin envío, cuando se elige en la ficha, entonces dice que no hay envío a esa provincia.
 - Dada una categoría con otros 6 productos, cuando se abre una ficha, entonces "Completá tu look" muestra los 4 más nuevos sin el producto abierto.
 - Dada una categoría sin otros productos, cuando se abre una ficha, entonces "Completá tu look" no aparece.
+- Dada una categoría con guía de talles, cuando se toca "Guía de talles", entonces una ventana muestra la tabla y la nota; al cerrarla, el foco vuelve al enlace (T-E7-36).
+- Dada una ficha sin talle ni color elegidos, cuando se toca el botón de agregar, entonces no se agrega nada, aparecen "Elegí un talle" y "Elegí un color" y el foco pasa a los talles; al elegir un talle, su aviso se va (T-E7-36).
+- Dada una categoría sin guía de talles, cuando se abre una ficha, entonces no hay enlace "Guía de talles" (T-E7-36).
+- Dado un color agotado en todos los talles, cuando se elige, entonces no se puede agregar y dice "Sin stock en este color" (T-E7-36).
 
 ## Cambios a CU-08 (panel del carrito)
 

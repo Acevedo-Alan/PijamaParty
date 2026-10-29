@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -25,12 +26,14 @@ import { RecentlyViewed } from './RecentlyViewed.tsx';
 import { rememberViewed } from './recentlyViewed.ts';
 import { RelatedProducts } from './RelatedProducts.tsx';
 import { ShippingByProvince } from './ShippingByProvince.tsx';
+import { SizeGuideLink } from './SizeGuideSection.tsx';
 import { StickyAddToCart } from './StickyAddToCart.tsx';
 import { productDetailKey, useProductDetail } from './useProductDetail.ts';
 import { VariantPicker } from './VariantPicker.tsx';
 import {
   findVariant,
   galleryFor,
+  hasStockFor,
   initialSelection,
   pickColor,
   shownPrice,
@@ -39,7 +42,11 @@ import {
 import './catalog.css';
 import './productDetail.css';
 
-function StockNote({ available }: { available: number | undefined }) {
+function StockNote({ available, soldOutColor }: { available: number | undefined; soldOutColor: boolean }) {
+  // T-E7-36: why the add button is disabled before a size is picked.
+  if (soldOutColor) {
+    return <>{es.product.noStockInColor}</>;
+  }
   if (available === undefined) {
     return null;
   }
@@ -79,14 +86,17 @@ function Price({ price }: { price: { cents: number; from: boolean } }) {
 function ProductDetailView({ product }: { product: ProductDetail }) {
   const [selection, setSelection] = useState(() => initialSelection(product));
   const [quantity, setQuantity] = useState(1);
-  const hintId = useId();
+  // T-E7-36: the add button was pressed while the size or the color was still not picked.
+  const [showMissing, setShowMissing] = useState(false);
   const variant = findVariant(product.variants, selection);
   const price = shownPrice(product.variants, selection) ?? { cents: product.fromPriceCents, from: true };
+  const missingPick = selection.size === null || selection.color === null;
   const canAdd = variant !== undefined && variant.available > 0;
   // A reload after a rejected add can lower the stock below the chosen quantity.
   const units = Math.max(1, Math.min(quantity, variant?.available ?? 1));
   const viewed = useRef<string | null>(null);
   const addButton = useRef<HTMLButtonElement>(null);
+  const picker = useRef<HTMLDivElement>(null);
   const add = useAddToCart();
   const queryClient = useQueryClient();
   // Successful adds on this page: each one shows "Agregado" again for ADDED_FOR_MS, then 0 hides it.
@@ -104,8 +114,23 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
     };
   }, [confirmed]);
 
+  /** T-E7-36: the first group still without a pick (the size first) comes into view and takes the focus. */
+  function focusMissingPick() {
+    const group = picker.current?.querySelector(`[data-group="${selection.size === null ? 'size' : 'color'}"]`);
+    group?.scrollIntoView({ block: 'center' });
+    group?.querySelector<HTMLInputElement>('input:not(:disabled)')?.focus({ preventScroll: true });
+  }
+
   // UC-08 with the chosen quantity (E7). A rejected add reloads the product, so its stock is current.
   function addPicked() {
+    if (missingPick) {
+      // Rendered before the focus moves, so the group's description is read with it.
+      flushSync(() => {
+        setShowMissing(true);
+      });
+      focusMissingPick();
+      return;
+    }
     if (variant === undefined) {
       return;
     }
@@ -145,15 +170,15 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
     add.reset();
   }
 
-  // The main button and the one of the fixed bar on phones do the same.
+  // The main button and the one of the fixed bar on phones do the same. Without a pick it stays enabled, to say what
+  // is missing (T-E7-36), unless nothing that matches the picks has stock, as with a sold-out color.
   const addState = addButtonState(add, confirmed > 0);
   const addButtonProps = {
     type: 'button',
     className: 'btn add-cart btn-progress',
     'data-state': addState,
-    disabled: !canAdd || add.isPending,
+    disabled: add.isPending || (missingPick ? !hasStockFor(product.variants, selection) : !canAdd),
     onClick: addPicked,
-    ...(variant === undefined ? { 'aria-describedby': hintId } : {}),
   } as const;
   const addLabel = <AddButtonLabel state={addState} />;
 
@@ -170,10 +195,13 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         <Price price={price} />
         {product.description !== '' && <p className="pdp-desc">{product.description}</p>}
         <VariantPicker
+          ref={picker}
           sizes={product.sizes}
           colors={product.colors}
           variants={product.variants}
           selection={selection}
+          showMissing={showMissing}
+          sizeGuide={product.sizeGuide !== null && <SizeGuideLink guide={product.sizeGuide} />}
           onPickSize={(size) => {
             pick({ ...selection, size });
           }}
@@ -182,7 +210,10 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
           }}
         />
         <p className="stock-note" role="status">
-          <StockNote available={variant?.available} />
+          <StockNote
+            available={variant?.available}
+            soldOutColor={missingPick && selection.color !== null && !hasStockFor(product.variants, selection)}
+          />
         </p>
         <div className="pdp-purchase-row">
           <QuantityInput value={units} max={variant?.available ?? 0} onChange={setQuantity} />
@@ -190,11 +221,6 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
             {addLabel}
           </button>
         </div>
-        {variant === undefined && (
-          <p id={hintId} className="pdp-hint">
-            {es.product.pickSizeAndColor}
-          </p>
-        )}
         <p className="pdp-add-error" role="alert">
           <AddProblem answer={add.data} failed={add.isError} />
         </p>
@@ -262,7 +288,8 @@ export function ProductDetailPage() {
           <ProductDetailView key={detail.data.product.slug} product={detail.data.product} />
           {/* Below both columns, so the info column is short enough to stay on screen (UC-03) */}
           <RelatedProducts category={detail.data.product.category.slug} slug={detail.data.product.slug} />
-          <RecentlyViewed key={detail.data.product.slug} exclude={detail.data.product.slug} />
+          {/* Its own key, not the slug alone: the product view beside it already uses that one. */}
+          <RecentlyViewed key={`recent-${detail.data.product.slug}`} exclude={detail.data.product.slug} />
           {REVIEWS_SHOWN && (
             <>
               <ProductReviewsSection key={detail.data.product.slug} slug={detail.data.product.slug} />

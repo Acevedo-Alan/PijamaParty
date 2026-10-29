@@ -1,3 +1,4 @@
+import { useId, type ReactNode, type Ref } from 'react';
 import { es } from '../../i18n/es.ts';
 import { colorTone } from './colorTones.ts';
 import type { DetailVariant } from './productDetailApi.ts';
@@ -60,11 +61,26 @@ function ColorOption({ name, value, checked, soldOut, onPick }: OptionProps) {
   );
 }
 
+/** T-E7-36: what a group still without a pick says below it, once the add button was pressed. */
+function MissingPick({ id, shown, text }: { id: string; shown: boolean; text: string }) {
+  return shown ? (
+    <p id={id} className="option-missing">
+      {text}
+    </p>
+  ) : null;
+}
+
 interface VariantPickerProps {
   sizes: string[];
   colors: string[];
   variants: DetailVariant[];
   selection: Selection;
+  /** The add button was pressed without a size or a color: the groups still without a pick say so (T-E7-36). */
+  showMissing: boolean;
+  /** Beside the size label: the size guide link, when the category has one (T-E7-36). */
+  sizeGuide?: ReactNode;
+  /** The picker, so the page can move the focus to a group still without a pick. */
+  ref?: Ref<HTMLDivElement>;
   onPickSize: (size: string) => void;
   onPickColor: (color: string) => void;
 }
@@ -74,10 +90,31 @@ interface VariantPickerProps {
  * buttons (E7). A size without stock in the picked color is disabled. A color stays selectable to see its photos,
  * but shows as sold out when it has no stock in the picked size.
  */
-export function VariantPicker({ sizes, colors, variants, selection, onPickSize, onPickColor }: VariantPickerProps) {
+export function VariantPicker({
+  sizes,
+  colors,
+  variants,
+  selection,
+  showMissing,
+  sizeGuide,
+  ref,
+  onPickSize,
+  onPickColor,
+}: VariantPickerProps) {
+  const sizeLabelId = useId();
+  const sizeMissingId = useId();
+  const colorMissingId = useId();
+  const colorMissing = showMissing && selection.color === null;
+  // Not while no size can be picked for the chosen color: the stock note says why (T-E7-36).
+  const sizeMissing =
+    showMissing && selection.size === null && sizes.some((size) => isSizeAvailable(variants, size, selection.color));
   return (
-    <>
-      <fieldset className="option-group">
+    <div className="variant-picker" ref={ref}>
+      <fieldset
+        className="option-group"
+        data-group="color"
+        {...(colorMissing ? { 'aria-describedby': colorMissingId } : {})}
+      >
         <legend>
           {es.product.color}
           {/* The checked radio already tells screen readers; this is for the eyes, as swatches carry no text. */}
@@ -101,9 +138,19 @@ export function VariantPicker({ sizes, colors, variants, selection, onPickSize, 
             />
           ))}
         </div>
+        <MissingPick id={colorMissingId} shown={colorMissing} text={es.product.pickColor} />
       </fieldset>
-      <fieldset className="option-group">
-        <legend>{es.product.size}</legend>
+      {/* Named by its label alone, so the size guide link beside it is not read as part of the group's name. */}
+      <fieldset
+        className="option-group"
+        data-group="size"
+        aria-labelledby={sizeLabelId}
+        {...(sizeMissing ? { 'aria-describedby': sizeMissingId } : {})}
+      >
+        <legend className="option-legend-row">
+          <span id={sizeLabelId}>{es.product.size}</span>
+          {sizeGuide}
+        </legend>
         <div className="chips">
           {sizes.map((size) => {
             const available = isSizeAvailable(variants, size, selection.color);
@@ -122,7 +169,8 @@ export function VariantPicker({ sizes, colors, variants, selection, onPickSize, 
             );
           })}
         </div>
+        <MissingPick id={sizeMissingId} shown={sizeMissing} text={es.product.pickSize} />
       </fieldset>
-    </>
+    </div>
   );
 }
