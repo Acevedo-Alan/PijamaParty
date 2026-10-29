@@ -16,7 +16,8 @@ function group(panel: HTMLElement, legend: string) {
   return within(panel).getByRole('group', { name: legend });
 }
 
-describe('catalog filters and sort (UC-02)', () => {
+// Opening the panel and ticking filters takes under 2 s alone, but over 5 s in a busy parallel run.
+describe('catalog filters and sort (UC-02)', { timeout: 30_000 }, () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
