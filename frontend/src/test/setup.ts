@@ -1,9 +1,15 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, configure } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
+import { clearStoreContact } from './storeContact.ts';
 
 // Lazy routes (the back office) load their chunk on first use, which a busy parallel run can take over a second.
 configure({ asyncUtilTimeout: 5000 });
+
+// Every test starts without the business's contact links (D-15); one that needs them sets them (setStoreContact).
+beforeEach(() => {
+  clearStoreContact();
+});
 
 afterEach(() => {
   cleanup();
