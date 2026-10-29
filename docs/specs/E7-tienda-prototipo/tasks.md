@@ -37,6 +37,7 @@
 - [x] **T-E7-37** Menú del celular: botón de cerrar discreto dentro de la hoja, categorías desplegables bajo "Todo", accesos rápidos ("Mi carrito" y "Guía de talles") y "¿Necesitás ayuda?" al final (cambios a CU-31).
 - [x] **T-E7-38** Checkout: columnas centradas y equilibradas, pasos numerados con los completados marcados, resumen con fotos más grandes, "Cantidad" y "Volver al carrito", y "Confirmar y pagar · total" a todo el ancho con el medio de pago debajo (cambios a CU-13).
 - [x] **T-E7-39** Cinta de anuncios en movimiento sobre el encabezado (como oudeam.com), menú del celular a pantalla completa con niveles que entran desde la derecha (como dior.com), la cuenta como acceso con ícono en lugar de "Ingresar" y "Crear cuenta", y la píldora del encabezado animada solo con posiciones y transparencias, que en Firefox se trababa (cambios a CU-31).
+- [x] **T-E7-40** Pie: el enlace de Instagram, los íconos de las redes con un degradé que crece desde el centro al pasar el mouse (también en el menú), sin marcadores para las redes que faltan, y las columnas una debajo de la otra en pantallas muy angostas (cambios a CU-31).
 - [x] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 
 **Orden:** T-E7-01 primero (sus decisiones cambian T-E7-02, T-E7-05, T-E7-07, T-E7-09 y T-E7-12), después T-E7-12 (las pantallas usan sus tokens). T-E7-13 va antes de T-E7-04 (la portada muestra el banner). T-E7-02 a T-E7-04 no esperan las fotos: usan los fondos degradados hasta que lleguen.

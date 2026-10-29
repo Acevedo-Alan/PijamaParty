@@ -139,17 +139,22 @@ interface SocialNetwork {
   icon: React.JSX.Element;
 }
 
-/** Instagram and TikTok, each with its link once the business sends it (D-15); the network's name is the link's. */
-function socialNetworks(): SocialNetwork[] {
+/**
+ * Instagram and TikTok, only those whose link the business sent (D-15, T-E7-40); the network's name is the link's.
+ */
+function linkedNetworks(): (SocialNetwork & { url: string })[] {
   return [
     { name: messages.instagram, url: STORE_CONTACT.instagramUrl, icon: instagramIcon },
     { name: messages.tiktok, url: STORE_CONTACT.tiktokUrl, icon: tiktokIcon },
-  ];
+  ].flatMap((network) => (network.url === undefined ? [] : [{ ...network, url: network.url }]));
 }
 
-/** The networks as icon links in a row, in a list of the given class: the phone menu's, with only those linked. */
+/**
+ * The linked networks as icon links in a row, in a list of the given class (the footer's or the phone menu's). On hover
+ * or keyboard focus a pink circle blooms from the center behind the icon (`social-link`, T-E7-40).
+ */
 export function SocialIconLinks({ className }: { className: string }) {
-  const links = socialNetworks().filter((network) => network.url !== undefined);
+  const links = linkedNetworks();
   if (links.length === 0) {
     return null;
   }
@@ -157,7 +162,14 @@ export function SocialIconLinks({ className }: { className: string }) {
     <ul className={className}>
       {links.map((link) => (
         <li key={link.name}>
-          <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name} title={link.name}>
+          <a
+            className="social-link"
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={link.name}
+            title={link.name}
+          >
             {link.icon}
           </a>
         </li>
@@ -166,30 +178,15 @@ export function SocialIconLinks({ className }: { className: string }) {
   );
 }
 
-/**
- * Instagram and TikTok as round icon buttons under their title (T-E7-24), always both: a network without its link yet
- * is a placeholder, not a link, so its place is ready for when the business sends it (D-15).
- */
+/** The linked networks as round icon buttons under their title (T-E7-24); without any, no block (T-E7-40). */
 function SocialLinks() {
+  if (linkedNetworks().length === 0) {
+    return null;
+  }
   return (
     <section className="footer-social-block" aria-labelledby="footer-social">
       <h2 id="footer-social">{messages.social}</h2>
-      <ul className="footer-social">
-        {socialNetworks().map((network) => (
-          <li key={network.name}>
-            {network.url === undefined ? (
-              <span className="footer-social-placeholder" title={messages.socialSoon(network.name)}>
-                {network.icon}
-                <span className="visually-hidden">{messages.socialSoon(network.name)}</span>
-              </span>
-            ) : (
-              <a href={network.url} target="_blank" rel="noopener noreferrer" aria-label={network.name} title={network.name}>
-                {network.icon}
-              </a>
-            )}
-          </li>
-        ))}
-      </ul>
+      <SocialIconLinks className="footer-social" />
     </section>
   );
 }

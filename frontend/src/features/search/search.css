@@ -877,7 +877,6 @@ html:has(.menu-panel[open]) {
   .menu-drill:hover,
   .menu-shortcuts a:hover,
   .menu-shortcuts button:hover,
-  .menu-social a:hover,
   .menu-account .account-links a:hover,
   .menu-account .account-sign-out:hover {
     color: var(--accent-text);

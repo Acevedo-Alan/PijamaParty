@@ -1,7 +1,7 @@
 /**
  * The business's contact and social links (D-09), shown in "Contactanos" (UC-30) and the footer (UC-31). The business
- * has sent only the WhatsApp number so far (D-15): until each other one is filled in here, its link is not shown.
- * Changing them needs a deploy.
+ * has sent the WhatsApp number and the Instagram link so far (D-15): until each other one is filled in here, its link
+ * is not shown. Changing them needs a deploy.
  */
 export interface StoreContact {
   email?: string;
@@ -17,6 +17,7 @@ export interface StoreContact {
 
 export const STORE_CONTACT: StoreContact = {
   whatsAppNumber: '5493425304507',
+  instagramUrl: 'https://www.instagram.com/pijamaparty.zzz/',
 };
 
 /** The chat with the business in WhatsApp, on the phone app or on the web. */

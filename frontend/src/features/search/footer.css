@@ -78,6 +78,13 @@
   grid-column: 1 / -1;
 }
 
+/* T-E7-40: below 360 px two columns of links would break most of them over two lines: one column. */
+@media (max-width: 359px) {
+  .site-footer-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Below 640 px a column is too narrow for an email or an address: Contacto and Medios de pago take the whole row,
    and the payment providers and the carrier sit side by side. */
 @media (max-width: 639px) {
@@ -165,7 +172,8 @@
   stroke-linejoin: round;
 }
 
-/* T-E7-24: the networks as round icon buttons in a row; the pink gradient fades in on hover and keyboard focus. */
+/* T-E7-24: the networks as round icon buttons in a row, a clean outline at rest; the pink circle of .social-link
+   blooms behind the icon on hover and keyboard focus (T-E7-40). */
 .footer-social {
   list-style: none;
   display: flex;
@@ -175,41 +183,78 @@
 }
 
 .footer-social a {
-  position: relative;
-  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
   border: 1px solid var(--line-strong);
-  border-radius: 50%;
   overflow: hidden;
   background: var(--surface);
   color: var(--ink);
-  transition:
-    color var(--dur-base) var(--ease-standard),
-    transform var(--dur-base) var(--ease-pop);
 }
 
-/* A gradient cannot be transitioned: it sits under the icon, covering the border too, and only its opacity changes.
-   The --rose stop starts outside the circle, so the white icon stays at 3:1 or more over it (WCAG 1.4.11). */
-.footer-social a::before {
+/* T-E7-40: a social icon link (footer and phone menu). A gradient cannot be transitioned: it is a circle under the
+   icon, covering the border too, that grows from the center (scale 0 to 1) on hover and keyboard focus, and shrinks
+   back when they leave; under reduced motion it only fades in. The --rose stop starts outside the circle, so the white
+   icon stays at 3:1 or more over it (WCAG 1.4.11). */
+.social-link {
+  position: relative;
+  isolation: isolate;
+  border-radius: 50%;
+  transition: color var(--dur-base) var(--ease-standard);
+}
+
+.social-link::before {
   content: '';
   position: absolute;
   inset: -1px;
   z-index: -1;
+  border-radius: 50%;
   background: linear-gradient(135deg, var(--rose) -25%, var(--accent) 50%, var(--accent-hover));
-  opacity: 0;
-  transition: opacity var(--dur-base) var(--ease-standard);
+  transform: scale(0);
+  transition: transform var(--dur-base) var(--ease-out);
 }
 
-.footer-social a:focus-visible {
+.social-link:focus-visible {
   color: var(--surface);
 }
 
-.footer-social a:focus-visible::before {
-  opacity: 1;
+.social-link:focus-visible::before {
+  transform: none;
+}
+
+@media (hover: hover) {
+  .social-link:hover {
+    color: var(--surface);
+  }
+
+  .social-link:hover::before {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social-link::before,
+  .social-link:hover::before,
+  .social-link:focus-visible::before {
+    transform: none;
+  }
+
+  .social-link::before {
+    opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-standard);
+  }
+
+  .social-link:focus-visible::before {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (hover: hover) {
+  .social-link:hover::before {
+    opacity: 1;
+  }
 }
 
 .footer-social .footer-icon {
@@ -290,21 +335,6 @@
     text-decoration: underline;
     text-underline-offset: 3px;
   }
-
-  .footer-social a:hover {
-    color: var(--surface);
-    transform: translateY(-2px);
-  }
-
-  .footer-social a:hover::before {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .footer-social a:hover {
-    transform: none;
-  }
 }
 
 @media (max-width: 859px) {
@@ -325,28 +355,4 @@
     border-left: none;
   }
 
-}
-
-/* A network the business has not sent yet (D-15): the same circle, dimmed and dashed, not a link and without hover. */
-.footer-social-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 50%;
-  color: var(--ink-soft);
-  opacity: 0.7;
-  cursor: default;
-}
-
-.footer-social-placeholder .footer-icon {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }

@@ -105,17 +105,28 @@ describe('store footer (UC-31)', () => {
     expect(address).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it('given no contact or social links from the business yet (D-15), when the footer is checked, then there is no Contacto column and Redes sociales shows Instagram and TikTok as placeholders, not links', async () => {
+  it('given no contact or social links from the business yet (D-15), when the footer is checked, then there is no Contacto column and no Redes sociales (T-E7-40)', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
 
     renderRoute('/');
 
     await screen.findByRole('link', { name: /Pijama rosa/ });
     expect(screen.queryByRole('region', { name: messages.contact })).not.toBeInTheDocument();
-    const social = column(messages.social);
-    expect(social.queryAllByRole('link')).toEqual([]);
-    expect(social.getByText(messages.socialSoon(messages.instagram))).toBeInTheDocument();
-    expect(social.getByText(messages.socialSoon(messages.tiktok))).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: messages.social })).not.toBeInTheDocument();
+  });
+
+  it('given only the Instagram link, when the footer is checked, then Redes sociales shows only Instagram, with the blooming circle (T-E7-40)', async () => {
+    setStoreContact({ instagramUrl: 'https://www.instagram.com/pijamaparty.zzz/' });
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+
+    renderRoute('/');
+
+    await screen.findByRole('link', { name: /Pijama rosa/ });
+    const links = column(messages.social).getAllByRole('link');
+    expect(links.map((link) => [link.getAttribute('aria-label'), link.getAttribute('href')])).toEqual([
+      [messages.instagram, 'https://www.instagram.com/pijamaparty.zzz/'],
+    ]);
+    expect(links[0]).toHaveClass('social-link');
   });
 
   it('given a contact email and WhatsApp number, when the footer is checked, then Contacto links the chat in a new tab and a new email', async () => {

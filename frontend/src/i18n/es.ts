@@ -479,8 +479,6 @@ export const es = {
     social: 'Redes sociales',
     instagram: 'Instagram',
     tiktok: 'TikTok',
-    /** A network the business has not sent yet (D-15): its placeholder in the footer. */
-    socialSoon: (network: string) => `${network}, próximamente`,
     payments: 'Medios de pago',
     /** T-E7-26: the carrier, under the payment providers. */
     shipping: 'Envíos',
