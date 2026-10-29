@@ -466,14 +466,13 @@
   font-size: 10px;
 }
 
-.list-view .swatches-mini,
-.list-view .card-sizes,
+.list-view .card-meta,
 .list-view .card-title,
 .list-view .card .price {
   grid-column: 2;
 }
 
-.list-view .swatches-mini,
+.list-view .card-meta,
 .list-view .card-title {
   margin-top: 4px;
 }
@@ -805,18 +804,37 @@ html:has(.filters-panel[open]) {
   grid-template-columns: repeat(2, 1fr);
 }
 
-/* T-E7-35: the sizes below the swatches, "S · M · L"; one without stock is struck through and dimmed. */
-.card-sizes {
+/*
+ * The swatches and the sizes share a row, the sizes at its right end (T-E7-35). Neither breaks inside: when both do
+ * not fit, as on a narrow phone card with many colors, the sizes go whole to the next line, under the swatches.
+ */
+.card-meta {
   display: flex;
   flex-wrap: wrap;
-  margin-top: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 8px;
+  margin-top: 9px;
+}
+
+.card-meta .swatches-mini {
+  flex-wrap: nowrap;
+  margin-top: 0;
+}
+
+/* T-E7-35: the sizes, "S · M · L", in Open Sans; one without stock is struck through and dimmed. */
+.card-sizes {
+  display: flex;
+  white-space: nowrap;
+  font-family: var(--ff-sizes);
   font-size: 12px;
   font-weight: 500;
   color: var(--ink);
   letter-spacing: 0.02em;
 }
 
-.card-sizes span + span::before {
+/* Between sizes only: the sentence for screen readers comes first and is a span too, so it never counts. */
+.card-sizes span:not(.visually-hidden) + span::before {
   content: '·';
   padding: 0 5px;
   color: var(--ink-soft);

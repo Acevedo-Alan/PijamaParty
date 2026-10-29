@@ -1,6 +1,7 @@
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
+import '@fontsource/open-sans/500.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import { QueryClientProvider } from '@tanstack/react-query';

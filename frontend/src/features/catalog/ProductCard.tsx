@@ -97,8 +97,12 @@ export function ProductCard({
           </div>
         )}
       </div>
-      <ColorSwatches colors={colors} />
-      <CardSizes sizes={sizes} />
+      {(colors.length > 0 || sizes.length > 0) && (
+        <div className="card-meta">
+          <ColorSwatches colors={colors} />
+          <CardSizes sizes={sizes} />
+        </div>
+      )}
       <h2 className="card-title">{name}</h2>
       <p className="price">
         {es.catalog.fromPrice} {formatMoney(fromPriceCents)}

@@ -45,6 +45,8 @@
   /* Typography: Inter 500-700 (D-17; Quicksand before, T-E6-02), self-hosted with @fontsource, never from Google Fonts */
   --ff-display: 'Inter', sans-serif;
   --ff-body: 'Inter', sans-serif;
+  /* The sizes on a product card (T-E7-35): Open Sans 500, self-hosted the same way */
+  --ff-sizes: 'Open Sans', sans-serif;
 
   /*
    * Motion (E7, D-16): only transform and opacity move. The same values live in motion.ts for the Motion library;
