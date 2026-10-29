@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
+import { formatMoney } from '../../i18n/formatMoney.ts';
 import { cart, cartItem } from '../../test/cartApi.ts';
 import { answer, NO_CART, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
@@ -122,7 +123,8 @@ async function goToReview(providerName?: string) {
 
 const providerOptions = () => screen.getAllByRole('radio').map((radio) => (radio as HTMLInputElement).value);
 
-const confirmButton = () => screen.getByRole('button', { name: es.checkout.confirm });
+/** "Confirmar y pagar · {total}" (T-E7-38). */
+const confirmButton = () => screen.getByRole('button', { name: new RegExp(`^${escaped(es.checkout.confirm)}`) });
 
 async function acceptAndConfirm() {
   await userEvent.click(screen.getByRole('checkbox'));
@@ -565,6 +567,81 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     await userEvent.click(await screen.findByRole('button', { name: es.cart.open(1) }));
 
     expect(await screen.findByRole('button', { name: es.cart.startCheckout })).toBeDisabled();
+  });
+});
+
+describe('checkout layout and final action (T-E7-38)', { timeout: 30_000 }, () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('given the review with MercadoPago, when it shows, then the button carries the total and the note says where the payment happens', async () => {
+    stubGets();
+    renderRoute('/checkout');
+
+    await goToReview();
+
+    expect(
+      screen.getByRole('button', { name: es.checkout.confirmWithTotal(formatMoney(2_950_000)) }),
+    ).toBeEnabled();
+    expect(screen.getByText(es.checkout.payAt('MercadoPago'))).toBeInTheDocument();
+  });
+
+  it('given the review without the terms accepted, when the button is pressed, then nothing is sent and the checkbox says why', async () => {
+    stubGets();
+    const post = stubPost(placed(PAYMENT_URL));
+    renderRoute('/checkout');
+    await goToReview();
+
+    await userEvent.click(confirmButton());
+
+    expect(post).not.toHaveBeenCalled();
+    expect(screen.getByRole('checkbox')).toHaveFocus();
+    expect(screen.getByRole('checkbox')).toHaveAccessibleDescription(es.checkout.termsRequired);
+  });
+
+  it('given step 2, when the steps are read, then "Envío" is completed and "Pago" is the current one', async () => {
+    stubGets();
+    renderRoute('/checkout');
+
+    await goToPaymentStep();
+
+    const steps = within(screen.getByRole('list', { name: es.checkout.steps })).getAllByRole('listitem');
+    expect(steps.map((step) => step.textContent)).toEqual([
+      `${es.checkout.stepNames[1]}, ${es.checkout.stepDone}`,
+      `2${es.checkout.stepNames[2]}`,
+      `3${es.checkout.stepNames[3]}`,
+    ]);
+    expect(steps[0]).toHaveTextContent(es.checkout.stepDone);
+    expect(steps[1]).toHaveAttribute('aria-current', 'step');
+    expect(steps[2]).not.toHaveAttribute('aria-current');
+  });
+
+  it('given typed data, when "Volver al carrito" is chosen and the panel closes, then the data is still there', async () => {
+    stubGets();
+    renderRoute('/checkout');
+    await screen.findByRole('heading', { name: es.checkout.shippingTitle });
+    await fillShipping();
+
+    await userEvent.click(summary().getByRole('button', { name: es.checkout.backToCart }));
+    const panel = await screen.findByRole('dialog', { name: es.cart.title });
+    await userEvent.click(within(panel).getByRole('button', { name: es.cart.close }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: es.cart.title })).not.toBeInTheDocument();
+    });
+    expect(field(es.checkout.fields.firstName)).toHaveValue('Ana');
+    expect(field(es.checkout.fields.street)).toHaveValue('San Martín');
+  });
+
+  it('given an item with 4 units, when the summary shows, then it reads the quantity and the line amount the server priced', async () => {
+    stubGets(cart([cartItem({ quantity: 4, unitPriceCents: 5_490_000 })]));
+    renderRoute('/checkout');
+
+    await screen.findByRole('complementary', { name: es.checkout.summaryTitle });
+    const item = within(summary().getByText(es.checkout.itemQuantity(4)).closest('li') as HTMLElement);
+    expect(item.getByText(es.checkout.itemDetail('Rosa', 'M'))).toBeInTheDocument();
+    expect(item.getByText(formatMoney(21_960_000).replace(/\s/g, ' '))).toBeInTheDocument();
   });
 });
 

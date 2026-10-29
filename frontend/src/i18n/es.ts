@@ -294,9 +294,11 @@ export const es = {
     emptyHint: 'Agregá productos para comprarlos.',
     goShopping: 'Ir a la tienda',
     steps: 'Pasos de la compra',
-    /** The step indicator, e.g. "1. Envío"; the current one is announced as such. */
-    stepNames: { 1: '1. Envío', 2: '2. Pago', 3: '3. Revisión' },
+    /** The step indicator's names, each after its numbered circle (T-E7-38). */
+    stepNames: { 1: 'Envío', 2: 'Pago', 3: 'Revisión' },
     currentStep: 'paso actual',
+    /** T-E7-38: what screen readers hear after a completed step. */
+    stepDone: 'completado',
     /** A cart with items that cannot be bought as they are (UC-09). */
     cartNotReady: 'Algunos productos de tu carrito no se pueden comprar así: no hay stock suficiente o cambió su precio.',
     reviewCart: 'Revisar carrito',
@@ -372,6 +374,10 @@ export const es = {
     returns: 'política de cambios y devoluciones',
     termsRequired: 'Aceptá los términos para confirmar la compra.',
     confirm: 'Confirmar y pagar',
+    /** T-E7-38: the final button with the total the summary shows, e.g. "Confirmar y pagar · $ 219.600". */
+    confirmWithTotal: (total: string) => `Confirmar y pagar · ${total}`,
+    /** T-E7-38: under the final button; where the buyer pays, not a security promise. */
+    payAt: (provider: string) => `Vas a completar el pago en ${provider}.`,
     confirming: 'Confirmando…',
     openingPayment: 'Abriendo el pago…',
     /** Why the confirmation did not place the order. */
@@ -384,8 +390,11 @@ export const es = {
       unknown: 'No pudimos confirmar tu compra. Probá de nuevo.',
     },
     summaryTitle: 'Mi compra',
-    /** An item's color, size and quantity, e.g. "Rosa · Talle M · x2". */
-    itemDetail: (color: string, size: string, quantity: number) => `${color} · Talle ${size} · x${String(quantity)}`,
+    /** T-E7-38: opens the cart panel, where quantities and the coupon change. */
+    backToCart: 'Volver al carrito',
+    /** An item's color and size, e.g. "Rosa · Talle M"; the quantity goes on its own line (T-E7-38). */
+    itemDetail: (color: string, size: string) => `${color} · Talle ${size}`,
+    itemQuantity: (quantity: number) => `Cantidad: ${String(quantity)}`,
     subtotal: 'Subtotal',
     discount: 'Descuento',
     discountWith: (code: string) => `Descuento ${code}`,

@@ -96,6 +96,10 @@ const MAX_ADDRESSES = 10;
 /** The analytics name of a provider (RNF-25), as `payment_type`. */
 const PAYMENT_TYPES: Record<PaymentProvider, string> = { MERCADOPAGO: 'MercadoPago', MODO: 'MODO' };
 
+/**
+ * The numbered steps (T-E7-38): the current one filled and bold, a completed one with a check (and "completado" for
+ * screen readers), a later one outlined, so they are not told apart by color alone.
+ */
 function Steps({ step }: { step: Step }) {
   return (
     <ol className="checkout-steps" aria-label={es.checkout.steps}>
@@ -105,7 +109,17 @@ function Steps({ step }: { step: Step }) {
           className={each === step ? 'active' : each < step ? 'done' : undefined}
           aria-current={each === step ? 'step' : undefined}
         >
+          <span className="checkout-step-mark" aria-hidden="true">
+            {each < step ? (
+              <svg viewBox="0 0 24 24">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            ) : (
+              each
+            )}
+          </span>
           {es.checkout.stepNames[each]}
+          {each < step && <span className="visually-hidden">, {es.checkout.stepDone}</span>}
         </li>
       ))}
     </ol>
@@ -204,7 +218,7 @@ function SummaryItem({ item }: { item: CartItem }) {
         <BlurredImage
           src={product.image.src}
           srcSet={product.image.srcSet}
-          sizes="44px"
+          sizes="64px"
           alt={es.cart.photoAlt(product.name, product.color)}
           {...(product.image.placeholder === undefined ? {} : { placeholder: product.image.placeholder })}
         />
@@ -214,8 +228,9 @@ function SummaryItem({ item }: { item: CartItem }) {
       <div>
         <p className="checkout-summary-name">{product?.name ?? es.cart.unknownProduct}</p>
         {product !== null && (
-          <p className="checkout-summary-detail">{es.checkout.itemDetail(product.color, product.size, item.quantity)}</p>
+          <p className="checkout-summary-detail">{es.checkout.itemDetail(product.color, product.size)}</p>
         )}
+        <p className="checkout-summary-detail">{es.checkout.itemQuantity(item.quantity)}</p>
       </div>
       <p className="checkout-summary-amount">{formatMoney(item.unitPriceCents * item.quantity)}</p>
     </li>
@@ -243,14 +258,23 @@ interface Amounts {
   totalCents: number;
 }
 
-/** The second column: the items and the amounts as the server sent them; nothing is added up here. */
+/**
+ * The second column: the items and the amounts as the server sent them; nothing is added up here. "Volver al carrito"
+ * opens the cart panel over the checkout, so what was typed stays (T-E7-38).
+ */
 function Summary({ cart, amounts }: { cart: Cart; amounts: Amounts }) {
   const remove = useRemoveCoupon();
+  const panel = useCartPanel();
   const titleId = useId();
   const note = couponNote(cart);
   return (
     <aside className="checkout-summary" aria-labelledby={titleId}>
-      <h2 id={titleId}>{es.checkout.summaryTitle}</h2>
+      <div className="checkout-summary-head">
+        <h2 id={titleId}>{es.checkout.summaryTitle}</h2>
+        <button type="button" className="link-btn" aria-haspopup="dialog" onClick={panel.open}>
+          {es.checkout.backToCart}
+        </button>
+      </div>
       <ul className="checkout-summary-items">
         {cart.items
           .filter((item) => item.status === 'AVAILABLE')
@@ -299,7 +323,7 @@ function Summary({ cart, amounts }: { cart: Cart; amounts: Amounts }) {
             {amounts.shippingCents === null
               ? es.checkout.shippingPending
               : amounts.shippingCents === 0
-                ? es.checkout.free
+                ? <span className="checkout-free">{es.checkout.free}</span>
                 : formatMoney(amounts.shippingCents)}
           </dd>
         </div>
@@ -866,7 +890,21 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
               )}
             </div>
             <AlertBox message={refusal} />
-            <div className="checkout-actions">
+            {/* T-E7-38: the final action as wide as the form, with the total, and where the payment happens. */}
+            <div className="checkout-final">
+              <button
+                type="button"
+                className="btn checkout-next checkout-pay btn-progress"
+                data-state={payButtonState(place)}
+                disabled={!ready || place.isPending}
+                onClick={confirm}
+              >
+                <ButtonProgress />
+                {place.isPending
+                  ? es.checkout.confirming
+                  : es.checkout.confirmWithTotal(formatMoney(amounts.totalCents))}
+              </button>
+              <p className="checkout-pay-at">{es.checkout.payAt(es.checkout.providers[provider].name)}</p>
               <button
                 type="button"
                 className="link-btn"
@@ -875,16 +913,6 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 }}
               >
                 {es.checkout.back}
-              </button>
-              <button
-                type="button"
-                className="btn checkout-next btn-progress"
-                data-state={payButtonState(place)}
-                disabled={!ready || place.isPending}
-                onClick={confirm}
-              >
-                <ButtonProgress />
-                {place.isPending ? es.checkout.confirming : es.checkout.confirm}
               </button>
             </div>
           </section>

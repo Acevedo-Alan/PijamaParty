@@ -1,5 +1,7 @@
-/* UC-13 (T-E3-11): the checkout. One column, mobile first; from 900 px the summary is a sticky second column. */
+/* UC-13 (T-E3-11): the checkout. One column, mobile first; from 900 px the summary is a sticky second column, and the
+   whole page is centered and narrower than the store's width, so the form and the summary balance (T-E7-38). */
 .checkout {
+  max-width: 1080px;
   /* At least a screen tall: while the cart loads, the footer stays below the first screen and does not jump when the
      form arrives (T-E7-11) */
   min-height: 100svh;
@@ -30,33 +32,76 @@
   font-size: 13px;
 }
 
+/* T-E7-38: numbered circles joined by a line; current filled and bold, completed with a check, later outlined. */
 .checkout-steps {
   display: flex;
-  gap: 6px;
-  max-width: 420px;
+  align-items: center;
   margin: 0 0 28px;
   padding: 0;
   list-style: none;
 }
 
 .checkout-steps li {
-  flex: 1;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--ink-soft);
-  font-size: 12.5px;
-  text-align: center;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+.checkout-steps li + li::before {
+  content: '';
+  flex: none;
+  width: clamp(16px, 6vw, 48px);
+  height: 1px;
+  margin: 0 10px 0 2px;
+  background: var(--line-strong);
+}
+
+.checkout-step-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.checkout-step-mark svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .checkout-steps li.active {
-  border-color: var(--ink);
   color: var(--ink);
   font-weight: 700;
 }
 
+.checkout-steps li.active .checkout-step-mark {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
 .checkout-steps li.done {
-  border-color: var(--accent);
   color: var(--ink);
+}
+
+.checkout-steps li.done .checkout-step-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .checkout-layout {
@@ -67,7 +112,8 @@
 
 @media (min-width: 900px) {
   .checkout-layout {
-    grid-template-columns: 1.3fr 0.9fr;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 48px;
     align-items: start;
   }
 }
@@ -268,6 +314,27 @@
   font-size: 13px;
 }
 
+/* T-E7-38: the final action, as wide as the form, with the provider's note under it and "Volver" last. */
+.checkout-final {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.checkout-final .checkout-pay {
+  width: 100%;
+  min-height: 52px;
+  font-size: 15.5px;
+}
+
+.checkout-pay-at {
+  color: var(--ink-soft);
+  font-size: 13px;
+  text-align: center;
+}
+
 .checkout-terms {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -303,10 +370,23 @@
   }
 }
 
+.checkout-summary-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
 .checkout-summary h2 {
+  margin-bottom: 0;
   font-family: var(--ff-display);
   font-size: 16px;
   font-weight: 500;
+}
+
+.checkout-summary-head .link-btn {
+  font-size: 13px;
 }
 
 .checkout-summary-items {
@@ -317,18 +397,22 @@
 
 .checkout-summary-item {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
-  gap: 10px;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
   align-items: center;
-  padding: 8px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--line);
   font-size: 13px;
 }
 
 .checkout-summary-item .ph {
-  width: 44px;
-  height: 56px;
+  width: 64px;
+  height: 80px;
   border-radius: var(--radius-s);
+}
+
+.checkout-summary-name {
+  font-weight: 600;
 }
 
 .checkout-summary-detail {
@@ -372,11 +456,24 @@
   margin: 0;
 }
 
+/* T-E7-38: the total after a line, the strongest amount of the card. */
 .checkout-amounts .checkout-total {
-  margin-top: 10px;
+  align-items: baseline;
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
   color: var(--ink);
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
+}
+
+.checkout-amounts .checkout-total dt {
+  font-size: 16px;
+}
+
+.checkout-free {
+  color: var(--accent-text);
+  font-weight: 600;
 }
 
 .checkout-empty,
