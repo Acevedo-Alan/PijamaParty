@@ -2,6 +2,7 @@ package com.pijamaparty.store;
 
 import com.pijamaparty.store.catalog.application.CreateCategory;
 import com.pijamaparty.store.catalog.application.CreateProduct;
+import com.pijamaparty.store.catalog.application.EditSizeGuide;
 import com.pijamaparty.store.catalog.application.GenerateVariantMatrix;
 import com.pijamaparty.store.catalog.application.ListAllCategories;
 import com.pijamaparty.store.catalog.application.ProductDetailsInput;
@@ -11,8 +12,11 @@ import com.pijamaparty.store.catalog.application.UpdateVariant;
 import com.pijamaparty.store.catalog.application.UploadProductImage;
 import com.pijamaparty.store.catalog.domain.Audience;
 import com.pijamaparty.store.catalog.domain.CategoryId;
+import com.pijamaparty.store.catalog.domain.Product;
 import com.pijamaparty.store.catalog.domain.ProductId;
 import com.pijamaparty.store.catalog.domain.Season;
+import com.pijamaparty.store.catalog.domain.SizeGuideForm;
+import com.pijamaparty.store.catalog.domain.SizeGuideForm.RowForm;
 import com.pijamaparty.store.catalog.domain.UploadKey;
 import com.pijamaparty.store.catalog.domain.VariantId;
 import com.pijamaparty.store.inventory.application.AdjustStock;
@@ -24,11 +28,17 @@ import com.pijamaparty.store.shipping.application.ReplaceShippingZoneRates;
 import com.pijamaparty.store.shipping.application.SetFreeShippingThreshold;
 import com.pijamaparty.store.shipping.domain.Province;
 import com.pijamaparty.store.shipping.domain.ShippingZoneRates.TypedRate;
+import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.GradientPaint;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.QuadCurve2D;
+import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -49,12 +59,14 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
 /**
- * A demo catalog for {@code ./mvnw spring-boot:test-run@dev}, whose throwaway database starts empty: four categories,
- * twelve published products with prices, stock (one sold out) and drawn photos, shipping costs and free shipping
- * from ARS 80,000. It goes through the back office's own use cases, so every rule applies, as an administrator that
- * exists only here. It runs only when there are no categories, and {@code -Dstore.dev.demo-catalog=false} turns it
- * off. Without libvips (on the PATH or {@code VIPS_BIN_DIR}) the products keep the gradient of a missing photo. Test
- * sources only: never part of the jar.
+ * A demo catalog for {@code ./mvnw spring-boot:test-run@dev}, whose throwaway database starts empty: four categories
+ * (three with a size guide), sixteen published products with prices, stock (one sold out, others sold out in one
+ * color or one size) and drawn photos, shipping costs and free shipping from ARS 80,000. Each color gets up to three
+ * drawn views (front, back and a dotted detail to try the zoom) and each product a scene of the whole product, so the
+ * gallery has photos to slide between. It goes through the back office's own use cases, so every rule applies, as an
+ * administrator that exists only here. It runs only when there are no categories, and
+ * {@code -Dstore.dev.demo-catalog=false} turns it off. Without libvips (on the PATH or {@code VIPS_BIN_DIR}) the
+ * products keep the gradient of a missing photo. Test sources only: never part of the jar.
  */
 @TestConfiguration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = "store.dev.demo-catalog", havingValue = "true", matchIfMissing = true)
@@ -88,9 +100,35 @@ class DevCatalogSeed {
         Map.entry("Beige", new Color(0xe7dccb)),
         Map.entry("Estampado", new Color(0xf2b8c6)));
 
+    /** A drawn photo of one color, or the scene of the whole product, with its name in the corner. */
+    private enum View {
+        FRONT("Frente"), BACK("Espalda"), DETAIL("Detalle"), SCENE("Ambiente");
+
+        /** The views of one color, in gallery order; as many as fit beside the scene in {@link Product#MAX_IMAGES}. */
+        static final List<View> OF_A_COLOR = List.of(FRONT, BACK, DETAIL);
+
+        private final String label;
+
+        View(String label) {
+            this.label = label;
+        }
+    }
+
+    /** Colors or sizes listed as sold out get no stock; the other variants get {@code stock} units each. */
     private record DemoProduct(String category, String name, String description, String material, Season season,
                                Audience audience, List<String> sizes, List<String> colors, long priceCents,
-                               int stock) {}
+                               int stock, List<String> soldOutColors, List<String> soldOutSizes) {
+
+        DemoProduct(String category, String name, String description, String material, Season season,
+                    Audience audience, List<String> sizes, List<String> colors, long priceCents, int stock) {
+            this(category, name, description, material, season, audience, sizes, colors, priceCents, stock,
+                List.of(), List.of());
+        }
+
+        int stockOf(ProductView.VariantView variant) {
+            return soldOutColors.contains(variant.color()) || soldOutSizes.contains(variant.size()) ? 0 : stock;
+        }
+    }
 
     private static final List<DemoProduct> PRODUCTS = List.of(
         new DemoProduct("Pijamas", "Pijama Nubes", "Pijama largo de algodón peinado, suave y abrigado.",
@@ -108,18 +146,33 @@ class DevCatalogSeed {
         new DemoProduct("Pijamas", "Pijama Polar Cuadros", "Polar escocés, ideal para los días más fríos.",
             "Polar", Season.WINTER, Audience.MEN, List.of("M", "L", "XL"), List.of("Bordó", "Verde"),
             4_590_000, 2),
+        // Four colors, one sold out in every size: its swatch is crossed out (T-E7-36).
+        new DemoProduct("Pijamas", "Pijama Corazones", "Pijama de modal con corazones, camisa y pantalón largo.",
+            "Modal", Season.MID_SEASON, Audience.WOMEN, List.of("S", "M", "L", "XL"),
+            List.of("Rosa", "Lila", "Celeste", "Blanco"), 4_390_000, 6, List.of("Blanco"), List.of()),
+        // Six colors: the card shows five swatches and "+1" (D-04).
+        new DemoProduct("Pijamas", "Remera Oversize Dormir", "Remera amplia de algodón para dormir o estar en casa.",
+            "Algodón", Season.SUMMER, Audience.MEN, List.of("M", "L", "XL"),
+            List.of("Negro", "Gris", "Beige", "Rosa", "Verde", "Azul"), 1_990_000, 15),
         new DemoProduct("Camisones", "Camisón Puntilla", "Camisón fresco con detalle de puntilla en el escote.",
             "Viscosa", Season.SUMMER, Audience.WOMEN, List.of("S", "M", "L"), List.of("Crudo", "Rosa viejo"),
             3_290_000, 7),
         new DemoProduct("Camisones", "Camisón Satén Luna", "Camisón de satén con breteles regulables.",
             "Satén", Season.MID_SEASON, Audience.WOMEN, List.of("S", "M", "L", "XL"), List.of("Lila", "Negro"),
             3_690_000, 0),
+        // One size sold out in every color: struck through on the card (T-E7-35) and disabled on the page.
+        new DemoProduct("Camisones", "Camisón Algodón Flores", "Camisón largo de algodón con estampa de flores.",
+            "Algodón", Season.SUMMER, Audience.WOMEN, List.of("S", "M", "L", "XL"), List.of("Celeste", "Rosa"),
+            2_890_000, 4, List.of(), List.of("M")),
         new DemoProduct("Batas", "Bata Plush Osito", "Bata de plush con capucha y bolsillos.",
             "Plush", Season.WINTER, Audience.WOMEN, List.of("S/M", "L/XL"), List.of("Beige", "Rosa"),
             5_490_000, 5),
         new DemoProduct("Batas", "Bata Toalla", "Bata de toalla con cinturón, para después de la ducha.",
             "Algodón", Season.MID_SEASON, Audience.MEN, List.of("M", "L", "XL"), List.of("Gris", "Azul"),
             4_890_000, 4),
+        new DemoProduct("Batas", "Bata Satén Kimono", "Bata cruzada de satén con mangas anchas y cinturón.",
+            "Satén", Season.MID_SEASON, Audience.WOMEN, List.of("S/M", "L/XL"),
+            List.of("Negro", "Bordó", "Rosa viejo"), 4_990_000, 3),
         new DemoProduct("Kigurumis", "Kigurumi Unicornio", "Enterito de polar con capucha y cuerno.",
             "Polar", Season.WINTER, Audience.KIDS, List.of("4", "6", "8", "10"), List.of("Estampado"),
             3_990_000, 9),
@@ -130,21 +183,51 @@ class DevCatalogSeed {
             "Polar", Season.WINTER, Audience.WOMEN, List.of("S", "M", "L"), List.of("Gris", "Rosa"),
             5_190_000, 3));
 
+    /** RNF-31.5: the guides of the back office, per category. Kigurumis has none, so its pages show no link. */
+    private static final Map<String, SizeGuideForm> SIZE_GUIDES = Map.of(
+        "Pijamas", new SizeGuideForm(List.of("Busto (cm)", "Cintura (cm)", "Cadera (cm)", "Largo pantalón (cm)"),
+            List.of(
+                new RowForm("S", List.of("84–88", "64–68", "90–94", "98")),
+                new RowForm("M", List.of("89–93", "69–73", "95–99", "100")),
+                new RowForm("L", List.of("94–99", "74–79", "100–105", "102")),
+                new RowForm("XL", List.of("100–105", "80–85", "106–111", "104")),
+                new RowForm("XXL", List.of("106–112", "86–92", "112–118", "106")),
+                new RowForm("4", List.of("56", "54", "60", "")),
+                new RowForm("6", List.of("60", "56", "64", "")),
+                new RowForm("8", List.of("64", "58", "68", "")),
+                new RowForm("10", List.of("68", "61", "73", ""))),
+            "Medidas del cuerpo, no de la prenda. Si estás entre dos talles, elegí el más grande."),
+        "Camisones", new SizeGuideForm(List.of("Busto (cm)", "Cadera (cm)", "Largo (cm)"),
+            List.of(
+                new RowForm("S", List.of("84–88", "90–94", "95")),
+                new RowForm("M", List.of("89–93", "95–99", "97")),
+                new RowForm("L", List.of("94–99", "100–105", "99")),
+                new RowForm("XL", List.of("100–105", "106–111", "101"))),
+            "El largo se mide desde el hombro."),
+        "Batas", new SizeGuideForm(List.of("Busto (cm)", "Largo (cm)", "Manga (cm)"),
+            List.of(
+                new RowForm("S/M", List.of("84–93", "110", "58")),
+                new RowForm("L/XL", List.of("94–105", "114", "60"))),
+            null));
+
     @Bean
     ApplicationRunner devCatalogSeedRunner(ListAllCategories listAllCategories, CreateCategory createCategory,
                                            CreateProduct createProduct, GenerateVariantMatrix generateVariantMatrix,
                                            UpdateVariant updateVariant, PublishProduct publishProduct,
                                            UploadProductImage uploadProductImage, AdjustStock adjustStock,
+                                           EditSizeGuide editSizeGuide,
                                            ReplaceShippingZoneRates replaceShippingZoneRates,
                                            SetFreeShippingThreshold setFreeShippingThreshold) {
         return new Runner(listAllCategories, createCategory, createProduct, generateVariantMatrix, updateVariant,
-            publishProduct, uploadProductImage, adjustStock, replaceShippingZoneRates, setFreeShippingThreshold);
+            publishProduct, uploadProductImage, adjustStock, editSizeGuide, replaceShippingZoneRates,
+            setFreeShippingThreshold);
     }
 
     private record Runner(ListAllCategories listAllCategories, CreateCategory createCategory,
                           CreateProduct createProduct, GenerateVariantMatrix generateVariantMatrix,
                           UpdateVariant updateVariant, PublishProduct publishProduct,
                           UploadProductImage uploadProductImage, AdjustStock adjustStock,
+                          EditSizeGuide editSizeGuide,
                           ReplaceShippingZoneRates replaceShippingZoneRates,
                           SetFreeShippingThreshold setFreeShippingThreshold) implements ApplicationRunner {
 
@@ -163,6 +246,7 @@ class DevCatalogSeed {
                 ProductView product = product(category, demo);
                 photos = photos && photos(product, demo);
             }
+            categories.forEach(this::sizeGuide);
             shipping();
             log.info("Demo catalog created: {} categories, {} products{}", categories.size(), PRODUCTS.size(),
                 photos ? "" : " (without photos: install libvips or set VIPS_BIN_DIR)");
@@ -171,6 +255,14 @@ class DevCatalogSeed {
         private CategoryId category(String name) {
             return expect(asAdmin(() -> createCategory.execute(new CreateCategory.Command(SEED_ADMIN, name))),
                 CreateCategory.Result.Created.class).category().id();
+        }
+
+        private void sizeGuide(String name, CategoryId category) {
+            SizeGuideForm form = SIZE_GUIDES.get(name);
+            if (form != null) {
+                expect(asAdmin(() -> editSizeGuide.execute(new EditSizeGuide.Command(SEED_ADMIN, category, form))),
+                    EditSizeGuide.Result.Saved.class);
+            }
         }
 
         private ProductView product(CategoryId category, DemoProduct demo) {
@@ -183,8 +275,9 @@ class DevCatalogSeed {
                 GenerateVariantMatrix.Result.Generated.class).product();
             for (ProductView.VariantView variant : product.variants()) {
                 price(variant.id(), demo.priceCents());
-                if (demo.stock() > 0) {
-                    stock(variant.id(), demo.stock());
+                int stock = demo.stockOf(variant);
+                if (stock > 0) {
+                    stock(variant.id(), stock);
                 }
             }
             expect(asAdmin(() -> publishProduct.execute(new PublishProduct.Command(SEED_ADMIN, id))),
@@ -205,20 +298,33 @@ class DevCatalogSeed {
             expect(asAdmin(() -> adjustStock.execute(command)), AdjustStock.Result.Adjusted.class);
         }
 
-        /** A photo of each color; false, and no more tries, when libvips is missing. */
+        /**
+         * The views of each color, as many as fit beside the scene of the whole product, then that scene; false, and
+         * no more tries, when libvips is missing.
+         */
         private boolean photos(ProductView product, DemoProduct demo) {
+            int views = Math.min(View.OF_A_COLOR.size(), (Product.MAX_IMAGES - 1) / demo.colors().size());
             for (String color : demo.colors()) {
-                var command = new UploadProductImage.Command(SEED_ADMIN, product.id(),
-                    UploadKey.of(UUID.randomUUID()), Optional.of(color), photo(TONES.get(color), demo.name()));
-                try {
-                    expect(asAdmin(() -> uploadProductImage.execute(command)),
-                        UploadProductImage.Result.Uploaded.class);
-                } catch (UncheckedIOException e) {
-                    log.warn("Demo photos skipped: libvips could not convert them ({})", e.getMessage());
-                    return false;
+                for (View view : View.OF_A_COLOR.subList(0, views)) {
+                    if (!upload(product, Optional.of(color), photo(TONES.get(color), demo.name(), view))) {
+                        return false;
+                    }
                 }
             }
-            return true;
+            Color first = TONES.get(demo.colors().getFirst());
+            return upload(product, Optional.empty(), photo(first, demo.name(), View.SCENE));
+        }
+
+        private boolean upload(ProductView product, Optional<String> color, byte[] photo) {
+            var command = new UploadProductImage.Command(SEED_ADMIN, product.id(), UploadKey.of(UUID.randomUUID()),
+                color, photo);
+            try {
+                expect(asAdmin(() -> uploadProductImage.execute(command)), UploadProductImage.Result.Uploaded.class);
+                return true;
+            } catch (UncheckedIOException e) {
+                log.warn("Demo photos skipped: libvips could not convert them ({})", e.getMessage());
+                return false;
+            }
         }
 
         /** Santa Fe and its neighbors, as the business ships today, and free shipping from ARS 80,000. */
@@ -250,18 +356,58 @@ class DevCatalogSeed {
         return expected.cast(result);
     }
 
-    /** A soft vertical gradient of the color with two blurred circles, 3:4 as the catalog's photos, as a PNG. */
-    private static byte[] photo(Color tone, String seed) {
+    /**
+     * One drawn view, 3:4 as the catalog's photos, as a PNG: a garment on a soft gradient of the color (front, and
+     * back with the gradient reversed), small dots to try the zoom (detail), or the garment under a night sky
+     * (scene). Its name sits in the corner, so the gallery shows which photo it slid to.
+     */
+    private static byte[] photo(Color tone, String seed, View view) {
         var image = new BufferedImage(PHOTO_WIDTH, PHOTO_HEIGHT, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = image.createGraphics();
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        graphics.setPaint(new GradientPaint(0, 0, mix(tone, Color.WHITE, 0.55), 0, PHOTO_HEIGHT, tone));
-        graphics.fillRect(0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
+        graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        Color light = mix(tone, Color.WHITE, 0.55);
         int shift = Math.floorMod(seed.hashCode(), 300);
-        graphics.setColor(new Color(255, 255, 255, 70));
-        graphics.fill(new Ellipse2D.Double(120 + shift, 220, 560, 560));
-        graphics.setColor(new Color(255, 255, 255, 40));
-        graphics.fill(new Ellipse2D.Double(-120, 700 - shift, 520, 520));
+        switch (view) {
+            case FRONT, BACK -> {
+                boolean back = view == View.BACK;
+                graphics.setPaint(new GradientPaint(0, 0, back ? tone : light, 0, PHOTO_HEIGHT, back ? light : tone));
+                graphics.fillRect(0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
+                graphics.setColor(new Color(255, 255, 255, 60));
+                graphics.fill(new Ellipse2D.Double(120 + shift, 180, 560, 560));
+                garment(graphics, tone, back);
+            }
+            case DETAIL -> {
+                graphics.setColor(light);
+                graphics.fillRect(0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
+                graphics.setColor(mix(tone, Color.BLACK, 0.15));
+                for (int row = 0; row * 36 < PHOTO_HEIGHT; row++) {
+                    for (int x = row % 2 * 18; x < PHOTO_WIDTH; x += 36) {
+                        graphics.fill(new Ellipse2D.Double(x, row * 36, 9, 9));
+                    }
+                }
+                graphics.setColor(new Color(255, 255, 255, 150));
+                graphics.setStroke(new BasicStroke(10, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                graphics.draw(new QuadCurve2D.Double(-40, 760, 450, 560 + shift, 940, 820));
+            }
+            case SCENE -> {
+                Color night = new Color(0x3a3260);
+                graphics.setPaint(new GradientPaint(0, 0, night, PHOTO_WIDTH, PHOTO_HEIGHT, mix(tone, night, 0.4)));
+                graphics.fillRect(0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
+                graphics.setColor(new Color(0xfff4d6));
+                graphics.fill(new Ellipse2D.Double(560 - shift / 3.0, 110, 190, 190));
+                graphics.setColor(night);
+                graphics.fill(new Ellipse2D.Double(610 - shift / 3.0, 85, 170, 170));
+                graphics.setColor(new Color(255, 255, 255, 180));
+                for (int star = 0; star < 24; star++) {
+                    int x = Math.floorMod(seed.hashCode() * (star + 7), PHOTO_WIDTH);
+                    int y = Math.floorMod(seed.hashCode() * (star + 3) / 7, 520);
+                    graphics.fill(new Ellipse2D.Double(x, y, 7, 7));
+                }
+                garment(graphics, tone, false);
+            }
+        }
+        label(graphics, view.label, view == View.SCENE ? Color.WHITE : mix(tone, Color.BLACK, 0.55));
         graphics.dispose();
         try (var bytes = new ByteArrayOutputStream()) {
             ImageIO.write(image, "png", bytes);
@@ -269,6 +415,44 @@ class DevCatalogSeed {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /** A plain shirt over trousers in the color; from the back it has no buttons and no neckline. */
+    private static void garment(Graphics2D graphics, Color tone, boolean back) {
+        var shirt = new Path2D.Double();
+        shirt.moveTo(330, 260);
+        shirt.lineTo(570, 260);
+        shirt.lineTo(730, 360);
+        shirt.lineTo(680, 470);
+        shirt.lineTo(610, 430);
+        shirt.lineTo(610, 690);
+        shirt.lineTo(290, 690);
+        shirt.lineTo(290, 430);
+        shirt.lineTo(220, 470);
+        shirt.lineTo(170, 360);
+        shirt.closePath();
+        graphics.setColor(mix(tone, Color.BLACK, 0.12));
+        graphics.fill(new RoundRectangle2D.Double(300, 670, 135, 400, 40, 40));
+        graphics.fill(new RoundRectangle2D.Double(465, 670, 135, 400, 40, 40));
+        graphics.setColor(tone);
+        graphics.fill(shirt);
+        graphics.setColor(mix(tone, Color.BLACK, 0.25));
+        graphics.setStroke(new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        graphics.draw(shirt);
+        if (back) {
+            graphics.drawLine(330, 300, 570, 300);
+        } else {
+            graphics.draw(new Arc2D.Double(390, 220, 120, 90, 180, 180, Arc2D.OPEN));
+            for (int y = 360; y <= 620; y += 65) {
+                graphics.fill(new Ellipse2D.Double(442, y, 16, 16));
+            }
+        }
+    }
+
+    private static void label(Graphics2D graphics, String text, Color color) {
+        graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 46));
+        graphics.setColor(color);
+        graphics.drawString(text, 56, PHOTO_HEIGHT - 64);
     }
 
     private static Color mix(Color from, Color to, double amount) {

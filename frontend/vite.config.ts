@@ -1,5 +1,7 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react';
+import { createReadStream, existsSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
 /** The Latin file of the body text weight (Inter 500, styles/base.css), which every page paints with. */
@@ -32,10 +34,36 @@ function preloadBodyFont(): Plugin {
   };
 }
 
+/**
+ * UC-06, dev only: the uploaded photos at /uploads/*, as Caddy serves them in production (deploy/caddy/Caddyfile):
+ * WebP files only, from the backend's UPLOADS_DIR (its default /srv/uploads resolves to the same folder for Node and
+ * Java). Only the file name is used, so a request never leaves that folder.
+ */
+function serveUploads(): Plugin {
+  const folder = resolve(process.env.UPLOADS_DIR ?? '/srv/uploads');
+  return {
+    name: 'serve-uploads',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/uploads', (request, response) => {
+        const name = basename(decodeURIComponent((request.url ?? '').split('?')[0] ?? ''));
+        const file = join(folder, name);
+        if (!name.endsWith('.webp') || !existsSync(file)) {
+          response.statusCode = 404;
+          response.end();
+          return;
+        }
+        response.setHeader('Content-Type', 'image/webp');
+        createReadStream(file).pipe(response);
+      });
+    },
+  };
+}
+
 // Same origin as production: Caddy serves the build at / and routes /api/* to the backend (E0 plan), so there is
-// no CORS and cookies stay first-party. In dev, Vite proxies /api to the local backend.
+// no CORS and cookies stay first-party. In dev, Vite proxies /api to the local backend and serves the uploads.
 export default defineConfig({
-  plugins: [react(), preloadBodyFont()],
+  plugins: [react(), preloadBodyFont(), serveUploads()],
   server: {
     proxy: {
       '/api': 'http://localhost:8080',
