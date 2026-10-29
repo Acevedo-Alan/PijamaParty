@@ -430,17 +430,33 @@ export const es = {
     categories: 'Categorías',
     tooShort: 'Escribí al menos 2 letras para buscar.',
   },
-  /** UC-31 (T-E7-02): the header, its navigation, the phone menu and the free-shipping strip. */
+  /** UC-31 (T-E7-02, T-E7-39): the header, its navigation, the phone menu and the announcement ticker. */
   header: {
-    /** The navigation's name; the phone menu shows the prototype's title, "Categorías". */
     navigation: 'Navegación principal',
-    menuTitle: 'Categorías',
+    menuTitle: 'Menú',
+    /** T-E7-39: inside a level of the phone menu, back to its first level. */
+    back: 'Volver',
+    backLabel: 'Volver al menú',
+    /** T-E7-39: the first link of the "Todo" level, to every product. */
+    seeAll: 'Ver todo',
+    /** T-E7-39: the ticker above the header; no installments or discounts here (D-01, D-02). */
+    ticker: {
+      label: 'Anuncios',
+      carrier: 'Envíos por Correo Argentino',
+      pause: 'Pausar anuncios',
+      resume: 'Reanudar anuncios',
+    },
     all: 'Todo',
     audiences: { WOMEN: 'Mujer', MEN: 'Hombre', KIDS: 'Niños' },
     winter: 'Temporada Invierno',
     openMenu: 'Abrir menú',
     closeMenu: 'Cerrar menú',
     account: 'Tu cuenta',
+    shortcuts: 'Accesos rápidos',
+    /** T-E7-37: the menu's cart shortcut with the units in the cart, e.g. "Mi carrito, 3 productos". */
+    cartShortcut: (count: number) =>
+      count === 0 ? 'Mi carrito' : count === 1 ? 'Mi carrito, 1 producto' : `Mi carrito, ${String(count)} productos`,
+    help: '¿Necesitás ayuda?',
     /** No installments or discounts here until the owner decides them (D-01, D-02). */
     freeShippingFrom: (amount: string) => `Envío gratis desde ${amount}`,
   },

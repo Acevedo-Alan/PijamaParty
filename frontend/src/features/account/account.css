@@ -1,48 +1,12 @@
 /* UC-19 (T-E4-02, T-E4-03): the header's account entry and the registration, sign-in, verification and password
    recovery pages. UC-20 (T-E4-05): the address book. UC-22 (T-E4-07): my orders. */
 
-/* UC-31 (T-E7-02): the account entries of the header and the phone menu, from the prototype's .account-btn */
+/* UC-31 (T-E7-02): the account entries of the header and the phone menu */
 .header-account,
 .menu-account {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.account-btn {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 0 12px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background-color var(--dur-base) var(--ease-standard), color var(--dur-base) var(--ease-standard);
-}
-
-.account-btn.secondary {
-  background: transparent;
-  color: var(--accent-text);
-}
-
-.account-btn.primary {
-  background: var(--accent);
-  color: #fff;
-}
-
-@media (hover: hover) {
-  .account-btn.secondary:hover {
-    background: var(--rose-soft);
-  }
-
-  .account-btn.primary:hover {
-    background: var(--accent-hover);
-  }
 }
 
 .account-menu {
@@ -125,19 +89,15 @@
   text-align: left;
 }
 
-/* In the phone menu the signed-out entries take the whole width, one above the other. */
+/* The account level of the phone menu (T-E7-39): the greeting, then the links one above the other. */
 .menu-account {
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
-}
-
-.menu-account .account-btn {
-  min-height: 48px;
+  gap: 4px;
 }
 
 .menu-account .account-greeting {
-  padding-top: 0;
+  padding: 0 0 4px;
 }
 
 .account-page {

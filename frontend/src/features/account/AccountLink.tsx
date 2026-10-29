@@ -27,23 +27,6 @@ interface ChooseProps {
   onChoose?: () => void;
 }
 
-/**
- * "Ingresar" and "Crear cuenta" of the phone menu (UC-19, UC-31); returning customers sign in more often, so
- * "Ingresar" is filled.
- */
-function SignedOutLinks({ onChoose }: ChooseProps) {
-  return (
-    <>
-      <Link to={SIGN_IN_PATH} className="account-btn primary" onClick={onChoose}>
-        {es.account.signInLink}
-      </Link>
-      <Link to={REGISTER_PATH} className="account-btn secondary" onClick={onChoose}>
-        {es.account.registerLink}
-      </Link>
-    </>
-  );
-}
-
 /** The greeting, "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta" (UC-27) and "Salir" (UC-19). */
 function SignedInLinks({ customer, onChoose }: ChooseProps & { customer: Customer }) {
   const queryClient = useQueryClient();
@@ -90,8 +73,8 @@ function SignedInLinks({ customer, onChoose }: ChooseProps & { customer: Custome
   );
 }
 
-/** A person's outline, drawn like the cart's bag (T-E7-23). */
-function PersonIcon() {
+/** A person's outline, drawn like the cart's bag (T-E7-23); the phone menu's account shortcut carries it too. */
+export function PersonIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="8" r="4" />
@@ -101,9 +84,9 @@ function PersonIcon() {
 }
 
 /**
- * The header's account icon from 860 px (UC-31, T-E7-23): a link to the sign-in page when signed out, which offers
- * "Crear cuenta" too; with a session, "Mi cuenta", which opens the list of the account links. Escape, a click outside
- * or a chosen link closes it.
+ * The header's account icon at every width (UC-31, T-E7-23, T-E7-39): a link to the sign-in page when signed out,
+ * which offers "Crear cuenta" too; with a session, "Mi cuenta", which opens the list of the account links. Escape, a
+ * click outside or a chosen link closes it.
  */
 export function HeaderAccount() {
   const customer = useCustomer();
@@ -182,19 +165,11 @@ function AccountMenu({ customer }: { customer: Customer }) {
   );
 }
 
-/** The account entries of the phone menu (UC-31): the same as the header's, with the signed-in links open. */
-export function MenuAccount({ onChoose }: Required<ChooseProps>) {
-  const customer = useCustomer();
-  if (customer === undefined) {
-    return null;
-  }
+/** The account level of the phone menu (UC-31, T-E7-39): the same links as the header's list, open. */
+export function MenuAccountLinks({ customer, onChoose }: Required<ChooseProps> & { customer: Customer }) {
   return (
     <div className="menu-account">
-      {customer === null ? (
-        <SignedOutLinks onChoose={onChoose} />
-      ) : (
-        <SignedInLinks customer={customer} onChoose={onChoose} />
-      )}
+      <SignedInLinks customer={customer} onChoose={onChoose} />
     </div>
   );
 }

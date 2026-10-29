@@ -2,14 +2,127 @@
    entries from 860 px, the phone menu below; the search field from 960 px, a full-screen search below. The wide
    layout is the base so that it is what a test environment without media queries (jsdom) sees. */
 
-/* The free-shipping strip above the header: no installments or discounts (D-01, D-02) */
+/* T-E7-39: the announcement ticker above the header. The track holds the list twice, each copy at least a screen wide,
+   and slides left by one copy (half the track) in a loop, at the duration AnnouncementTicker measures (40 px/s). It
+   stops under the pointer, with the focus inside or once paused (WCAG 2.2.2). No installments or discounts (D-01,
+   D-02). */
 .announce {
-  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  overflow: hidden;
   background: var(--rose);
   color: var(--ink);
   font-size: 12.5px;
   font-weight: 700;
-  text-align: center;
+}
+
+.announce-viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.announce-track {
+  display: flex;
+  width: max-content;
+}
+
+.announce-items {
+  display: flex;
+  flex: none;
+  justify-content: space-around;
+  min-width: 100vw;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each message after a small dot, the first one too, so the spacing stays even where the copies meet. */
+.announce-items li {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding-left: 28px;
+  white-space: nowrap;
+}
+
+.announce-items li::before {
+  content: '';
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.announce-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: var(--rose);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.announce-toggle svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes announce-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .announce-track {
+    animation: announce-scroll var(--ticker-duration, 30s) linear infinite;
+  }
+
+  .announce:hover .announce-track,
+  .announce:focus-within .announce-track,
+  .announce[data-paused] .announce-track {
+    animation-play-state: paused;
+  }
+}
+
+/* Under reduced motion it stays still: the first message centered, without the copy or the pause button. */
+@media (prefers-reduced-motion: reduce) {
+  .announce-track {
+    width: 100%;
+  }
+
+  .announce-items {
+    justify-content: center;
+    min-width: 100%;
+  }
+
+  .announce-items[aria-hidden],
+  .announce-items li + li,
+  .announce-toggle {
+    display: none;
+  }
+
+  .announce-items li {
+    padding-left: 0;
+  }
+
+  .announce-items li::before {
+    display: none;
+  }
 }
 
 header.site {
@@ -37,9 +150,11 @@ header.site[data-scrolled]::before {
   backdrop-filter: blur(12px) saturate(1.2);
 }
 
-/* T-E7-30: from 860 px the scrolled header is a floating pill, narrower and shorter than the bar, with the same
-   translucent background. The header keeps its 64 px (the 52 px row moved 12 px down), so the page never jumps; around
-   the pill, clicks reach the page. */
+/* T-E7-30, T-E7-39: from 860 px the scrolled header is a floating pill with the same translucent background. The pill is
+   a layer of the row (::after), 6 px from its top and bottom, that fades in from slightly larger while the bar fades
+   out; the row moves 6 px down and the logo shrinks. Only opacity and transform animate: sizes, padding and the blur
+   stay put, so no frame lays the row out again or recomputes the blur (it stuttered in Firefox). The header keeps its
+   64 px, so the page never jumps; around the pill, clicks reach the page. */
 @media (min-width: 860px) {
   header.site {
     height: 64px;
@@ -54,28 +169,41 @@ header.site[data-scrolled]::before {
   }
 
   header.site .header-row {
+    position: relative;
     pointer-events: auto;
-    border-radius: 0;
-    box-shadow:
-      0 0 0 1px transparent,
-      0 0 0 0 transparent;
   }
 
-  header.site[data-scrolled] .header-row {
-    max-width: min(calc(var(--maxw) - 80px), calc(100% - 32px));
-    height: 52px;
-    padding: 0 12px 0 24px;
+  header.site .header-row::after {
+    content: '';
+    position: absolute;
+    inset: 6px 4px;
+    z-index: -1;
     border-radius: 26px;
-    background-color: color-mix(in srgb, var(--bg) 75%, transparent);
+    background: color-mix(in srgb, var(--bg) 75%, transparent);
     backdrop-filter: blur(12px) saturate(1.2);
     box-shadow:
       0 0 0 1px var(--line),
       0 12px 32px -12px rgba(58, 50, 45, 0.28);
-    transform: translateY(12px);
+    opacity: 0;
+    transform: scale(1.02, 1.08);
+    pointer-events: none;
+  }
+
+  header.site[data-scrolled] .header-row {
+    transform: translateY(6px);
+  }
+
+  header.site[data-scrolled] .header-row::after {
+    opacity: 1;
+    transform: none;
+  }
+
+  header.site .logo img {
+    transform-origin: left center;
   }
 
   header.site[data-scrolled] .logo img {
-    height: 40px;
+    transform: scale(0.84);
   }
 }
 
@@ -101,7 +229,7 @@ header.site[data-scrolled]::before {
   }
 }
 
-/* T-E7-30: the bar and the pill morph into each other, everything at once. */
+/* T-E7-30: the bar and the pill trade places, everything at once. */
 @media (min-width: 860px) and (prefers-reduced-motion: no-preference) {
   header.site::before {
     transition:
@@ -109,15 +237,12 @@ header.site[data-scrolled]::before {
       background-color var(--dur-slow) var(--ease-out);
   }
 
-  header.site .header-row {
-    transition-property: max-width, height, padding, border-radius, background-color, backdrop-filter, box-shadow,
-      transform;
-    transition-duration: var(--dur-slow);
-    transition-timing-function: var(--ease-out);
-  }
-
+  header.site .header-row,
+  header.site .header-row::after,
   header.site .logo img {
-    transition: height var(--dur-slow) var(--ease-out);
+    transition:
+      opacity var(--dur-slow) var(--ease-out),
+      transform var(--dur-slow) var(--ease-out);
   }
 }
 
@@ -331,8 +456,7 @@ header.site[data-scrolled]::before {
     grid-column: 2;
   }
 
-  .header-nav,
-  .header-tools .header-account {
+  .header-nav {
     display: none;
   }
 
@@ -345,103 +469,243 @@ header.site[data-scrolled]::before {
   }
 }
 
-/* The phone menu (UC-31): a modal dialog over the dimmed page. Below 700 px a sheet rises from the bottom, 8 px from
-   the edges, under its round close button; from 700 px it is a panel from the left, 12 px from the edges, with the
-   button at its top right. The dialog itself is transparent: the sheet inside it is the card, so a tap around the
-   button falls on the dialog and closes it like a tap on the dimmed page. */
+/* T-E7-39: the account icon stays on a phone, between the search and the cart. Each side of the centered logo gets
+   (width - 110 px) / 2, and three 44 px buttons need 132 px: narrower screens get smaller buttons. */
+@media (max-width: 373px) {
+  .header-row .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 349px) {
+  .header-row .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* The phone menu (UC-31, T-E7-39): a modal dialog that slides in from the left, edge to edge and the full height of the
+   screen, as wide as the screen up to 440 px. Its top row holds the title (or "Volver") and the close button; below,
+   the first level and the level that slides in over it from the right (drill-down), each scrolling on its own when it
+   does not fit. */
 html:has(.menu-panel[open]) {
   overflow: hidden;
 }
 
 .menu-panel {
-  width: min(420px, 100vw);
+  width: min(440px, 100vw);
   max-width: none;
   height: 100dvh;
   max-height: none;
   margin: 0 auto 0 0;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 0;
   border: none;
-  background: transparent;
+  background: var(--surface);
   color: var(--ink);
-  overflow: visible;
+  overflow: hidden;
 }
 
 .menu-panel::backdrop {
-  background: rgba(58, 44, 44, 0.45);
-}
-
-.menu-inner {
-  position: relative;
-  height: 100%;
+  background: rgba(58, 44, 44, 0.4);
 }
 
 .menu-sheet {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
-  border-radius: 20px;
-  background: var(--surface);
-  box-shadow: 0 18px 48px color-mix(in srgb, var(--ink) 22%, transparent);
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+
+.menu-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 0 10px 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.menu-title {
+  margin: 0;
+  color: var(--ink-soft);
+  font-family: var(--ff-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.menu-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  margin-left: -10px;
+  padding: 0 10px 0 4px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.menu-chevron {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .menu-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border: 1px solid var(--line);
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  background: var(--surface);
+  background: none;
   color: var(--ink);
-  transition: transform var(--dur-fast) var(--ease-standard);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard);
 }
 
 .menu-close svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.6;
   stroke-linecap: round;
 }
 
-.menu-close:active {
-  transform: scale(0.92);
+.menu-close:active,
+.menu-back:active {
+  background-color: var(--rose-soft);
 }
 
-.menu-body {
+/* The levels share the space under the top row. The one not shown is hidden once its slide ends: the first level
+   30% to the left and faded, the other off the right edge. Under reduced motion they only crossfade. */
+.menu-levels {
+  position: relative;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.menu-level {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 68px 24px 12px;
+  padding: 12px 24px 28px;
+  background: var(--surface);
 }
 
-/* The links in large uppercase type, as in the sheet of the reference store; written in sentence case and
-   uppercased here, so screen readers do not spell them. */
+.menu-level-sub {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(100%);
+}
+
+.menu-levels:not([data-level='root']) .menu-level-root {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-30%);
+}
+
+.menu-levels:not([data-level='root']) .menu-level-sub {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .menu-level {
+    transition:
+      transform var(--dur-panel) var(--ease-standard),
+      opacity var(--dur-panel) var(--ease-standard),
+      visibility 0s linear var(--dur-panel);
+  }
+
+  .menu-levels[data-level='root'] .menu-level-root,
+  .menu-levels:not([data-level='root']) .menu-level-sub {
+    transition-delay: 0s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-level-sub,
+  .menu-levels:not([data-level='root']) .menu-level-root {
+    transform: none;
+  }
+
+  .menu-level {
+    transition:
+      opacity var(--dur-base) linear,
+      visibility 0s linear var(--dur-base);
+  }
+
+  .menu-levels[data-level='root'] .menu-level-root,
+  .menu-levels:not([data-level='root']) .menu-level-sub {
+    transition-delay: 0s;
+  }
+}
+
+/* The links in large uppercase type; written in sentence case and uppercased here, so screen readers do not spell
+   them. "Todo", with categories, is a button that opens its level, with a chevron at the end of its row. */
 .menu-links {
   list-style: none;
 }
 
-.menu-links a {
+.menu-links > li > a,
+.menu-drill {
   display: flex;
   align-items: center;
+  width: 100%;
   min-height: 56px;
+  padding: 0;
+  border: none;
+  background: none;
   color: var(--ink);
-  font-size: 18px;
+  font: inherit;
+  font-size: 20px;
   font-weight: 500;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  text-align: left;
   text-transform: uppercase;
   text-decoration: none;
+  cursor: pointer;
   transition: color var(--dur-fast) var(--ease-standard);
 }
 
-/* The current listing: --accent-text, bolder and with a dot, not by color alone. */
+.menu-drill {
+  justify-content: space-between;
+}
+
+.menu-drill .menu-chevron {
+  color: var(--ink-soft);
+}
+
+/* The current listing or category: --accent-text, bolder and with a dot, not by color alone. */
 .menu-links a[aria-current='page'] {
   color: var(--accent-text);
   font-weight: 600;
@@ -449,6 +713,7 @@ html:has(.menu-panel[open]) {
 
 .menu-links a[aria-current='page']::after {
   content: '';
+  flex: none;
   width: 6px;
   height: 6px;
   margin-left: 10px;
@@ -456,16 +721,134 @@ html:has(.menu-panel[open]) {
   background: var(--accent);
 }
 
-.menu-links a:active {
+.menu-links a:active,
+.menu-drill:active {
   color: var(--accent-text);
 }
 
-/* Instagram and TikTok as bare icons under the links (D-15: only those the business sent). */
+/* Inside a level: its name in small capitals, then its links in sentence case. */
+.menu-level-title {
+  margin: 8px 0 6px;
+  color: var(--ink-soft);
+  font-family: var(--ff-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.menu-sub-links > li > a {
+  min-height: 52px;
+  font-size: 18px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* The shortcuts, smaller than the navigation, each after its line icon (T-E7-37, T-E7-39). */
+.menu-shortcuts {
+  margin: 12px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.menu-shortcuts ul {
+  list-style: none;
+}
+
+.menu-shortcuts a,
+.menu-shortcuts button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-standard);
+}
+
+.menu-shortcuts svg {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.menu-shortcuts .menu-chevron {
+  width: 20px;
+  height: 20px;
+  margin-left: auto;
+  color: var(--ink-soft);
+}
+
+.menu-count {
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--rose-soft);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.menu-account .account-links a,
+.menu-account .account-sign-out {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* The help at the end, in small type, then Instagram and TikTok as bare icons (D-15: only those the business sent). */
+.menu-help {
+  margin-top: auto;
+  padding-top: 20px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.menu-help > ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 18px;
+}
+
+.menu-help > ul a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--rose);
+  text-underline-offset: 4px;
+}
+
 .menu-social {
   list-style: none;
   display: flex;
   gap: 8px;
-  margin: 12px 0 0 -10px;
+  margin: 4px 0 0 -10px;
 }
 
 .menu-social a {
@@ -480,8 +863,8 @@ html:has(.menu-panel[open]) {
 }
 
 .menu-social .footer-icon {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.6;
@@ -489,67 +872,25 @@ html:has(.menu-panel[open]) {
   stroke-linejoin: round;
 }
 
-.menu-account .account-links a,
-.menu-account .account-sign-out {
-  width: 100%;
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  padding: 12px 0;
-  color: var(--ink);
-  font-size: 16px;
-  font-weight: 500;
-  text-decoration: none;
-}
-
 @media (hover: hover) {
   .menu-links a:hover,
+  .menu-drill:hover,
+  .menu-shortcuts a:hover,
+  .menu-shortcuts button:hover,
   .menu-social a:hover,
   .menu-account .account-links a:hover,
   .menu-account .account-sign-out:hover {
     color: var(--accent-text);
   }
-}
 
-.menu-foot {
-  margin: 0 24px;
-  padding: 16px 0 20px;
-  border-top: 1px solid var(--rose);
-}
+  .menu-close:hover,
+  .menu-back:hover {
+    background-color: var(--rose-soft);
+  }
 
-/* Below 700 px: the sheet at the bottom, as tall as its contents, under the close button centered above it. */
-.menu-panel-sheet {
-  width: 100%;
-  height: auto;
-  max-height: 100dvh;
-  margin: auto 0 0;
-  padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px));
-}
-
-.menu-panel-sheet .menu-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  height: auto;
-}
-
-.menu-panel-sheet .menu-close {
-  position: static;
-  flex: none;
-  border: none;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--ink) 18%, transparent);
-}
-
-.menu-panel-sheet .menu-sheet {
-  width: 100%;
-  height: auto;
-  max-height: calc(100dvh - 96px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-}
-
-.menu-panel-sheet .menu-body {
-  flex: 0 1 auto;
-  padding-top: 16px;
+  .menu-help > ul a:hover {
+    text-decoration-color: currentColor;
+  }
 }
 
 /* The field and its suggestions */

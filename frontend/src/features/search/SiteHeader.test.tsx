@@ -11,10 +11,13 @@ import {
   product,
   purchaseInfo,
   queriesTo,
+  shopCategories,
   stubCatalogApi,
   withHeader,
 } from '../../test/catalogApi.ts';
+import { cart, cartItem } from '../../test/cartApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
+import { clearStoreContact, setStoreContact } from '../../test/storeContact.ts';
 
 const PRODUCTS = '/api/catalog/products';
 const ANA = { id: '00000000-0000-0000-0000-000000000001', email: 'ana@example.com', name: 'Ana Pérez' };
@@ -31,16 +34,6 @@ function menuButton() {
   return screen.findByLabelText(es.header.openMenu, { selector: 'button' });
 }
 
-/** The phone's width as matchMedia answers it; only the menu's own query matches. */
-function narrowerThan700(narrower: boolean) {
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: narrower && query === '(max-width: 699px)',
-    media: query,
-    addEventListener: () => undefined,
-    removeEventListener: () => undefined,
-  }));
-}
-
 function menu() {
   return within(screen.getByRole('dialog', { name: es.header.menuTitle }));
 }
@@ -53,29 +46,42 @@ function renderSignedIn() {
   return renderRoute('/preguntas-frecuentes');
 }
 
-describe('free-shipping strip (UC-31)', () => {
+/** The ticker's messages as screen readers get them: its first copy only, the second is aria-hidden. */
+function tickerMessages() {
+  return within(screen.getByRole('region', { name: es.header.ticker.label }))
+    .getAllByRole('listitem')
+    .map((item) => item.textContent.replace(/\s/g, ' '));
+}
+
+describe('announcement ticker (UC-31, T-E7-39)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('given a free-shipping threshold of $50,000, when any public page opens, then the strip says so', async () => {
+  it('given a free-shipping threshold of $50,000 and MercadoPago, when any public page opens, then the ticker lists them with the carrier', async () => {
     stubCatalogApi({
       listings: [listed([])],
       shippingRates: answer(200, { zones: [], freeShippingThresholdCents: 5_000_000 }),
     });
     const { router } = renderRoute('/');
 
-    const strip = await screen.findByText(es.header.freeShippingFrom(shown(5_000_000)));
-    expect(strip).toHaveTextContent(/^Envío gratis desde \$\s50\.000$/);
+    await waitFor(() => {
+      expect(tickerMessages()).toEqual([
+        es.header.freeShippingFrom(shown(5_000_000)),
+        es.header.ticker.carrier,
+        es.faq.summary.payWith('MercadoPago'),
+      ]);
+    });
+    expect(tickerMessages()[0]).toMatch(/^Envío gratis desde \$ 50\.000$/);
 
     await router.navigate('/categoria/verano');
-    expect(screen.getByText(es.header.freeShippingFrom(shown(5_000_000)))).toBeInTheDocument();
+    expect(tickerMessages()[0]).toBe(es.header.freeShippingFrom(shown(5_000_000)));
   });
 
   it.each([
     ['no threshold', answer(200, { zones: [], freeShippingThresholdCents: null })],
     ['the rates failing', answer(500)],
-  ])('given %s, when a page opens, then there is no strip', async (_, shippingRates) => {
+  ])('given %s, when a page opens, then the ticker leaves out free shipping', async (_, shippingRates) => {
     const get = stubCatalogApi({ listings: [listed([product('rosa')])], shippingRates });
     renderRoute('/');
 
@@ -83,7 +89,21 @@ describe('free-shipping strip (UC-31)', () => {
     await waitFor(() => {
       expect(get).toHaveBeenCalledWith('/api/shipping/rates', expect.anything());
     });
-    expect(screen.queryByText(/Envío gratis desde/)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(tickerMessages()).toEqual([es.header.ticker.carrier, es.faq.summary.payWith('MercadoPago')]);
+    });
+  });
+
+  it('given the ticker running, when its pause button is pressed, then it stops; pressed again, it runs', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+    const ticker = screen.getByRole('region', { name: es.header.ticker.label });
+
+    await userEvent.click(within(ticker).getByRole('button', { name: es.header.ticker.pause }));
+
+    expect(ticker).toHaveAttribute('data-paused');
+    await userEvent.click(within(ticker).getByRole('button', { name: es.header.ticker.resume }));
+    expect(ticker).not.toHaveAttribute('data-paused');
   });
 });
 
@@ -159,9 +179,10 @@ describe('phone menu (UC-31)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    clearStoreContact();
   });
 
-  it('given a visitor, when the menu opens, then it shows the navigation and the account links', async () => {
+  it('given a visitor, when the menu opens, then it shows the navigation, and the account is "Ingresar" without "Crear cuenta" (T-E7-39)', async () => {
     stubCatalogApi({ listings: [listed([])] });
     renderRoute('/buscar');
 
@@ -172,32 +193,22 @@ describe('phone menu (UC-31)', () => {
         .getAllByRole('link')
         .map((link) => link.textContent),
     ).toEqual(['Todo', 'Mujer', 'Hombre', 'Niños', 'Temporada Invierno']);
-    expect(menu().getByRole('link', { name: es.account.signInLink })).toHaveAttribute('href', '/cuenta/ingresar');
-    expect(menu().getByRole('link', { name: es.account.registerLink })).toHaveAttribute('href', '/cuenta/registro');
+    const shortcuts = within(await menu().findByRole('region', { name: es.header.shortcuts }));
+    expect(shortcuts.getAllByRole('link')[0]).toHaveTextContent(es.account.signInLink);
+    expect(shortcuts.getByRole('link', { name: es.account.signInLink })).toHaveAttribute('href', '/cuenta/ingresar');
+    expect(menu().queryByRole('link', { name: es.account.registerLink })).not.toBeInTheDocument();
   });
 
-  it('given a phone below 700 px, when the menu opens, then it is a sheet from the bottom with the close button above the links (T-E7-17)', async () => {
-    narrowerThan700(true);
+  it('given the open menu, when it shows, then it is the panel from the left with the close button above the links (T-E7-39)', async () => {
     stubCatalogApi({ listings: [listed([])] });
     renderRoute('/buscar');
 
     await userEvent.click(await menuButton());
 
-    const dialog = screen.getByRole('dialog', { name: es.header.menuTitle });
-    expect(dialog).toHaveClass('menu-panel-sheet');
+    expect(screen.getByRole('dialog', { name: es.header.menuTitle })).toHaveClass('menu-panel');
     const close = menu().getByRole('button', { name: es.header.closeMenu });
     const navigation = menu().getByRole('navigation', { name: es.header.navigation });
     expect(close.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('given a tablet from 700 px, when the menu opens, then it is the side panel from the left', async () => {
-    narrowerThan700(false);
-    stubCatalogApi({ listings: [listed([])] });
-    renderRoute('/buscar');
-
-    await userEvent.click(await menuButton());
-
-    expect(screen.getByRole('dialog', { name: es.header.menuTitle })).not.toHaveClass('menu-panel-sheet');
   });
 
   it('given the open menu, when Escape is pressed, then it closes and the focus goes back to the menu button', async () => {
@@ -224,18 +235,122 @@ describe('phone menu (UC-31)', () => {
     expect(screen.queryByRole('dialog', { name: es.header.menuTitle })).not.toBeInTheDocument();
   });
 
-  it('given a signed-in customer, when the menu opens, then it lists the greeting and the account links open', async () => {
+  it('given a signed-in customer, when "Mi cuenta" is chosen in the menu, then its level lists the greeting and the account links (T-E7-39)', async () => {
     renderSignedIn();
-
     await userEvent.click(await menuButton());
 
-    expect(await menu().findByText(es.account.greeting('Ana'))).toBeInTheDocument();
-    expect(menu().getAllByRole('link').slice(-3).map((link) => link.textContent)).toEqual([
+    await userEvent.click(await menu().findByRole('button', { name: es.account.myAccountLink }));
+
+    expect(menu().getByRole('button', { name: es.header.backLabel })).toHaveFocus();
+    const level = menu().getByText(es.account.greeting('Ana')).closest('.menu-level') as HTMLElement;
+    expect(level).not.toHaveAttribute('inert');
+    expect(within(level).getAllByRole('link').map((link) => link.textContent)).toEqual([
       es.account.ordersLink,
       es.account.addressesLink,
       es.account.myAccountLink,
     ]);
-    expect(menu().getByRole('button', { name: es.account.signOut })).toBeInTheDocument();
+    expect(within(level).getByRole('button', { name: es.account.signOut })).toBeInTheDocument();
+    expect(menu().queryByRole('link', { name: es.account.signInLink })).not.toBeInTheDocument();
+  });
+
+  it('given active categories, when "Todo" is chosen, then its level shows them and "Volver" comes back to "Todo" (T-E7-37, T-E7-39)', async () => {
+    stubCatalogApi({
+      listings: [listed([])],
+      categories: shopCategories([
+        { slug: 'pijamas', name: 'Pijamas' },
+        { slug: 'camisones', name: 'Camisones' },
+      ]),
+    });
+    renderRoute('/buscar');
+    await userEvent.click(await menuButton());
+    const all = await menu().findByRole('button', { name: es.header.all });
+    const first = all.closest('.menu-level') as HTMLElement;
+    // Out of the accessibility tree while inert, so found by its text.
+    const level = menu().getByText(es.header.seeAll).closest('.menu-level') as HTMLElement;
+    expect(level).toHaveAttribute('inert');
+    expect(menu().queryByRole('link', { name: es.header.seeAll })).not.toBeInTheDocument();
+
+    await userEvent.click(all);
+
+    expect(level).not.toHaveAttribute('inert');
+    expect(first).toHaveAttribute('inert');
+    expect(menu().getByRole('button', { name: es.header.backLabel })).toHaveFocus();
+    expect(
+      within(level)
+        .getAllByRole('link')
+        .map((link) => [link.textContent, link.getAttribute('href')]),
+    ).toEqual([
+      [es.header.seeAll, '/'],
+      ['Pijamas', '/categoria/pijamas'],
+      ['Camisones', '/categoria/camisones'],
+    ]);
+
+    await userEvent.click(menu().getByRole('button', { name: es.header.backLabel }));
+
+    expect(level).toHaveAttribute('inert');
+    expect(first).not.toHaveAttribute('inert');
+    expect(all).toHaveFocus();
+  });
+
+  it('given no categories, when the menu opens, then "Todo" is a link to the home page (T-E7-37, T-E7-39)', async () => {
+    const get = stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+    await userEvent.click(await menuButton());
+
+    await waitFor(() => {
+      expect(get).toHaveBeenCalledWith('/api/catalog/categories', expect.anything());
+    });
+    expect(menu().queryByRole('button', { name: es.header.all })).not.toBeInTheDocument();
+    expect(menu().getByRole('link', { name: es.header.all })).toHaveAttribute('href', '/');
+  });
+
+  it('given a category page, when the "Todo" level opens, then that category is current (T-E7-37, T-E7-39)', async () => {
+    stubCatalogApi({
+      listings: [listed([])],
+      categories: shopCategories([
+        { slug: 'pijamas', name: 'Pijamas' },
+        { slug: 'camisones', name: 'Camisones' },
+      ]),
+    });
+    renderRoute('/categoria/camisones');
+    await userEvent.click(await menuButton());
+
+    await userEvent.click(await menu().findByRole('button', { name: es.header.all }));
+
+    expect(menu().getByRole('link', { current: 'page' })).toHaveTextContent('Camisones');
+  });
+
+  it('given 2 units in the cart, when "Mi carrito" is chosen in the menu, then the menu closes and the cart panel opens (T-E7-37)', async () => {
+    stubCatalogApi({ listings: [listed([])], cart: cart([cartItem({ quantity: 2 })]) });
+    renderRoute('/buscar');
+    await userEvent.click(await menuButton());
+
+    await userEvent.click(await menu().findByRole('button', { name: es.header.cartShortcut(2) }));
+
+    expect(screen.queryByRole('dialog', { name: es.header.menuTitle })).not.toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: es.cart.title })).toBeInTheDocument();
+  });
+
+  it('given the open menu, when its shortcuts are read, then "Guía de talles" opens the size guides', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+    await userEvent.click(await menuButton());
+
+    const shortcuts = within(menu().getByRole('region', { name: es.header.shortcuts }));
+    expect(shortcuts.getByRole('link', { name: es.footer.sizeGuides })).toHaveAttribute('href', '/guia-de-talles');
+  });
+
+  it.each([
+    ['the WhatsApp number', { whatsAppNumber: '5493424000000' }, [['Preguntas frecuentes', '/preguntas-frecuentes'], ['Escribinos por WhatsApp', 'https://wa.me/5493424000000']]],
+    ['no number', {}, [['Preguntas frecuentes', '/preguntas-frecuentes']]],
+  ])('given %s, when the menu opens, then its help links the FAQ and WhatsApp only with the number (T-E7-37)', async (_, contact, links) => {
+    setStoreContact(contact);
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/buscar');
+    await userEvent.click(await menuButton());
+
+    const help = within(menu().getByRole('region', { name: es.header.help }));
+    expect(help.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual(links);
   });
 });
 
