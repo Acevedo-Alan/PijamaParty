@@ -28,6 +28,8 @@ import com.pijamaparty.store.shipping.application.ReplaceShippingZoneRates;
 import com.pijamaparty.store.shipping.application.SetFreeShippingThreshold;
 import com.pijamaparty.store.shipping.domain.Province;
 import com.pijamaparty.store.shipping.domain.ShippingZoneRates.TypedRate;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -43,15 +45,19 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -67,6 +73,11 @@ import org.springframework.context.annotation.Bean;
  * administrator that exists only here. It runs only when there are no categories, and
  * {@code -Dstore.dev.demo-catalog=false} turns it off. Without libvips (on the PATH or {@code VIPS_BIN_DIR}) the
  * products keep the gradient of a missing photo. Test sources only: never part of the jar.
+ *
+ * <p>When the folder of {@code store.dev.demo-photos} ({@code ../treinta-photos} by default, the repository root seen
+ * from {@code backend/}) has a {@code catalog.json}, the products are the shop's real ones instead, copied from its
+ * Treinta catalog: their names, descriptions, sizes, prices, stock and one photo each from that folder. Treinta has no
+ * category, material, season or audience for them, so those were guessed from the names. The folder is not in git.
  */
 @TestConfiguration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = "store.dev.demo-catalog", havingValue = "true", matchIfMissing = true)
@@ -183,6 +194,33 @@ class DevCatalogSeed {
             "Polar", Season.WINTER, Audience.WOMEN, List.of("S", "M", "L"), List.of("Gris", "Rosa"),
             5_190_000, 3));
 
+    /** A product of {@code catalog.json}: its photo is a file next to it, for the whole product. */
+    private record RealProduct(String photo, String name, String description, String category, String material,
+                               Season season, Audience audience, List<RealVariant> variants) {
+
+        List<String> sizes() {
+            return variants.stream().map(RealVariant::size).distinct().toList();
+        }
+
+        List<String> colors() {
+            return variants.stream().map(RealVariant::color).distinct().toList();
+        }
+
+        /** Treinta lists only the combinations it sells; the matrix's other ones get the first price and no stock. */
+        Offer offerOf(ProductView.VariantView variant) {
+            return variants.stream()
+                .filter(real -> real.size().equals(variant.size()) && real.color().equals(variant.color()))
+                .findFirst()
+                .map(real -> new Offer(real.priceCents(), real.stock()))
+                .orElseGet(() -> new Offer(variants.getFirst().priceCents(), 0));
+        }
+    }
+
+    private record RealVariant(String size, String color, long priceCents, int stock) {}
+
+    /** The price and stock a variant gets. */
+    private record Offer(long priceCents, int stock) {}
+
     /** RNF-31.5: the guides of the back office, per category. Kigurumis has none, so its pages show no link. */
     private static final Map<String, SizeGuideForm> SIZE_GUIDES = Map.of(
         "Pijamas", new SizeGuideForm(List.of("Busto (cm)", "Cintura (cm)", "Cadera (cm)", "Largo pantalón (cm)"),
@@ -217,10 +255,11 @@ class DevCatalogSeed {
                                            UploadProductImage uploadProductImage, AdjustStock adjustStock,
                                            EditSizeGuide editSizeGuide,
                                            ReplaceShippingZoneRates replaceShippingZoneRates,
-                                           SetFreeShippingThreshold setFreeShippingThreshold) {
+                                           SetFreeShippingThreshold setFreeShippingThreshold,
+                                           @Value("${store.dev.demo-photos:../treinta-photos}") String realPhotos) {
         return new Runner(listAllCategories, createCategory, createProduct, generateVariantMatrix, updateVariant,
             publishProduct, uploadProductImage, adjustStock, editSizeGuide, replaceShippingZoneRates,
-            setFreeShippingThreshold);
+            setFreeShippingThreshold, Path.of(realPhotos));
     }
 
     private record Runner(ListAllCategories listAllCategories, CreateCategory createCategory,
@@ -229,7 +268,8 @@ class DevCatalogSeed {
                           UploadProductImage uploadProductImage, AdjustStock adjustStock,
                           EditSizeGuide editSizeGuide,
                           ReplaceShippingZoneRates replaceShippingZoneRates,
-                          SetFreeShippingThreshold setFreeShippingThreshold) implements ApplicationRunner {
+                          SetFreeShippingThreshold setFreeShippingThreshold,
+                          Path realPhotos) implements ApplicationRunner {
 
         @Override
         public void run(ApplicationArguments args) {
@@ -237,6 +277,10 @@ class DevCatalogSeed {
                 ListAllCategories.Result.Listed.class);
             if (!listed.categories().isEmpty()) {
                 log.info("Demo catalog skipped: the database already has categories");
+                return;
+            }
+            if (Files.isRegularFile(realPhotos.resolve("catalog.json"))) {
+                realCatalog();
                 return;
             }
             Map<String, CategoryId> categories = new LinkedHashMap<>();
@@ -250,6 +294,41 @@ class DevCatalogSeed {
             shipping();
             log.info("Demo catalog created: {} categories, {} products{}", categories.size(), PRODUCTS.size(),
                 photos ? "" : " (without photos: install libvips or set VIPS_BIN_DIR)");
+        }
+
+        /** The products of {@code catalog.json}, in its order, each with its photo. */
+        private void realCatalog() {
+            List<RealProduct> products = read(realPhotos.resolve("catalog.json"));
+            log.info("Demo catalog: creating the {} real products of {}", products.size(), realPhotos.toAbsolutePath());
+            Map<String, CategoryId> categories = new LinkedHashMap<>();
+            boolean photos = true;
+            for (RealProduct real : products) {
+                CategoryId category = categories.computeIfAbsent(real.category(), this::category);
+                var details = new ProductDetailsInput(category, real.name(), real.description(), real.material(),
+                    real.season(), real.audience());
+                ProductView product = product(details, real.sizes(), real.colors(), real::offerOf);
+                photos = photos && upload(product, Optional.empty(), bytes(realPhotos.resolve(real.photo())));
+            }
+            categories.forEach(this::sizeGuide);
+            shipping();
+            log.info("Demo catalog created: {} categories, {} real products{}", categories.size(), products.size(),
+                photos ? "" : " (without photos: install libvips or set VIPS_BIN_DIR)");
+        }
+
+        private static List<RealProduct> read(Path catalog) {
+            try {
+                return new ObjectMapper().readValue(catalog.toFile(), new TypeReference<>() {});
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        private static byte[] bytes(Path photo) {
+            try {
+                return Files.readAllBytes(photo);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
 
         private CategoryId category(String name) {
@@ -268,16 +347,22 @@ class DevCatalogSeed {
         private ProductView product(CategoryId category, DemoProduct demo) {
             var details = new ProductDetailsInput(category, demo.name(), demo.description(), demo.material(),
                 demo.season(), demo.audience());
+            return product(details, demo.sizes(), demo.colors(),
+                variant -> new Offer(demo.priceCents(), demo.stockOf(variant)));
+        }
+
+        private ProductView product(ProductDetailsInput details, List<String> sizes, List<String> colors,
+                                    Function<ProductView.VariantView, Offer> offers) {
             ProductId id = expect(asAdmin(() -> createProduct.execute(new CreateProduct.Command(SEED_ADMIN, details))),
                 CreateProduct.Result.Created.class).product().id();
             ProductView product = expect(asAdmin(() -> generateVariantMatrix.execute(
-                    new GenerateVariantMatrix.Command(SEED_ADMIN, id, demo.sizes(), demo.colors()))),
+                    new GenerateVariantMatrix.Command(SEED_ADMIN, id, sizes, colors))),
                 GenerateVariantMatrix.Result.Generated.class).product();
             for (ProductView.VariantView variant : product.variants()) {
-                price(variant.id(), demo.priceCents());
-                int stock = demo.stockOf(variant);
-                if (stock > 0) {
-                    stock(variant.id(), stock);
+                Offer offer = offers.apply(variant);
+                price(variant.id(), offer.priceCents());
+                if (offer.stock() > 0) {
+                    stock(variant.id(), offer.stock());
                 }
             }
             expect(asAdmin(() -> publishProduct.execute(new PublishProduct.Command(SEED_ADMIN, id))),

@@ -45,3 +45,6 @@ deploy/secrets/*
 
 # Backend build output (also covered by target/ above)
 /backend/target/
+
+# Photos and products copied from the Treinta catalog for the demo catalog (DevCatalogSeed)
+/treinta-photos/
