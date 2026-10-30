@@ -3,6 +3,7 @@ import { useId } from 'react';
 import { Link } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { fetchHomeBanner, isStorePath, type HomeBanner } from './homeBannerApi.ts';
+import { HERO_SLIDES } from './homeContent.ts';
 
 export const homeBannerKey = ['homeBanner'] as const;
 
@@ -10,6 +11,8 @@ interface ViewProps {
   banner: HomeBanner;
   /** The back office's preview: the link is shown, not followed. */
   preview?: boolean;
+  /** The photo is the first one on the screen: loaded at once and first, not lazily (RNF-11). */
+  firstPhoto?: boolean;
 }
 
 /**
@@ -18,7 +21,7 @@ interface ViewProps {
  * carries the message), so its alternative text is empty. Its link is a router link to a path of the store, never an
  * address built from the text.
  */
-export function CharacterBannerView({ banner, preview = false }: ViewProps) {
+export function CharacterBannerView({ banner, preview = false, firstPhoto = false }: ViewProps) {
   const titleId = useId();
   const { title, body, linkText, linkPath, image } = banner;
   const arrow = <span aria-hidden="true">→</span>;
@@ -48,6 +51,8 @@ export function CharacterBannerView({ banner, preview = false }: ViewProps) {
             srcSet={image.srcSet}
             sizes="(min-width: 700px) 560px, 100vw"
             alt=""
+            loading={firstPhoto ? 'eager' : 'lazy'}
+            fetchPriority={firstPhoto ? 'high' : 'auto'}
             {...(image.placeholder === undefined ? {} : { placeholder: image.placeholder })}
           />
         )}
@@ -60,6 +65,9 @@ export function CharacterBannerView({ banner, preview = false }: ViewProps) {
 export function useHomeBanner() {
   return useQuery({ queryKey: homeBannerKey, queryFn: ({ signal }) => fetchHomeBanner(signal) });
 }
+
+/** While no slide of the carousel has a photo (D-15), the banner's is the first photo on the screen (UC-30). */
+const BANNER_PHOTO_FIRST = HERO_SLIDES[0]?.photo === undefined;
 
 /**
  * The home page's section (UC-30): only a published banner shows. While it loads, a gradient of its size holds the
@@ -77,5 +85,5 @@ export function CharacterBanner() {
       </div>
     );
   }
-  return data ? <CharacterBannerView banner={data} /> : null;
+  return data ? <CharacterBannerView banner={data} firstPhoto={BANNER_PHOTO_FIRST} /> : null;
 }

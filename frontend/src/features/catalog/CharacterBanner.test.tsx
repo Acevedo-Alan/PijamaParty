@@ -45,6 +45,17 @@ describe('character banner of the home page (UC-32)', () => {
     expect(await screen.findByRole('heading', { level: 2, name: es.catalog.allTitle })).toBeInTheDocument();
   });
 
+  it('given no carousel photo yet (D-15), when the home page opens, then the banner photo, the first on the screen, loads at once and first (RNF-11)', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])], banner: answer(200, BANNER) });
+
+    renderRoute('/');
+
+    await screen.findByRole('heading', { level: 2, name: BANNER.title });
+    const photo = within(banner()).getByRole('presentation');
+    expect(photo).toHaveAttribute('loading', 'eager');
+    expect(photo).toHaveAttribute('fetchpriority', 'high');
+  });
+
   it('given a hidden banner, when the home page opens, then its section is not shown', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])], banner: answer(204) });
 
