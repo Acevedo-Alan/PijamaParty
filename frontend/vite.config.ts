@@ -64,6 +64,11 @@ function serveUploads(): Plugin {
 // no CORS and cookies stay first-party. In dev, Vite proxies /api to the local backend and serves the uploads.
 export default defineConfig({
   plugins: [react(), preloadBodyFont(), serveUploads()],
+  build: {
+    // Fonts are always files: the CSP's font-src allows 'self' only (T-E6-03), and a small subset inlined as a data:
+    // URL (Open Sans greek-ext is under the 4 KB default) would be blocked and weigh on the render-blocking CSS.
+    assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined),
+  },
   server: {
     proxy: {
       '/api': 'http://localhost:8080',
