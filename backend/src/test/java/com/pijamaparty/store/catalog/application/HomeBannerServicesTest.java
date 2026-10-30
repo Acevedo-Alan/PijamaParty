@@ -101,7 +101,7 @@ class HomeBannerServicesTest {
         assertThat(second).isInstanceOf(ReplaceHomeBannerPhoto.Result.Replaced.class);
         var image = ((ReplaceHomeBannerPhoto.Result.Replaced) second).banner().image().orElseThrow();
         assertThat(image).isNotEqualTo(first.banner().image().orElseThrow());
-        assertThat(files.fileNames()).hasSize(3).doesNotContainAnyElementsOf(firstFiles)
+        assertThat(files.fileNames()).hasSize(4).doesNotContainAnyElementsOf(firstFiles)
             .containsExactlyInAnyOrderElementsOf(image.files().stream().map(ProductView.ImageFile::fileName).toList());
     }
 
@@ -113,7 +113,7 @@ class HomeBannerServicesTest {
         assertThat(upload(key, PHOTO)).isEqualTo(new ReplaceHomeBannerPhoto.Result.AlreadyUploaded(first.banner()));
         assertThat(upload(key, OTHER_PHOTO)).isEqualTo(new ReplaceHomeBannerPhoto.Result.KeyReused());
         assertThat(processor.conversions()).isEqualTo(1);
-        assertThat(files.fileNames()).hasSize(3);
+        assertThat(files.fileNames()).hasSize(4);
     }
 
     @Test

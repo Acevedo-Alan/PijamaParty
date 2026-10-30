@@ -30,8 +30,9 @@ public abstract class ImageProcessorContractTest<T extends ImageProcessor> exten
         assertThat(processed.renditions()).allSatisfy(rendition ->
             assertThat(rendition.webp().length).isLessThan(jpeg.length));
         assertDimensions(processed, 0, 400, 300);
-        assertDimensions(processed, 1, 800, 600);
-        assertDimensions(processed, 2, 1200, 900);
+        assertDimensions(processed, 1, 600, 450);
+        assertDimensions(processed, 2, 800, 600);
+        assertDimensions(processed, 3, 1200, 900);
         assertPlaceholderFitsTheBox(processed, 10, 8);
     }
 
@@ -40,8 +41,9 @@ public abstract class ImageProcessorContractTest<T extends ImageProcessor> exten
         ImageProcessor.Result.Processed processed = processed(TestImages.png(900, 1600));
 
         assertDimensions(processed, 0, 400, 711);
-        assertDimensions(processed, 1, 800, 1422);
-        assertDimensions(processed, 2, 900, 1600);
+        assertDimensions(processed, 1, 600, 1067);
+        assertDimensions(processed, 2, 800, 1422);
+        assertDimensions(processed, 3, 900, 1600);
         assertPlaceholderFitsTheBox(processed, 6, 10);
     }
 
@@ -56,12 +58,14 @@ public abstract class ImageProcessorContractTest<T extends ImageProcessor> exten
 
     @Test
     void givenAWebp_whenProcessed_thenItIsConvertedLikeTheOthers() {
-        byte[] webp = processed(TestImages.png(1000, 500)).renditions().get(1).webp();
+        // The 800 px rendition of a 1000 x 500 photo: an 800 x 400 WebP.
+        byte[] webp = processed(TestImages.png(1000, 500)).renditions().get(2).webp();
 
         ImageProcessor.Result.Processed processed = processed(webp);
 
         assertDimensions(processed, 0, 400, 200);
-        assertDimensions(processed, 2, 800, 400);
+        assertDimensions(processed, 1, 600, 300);
+        assertDimensions(processed, 3, 800, 400);
     }
 
     @Test

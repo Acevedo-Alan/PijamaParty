@@ -82,7 +82,7 @@ class CatalogApiTest {
             .andExpect(jsonPath("$.items[1].fromPriceCents").value(4500))
             .andExpect(jsonPath("$.items[1].soldOut").value(false))
             .andExpect(jsonPath("$.items[1].image.placeholder").value(PLACEHOLDER))
-            .andExpect(jsonPath("$.items[1].image.files[*].width", contains(400, 800, 1200)))
+            .andExpect(jsonPath("$.items[1].image.files[*].width", contains(400, 600, 800, 1200)))
             .andExpect(jsonPath("$.items[1].image.files[0].url").value("/uploads/" + storageKey + "-400.webp"))
             .andExpect(jsonPath("$.items[1].secondImage").value(nullValue()));
         String secondKey = image(withStock, null, 1);
@@ -256,7 +256,7 @@ class CatalogApiTest {
             .andExpect(jsonPath("$.images[*].color", contains(nullValue(), is("Rosa"))))
             .andExpect(jsonPath("$.images[0].placeholder").value(PLACEHOLDER))
             .andExpect(jsonPath("$.images[0].files[0].url").value("/uploads/" + whole + "-400.webp"))
-            .andExpect(jsonPath("$.images[1].files[2].url").value("/uploads/" + pink + "-1200.webp"));
+            .andExpect(jsonPath("$.images[1].files[3].url").value("/uploads/" + pink + "-1200.webp"));
     }
 
     @Test

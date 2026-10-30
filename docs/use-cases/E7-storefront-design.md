@@ -244,7 +244,7 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Title 1 to 60 characters; text 0 to 200; link text 1 to 30; all trimmed.
 - The target is a path of this store: it starts with exactly one `/`, has no scheme, host, backslash or control characters, and is at most 200 characters. Anything else is refused, so the banner can never send shoppers to another site.
 - Publishing needs the photo, the title, the link text and the target. Hiding needs nothing.
-- The photo goes through the UC-06 conversion: WebP at 400, 800 and 1200 px and the blurred placeholder. Replacing it deletes the old files after the new ones are saved.
+- The photo goes through the UC-06 conversion: WebP at 400, 600, 800 and 1200 px and the blurred placeholder. Replacing it deletes the old files after the new ones are saved.
 - The home page shows the published banner on its next load.
 
 **Acceptance criteria**

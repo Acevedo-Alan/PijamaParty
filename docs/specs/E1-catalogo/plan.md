@@ -34,7 +34,7 @@
 ## Decisiones técnicas
 
 - **Sesión con cookie** `HttpOnly`, `Secure`, `SameSite=Lax`, con protección CSRF activada.
-- **Imágenes:** se guardan en un volumen de Docker servido por Caddy en `/uploads`; el volumen entra en el backup. Se generan versiones de 400, 800 y 1200 px en WebP y un placeholder de 10 px en base64 para el efecto blur-up. La conversión usa libvips por línea de comandos (`vips`, instalado en la imagen de la API), en un proceso aparte con timeout, fuera de la transacción y del heap de la JVM.
+- **Imágenes:** se guardan en un volumen de Docker servido por Caddy en `/uploads`; el volumen entra en el backup. Se generan versiones de 400, 600 (T-E6-27), 800 y 1200 px en WebP y un placeholder de 10 px en base64 para el efecto blur-up. La conversión usa libvips por línea de comandos (`vips`, instalado en la imagen de la API), en un proceso aparte con timeout, fuera de la transacción y del heap de la JVM.
 - **Filtros:** consulta con especificaciones de Spring Data JPA; los talles y colores filtran sobre variantes con stock disponible mayor a 0.
 - **Frontend:** estado de los filtros en la URL (query params).
 

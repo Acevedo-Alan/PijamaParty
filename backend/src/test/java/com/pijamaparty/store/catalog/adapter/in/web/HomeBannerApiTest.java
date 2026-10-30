@@ -113,7 +113,7 @@ class HomeBannerApiTest {
             .andExpect(jsonPath("$.linkText").value("Descubrí la colección"))
             .andExpect(jsonPath("$.linkPath").value("/categoria/kigurumis"))
             .andExpect(jsonPath("$.image.placeholder", startsWith("data:image/webp;base64,")))
-            .andExpect(jsonPath("$.image.files[*].width", contains(400, 800, 1200)));
+            .andExpect(jsonPath("$.image.files[*].width", contains(400, 600, 800, 1200)));
     }
 
     @Test
@@ -177,7 +177,7 @@ class HomeBannerApiTest {
         for (String url : urls(second)) {
             assertThat(uploads.resolve(url.substring("/uploads/".length()))).exists();
         }
-        assertThat(webpFiles()).hasSize(3);
+        assertThat(webpFiles()).hasSize(4);
         mvc.perform(get(HOME_BANNER))
             .andExpect(jsonPath("$.image.files[0].url").value(urls(second).getFirst()));
     }
@@ -200,7 +200,7 @@ class HomeBannerApiTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.title").value("Invalid Idempotency-Key"));
 
-        assertThat(webpFiles()).hasSize(3);
+        assertThat(webpFiles()).hasSize(4);
     }
 
     @Test

@@ -322,7 +322,7 @@ class CartApiTest {
             .andExpect(jsonPath("$.items[0].product.size").value("M"))
             .andExpect(jsonPath("$.items[0].product.color").value("Rosa"))
             .andExpect(jsonPath("$.items[0].product.image.placeholder").value("data:image/webp;base64,UklGRg=="))
-            .andExpect(jsonPath("$.items[0].product.image.files[*].width").value(contains(400, 800, 1200)))
+            .andExpect(jsonPath("$.items[0].product.image.files[*].width").value(contains(400, 600, 800, 1200)))
             .andExpect(jsonPath("$.items[0].product.image.files[0].url").value("/uploads/luna-rosa-400.webp"));
         owner.update("update product set active = false");
 

@@ -581,7 +581,7 @@ export interface paths {
         put?: never;
         /**
          * Upload the banner's photo, replacing the current one
-         * @description JPG, PNG or WebP up to 10 MB, recognized by its content, stored as product photos are: WebP at 400, 800 and 1200 px wide with a blurred placeholder. The old photo's files are deleted. Retrying with the same Idempotency-Key and file returns the banner unchanged. Requires the CSRF token.
+         * @description JPG, PNG or WebP up to 10 MB, recognized by its content, stored as product photos are: WebP at 400, 600, 800 and 1200 px wide with a blurred placeholder. The old photo's files are deleted. Retrying with the same Idempotency-Key and file returns the banner unchanged. Requires the CSRF token.
          */
         post: operations["replacePhoto"];
         delete?: never;
@@ -746,7 +746,7 @@ export interface paths {
         put?: never;
         /**
          * Upload a photo of a product
-         * @description JPG, PNG or WebP up to 10 MB, recognized by its content. It is stored as WebP at 400, 800 and 1200 px wide with a blurred placeholder, and goes last. color is optional: one of the product's colors. Retrying with the same Idempotency-Key and file returns the stored photo. Requires the CSRF token.
+         * @description JPG, PNG or WebP up to 10 MB, recognized by its content. It is stored as WebP at 400, 600, 800 and 1200 px wide with a blurred placeholder, and goes last. color is optional: one of the product's colors. Retrying with the same Idempotency-Key and file returns the stored photo. Requires the CSRF token.
          */
         post: operations["upload"];
         delete?: never;

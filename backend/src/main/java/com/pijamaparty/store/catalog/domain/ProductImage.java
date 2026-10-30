@@ -11,8 +11,11 @@ import java.util.Optional;
  */
 public final class ProductImage {
 
-    /** UC-06: the widths of the stored WebP renditions; a photo is never enlarged. */
-    public static final List<Integer> WIDTHS = List.of(400, 800, 1200);
+    /**
+     * UC-06: the widths of the stored WebP renditions; a photo is never enlarged. 600 px (T-E6-27) is the file a phone
+     * picks for the product page's main photo.
+     */
+    public static final List<Integer> WIDTHS = List.of(400, 600, 800, 1200);
 
     private final ImageId id;
     private final Color color;

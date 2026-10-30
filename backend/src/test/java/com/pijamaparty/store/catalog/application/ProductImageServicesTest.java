@@ -34,14 +34,15 @@ class ProductImageServicesTest {
             assertThat(uploaded.image().color()).contains("Rosa");
             assertThat(uploaded.image().placeholder()).startsWith("data:image/webp;base64,");
             assertThat(uploaded.image().files()).extracting(ProductView.ImageFile::width)
-                .containsExactly(400, 800, 1200);
+                .containsExactly(400, 600, 800, 1200);
             assertThat(uploaded.image().files()).allSatisfy(file ->
                 assertThat(fixture.imageStore.file(file.fileName())).isPresent());
         });
         assertThat(images()).extracting(ProductView.ImageView::id).first().isEqualTo(first.id());
         assertThat(images()).hasSize(2);
         assertThat(first.color()).isEmpty();
-        assertThat(fixture.imageStore.fileNames()).hasSize(6);
+        // Two photos, four files each (UC-06).
+        assertThat(fixture.imageStore.fileNames()).hasSize(8);
     }
 
     @Test
@@ -53,7 +54,7 @@ class ProductImageServicesTest {
 
         assertThat(retry).isEqualTo(new UploadProductImage.Result.AlreadyUploaded(first));
         assertThat(images()).hasSize(1);
-        assertThat(fixture.imageStore.fileNames()).hasSize(3);
+        assertThat(fixture.imageStore.fileNames()).hasSize(4);
         assertThat(fixture.imageProcessor.conversions()).isEqualTo(1);
     }
 
@@ -186,7 +187,7 @@ class ProductImageServicesTest {
 
         assertThat(images()).extracting(ProductView.ImageView::id).containsExactly(a, c);
         assertThat(b.files()).allSatisfy(file -> assertThat(fixture.imageStore.file(file.fileName())).isEmpty());
-        assertThat(fixture.imageStore.fileNames()).hasSize(6);
+        assertThat(fixture.imageStore.fileNames()).hasSize(8);
     }
 
     @Test

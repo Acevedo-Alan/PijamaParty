@@ -125,7 +125,7 @@ class ProductImageAdminApiTest {
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.color").value(nullValue()))
             .andExpect(jsonPath("$.placeholder", startsWith("data:image/webp;base64,")))
-            .andExpect(jsonPath("$.files[*].width", contains(400, 800, 1200)))
+            .andExpect(jsonPath("$.files[*].width", contains(400, 600, 800, 1200)))
             .andExpect(jsonPath("$.files[0].url", matchesPattern("/uploads/[0-9a-f-]{36}-400\\.webp"))));
 
         for (JsonNode file : image.get("files")) {
@@ -154,7 +154,7 @@ class ProductImageAdminApiTest {
             .andExpect(jsonPath("$.problem").value("KEY_REUSED"));
 
         assertThat(owner.queryForObject("select count(*) from product_image", Integer.class)).isOne();
-        assertThat(webpFiles()).hasSize(3);
+        assertThat(webpFiles()).hasSize(4);
     }
 
     @Test
@@ -184,7 +184,7 @@ class ProductImageAdminApiTest {
         assertThat(outcomes).filteredOn(UploadProductImage.Result.Uploaded.class::isInstance).hasSize(1);
         assertThat(outcomes).filteredOn(UploadProductImage.Result.AlreadyUploaded.class::isInstance).hasSize(3);
         assertThat(owner.queryForObject("select count(*) from product_image", Integer.class)).isOne();
-        assertThat(webpFiles()).hasSize(3);
+        assertThat(webpFiles()).hasSize(4);
     }
 
     @Test
@@ -244,7 +244,7 @@ class ProductImageAdminApiTest {
         upload(UUID.randomUUID().toString(), PHOTO, null, UUID.randomUUID().toString())
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.title").value("Product not found"));
-        assertThat(webpFiles()).hasSize(24);
+        assertThat(webpFiles()).hasSize(32);
     }
 
     @Test
@@ -270,7 +270,7 @@ class ProductImageAdminApiTest {
         for (JsonNode file : b.get("files")) {
             assertThat(uploads.resolve(file.get("url").asText().substring("/uploads/".length()))).doesNotExist();
         }
-        assertThat(webpFiles()).hasSize(6);
+        assertThat(webpFiles()).hasSize(8);
         mvc.perform(delete(PRODUCTS + "/" + product + "/images/" + bId).with(ADMIN).with(csrf()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.title").value("Photo not found"));

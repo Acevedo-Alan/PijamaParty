@@ -69,8 +69,8 @@ class ProductImageAdminController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload a photo of a product",
-        description = "JPG, PNG or WebP up to 10 MB, recognized by its content. It is stored as WebP at 400, 800 and "
-            + "1200 px wide with a blurred placeholder, and goes last. color is optional: one of the product's colors. "
+        description = "JPG, PNG or WebP up to 10 MB, recognized by its content. It is stored as WebP at 400, 600, 800 "
+            + "and 1200 px wide with a blurred placeholder, and goes last. color is optional: one of the product's colors. "
             + "Retrying with the same Idempotency-Key and file returns the stored photo. Requires the CSRF token.")
     @ApiResponse(responseCode = "201", description = "Uploaded", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = ImageResponse.class)))

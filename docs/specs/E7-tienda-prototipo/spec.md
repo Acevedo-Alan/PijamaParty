@@ -200,7 +200,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Título de 1 a 60 caracteres; texto de 0 a 200; texto del enlace de 1 a 30.
 - El destino es una dirección de la tienda (empieza con una sola `/`, por ejemplo `/categoria/kigurumi`), nunca otro sitio.
 - Para publicarlo hacen falta la foto, el título, el texto del enlace y el destino.
-- La foto se convierte como las de producto (CU-06): WebP en 400, 800 y 1200 px y su versión borrosa. La foto anterior se borra al reemplazarla.
+- La foto se convierte como las de producto (CU-06): WebP en 400, 600, 800 y 1200 px y su versión borrosa. La foto anterior se borra al reemplazarla.
 - La portada muestra el banner publicado en la próxima carga.
 
 **Criterios de aceptación**

@@ -17,7 +17,7 @@ class InMemoryLinePhotosContractTest extends LinePhotosContractTest<InMemoryLine
 
     @Override
     protected void givenPhotoOfItsColor(UUID variantId, String storageKey) {
-        subject.add(variantId, new LinePhotos.Photo(PLACEHOLDER, List.of(400, 800, 1200).stream()
+        subject.add(variantId, new LinePhotos.Photo(PLACEHOLDER, List.of(400, 600, 800, 1200).stream()
             .map(width -> new LinePhotos.PhotoFile(width, storageKey + "-" + width + ".webp"))
             .toList()));
     }

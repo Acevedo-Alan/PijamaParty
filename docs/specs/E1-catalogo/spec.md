@@ -139,7 +139,7 @@
 - El dispositivo reduce cada foto (máximo 1600 px de lado) antes de enviarla, para ahorrar datos móviles.
 - Una foto puede ser de uno de los colores del producto (se muestra en todos los talles de ese color) o de todo el producto. El color se elige al subirla; para cambiarlo, se borra y se sube de nuevo.
 - Las fotos se pueden reordenar y borrar. Una foto nueva va al final.
-- El servidor guarda cada foto en WebP de 400, 800 y 1200 px de ancho (nunca la agranda), sin metadatos y con la orientación aplicada, más un placeholder borroso.
+- El servidor guarda cada foto en WebP de 400, 600, 800 y 1200 px de ancho (la de 600 px, desde T-E6-27, es la que usa un celular para la foto principal de la ficha) (nunca la agranda), sin metadatos y con la orientación aplicada, más un placeholder borroso.
 
 **Criterios de aceptación**
 - Dados 3 talles y 2 colores, cuando se genera la matriz, entonces se crean 6 variantes.

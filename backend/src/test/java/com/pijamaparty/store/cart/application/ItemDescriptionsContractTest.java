@@ -39,6 +39,7 @@ public abstract class ItemDescriptionsContractTest<T extends ItemDescriptions> e
 
         assertThat(subject.describe(List.of(variant)).get(variant).photo()).contains(new ItemDescription.Photo(
             PLACEHOLDER, List.of(new ItemDescription.PhotoFile(400, "luna-rosa-400.webp"),
+                new ItemDescription.PhotoFile(600, "luna-rosa-600.webp"),
                 new ItemDescription.PhotoFile(800, "luna-rosa-800.webp"),
                 new ItemDescription.PhotoFile(1200, "luna-rosa-1200.webp"))));
     }

@@ -27,6 +27,7 @@ public abstract class LinePhotosContractTest<T extends LinePhotos> extends Contr
 
         assertThat(subject.photosOf(List.of(variant))).isEqualTo(Map.of(variant, new LinePhotos.Photo(PLACEHOLDER,
             List.of(new LinePhotos.PhotoFile(400, "luna-rosa-400.webp"),
+                new LinePhotos.PhotoFile(600, "luna-rosa-600.webp"),
                 new LinePhotos.PhotoFile(800, "luna-rosa-800.webp"),
                 new LinePhotos.PhotoFile(1200, "luna-rosa-1200.webp")))));
     }

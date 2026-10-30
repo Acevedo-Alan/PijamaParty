@@ -28,7 +28,7 @@ class InMemoryItemDescriptionsContractTest extends ItemDescriptionsContractTest<
         ItemDescription description = given.get(variantId);
         subject.add(variantId, new ItemDescription(description.productName(), description.productSlug(),
             description.size(), description.color(), description.sku(), Optional.of(new ItemDescription.Photo(PLACEHOLDER,
-                List.of(400, 800, 1200).stream()
+                List.of(400, 600, 800, 1200).stream()
                     .map(width -> new ItemDescription.PhotoFile(width, storageKey + "-" + width + ".webp"))
                     .toList()))));
     }

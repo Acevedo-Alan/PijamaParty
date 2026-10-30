@@ -133,7 +133,7 @@ class HomeBannerAdminController {
     @PostMapping(path = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload the banner's photo, replacing the current one",
         description = "JPG, PNG or WebP up to 10 MB, recognized by its content, stored as product photos are: WebP at "
-            + "400, 800 and 1200 px wide with a blurred placeholder. The old photo's files are deleted. Retrying with "
+            + "400, 600, 800 and 1200 px wide with a blurred placeholder. The old photo's files are deleted. Retrying with "
             + "the same Idempotency-Key and file returns the banner unchanged. Requires the CSRF token.")
     @ApiResponse(responseCode = "201", description = "Replaced", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = AdminHomeBannerResponse.class)))
