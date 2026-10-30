@@ -6,8 +6,8 @@ import type { ProductFilters } from './listingCriteria.ts';
 /** A group of the filters panel (UC-02), as the bar names it. */
 export type FilterGroup = 'audiences' | 'sizes' | 'colors' | 'materials' | 'seasons' | 'price';
 
-/** The bar's order (T-E7-06); the panel keeps the order of UC-02. */
-const BAR_GROUPS: readonly FilterGroup[] = ['audiences', 'sizes', 'colors', 'materials', 'seasons', 'price'];
+/** The bar's order (T-E7-06), which the panel follows too (changes to UC-02). */
+export const FILTER_GROUPS: readonly FilterGroup[] = ['audiences', 'sizes', 'colors', 'materials', 'seasons', 'price'];
 
 const LABELS: Record<FilterGroup, string> = {
   audiences: es.filters.audience,
@@ -19,7 +19,7 @@ const LABELS: Record<FilterGroup, string> = {
 };
 
 /** How many values of a group are chosen; the price range counts once. */
-function chosen(group: FilterGroup, filters: ProductFilters): number {
+export function chosen(group: FilterGroup, filters: ProductFilters): number {
   if (group === 'price') {
     return filters.minPriceCents !== undefined || filters.maxPriceCents !== undefined ? 1 : 0;
   }
@@ -45,7 +45,7 @@ interface FilterBarProps {
  * buttons scroll sideways while the trailing count stays in view.
  */
 export function FilterBar({ options, filters, onOpen, trailing }: FilterBarProps) {
-  const groups = BAR_GROUPS.filter(
+  const groups = FILTER_GROUPS.filter(
     (group) => options === undefined || hasOptions(group, options) || chosen(group, filters) > 0,
   );
   return (

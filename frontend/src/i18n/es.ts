@@ -104,6 +104,21 @@ export const es = {
     priceInvalid: 'Ingresá montos en pesos, sin centavos.',
     seasons: { SUMMER: 'Verano', MID_SEASON: 'Media estación', WINTER: 'Invierno' },
     audiences: { WOMEN: 'Mujer', MEN: 'Hombre', KIDS: 'Infantil' },
+    /** The sizes of the panel, apart by kind when there are several (changes to UC-02). */
+    sizeKinds: { letters: 'Letras', numbers: 'Números', other: 'Otros' },
+    /** A group's header says what is chosen in it, e.g. "M, L", or "3 elegidos" when that would not fit a phone. */
+    chosenSummary: (values: readonly string[]) => {
+      const joined = values.join(', ');
+      return values.length === 1 || joined.length <= 20 ? joined : `${String(values.length)} elegidos`;
+    },
+    priceFrom: (min: string) => `Desde ${min}`,
+    priceUpTo: (max: string) => `Hasta ${max}`,
+    priceBetween: (min: string, max: string) => `${min} – ${max}`,
+    /** The chips of the applied filters above the grid. */
+    applied: 'Filtros aplicados',
+    sizeChip: (size: string) => `Talle ${size}`,
+    removeChip: (label: string) => `Quitar filtro ${label}`,
+    clearAll: 'Limpiar todo',
   },
   product: {
     /** E7: back in history when the visitor came from the store, otherwise to the home page. */

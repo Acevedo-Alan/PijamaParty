@@ -581,15 +581,81 @@ html:has(.filters-panel[open]) {
 
 .filter-group {
   border: none;
-  padding: 16px 0;
+  padding: 4px 0;
   border-bottom: 1px solid var(--line);
 }
 
 .filter-group legend {
   float: left;
   width: 100%;
-  margin-bottom: 10px;
+}
+
+/* A group's header opens and closes it: its name, what is chosen in it, and a chevron that turns */
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 0;
+  color: var(--ink);
+  font-size: 15px;
   font-weight: 700;
+  text-align: left;
+}
+
+.filter-toggle::after {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin: -4px 4px 0 auto;
+  border-right: 1.8px solid currentColor;
+  border-bottom: 1.8px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--dur-fast) var(--ease-standard);
+}
+
+.filter-toggle[aria-expanded='true']::after {
+  margin-top: 4px;
+  transform: rotate(-135deg);
+}
+
+/* What is chosen, in the accent's text tone (small text, section 11) so a group with values stands out */
+.filter-summary {
+  min-width: 0;
+  overflow: hidden;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--peach-soft);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-values {
+  clear: both;
+  padding: 2px 0 14px;
+}
+
+.filter-values[hidden] {
+  display: none;
+}
+
+/* Letters, numbers and the rest, each with a small heading (changes to UC-02) */
+.size-kind + .size-kind {
+  margin-top: 14px;
+}
+
+.size-kind-name {
+  margin-bottom: 8px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .filter-hint {
@@ -635,10 +701,12 @@ html:has(.filters-panel[open]) {
   outline-offset: 3px;
 }
 
+/* minmax(0, …) and width: 100% let the two fields shrink to the panel: a number field's own width would push the
+   second one past the edge on a phone */
 .price-fields {
   clear: both;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -646,10 +714,13 @@ html:has(.filters-panel[open]) {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
   color: var(--ink-soft);
 }
 
 .price-fields input {
+  width: 100%;
+  min-width: 0;
   min-height: 44px;
   padding: 8px 12px;
   font-size: 16px;
@@ -674,10 +745,70 @@ html:has(.filters-panel[open]) {
   border-top: 1px solid var(--line);
 }
 
+/* The applied filters above the grid (changes to UC-02): one row that wraps, each chip removes its value */
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 18px;
+}
+
+/* The list lends its chips to the row, so "Clear all" follows the last chip instead of taking a line of its own */
+.active-filters ul {
+  display: contents;
+  list-style: none;
+}
+
+.active-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 10px 6px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--peach-soft);
+  color: var(--ink);
+  font-size: 13px;
+  transition: background-color var(--dur-fast) var(--ease-standard);
+}
+
+/* 36 px tall, the chip reaches 44 px of touch target with its invisible margin box */
+.active-chip::before {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.active-chip svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.active-filters .link-btn {
+  min-height: 44px;
+  font-size: 13px;
+}
+
 @media (hover: hover) {
   .chip:hover:not(:has(input:checked)),
   .filter-btn:hover {
     border-color: var(--accent);
+  }
+
+  .active-chip:hover {
+    border-color: var(--accent-text);
+    color: var(--accent-text);
+  }
+
+  .filter-toggle:hover::after {
+    color: var(--accent);
   }
 }
 
@@ -689,6 +820,10 @@ html:has(.filters-panel[open]) {
   .skeleton-ph,
   .skeleton-text {
     animation: none;
+  }
+
+  .filter-toggle::after {
+    transition: none;
   }
 }
 

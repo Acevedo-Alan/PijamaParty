@@ -2,8 +2,10 @@ import { useEffect, useId, useRef, useState, type ReactNode, type SubmitEvent } 
 import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { ActiveFilters, priceLabel } from './ActiveFilters.tsx';
 import type { FilterOptions } from './catalogApi.ts';
-import { FilterBar, type FilterGroup } from './FilterBar.tsx';
+import { chosen, FILTER_GROUPS, FilterBar, type FilterGroup } from './FilterBar.tsx';
+import { groupSizes } from './sizeGroups.ts';
 import { CENTS_PER_PESO, countFilters, NO_FILTERS, WHOLE_PESOS, type ProductFilters } from './listingCriteria.ts';
 import { useFilterOptions } from './useFilterOptions.ts';
 
@@ -47,7 +49,87 @@ function fromDraft({ minPesos, maxPesos, ...values }: Draft): ProductFilters | N
   };
 }
 
-interface CheckboxGroupProps<T extends string> {
+/** Which groups show their values; the others show only their header. */
+interface Disclosure {
+  expanded: ReadonlySet<FilterGroup>;
+  onToggle: (group: FilterGroup) => void;
+}
+
+interface FilterSectionProps extends Disclosure {
+  group: FilterGroup;
+  legend: string;
+  /** What is chosen in the group, beside its name: a collapsed group still says it. */
+  summary: string | null;
+  children: ReactNode;
+}
+
+/**
+ * A group that opens and closes from its header (changes to UC-02), so a long catalog does not turn the panel into
+ * one long list. The legend keeps naming the group's fields; the summary describes the header's button.
+ */
+function FilterSection({ group, legend, summary, expanded, onToggle, children }: FilterSectionProps) {
+  const id = useId();
+  const isExpanded = expanded.has(group);
+  return (
+    <fieldset className="filter-group" data-group={group}>
+      <legend>
+        <button
+          type="button"
+          className="filter-toggle"
+          aria-expanded={isExpanded}
+          aria-controls={`${id}-values`}
+          aria-describedby={summary === null ? undefined : `${id}-summary`}
+          onClick={() => {
+            onToggle(group);
+          }}
+        >
+          <span>{legend}</span>
+          {summary !== null && (
+            <span id={`${id}-summary`} className="filter-summary" aria-hidden="true">
+              {summary}
+            </span>
+          )}
+        </button>
+      </legend>
+      <div id={`${id}-values`} className="filter-values" hidden={!isExpanded}>
+        {children}
+      </div>
+    </fieldset>
+  );
+}
+
+interface ChipsProps<T extends string> {
+  values: readonly T[];
+  selected: readonly T[];
+  label: (value: T) => string;
+  onChange: (selected: T[]) => void;
+}
+
+function Chips<T extends string>({ values, selected, label, onChange }: ChipsProps<T>) {
+  return (
+    <div className="chips">
+      {values.map((value) => (
+        <label key={value} className="chip">
+          <input
+            type="checkbox"
+            checked={selected.includes(value)}
+            onChange={(event) => {
+              onChange(event.target.checked ? [...selected, value] : selected.filter((other) => other !== value));
+            }}
+          />
+          <span>{label(value)}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** The options, then the chosen values no longer offered: a value from a shared link stays visible to uncheck it. */
+function withChosen<T extends string>(options: readonly T[], selected: readonly T[]): T[] {
+  return [...options, ...selected.filter((value) => !options.includes(value))];
+}
+
+interface CheckboxGroupProps<T extends string> extends Disclosure {
   group: FilterGroup;
   legend: string;
   options: readonly T[];
@@ -56,57 +138,94 @@ interface CheckboxGroupProps<T extends string> {
   onChange: (selected: T[]) => void;
 }
 
-/** Several values of one filter combine with OR. A value applied from a shared link stays visible to uncheck it. */
+/** Several values of one filter combine with OR. */
 function CheckboxGroup<T extends string>({
   group,
   legend,
   options,
   selected,
-  label,
+  label = (value) => value,
   onChange,
+  ...disclosure
 }: CheckboxGroupProps<T>) {
-  const values = [...options, ...selected.filter((value) => !options.includes(value))];
+  const values = withChosen(options, selected);
   if (values.length === 0) {
     return null;
   }
   return (
-    <fieldset className="filter-group" data-group={group}>
-      <legend>{legend}</legend>
-      <div className="chips">
-        {values.map((value) => (
-          <label key={value} className="chip">
-            <input
-              type="checkbox"
-              checked={selected.includes(value)}
-              onChange={(event) => {
-                onChange(event.target.checked ? [...selected, value] : selected.filter((other) => other !== value));
-              }}
-            />
-            <span>{label === undefined ? value : label(value)}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <FilterSection
+      group={group}
+      legend={legend}
+      summary={selected.length === 0 ? null : es.filters.chosenSummary(selected.map(label))}
+      {...disclosure}
+    >
+      <Chips values={values} selected={selected} label={label} onChange={onChange} />
+    </FilterSection>
   );
 }
 
-interface PriceGroupProps {
+interface SizeGroupProps extends Disclosure {
+  options: readonly string[];
+  selected: readonly string[];
+  onChange: (selected: string[]) => void;
+}
+
+/**
+ * The sizes apart by kind, each in natural order, with a heading per kind only when there are several. Each kind is a
+ * group named by its heading, so a screen reader says "Números" before "2, checkbox".
+ */
+function SizeGroup({ options, selected, onChange, ...disclosure }: SizeGroupProps) {
+  const id = useId();
+  const groups = groupSizes(withChosen(options, selected));
+  if (groups.length === 0) {
+    return null;
+  }
+  const label = (size: string) => size;
+  return (
+    <FilterSection
+      group="sizes"
+      legend={es.filters.size}
+      summary={selected.length === 0 ? null : es.filters.chosenSummary(selected)}
+      {...disclosure}
+    >
+      {groups.length === 1 ? (
+        <Chips values={groups[0]?.sizes ?? []} selected={selected} label={label} onChange={onChange} />
+      ) : (
+        groups.map(({ kind, sizes }) => (
+          <div key={kind} className="size-kind" role="group" aria-labelledby={`${id}-${kind}`}>
+            <p id={`${id}-${kind}`} className="size-kind-name">
+              {es.filters.sizeKinds[kind]}
+            </p>
+            <Chips values={sizes} selected={selected} label={label} onChange={onChange} />
+          </div>
+        ))
+      )}
+    </FilterSection>
+  );
+}
+
+interface PriceGroupProps extends Disclosure {
   range: FilterOptions['priceRange'];
   draft: Draft;
   problem: PriceProblem;
   onChange: (prices: Pick<Draft, 'minPesos' | 'maxPesos'>) => void;
 }
 
-function PriceGroup({ range, draft, problem, onChange }: PriceGroupProps) {
+function PriceGroup({ range, draft, problem, onChange, ...disclosure }: PriceGroupProps) {
   const id = useId();
   if (range === null && draft.minPesos === '' && draft.maxPesos === '') {
     return null;
   }
   const errorId = `${id}-error`;
   const invalid = problem !== null;
+  const typed = fromDraft(draft);
   return (
-    <fieldset className="filter-group" data-group="price">
-      <legend>{es.filters.price}</legend>
+    <FilterSection
+      group="price"
+      legend={es.filters.price}
+      summary={typeof typed === 'string' ? null : priceLabel(typed)}
+      {...disclosure}
+    >
       {range !== null && (
         <p className="filter-hint">{es.filters.priceHint(formatMoney(range.minCents), formatMoney(range.maxCents))}</p>
       )}
@@ -147,7 +266,7 @@ function PriceGroup({ range, draft, problem, onChange }: PriceGroupProps) {
           {problem === 'range' ? es.filters.priceRangeError : es.filters.priceInvalid}
         </p>
       )}
-    </fieldset>
+    </FilterSection>
   );
 }
 
@@ -173,6 +292,7 @@ export function FilterPanel({ category, filters, onApply, count }: FilterPanelPr
   const options = useFilterOptions(category);
   const [draft, setDraft] = useState(() => toDraft(filters));
   const [problem, setProblem] = useState<PriceProblem>(null);
+  const [expanded, setExpanded] = useState<ReadonlySet<FilterGroup>>(() => new Set());
 
   // After the panel's showModal, which focuses its first button: the focus moves to the group's first field.
   useEffect(() => {
@@ -191,11 +311,23 @@ export function FilterPanel({ category, filters, onApply, count }: FilterPanelPr
     return null;
   }
 
+  /** The group of the pressed button opens, and so does every group with an applied value. */
   function open(group: FilterGroup) {
     setDraft(toDraft(filters));
     setProblem(null);
+    setExpanded(new Set([group, ...FILTER_GROUPS.filter((other) => chosen(other, filters) > 0)]));
     focusGroup.current = group;
     setOpen(true);
+  }
+
+  function toggle(group: FilterGroup) {
+    setExpanded((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(group)) {
+        next.add(group);
+      }
+      return next;
+    });
   }
 
   function close() {
@@ -227,6 +359,7 @@ export function FilterPanel({ category, filters, onApply, count }: FilterPanelPr
         onOpen={open}
         trailing={count}
       />
+      <ActiveFilters filters={filters} onApply={onApply} />
       <PanelDialog
         open={isOpen}
         ref={dialog}
@@ -255,7 +388,14 @@ export function FilterPanel({ category, filters, onApply, count }: FilterPanelPr
               </div>
             )}
             {options.data?.status === 'found' && (
-              <FilterGroups options={options.data.options} draft={draft} problem={problem} onChange={change} />
+              <FilterGroups
+                options={options.data.options}
+                draft={draft}
+                problem={problem}
+                onChange={change}
+                expanded={expanded}
+                onToggle={toggle}
+              />
             )}
           </div>
           <footer className="filters-foot">
@@ -278,30 +418,39 @@ export function FilterPanel({ category, filters, onApply, count }: FilterPanelPr
   );
 }
 
-interface FilterGroupsProps {
+interface FilterGroupsProps extends Disclosure {
   options: FilterOptions;
   draft: Draft;
   problem: PriceProblem;
   onChange: (next: Partial<Draft>) => void;
 }
 
-/** The groups in the order of UC-02; a group without options is left out. */
-function FilterGroups({ options, draft, problem, onChange }: FilterGroupsProps) {
+/** The groups in the bar's order (changes to UC-02); a group without options is left out. */
+function FilterGroups({ options, draft, problem, onChange, ...disclosure }: FilterGroupsProps) {
   const lists = [options.sizes, options.colors, options.materials, options.seasons, options.audiences];
   if (options.priceRange === null && lists.every((values) => values.length === 0) && isEmpty(draft)) {
     return <p>{es.filters.none}</p>;
   }
   return (
     <>
-      <PriceGroup range={options.priceRange} draft={draft} problem={problem} onChange={onChange} />
       <CheckboxGroup
-        group="sizes"
-        legend={es.filters.size}
+        group="audiences"
+        legend={es.filters.audience}
+        options={options.audiences}
+        selected={draft.audiences}
+        label={(audience) => es.filters.audiences[audience]}
+        onChange={(audiences) => {
+          onChange({ audiences });
+        }}
+        {...disclosure}
+      />
+      <SizeGroup
         options={options.sizes}
         selected={draft.sizes}
         onChange={(sizes) => {
           onChange({ sizes });
         }}
+        {...disclosure}
       />
       <CheckboxGroup
         group="colors"
@@ -311,6 +460,7 @@ function FilterGroups({ options, draft, problem, onChange }: FilterGroupsProps) 
         onChange={(colors) => {
           onChange({ colors });
         }}
+        {...disclosure}
       />
       <CheckboxGroup
         group="materials"
@@ -320,6 +470,7 @@ function FilterGroups({ options, draft, problem, onChange }: FilterGroupsProps) 
         onChange={(materials) => {
           onChange({ materials });
         }}
+        {...disclosure}
       />
       <CheckboxGroup
         group="seasons"
@@ -330,17 +481,9 @@ function FilterGroups({ options, draft, problem, onChange }: FilterGroupsProps) 
         onChange={(seasons) => {
           onChange({ seasons });
         }}
+        {...disclosure}
       />
-      <CheckboxGroup
-        group="audiences"
-        legend={es.filters.audience}
-        options={options.audiences}
-        selected={draft.audiences}
-        label={(audience) => es.filters.audiences[audience]}
-        onChange={(audiences) => {
-          onChange({ audiences });
-        }}
-      />
+      <PriceGroup range={options.priceRange} draft={draft} problem={problem} onChange={onChange} {...disclosure} />
     </>
   );
 }
