@@ -1,10 +1,10 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { fetchProductSummaries } from './productsApi.ts';
 import { useCategories } from './useCategories.ts';
 
-const messages = es.admin.productList;
+const messages = esAdmin.productList;
 
 /** UC-06 at /admin/productos: every product, published or not, newest first, 50 at a time. */
 export function ProductsPage() {
@@ -20,19 +20,19 @@ export function ProductsPage() {
 
   return (
     <>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
         <h1>{messages.title}</h1>
         <Link to="/admin/productos/nuevo" className="btn">
           {messages.create}
         </Link>
       </div>
-      {products.isPending && <p role="status">{es.admin.loading}</p>}
+      {products.isPending && <p role="status">{esAdmin.loading}</p>}
       {products.isError && items.length === 0 && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void products.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}
@@ -64,7 +64,7 @@ export function ProductsPage() {
           disabled={products.isFetchingNextPage}
           onClick={() => void products.fetchNextPage()}
         >
-          {products.isFetchingNextPage ? es.admin.loading : es.admin.showMore}
+          {products.isFetchingNextPage ? esAdmin.loading : esAdmin.showMore}
         </button>
       )}
     </>

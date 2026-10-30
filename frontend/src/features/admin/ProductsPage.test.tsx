@@ -2,12 +2,13 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { adminProduct, category, problem, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
-const messages = es.admin.productList;
-const form = es.admin.productForm;
+const messages = esAdmin.productList;
+const form = esAdmin.productForm;
 const categories = answer(200, [category('c-1', 'Pijamas'), category('c-2', 'Batas', false)]);
 
 function summary(id: string, name: string, published: boolean, variantCount: number) {
@@ -44,11 +45,11 @@ describe('product list and creation (UC-06)', () => {
     expect(await sun.findByText(`Pijamas · ${messages.variants(6)}`)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Pijama Sol' })).toHaveAttribute('href', '/admin/productos/p-2');
 
-    await userEvent.click(screen.getByRole('button', { name: es.admin.showMore }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.showMore }));
 
     expect(await screen.findByRole('link', { name: 'Pijama Luna' })).toBeInTheDocument();
     expect(screen.getByText(messages.hidden)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: es.admin.showMore })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: esAdmin.showMore })).not.toBeInTheDocument();
     expect(api.callsTo('GET /api/admin/catalog/products').map((call) => call.options.params?.query)).toEqual([
       { page: 0 },
       { page: 1 },

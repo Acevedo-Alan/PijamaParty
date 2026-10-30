@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import {
@@ -12,7 +13,7 @@ import {
   type WithdrawalSummary,
 } from './withdrawalsApi.ts';
 
-const messages = es.admin.withdrawalList;
+const messages = esAdmin.withdrawalList;
 const STATUS_PARAM = 'estado';
 
 /** The status in the address, so the filter survives opening an order and coming back; null for every request. */
@@ -53,7 +54,7 @@ export function WithdrawalsPage() {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'withdrawals'] });
       await queryClient.invalidateQueries({ queryKey: ['admin', 'orders', 'detail', withdrawal.orderId] });
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setResolving(null);
     }
@@ -61,7 +62,7 @@ export function WithdrawalsPage() {
 
   return (
     <>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
         <h1>{messages.title}</h1>
       </div>
@@ -85,12 +86,12 @@ export function WithdrawalsPage() {
         </select>
       </div>
       <Feedback notice={notice} />
-      {withdrawals.isPending && <p role="status">{es.admin.loading}</p>}
+      {withdrawals.isPending && <p role="status">{esAdmin.loading}</p>}
       {withdrawals.isError && items.length === 0 && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void withdrawals.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}
@@ -135,7 +136,7 @@ export function WithdrawalsPage() {
           disabled={withdrawals.isFetchingNextPage}
           onClick={() => void withdrawals.fetchNextPage()}
         >
-          {withdrawals.isFetchingNextPage ? es.admin.loading : es.admin.showMore}
+          {withdrawals.isFetchingNextPage ? esAdmin.loading : esAdmin.showMore}
         </button>
       )}
     </>

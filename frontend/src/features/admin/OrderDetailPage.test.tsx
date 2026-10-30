@@ -3,13 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { components } from '../../api/schema.d.ts';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { problem, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 type OrderBody = components['schemas']['AdminOrderResponse'];
 
-const messages = es.admin.orderDetail;
+const messages = esAdmin.orderDetail;
 const DETAIL = 'GET /api/admin/orders/{id}';
 const CHANGE = 'POST /api/admin/orders/{id}/status';
 

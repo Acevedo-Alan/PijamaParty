@@ -3,13 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { components } from '../../api/schema.d.ts';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 type Row = components['schemas']['OrderSummaryResponse'];
 
-const messages = es.admin.orderList;
+const messages = esAdmin.orderList;
 
 function row(number: number, status: NonNullable<Row['status']>): Row {
   return {
@@ -45,7 +46,7 @@ describe('order list (UC-18)', () => {
     expect(paid.getByText(/44\.500/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '#1002' })).toHaveAttribute('href', '/admin/pedidos/o-1002');
 
-    await userEvent.click(screen.getByRole('button', { name: es.admin.showMore }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.showMore }));
 
     expect(await screen.findByRole('link', { name: '#1001' })).toBeInTheDocument();
     expect(api.callsTo('GET /api/admin/orders').map((call) => call.options.params?.query)).toEqual([

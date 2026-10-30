@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import {
   adminProduct,
   category,
@@ -16,9 +16,9 @@ import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { uploadTransport, type UploadReply } from './uploadTransport.ts';
 
-const edit = es.admin.productEdit;
-const variants = es.admin.variants;
-const photos = es.admin.photos;
+const edit = esAdmin.productEdit;
+const variants = esAdmin.variants;
+const photos = esAdmin.photos;
 const categories = answer(200, [category('c-1', 'Pijamas')]);
 
 const sizes = ['S', 'M', 'L'];
@@ -94,7 +94,7 @@ describe('product edit (UC-06)', () => {
     await userEvent.type(await screen.findByLabelText(variants.priceLabel('M', 'Rosa')), '12.500,50');
     await userEvent.click(screen.getByRole('button', { name: variants.savePrice }));
 
-    expect(await screen.findByText(es.admin.saved)).toBeInTheDocument();
+    expect(await screen.findByText(esAdmin.saved)).toBeInTheDocument();
     const call = api.callsTo('PATCH /api/admin/catalog/variants/{id}')[0];
     expect(call?.options.params?.path).toEqual({ id: 'v-M-Rosa' });
     expect(call?.options.body).toEqual({ priceCents: 1_250_050 });
@@ -193,12 +193,12 @@ describe('product edit (UC-06)', () => {
     });
     renderRoute('/admin/productos/p-1');
 
-    const material = await screen.findByLabelText(es.admin.productForm.material);
+    const material = await screen.findByLabelText(esAdmin.productForm.material);
     await userEvent.clear(material);
     await userEvent.type(material, 'Satén');
-    await userEvent.click(section(edit.details).getByRole('button', { name: es.admin.save }));
+    await userEvent.click(section(edit.details).getByRole('button', { name: esAdmin.save }));
 
-    expect(await section(edit.details).findByRole('status')).toHaveTextContent(es.admin.saved);
+    expect(await section(edit.details).findByRole('status')).toHaveTextContent(esAdmin.saved);
     expect(api.callsTo('PUT /api/admin/catalog/products/{id}')[0]?.options.body).toMatchObject({
       categoryId: 'c-1',
       name: 'Pijama Luna',

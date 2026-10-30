@@ -1,11 +1,11 @@
 import { Link, useNavigate } from 'react-router';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { ProductForm } from './ProductForm.tsx';
 import { createProduct, type ProductDetails } from './productsApi.ts';
 import { useStoreProduct } from './useAdminProduct.ts';
 import { useCategories } from './useCategories.ts';
 
-const messages = es.admin.productForm;
+const messages = esAdmin.productForm;
 
 /** UC-06 step 1 at /admin/productos/nuevo: a new product is hidden and has no variants; it then opens to edit. */
 export function NewProductPage() {
@@ -24,23 +24,23 @@ export function NewProductPage() {
 
   return (
     <>
-      <title>{`${messages.newTitle} | ${es.admin.title}`}</title>
+      <title>{`${messages.newTitle} | ${esAdmin.title}`}</title>
       <Link to="/admin/productos" className="back-link">
-        {es.admin.productEdit.backToList}
+        {esAdmin.productEdit.backToList}
       </Link>
       <h1>{messages.newTitle}</h1>
-      {categories.isPending && <p role="status">{es.admin.loading}</p>}
+      {categories.isPending && <p role="status">{esAdmin.loading}</p>}
       {categories.isError && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void categories.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}
       {categories.data?.length === 0 && (
         <p>
-          {messages.needsCategory} <Link to="/admin/categorias">{es.admin.categories}</Link>
+          {messages.needsCategory} <Link to="/admin/categorias">{esAdmin.categories}</Link>
         </p>
       )}
       {categories.data !== undefined && categories.data.length > 0 && (

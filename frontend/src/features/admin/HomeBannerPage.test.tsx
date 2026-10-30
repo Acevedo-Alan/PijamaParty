@@ -1,13 +1,13 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { connectionLost, problem, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { uploadTransport, type UploadReply } from './uploadTransport.ts';
 
-const messages = es.admin.homeBanner;
+const messages = esAdmin.homeBanner;
 const BANNER = '/api/admin/home/banner';
 
 const EMPTY = { title: null, body: null, linkText: null, linkPath: null, image: null, published: false };
@@ -54,7 +54,7 @@ describe('character banner in the back office (UC-32)', () => {
   it('given the back office menu, when it shows, then "Portada" opens the banner page', async () => {
     await openPage(EMPTY);
 
-    expect(screen.getByRole('link', { name: es.admin.home })).toHaveAttribute('href', '/admin/portada');
+    expect(screen.getByRole('link', { name: esAdmin.home })).toHaveAttribute('href', '/admin/portada');
     expect(screen.getByText(messages.hiddenState)).toBeInTheDocument();
     expect(screen.getByText(messages.noPhoto)).toBeInTheDocument();
   });
@@ -68,9 +68,9 @@ describe('character banner in the back office (UC-32)', () => {
     await userEvent.type(screen.getByLabelText(messages.linkPath), TEXTS.linkPath);
     expect(preview().getByRole('heading', { level: 2, name: TEXTS.title })).toBeInTheDocument();
     expect(preview().queryByRole('link')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: es.admin.save }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.save }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(es.admin.saved);
+    expect(await screen.findByRole('status')).toHaveTextContent(esAdmin.saved);
     expect(api.callsTo(`PUT ${BANNER}`)[0]?.options.body).toEqual(TEXTS);
   });
 
@@ -82,7 +82,7 @@ describe('character banner in the back office (UC-32)', () => {
     await userEvent.type(screen.getByLabelText(messages.title), 'Personajes');
     await userEvent.type(screen.getByLabelText(messages.linkText), 'Ver');
     await userEvent.type(screen.getByLabelText(messages.linkPath), 'https://other.site');
-    await userEvent.click(screen.getByRole('button', { name: es.admin.save }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.save }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(messages.invalid);
     const target = screen.getByLabelText(messages.linkPath);
@@ -127,10 +127,10 @@ describe('character banner in the back office (UC-32)', () => {
     });
 
     await userEvent.upload(screen.getByLabelText(messages.addPhoto), jpg());
-    expect(await screen.findByRole('alert')).toHaveTextContent(es.admin.photos.connectionLost);
-    await userEvent.click(screen.getByRole('button', { name: es.admin.photos.retry }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(esAdmin.photos.connectionLost);
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.photos.retry }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(es.admin.photos.uploaded);
+    expect(await screen.findByRole('status')).toHaveTextContent(esAdmin.photos.uploaded);
     const [first, retry] = send.mock.calls.map(([request]) => request);
     expect(first?.url).toBe('/api/admin/home/banner/photo');
     expect(first?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
@@ -149,7 +149,7 @@ describe('character banner in the back office (UC-32)', () => {
 
     await userEvent.upload(screen.getByLabelText(messages.replacePhoto), jpg());
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(es.admin.photos.problems.UNSUPPORTED_FORMAT);
+    expect(await screen.findByRole('alert')).toHaveTextContent(esAdmin.photos.problems.UNSUPPORTED_FORMAT);
     expect(preview().getByRole('presentation')).toHaveAttribute('src', '/uploads/b-400.webp');
   });
 });

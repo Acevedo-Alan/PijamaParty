@@ -263,7 +263,7 @@ Fakes never live in main sources, and use-case tests build the service with `new
 - Feature folders (`catalog`, `cart`, `checkout`, `account`, `admin`), each with its components, hooks and API calls.
 - API client generated from the OpenAPI contract; server state with TanStack Query; no business rules in components (the server is the source of truth for prices, discounts, shipping and stock).
 - Mobile-first components, shared design tokens for the warm pastel palette, accessible drawer and wizard patterns.
-- Texts through i18n resource bundles (Spanish).
+- Texts through i18n resource bundles (Spanish): `src/i18n/es.ts` for the storefront and `src/i18n/esAdmin.ts` for the back office, which only the back office imports, so a shopper's first load never carries its texts (T-E6-27, RNF-11).
 - **TypeScript only.** Frontend and tooling: TypeScript only (.ts/.tsx). No .js/.jsx/.mjs/.cjs files, including configs and scripts. If a tool cannot read a TS config, use JSON. Node >= 22.18 or tsx for scripts.
   - TypeScript is pinned to 5.9: typescript-eslint supports `<6.1` and openapi-typescript `^5`, so TypeScript 6 and 7 wait until they do.
   - `tsconfig` with `strict: true`, `allowJs: false` and `noUncheckedIndexedAccess: true`.

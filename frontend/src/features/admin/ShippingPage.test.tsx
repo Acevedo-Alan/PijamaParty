@@ -2,11 +2,12 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { connectionLost, problem, shipping, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
-const messages = es.admin.shippingPage;
+const messages = esAdmin.shippingPage;
 const provinces = es.provinces;
 const configured = answer(200, shipping({ SANTA_FE: 300_000, CORDOBA: 0 }, 5_000_000));
 
@@ -57,7 +58,7 @@ describe('shipping configuration (UC-12)', () => {
     await userEvent.type(zones.getByLabelText(provinces.MENDOZA), '6.500,50');
     await userEvent.click(zones.getByRole('button', { name: messages.saveZones }));
 
-    expect(await zones.findByRole('status')).toHaveTextContent(es.admin.saved);
+    expect(await zones.findByRole('status')).toHaveTextContent(esAdmin.saved);
     expect(api.callsTo('PUT /api/admin/shipping/zones')[0]?.options.body).toEqual({
       zones: [
         { province: 'CORDOBA', costCents: 0 },
@@ -121,7 +122,7 @@ describe('shipping configuration (UC-12)', () => {
     await userEvent.clear(field);
     await userEvent.type(field, '60.000');
     await userEvent.click(free.getByRole('button', { name: messages.saveThreshold }));
-    expect(await free.findByRole('status')).toHaveTextContent(es.admin.saved);
+    expect(await free.findByRole('status')).toHaveTextContent(esAdmin.saved);
 
     await userEvent.clear(field);
     await userEvent.click(free.getByRole('button', { name: messages.saveThreshold }));
@@ -163,7 +164,7 @@ describe('shipping configuration (UC-12)', () => {
 
     await userEvent.click(zonesSection().getByRole('button', { name: messages.saveZones }));
 
-    expect(await zonesSection().findByRole('alert')).toHaveTextContent(es.admin.actionError);
+    expect(await zonesSection().findByRole('alert')).toHaveTextContent(esAdmin.actionError);
   });
 
   it('given the configuration cannot be loaded, when the page opens, then it offers to retry', async () => {
@@ -174,7 +175,7 @@ describe('shipping configuration (UC-12)', () => {
 
     renderRoute('/admin/envios');
 
-    expect(await screen.findByText(es.admin.loadError)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: es.admin.retry })).toBeEnabled();
+    expect(await screen.findByText(esAdmin.loadError)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: esAdmin.retry })).toBeEnabled();
   });
 });

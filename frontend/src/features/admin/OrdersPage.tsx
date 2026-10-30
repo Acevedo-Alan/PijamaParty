@@ -2,11 +2,12 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useId } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { fetchOrders, ORDER_STATUSES, type OrderStatus } from './ordersApi.ts';
 
-const messages = es.admin.orderList;
+const messages = esAdmin.orderList;
 const STATUS_PARAM = 'estado';
 
 /** The status in the address, so the filter survives opening an order and coming back; null for every order. */
@@ -30,7 +31,7 @@ export function OrdersPage() {
 
   return (
     <>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
         <h1>{messages.title}</h1>
       </div>
@@ -52,12 +53,12 @@ export function OrdersPage() {
           ))}
         </select>
       </div>
-      {orders.isPending && <p role="status">{es.admin.loading}</p>}
+      {orders.isPending && <p role="status">{esAdmin.loading}</p>}
       {orders.isError && items.length === 0 && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void orders.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}
@@ -88,7 +89,7 @@ export function OrdersPage() {
           disabled={orders.isFetchingNextPage}
           onClick={() => void orders.fetchNextPage()}
         >
-          {orders.isFetchingNextPage ? es.admin.loading : es.admin.showMore}
+          {orders.isFetchingNextPage ? esAdmin.loading : esAdmin.showMore}
         </button>
       )}
     </>

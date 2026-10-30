@@ -26,6 +26,6 @@
 - [ ] **T-E6-24** Tabla de correspondencia de URLs de Treinta y redirecciones `301` (RNF-31.3).
 - [ ] **T-E6-25** Revisión de accesibilidad (WCAG 2.1 AA) y páginas 404, 500 y de mantenimiento (RNF-31.4, RNF-31.7).
 - [ ] **T-E6-26** Probar el ingreso con Google y Facebook desde los navegadores integrados de Instagram y Facebook en Android y iPhone (CU-27).
-- [ ] **T-E6-27** LCP por debajo de 3 s otra vez (RNF-11): la foto del banner de personajes se carga primero mientras el carrusel no tiene fotos, y cada foto se guarda también en 600 px, la que usa un celular para la foto principal de la ficha (cambios a CU-06 y CU-30).
+- [ ] **T-E6-27** LCP por debajo de 3 s otra vez (RNF-11): la foto del banner de personajes se carga primero mientras el carrusel no tiene fotos, cada foto se guarda también en 600 px, la que usa un celular para la foto principal de la ficha, y la primera descarga de JavaScript se achica: los textos del backoffice salen de ella (cambios a CU-06 y CU-30).
 
 **Terminado cuando:** hay acta de aceptación y la tienda recibe compras reales.

@@ -2,14 +2,14 @@ import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { components } from '../../api/schema.d.ts';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 type Row = components['schemas']['ActivityEntryResponse'];
 
-const messages = es.admin.activityList;
+const messages = esAdmin.activityList;
 const LIST = 'GET /api/admin/activity';
 
 function row(id: string, overrides: Partial<Row> = {}): Row {
@@ -253,10 +253,10 @@ describe('the activity log in the back office (UC-37)', () => {
     renderRoute('/admin/actividad');
     await screen.findByText(messages.actions.VARIANT_UPDATED);
 
-    await userEvent.click(screen.getByRole('button', { name: es.admin.showMore }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.showMore }));
 
     expect(await screen.findByText(messages.actions.STOCK_ADJUSTED)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: es.admin.showMore })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: esAdmin.showMore })).not.toBeInTheDocument();
     expect(api.callsTo(LIST).map((call) => call.options.params?.query)).toEqual([{ page: 0 }, { page: 1 }]);
   });
 
@@ -316,7 +316,7 @@ describe('the activity log in the back office (UC-37)', () => {
     });
     renderRoute('/admin/actividad');
 
-    await userEvent.click(await screen.findByRole('button', { name: es.admin.retry }));
+    await userEvent.click(await screen.findByRole('button', { name: esAdmin.retry }));
 
     expect(await screen.findByText(messages.actions.VARIANT_UPDATED)).toBeInTheDocument();
     expect(api.callsTo(LIST)).toHaveLength(2);

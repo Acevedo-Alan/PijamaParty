@@ -1,12 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { centsToPesosInput, parsePesos } from './adminInput.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import { replaceZones, setFreeShippingThreshold, type Province, type ShippingConfiguration } from './shippingApi.ts';
 import { SHIPPING_KEY, useShipping } from './useShipping.ts';
 
-const messages = es.admin.shippingPage;
+const messages = esAdmin.shippingPage;
 
 /** Cents as the field shows them; empty for none. */
 function pesosText(cents: number | null): string {
@@ -64,10 +65,10 @@ function ZonesForm({ configuration, onSaved }: FormProps) {
       setCosts(
         Object.fromEntries(answer.configuration.zones.map((zone) => [zone.province, pesosText(zone.costCents)])),
       );
-      setNotice({ kind: 'ok', text: es.admin.saved });
+      setNotice({ kind: 'ok', text: esAdmin.saved });
       onSaved(answer.configuration);
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }
@@ -144,10 +145,10 @@ function ThresholdForm({ configuration, onSaved }: FormProps) {
       }
       setInvalid(false);
       setThreshold(pesosText(answer.configuration.freeShippingThresholdCents));
-      setNotice({ kind: 'ok', text: es.admin.saved });
+      setNotice({ kind: 'ok', text: esAdmin.saved });
       onSaved(answer.configuration);
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }
@@ -203,14 +204,14 @@ export function ShippingPage() {
 
   return (
     <>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <h1>{messages.title}</h1>
-      {shipping.isPending && <p role="status">{es.admin.loading}</p>}
+      {shipping.isPending && <p role="status">{esAdmin.loading}</p>}
       {shipping.isError && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void shipping.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}

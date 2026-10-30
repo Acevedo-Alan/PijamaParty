@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import {
@@ -13,7 +13,7 @@ import {
   type ReviewStatus,
 } from './reviewsApi.ts';
 
-const messages = es.admin.reviewList;
+const messages = esAdmin.reviewList;
 const STATUS_PARAM = 'estado';
 const MAX_STARS = 5;
 
@@ -48,7 +48,7 @@ export function ReviewsPage() {
     try {
       setNotice((await change()) ? { kind: 'ok', text: done } : { kind: 'error', text: messages.notFound });
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setBusy(null);
       await queryClient.invalidateQueries({ queryKey: ['admin', 'reviews'] });
@@ -75,7 +75,7 @@ export function ReviewsPage() {
 
   return (
     <>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
         <h1>{messages.title}</h1>
       </div>
@@ -98,12 +98,12 @@ export function ReviewsPage() {
         ))}
       </div>
       <Feedback notice={notice} />
-      {reviews.isPending && <p role="status">{es.admin.loading}</p>}
+      {reviews.isPending && <p role="status">{esAdmin.loading}</p>}
       {reviews.isError && items.length === 0 && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void reviews.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}
@@ -176,7 +176,7 @@ export function ReviewsPage() {
           disabled={reviews.isFetchingNextPage}
           onClick={() => void reviews.fetchNextPage()}
         >
-          {reviews.isFetchingNextPage ? es.admin.loading : es.admin.showMore}
+          {reviews.isFetchingNextPage ? esAdmin.loading : esAdmin.showMore}
         </button>
       )}
     </>

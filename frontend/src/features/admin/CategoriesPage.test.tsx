@@ -1,12 +1,12 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { category, problem, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
-const messages = es.admin.categoryList;
+const messages = esAdmin.categoryList;
 const pijamas = category('c-1', 'Pijamas');
 const batas = category('c-2', 'Batas', false);
 const listed = answer(200, [pijamas, batas]);
@@ -136,7 +136,7 @@ describe('category management (UC-05)', () => {
 
     await userEvent.click((await findRow('Batas')).getByRole('button', { name: messages.activate }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(es.admin.saved);
+    expect(await screen.findByRole('status')).toHaveTextContent(esAdmin.saved);
     expect(api.callsTo('POST /api/admin/catalog/categories/{id}/activate')[0]?.options.params?.path).toEqual({
       id: 'c-2',
     });
@@ -154,9 +154,9 @@ describe('category management (UC-05)', () => {
     const field = screen.getByLabelText(messages.renameLabel('Pijamas'));
     await userEvent.clear(field);
     await userEvent.type(field, 'Pijamas de invierno');
-    await userEvent.click(screen.getByRole('button', { name: es.admin.save }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.save }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(es.admin.saved);
+    expect(await screen.findByRole('status')).toHaveTextContent(esAdmin.saved);
     expect(screen.queryByLabelText(messages.renameLabel('Pijamas'))).not.toBeInTheDocument();
     expect(api.callsTo('PATCH /api/admin/catalog/categories/{id}')[0]?.options.body).toEqual({
       name: 'Pijamas de invierno',

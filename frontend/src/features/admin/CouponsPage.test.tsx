@@ -1,14 +1,14 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { category, coupon, problem, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
-const messages = es.admin.couponList;
-const form = es.admin.couponForm;
+const messages = esAdmin.couponList;
+const form = esAdmin.couponForm;
 const verano = coupon('k-1', 'VERANO10', {
   type: 'FIXED_AMOUNT',
   discountValue: 500_000,
@@ -194,7 +194,7 @@ describe('coupon management (UC-11)', () => {
 
     await userEvent.click((await findRow('VERANO10')).getByRole('button', { name: messages.deactivate }));
 
-    expect(await screen.findByText(es.admin.saved)).toHaveAttribute('role', 'status');
+    expect(await screen.findByText(esAdmin.saved)).toHaveAttribute('role', 'status');
     expect(api.callsTo('POST /api/admin/coupons/{id}/deactivate')[0]?.options.params?.path).toEqual({ id: 'k-1' });
   });
 
@@ -214,9 +214,9 @@ describe('coupon management (UC-11)', () => {
     expect(edited.getByLabelText(form.minimum)).toHaveValue('20000');
     await userEvent.clear(edited.getByLabelText(form.maxUses));
     await userEvent.type(edited.getByLabelText(form.maxUses), '20');
-    await userEvent.click(edited.getByRole('button', { name: es.admin.save }));
+    await userEvent.click(edited.getByRole('button', { name: esAdmin.save }));
 
-    expect(await screen.findByText(es.admin.saved)).toHaveAttribute('role', 'status');
+    expect(await screen.findByText(esAdmin.saved)).toHaveAttribute('role', 'status');
     expect(screen.queryByText(messages.editing('VERANO10'))).not.toBeInTheDocument();
     expect(api.callsTo('PUT /api/admin/coupons/{id}')[0]?.options).toMatchObject({
       params: { path: { id: 'k-1' } },
@@ -301,7 +301,7 @@ describe('automatic coupons (UC-11, UC-23)', () => {
     await userEvent.type(created.getByLabelText(form.percent), '10');
     await userEvent.click(created.getByRole('button', { name: messages.create }));
 
-    await screen.findByText(es.admin.saved);
+    await screen.findByText(esAdmin.saved);
     expect(api.callsTo('POST /api/admin/coupons')[0]?.options.body).toMatchObject({
       automatic: false,
       scope: { productIds: [], categoryIds: [] },
@@ -356,9 +356,9 @@ describe('automatic coupons (UC-11, UC-23)', () => {
     expect(edited.queryByRole('checkbox', { name: form.automatic })).not.toBeInTheDocument();
     expect(await edited.findByRole('checkbox', { name: 'Pijamas' })).toBeChecked();
     await userEvent.click(edited.getByRole('checkbox', { name: 'Camisón Sol' }));
-    await userEvent.click(edited.getByRole('button', { name: es.admin.save }));
+    await userEvent.click(edited.getByRole('button', { name: esAdmin.save }));
 
-    await screen.findByText(es.admin.saved);
+    await screen.findByText(esAdmin.saved);
     expect(api.callsTo('PUT /api/admin/coupons/{id}')[0]?.options.body).toMatchObject({
       automatic: true,
       scope: { productIds: ['p-2'], categoryIds: ['c-1'] },

@@ -1,12 +1,12 @@
 import { useId, useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { centsToPesosInput, parsePesos, splitList } from './adminInput.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import { generateVariants, updateVariant, type AdminProduct, type AdminVariant, type VariantAnswer } from './productsApi.ts';
 import { useStoreProduct } from './useAdminProduct.ts';
 
-const messages = es.admin.variants;
+const messages = esAdmin.variants;
 
 /** The variants by color and then size, in the display order of the product (UC-06). */
 export function inDisplayOrder(product: AdminProduct): AdminVariant[] {
@@ -21,7 +21,7 @@ export function inDisplayOrder(product: AdminProduct): AdminVariant[] {
 function variantNotice(answer: VariantAnswer): Notice {
   switch (answer.status) {
     case 'saved':
-      return { kind: 'ok', text: es.admin.saved };
+      return { kind: 'ok', text: esAdmin.saved };
     case 'lastActivePricedVariant':
       return { kind: 'error', text: messages.lastActivePriced };
     case 'invalidPrice':
@@ -47,7 +47,7 @@ function VariantRow({ productId, variant }: { productId: string; variant: AdminV
       }
       setNotice(variantNotice(answer));
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }
@@ -139,11 +139,11 @@ export function VariantsSection({ product }: { product: AdminProduct }) {
           setNotice({ kind: 'error', text: messages.problems[answer.problem] });
           break;
         case 'notFound':
-          setNotice({ kind: 'error', text: es.admin.productEdit.notFound });
+          setNotice({ kind: 'error', text: esAdmin.productEdit.notFound });
           break;
       }
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }

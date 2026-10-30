@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
 import { Link, useParams } from 'react-router';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import {
   deleteSizeGuide,
@@ -12,7 +12,7 @@ import {
   type SizeGuideField,
 } from './sizeGuideApi.ts';
 
-const messages = es.admin.sizeGuidePage;
+const messages = esAdmin.sizeGuidePage;
 
 /** The limits of RNF-31.5, so the form never offers more than the server takes. */
 const MAX_COLUMNS = 6;
@@ -115,7 +115,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
       switch (answer.status) {
         case 'saved':
           load(answer.guide);
-          setNotice({ kind: 'ok', text: es.admin.saved });
+          setNotice({ kind: 'ok', text: esAdmin.saved });
           onChanged(answer.guide);
           break;
         case 'invalid':
@@ -127,7 +127,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
           break;
       }
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setBusy(false);
     }
@@ -148,7 +148,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
         setNotice({ kind: 'error', text: messages.notFound });
       }
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setBusy(false);
     }
@@ -335,7 +335,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
       <Feedback notice={notice} />
       <div className="admin-actions">
         <button type="submit" className="btn" disabled={busy}>
-          {es.admin.save}
+          {esAdmin.save}
         </button>
         {guide !== null && (
           <button type="button" className="btn btn-secondary danger" disabled={busy} onClick={() => void remove()}>
@@ -359,16 +359,16 @@ export function SizeGuidePage() {
 
   return (
     <>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <Link to="/admin/categorias" className="back-link">
         {messages.back}
       </Link>
-      {found.isPending && <p role="status">{es.admin.loading}</p>}
+      {found.isPending && <p role="status">{esAdmin.loading}</p>}
       {found.isError && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void found.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}

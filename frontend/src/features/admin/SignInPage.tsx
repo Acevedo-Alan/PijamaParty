@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useState, type SubmitEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import {
@@ -19,7 +20,7 @@ import {
 import { returnPath, SESSION_KEY, useSession, type SignInState } from './useSession.ts';
 import './admin.css';
 
-const messages = es.admin.signIn;
+const messages = esAdmin.signIn;
 
 type Step =
   | { name: 'password'; notice?: string }

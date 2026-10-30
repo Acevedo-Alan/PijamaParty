@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
 import { Link, useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
@@ -15,7 +16,7 @@ import {
   type StatusChange,
 } from './ordersApi.ts';
 
-const messages = es.admin.orderDetail;
+const messages = esAdmin.orderDetail;
 
 type SettableStatus = keyof typeof messages.actions;
 
@@ -65,7 +66,7 @@ function StatusActions({ order, onChanged }: Props) {
         setNotice({ kind: 'error', text: messages.problems[answer.problem] });
       }
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }
@@ -233,7 +234,7 @@ function TrackingNumberForm({ order, onChanged }: Props) {
         await onChanged();
       }
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }
@@ -278,7 +279,7 @@ function OrderView({ order, onChanged }: Props) {
   const floorAndApartment = messages.floorAndApartment(address.floor, address.apartment);
   return (
     <>
-      <title>{`${messages.title(order.number)} | ${es.admin.title}`}</title>
+      <title>{`${messages.title(order.number)} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
         <h1>{messages.title(order.number)}</h1>
         <span className="admin-badge">{es.tracking.statuses[order.status]}</span>
@@ -379,12 +380,12 @@ export function OrderDetailPage() {
       <Link to="/admin/pedidos" className="back-link">
         {messages.backToList}
       </Link>
-      {order.isPending && <p role="status">{es.admin.loading}</p>}
+      {order.isPending && <p role="status">{esAdmin.loading}</p>}
       {order.isError && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void order.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}

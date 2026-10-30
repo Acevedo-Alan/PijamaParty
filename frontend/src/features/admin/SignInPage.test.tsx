@@ -1,19 +1,19 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { problem, signedIn, signedOut, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
-const messages = es.admin.signIn;
+const messages = esAdmin.signIn;
 const productList = answer(200, { items: [], hasMore: false });
 const categoryList = answer(200, []);
 
 async function signInWith(email: string, password: string) {
-  await userEvent.type(await screen.findByLabelText(es.admin.signIn.email), email);
-  await userEvent.type(screen.getByLabelText(es.admin.signIn.password), password);
-  await userEvent.click(screen.getByRole('button', { name: es.admin.signIn.submit }));
+  await userEvent.type(await screen.findByLabelText(esAdmin.signIn.email), email);
+  await userEvent.type(screen.getByLabelText(esAdmin.signIn.password), password);
+  await userEvent.click(screen.getByRole('button', { name: esAdmin.signIn.submit }));
 }
 
 describe('back-office sign-in (UC-04)', () => {
@@ -36,7 +36,7 @@ describe('back-office sign-in (UC-04)', () => {
     await userEvent.type(screen.getByLabelText(messages.codeLabel), '123 456');
     await userEvent.click(screen.getByRole('button', { name: messages.verify }));
 
-    expect(await screen.findByRole('heading', { level: 1, name: es.admin.productList.title })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: esAdmin.productList.title })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/admin/productos');
     expect(api.callsTo('POST /api/admin/auth/login')[0]?.options.body).toEqual({
       email: 'owner@example.com',
@@ -118,7 +118,7 @@ describe('back-office sign-in (UC-04)', () => {
     await userEvent.click(screen.getByLabelText(messages.saved));
     await userEvent.click(enter);
 
-    expect(await screen.findByRole('heading', { level: 1, name: es.admin.productList.title })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: esAdmin.productList.title })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/admin/productos');
     expect(api.callsTo('GET /api/admin/auth/enrollment')).toHaveLength(1);
   });
@@ -129,8 +129,8 @@ describe('back-office sign-in (UC-04)', () => {
 
     await signInWith('owner@example.com', 'wrong password');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(es.admin.signIn.invalidCredentials);
-    expect(screen.getByLabelText(es.admin.signIn.password)).toHaveValue('');
+    expect(await screen.findByRole('alert')).toHaveTextContent(esAdmin.signIn.invalidCredentials);
+    expect(screen.getByLabelText(esAdmin.signIn.password)).toHaveValue('');
   });
 
   it('given a locked account, when trying, then the unlock time is shown in Argentina time', async () => {
@@ -142,7 +142,7 @@ describe('back-office sign-in (UC-04)', () => {
 
     await signInWith('owner@example.com', 'any password');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(es.admin.signIn.locked('14:30'));
+    expect(await screen.findByRole('alert')).toHaveTextContent(esAdmin.signIn.locked('14:30'));
   });
 
   it('given too many attempts from this IP, when trying, then it asks to wait', async () => {
@@ -151,7 +151,7 @@ describe('back-office sign-in (UC-04)', () => {
 
     await signInWith('owner@example.com', 'any password');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(es.admin.signIn.tooManyAttempts);
+    expect(await screen.findByRole('alert')).toHaveTextContent(esAdmin.signIn.tooManyAttempts);
   });
 
   it('given a user with role CUSTOMER, when opening /admin, then access is denied', async () => {
@@ -159,8 +159,8 @@ describe('back-office sign-in (UC-04)', () => {
 
     renderRoute('/admin');
 
-    expect(await screen.findByRole('heading', { level: 1, name: es.admin.accessDenied.title })).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: es.admin.nav })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: esAdmin.accessDenied.title })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: esAdmin.nav })).not.toBeInTheDocument();
   });
 
   it('given a session that expires, when a back-office call answers 401, then the sign-in page opens with a notice', async () => {
@@ -171,7 +171,7 @@ describe('back-office sign-in (UC-04)', () => {
     });
     const { router } = renderRoute('/admin/categorias');
 
-    expect(await screen.findByText(es.admin.signIn.expired)).toBeInTheDocument();
+    expect(await screen.findByText(esAdmin.signIn.expired)).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/admin/ingresar');
   });
 
@@ -184,9 +184,9 @@ describe('back-office sign-in (UC-04)', () => {
     });
     const { router } = renderRoute('/admin');
 
-    await userEvent.click(await screen.findByRole('button', { name: es.admin.signOut }));
+    await userEvent.click(await screen.findByRole('button', { name: esAdmin.signOut }));
 
-    expect(await screen.findByRole('heading', { level: 1, name: es.admin.signIn.title })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: esAdmin.signIn.title })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/admin/ingresar');
     expect(api.callsTo('POST /api/admin/auth/logout')).toHaveLength(1);
   });

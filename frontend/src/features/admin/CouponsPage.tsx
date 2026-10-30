@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { CouponForm } from './CouponForm.tsx';
 import {
@@ -16,7 +16,7 @@ import { useCategories } from './useCategories.ts';
 import { COUPONS_KEY, useCoupons } from './useCoupons.ts';
 import { useProductSummaries } from './useProductSummaries.ts';
 
-const messages = es.admin.couponList;
+const messages = esAdmin.couponList;
 
 /** An ISO day ("2026-12-01") as the shop writes dates ("01/12/2026"), without time zones in between. */
 function formatDay(isoDay: string): string {
@@ -98,7 +98,7 @@ function CouponRow({ coupon, scopeNames, busy, onSaved, onToggleActive, onDelete
         <p className="admin-card-title">{messages.editing(coupon.code)}</p>
         <CouponForm
           initial={coupon}
-          submitLabel={es.admin.save}
+          submitLabel={esAdmin.save}
           onSubmit={(data) => updateCoupon(coupon.id, data)}
           onSaved={() => {
             setEditing(false);
@@ -177,10 +177,10 @@ export function CouponsPage() {
   const change = useMutation({
     mutationFn: (action: () => Promise<string | null>) => action(),
     onSuccess: (problem) => {
-      setNotice(problem === null ? { kind: 'ok', text: es.admin.saved } : { kind: 'error', text: problem });
+      setNotice(problem === null ? { kind: 'ok', text: esAdmin.saved } : { kind: 'error', text: problem });
     },
     onError: () => {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     },
     onSettled: reload,
   });
@@ -192,7 +192,7 @@ export function CouponsPage() {
 
   return (
     <>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <h1>{messages.title}</h1>
       <section className="admin-section" aria-labelledby={newTitleId}>
         <h2 id={newTitleId}>{messages.newCoupon}</h2>
@@ -204,12 +204,12 @@ export function CouponsPage() {
         />
       </section>
       <Feedback notice={notice} />
-      {coupons.isPending && <p role="status">{es.admin.loading}</p>}
+      {coupons.isPending && <p role="status">{esAdmin.loading}</p>}
       {coupons.isError && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void coupons.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}
@@ -223,7 +223,7 @@ export function CouponsPage() {
               scopeNames={scopeNames}
               busy={change.isPending}
               onSaved={() => {
-                setNotice({ kind: 'ok', text: es.admin.saved });
+                setNotice({ kind: 'ok', text: esAdmin.saved });
                 void reload();
               }}
               onToggleActive={() => {

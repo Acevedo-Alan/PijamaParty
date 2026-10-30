@@ -1,13 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useId, useRef, useState, type DragEvent } from 'react';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { newIdempotencyKey } from './adminSession.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import { deleteImage, reorderImages, uploadImage, type AdminProduct, type UploadAnswer } from './productsApi.ts';
 import { shrinkPhoto, uploadName } from './shrinkPhoto.ts';
 import { productKey, useStoreProduct } from './useAdminProduct.ts';
 
-const messages = es.admin.photos;
+const messages = esAdmin.photos;
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp';
 
 type RowState = 'shrinking' | 'waiting' | 'uploading' | 'uploaded' | 'failed' | 'rejected';
@@ -39,7 +39,7 @@ function rejection(answer: Exclude<UploadAnswer, { status: 'uploaded' } | { stat
     case 'invalid':
       return messages.problems[answer.problem];
     case 'notFound':
-      return es.admin.productEdit.notFound;
+      return esAdmin.productEdit.notFound;
   }
 }
 
@@ -164,7 +164,7 @@ export function PhotosSection({ product }: { product: AdminProduct }) {
     try {
       setNotice(await action());
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }
@@ -182,7 +182,7 @@ export function PhotosSection({ product }: { product: AdminProduct }) {
     void run(async () => {
       const reordered = await reorderImages(product.id, ids);
       if (reordered === null) {
-        return { kind: 'error', text: es.admin.productEdit.notFound };
+        return { kind: 'error', text: esAdmin.productEdit.notFound };
       }
       store(reordered);
       return null;
@@ -279,7 +279,7 @@ export function PhotosSection({ product }: { product: AdminProduct }) {
                         remove(id, position);
                       }}
                     >
-                      {es.admin.categoryList.delete}
+                      {esAdmin.categoryList.delete}
                     </button>
                   </div>
                 </li>

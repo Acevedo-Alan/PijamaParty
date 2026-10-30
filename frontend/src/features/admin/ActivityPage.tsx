@@ -2,6 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useId } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import {
   ACTIVITY_AREAS,
@@ -12,14 +13,14 @@ import {
   type ActivityFilter,
 } from './activityApi.ts';
 
-const messages = es.admin.activityList;
+const messages = esAdmin.activityList;
 const subjectNames: Readonly<Partial<Record<string, string>>> = messages.subjects;
 const provinceNames: Readonly<Partial<Record<string, string>>> = es.provinces;
 /** The recorded names translated, with the order statuses and coupon types in the words of their own screens. */
 const values: Readonly<Partial<Record<string, Readonly<Partial<Record<string, string>>>>>> = {
   ...messages.values,
   status: es.tracking.statuses,
-  type: es.admin.couponForm.types,
+  type: esAdmin.couponForm.types,
 };
 const AREA_PARAM = 'seccion';
 const FROM_PARAM = 'desde';
@@ -110,7 +111,7 @@ export function ActivityPage() {
 
   return (
     <>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
         <h1>{messages.title}</h1>
       </div>
@@ -162,12 +163,12 @@ export function ActivityPage() {
           {messages.invalidPeriod}
         </p>
       )}
-      {!invalidPeriod && activity.isPending && <p role="status">{es.admin.loading}</p>}
+      {!invalidPeriod && activity.isPending && <p role="status">{esAdmin.loading}</p>}
       {activity.isError && items.length === 0 && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void activity.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}
@@ -211,7 +212,7 @@ export function ActivityPage() {
           disabled={activity.isFetchingNextPage}
           onClick={() => void activity.fetchNextPage()}
         >
-          {activity.isFetchingNextPage ? es.admin.loading : es.admin.showMore}
+          {activity.isFetchingNextPage ? esAdmin.loading : esAdmin.showMore}
         </button>
       )}
     </>

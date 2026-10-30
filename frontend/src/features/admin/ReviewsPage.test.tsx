@@ -2,14 +2,14 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { components } from '../../api/schema.d.ts';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { problem, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 type Row = components['schemas']['ModeratedReviewResponse'];
 
-const messages = es.admin.reviewList;
+const messages = esAdmin.reviewList;
 const LIST = 'GET /api/admin/reviews';
 const APPROVE = 'POST /api/admin/reviews/{id}/approve';
 const REJECT = 'POST /api/admin/reviews/{id}/reject';
@@ -67,7 +67,7 @@ describe('review moderation in the back office (UC-25)', () => {
     expect(ana.getByRole('button', { name: messages.reject })).toBeEnabled();
     expect(card('Bruno').getByText(messages.noText)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: es.admin.showMore }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.showMore }));
 
     await screen.findByText(/^Carla · enviada el/);
     expect(card('Carla').getByText(messages.productGone)).toBeInTheDocument();

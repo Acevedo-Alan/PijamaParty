@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import { PhotosSection } from './PhotosSection.tsx';
 import { ProductForm } from './ProductForm.tsx';
@@ -9,7 +9,7 @@ import { useAdminProduct, useStoreProduct } from './useAdminProduct.ts';
 import { useCategories } from './useCategories.ts';
 import { VariantsSection } from './VariantsSection.tsx';
 
-const messages = es.admin.productEdit;
+const messages = esAdmin.productEdit;
 
 function DetailsSection({ product }: { product: AdminProduct }) {
   const categories = useCategories();
@@ -28,12 +28,12 @@ function DetailsSection({ product }: { product: AdminProduct }) {
   return (
     <section className="admin-section" aria-labelledby={titleId}>
       <h2 id={titleId}>{messages.details}</h2>
-      {categories.isError && <p role="alert">{es.admin.loadError}</p>}
+      {categories.isError && <p role="alert">{esAdmin.loadError}</p>}
       {categories.data !== undefined && (
         <ProductForm
           categories={categories.data}
           initial={{ categoryId, name, description, material, season, audience }}
-          submitLabel={es.admin.save}
+          submitLabel={esAdmin.save}
           onSubmit={save}
         />
       )}
@@ -65,7 +65,7 @@ function StateSection({ product }: { product: AdminProduct }) {
           break;
       }
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }
@@ -96,19 +96,19 @@ export function ProductEditPage() {
       <Link to="/admin/productos" className="back-link">
         {messages.backToList}
       </Link>
-      {product.isPending && <p role="status">{es.admin.loading}</p>}
+      {product.isPending && <p role="status">{esAdmin.loading}</p>}
       {product.isError && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void product.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}
       {product.data?.status === 'notFound' && <h1>{messages.notFound}</h1>}
       {product.data?.status === 'found' && (
         <>
-          <title>{`${product.data.product.name} | ${es.admin.title}`}</title>
+          <title>{`${product.data.product.name} | ${esAdmin.title}`}</title>
           <h1>{product.data.product.name}</h1>
           <DetailsSection key={product.data.product.id} product={product.data.product} />
           <StateSection product={product.data.product} />

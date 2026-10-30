@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { CharacterBannerView, homeBannerKey } from '../catalog/CharacterBanner.tsx';
 import '../catalog/catalog.css';
 import { newIdempotencyKey } from './adminSession.ts';
@@ -18,7 +18,7 @@ import {
 } from './homeBannerApi.ts';
 import { shrinkPhoto, uploadName } from './shrinkPhoto.ts';
 
-const messages = es.admin.homeBanner;
+const messages = esAdmin.homeBanner;
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp';
 const EMPTY: BannerTexts = { title: '', body: '', linkText: '', linkPath: '' };
 
@@ -42,7 +42,7 @@ interface PendingPhoto {
 
 /** The reason of an answer that will not change by sending the same photo again. */
 function rejection(answer: Extract<PhotoAnswer, { status: 'fileTooLarge' | 'invalid' }>): string {
-  return answer.status === 'fileTooLarge' ? es.admin.photos.fileTooLarge : es.admin.photos.problems[answer.problem];
+  return answer.status === 'fileTooLarge' ? esAdmin.photos.fileTooLarge : esAdmin.photos.problems[answer.problem];
 }
 
 interface EditorProps {
@@ -74,7 +74,7 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
     try {
       setNotice(await action());
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setBusy(false);
     }
@@ -91,7 +91,7 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
       setInvalid([]);
       setDraft(answer.banner.texts ?? EMPTY);
       changed(answer.banner);
-      return { kind: 'ok', text: es.admin.saved };
+      return { kind: 'ok', text: esAdmin.saved };
     });
   }
 
@@ -118,17 +118,17 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
         setPhoto((current) => (current?.key === pending.key ? { ...current, progress } : current));
       });
     } catch {
-      setPhoto({ ...pending, bytes, state: 'failed', progress: 0, reason: es.admin.photos.connectionLost });
+      setPhoto({ ...pending, bytes, state: 'failed', progress: 0, reason: esAdmin.photos.connectionLost });
       return;
     }
     switch (answer.status) {
       case 'uploaded':
         setPhoto(null);
         changed(answer.banner);
-        setNotice({ kind: 'ok', text: es.admin.photos.uploaded });
+        setNotice({ kind: 'ok', text: esAdmin.photos.uploaded });
         break;
       case 'busy':
-        setPhoto({ ...pending, bytes, state: 'failed', progress: 0, reason: es.admin.photos.busy });
+        setPhoto({ ...pending, bytes, state: 'failed', progress: 0, reason: esAdmin.photos.busy });
         break;
       default:
         // Sending it again changes nothing: the administrator picks another photo.
@@ -194,7 +194,7 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
         {field('linkPath', messages.linkPath, messages.linkPathHint)}
         <div className="admin-actions">
           <button type="submit" className="btn" disabled={busy}>
-            {es.admin.save}
+            {esAdmin.save}
           </button>
         </div>
       </form>
@@ -225,9 +225,9 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
           <div className={`upload-row ${photo.state}`}>
             <div className="upload-head">
               <span className="upload-name">{photo.file.name}</span>
-              <span className="admin-card-meta">{es.admin.photos.states[photo.state]}</span>
+              <span className="admin-card-meta">{esAdmin.photos.states[photo.state]}</span>
             </div>
-            <progress max={1} value={photo.progress} aria-label={es.admin.photos.progress(photo.file.name)} />
+            <progress max={1} value={photo.progress} aria-label={esAdmin.photos.progress(photo.file.name)} />
             {photo.reason !== undefined && (
               <p className="form-error" role="alert">
                 {photo.reason}
@@ -245,7 +245,7 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
                     }
                   }}
                 >
-                  {es.admin.photos.retry}
+                  {esAdmin.photos.retry}
                 </button>
                 <button
                   type="button"
@@ -254,7 +254,7 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
                     setPhoto(null);
                   }}
                 >
-                  {es.admin.photos.dismissShort}
+                  {esAdmin.photos.dismissShort}
                 </button>
               </div>
             )}
@@ -297,15 +297,15 @@ export function HomeBannerPage() {
 
   return (
     <>
-      <title>{`${messages.pageTitle} | ${es.admin.title}`}</title>
+      <title>{`${messages.pageTitle} | ${esAdmin.title}`}</title>
       <h1>{messages.pageTitle}</h1>
       <p className="field-hint">{messages.intro}</p>
-      {found.isPending && <p role="status">{es.admin.loading}</p>}
+      {found.isPending && <p role="status">{esAdmin.loading}</p>}
       {found.isError && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void found.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}

@@ -1,11 +1,12 @@
 import { useId, useState, type ReactNode, type SubmitEvent } from 'react';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import type { Audience, Season } from '../catalog/listingCriteria.ts';
 import type { Category } from './categoriesApi.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import type { DetailsField, ProductDetails, SaveDetailsAnswer } from './productsApi.ts';
 
-const messages = es.admin.productForm;
+const messages = esAdmin.productForm;
 const SEASONS: readonly Season[] = ['SUMMER', 'MID_SEASON', 'WINTER'];
 const AUDIENCES: readonly Audience[] = ['WOMEN', 'MEN', 'KIDS'];
 
@@ -68,7 +69,7 @@ export function ProductForm({ categories, initial, submitLabel, onSubmit }: Prod
       setInvalid(answer.status === 'invalid' ? answer.fields : []);
       switch (answer.status) {
         case 'saved':
-          setNotice({ kind: 'ok', text: es.admin.saved });
+          setNotice({ kind: 'ok', text: esAdmin.saved });
           break;
         case 'slugAlreadyUsed':
           setNotice({ kind: 'error', text: messages.slugUsed(answer.slug) });
@@ -77,11 +78,11 @@ export function ProductForm({ categories, initial, submitLabel, onSubmit }: Prod
           setNotice({ kind: 'error', text: messages.invalid });
           break;
         case 'notFound':
-          setNotice({ kind: 'error', text: es.admin.productEdit.notFound });
+          setNotice({ kind: 'error', text: esAdmin.productEdit.notFound });
           break;
       }
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }

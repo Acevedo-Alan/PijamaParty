@@ -3,13 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { components } from '../../api/schema.d.ts';
 import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { problem, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 type Row = components['schemas']['WithdrawalSummaryResponse'];
 
-const messages = es.admin.withdrawalList;
+const messages = esAdmin.withdrawalList;
 const LIST = 'GET /api/admin/withdrawals';
 const RESOLVE = 'POST /api/admin/withdrawals/{id}/resolve';
 
@@ -59,7 +60,7 @@ describe('withdrawal requests in the back office (UC-29)', () => {
     expect(late.getByText(new RegExp(es.tracking.statuses.DELIVERED))).toBeInTheDocument();
     expect(late.getByText(/Ana Pérez · pedida el/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: es.admin.showMore }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.showMore }));
 
     await screen.findByText('ARR-22222222');
     const resolved = card('ARR-22222222');

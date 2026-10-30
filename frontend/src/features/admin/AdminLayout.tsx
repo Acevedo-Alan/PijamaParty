@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import { onSessionExpired } from './adminSession.ts';
 import { signOut } from './authApi.ts';
@@ -12,9 +12,9 @@ function AccessDenied() {
   return (
     <main className="wrap admin-main">
       <NoIndex />
-      <h1>{es.admin.accessDenied.title}</h1>
-      <p>{es.admin.accessDenied.body}</p>
-      <Link to="/">{es.admin.viewStore}</Link>
+      <h1>{esAdmin.accessDenied.title}</h1>
+      <p>{esAdmin.accessDenied.body}</p>
+      <Link to="/">{esAdmin.viewStore}</Link>
     </main>
   );
 }
@@ -52,7 +52,7 @@ export function AdminLayout() {
     return (
       <main className="wrap admin-main">
         <NoIndex />
-        <p role="status">{es.admin.loading}</p>
+        <p role="status">{esAdmin.loading}</p>
       </main>
     );
   }
@@ -61,9 +61,9 @@ export function AdminLayout() {
       <main className="wrap admin-main">
         <NoIndex />
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void session.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       </main>
@@ -82,18 +82,18 @@ export function AdminLayout() {
       <NoIndex />
       <header className="admin-header">
         <div className="wrap admin-header-inner">
-          <p className="admin-brand">{es.admin.title}</p>
-          <nav aria-label={es.admin.nav} className="admin-nav">
-            <NavLink to="/admin/pedidos">{es.admin.orders}</NavLink>
-            <NavLink to="/admin/arrepentimientos">{es.admin.withdrawals}</NavLink>
-            <NavLink to="/admin/productos">{es.admin.products}</NavLink>
-            <NavLink to="/admin/categorias">{es.admin.categories}</NavLink>
-            <NavLink to="/admin/cupones">{es.admin.coupons}</NavLink>
-            <NavLink to="/admin/resenas">{es.admin.reviews}</NavLink>
-            <NavLink to="/admin/envios">{es.admin.shipping}</NavLink>
-            <NavLink to="/admin/portada">{es.admin.home}</NavLink>
-            <NavLink to="/admin/actividad">{es.admin.activity}</NavLink>
-            <Link to="/">{es.admin.viewStore}</Link>
+          <p className="admin-brand">{esAdmin.title}</p>
+          <nav aria-label={esAdmin.nav} className="admin-nav">
+            <NavLink to="/admin/pedidos">{esAdmin.orders}</NavLink>
+            <NavLink to="/admin/arrepentimientos">{esAdmin.withdrawals}</NavLink>
+            <NavLink to="/admin/productos">{esAdmin.products}</NavLink>
+            <NavLink to="/admin/categorias">{esAdmin.categories}</NavLink>
+            <NavLink to="/admin/cupones">{esAdmin.coupons}</NavLink>
+            <NavLink to="/admin/resenas">{esAdmin.reviews}</NavLink>
+            <NavLink to="/admin/envios">{esAdmin.shipping}</NavLink>
+            <NavLink to="/admin/portada">{esAdmin.home}</NavLink>
+            <NavLink to="/admin/actividad">{esAdmin.activity}</NavLink>
+            <Link to="/">{esAdmin.viewStore}</Link>
             <button
               type="button"
               className="link-btn"
@@ -102,7 +102,7 @@ export function AdminLayout() {
                 leave.mutate();
               }}
             >
-              {es.admin.signOut}
+              {esAdmin.signOut}
             </button>
           </nav>
         </div>

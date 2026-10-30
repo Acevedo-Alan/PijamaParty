@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import {
   createCategory,
   deleteCategory,
@@ -15,7 +15,7 @@ import {
 import { Feedback, type Notice } from './Feedback.tsx';
 import { CATEGORIES_KEY, useCategories } from './useCategories.ts';
 
-const messages = es.admin.categoryList;
+const messages = esAdmin.categoryList;
 
 /** The message of a name the server refused; null when it was saved. */
 function nameProblem(answer: NameAnswer): string | null {
@@ -96,7 +96,7 @@ function CategoryRow({ category, index, count, busy, onRename, onMove, onToggleA
           </label>
           <div className="admin-actions">
             <button type="submit" className="btn" disabled={busy}>
-              {es.admin.save}
+              {esAdmin.save}
             </button>
             <button
               type="button"
@@ -105,7 +105,7 @@ function CategoryRow({ category, index, count, busy, onRename, onMove, onToggleA
                 setDraft(null);
               }}
             >
-              {es.admin.cancel}
+              {esAdmin.cancel}
             </button>
           </div>
         </form>
@@ -177,10 +177,10 @@ export function CategoriesPage() {
   const change = useMutation({
     mutationFn: (action: () => Promise<string | null>) => action(),
     onSuccess: (problem) => {
-      setNotice(problem === null ? { kind: 'ok', text: es.admin.saved } : { kind: 'error', text: problem });
+      setNotice(problem === null ? { kind: 'ok', text: esAdmin.saved } : { kind: 'error', text: problem });
     },
     onError: () => {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY }),
   });
@@ -203,7 +203,7 @@ export function CategoriesPage() {
 
   return (
     <>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <h1>{messages.title}</h1>
       <form className="admin-form inline-form" onSubmit={(event) => void create(event)}>
         <label className="field">
@@ -222,12 +222,12 @@ export function CategoriesPage() {
         </button>
       </form>
       <Feedback notice={notice} />
-      {categories.isPending && <p role="status">{es.admin.loading}</p>}
+      {categories.isPending && <p role="status">{esAdmin.loading}</p>}
       {categories.isError && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void categories.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}

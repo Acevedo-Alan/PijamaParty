@@ -1,10 +1,10 @@
 import { useId, useState } from 'react';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { MAX_SCOPE_TARGETS, type CouponScope } from './couponsApi.ts';
 import { useCategories } from './useCategories.ts';
 import { useProductSummaries } from './useProductSummaries.ts';
 
-const messages = es.admin.couponForm;
+const messages = esAdmin.couponForm;
 
 interface Target {
   id: string;
@@ -100,7 +100,7 @@ export function CouponScopePicker({ scope, onChange, invalid }: CouponScopePicke
           {messages.errors.SCOPE}
         </p>
       )}
-      {(categories.isPending || products.isPending) && <p role="status">{es.admin.loading}</p>}
+      {(categories.isPending || products.isPending) && <p role="status">{esAdmin.loading}</p>}
       {(categories.isError || products.isError) && (
         <div role="alert">
           <p>{messages.scopeLoadError}</p>
@@ -112,7 +112,7 @@ export function CouponScopePicker({ scope, onChange, invalid }: CouponScopePicke
               void products.refetch();
             }}
           >
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}

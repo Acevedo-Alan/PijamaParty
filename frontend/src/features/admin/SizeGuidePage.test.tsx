@@ -1,12 +1,12 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { problem, signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
-const messages = es.admin.sizeGuidePage;
+const messages = esAdmin.sizeGuidePage;
 const GUIDE = '/api/admin/catalog/categories/{id}/size-guide';
 const CATEGORY = { id: 'cat-1', name: 'Pijamas de mujer' };
 
@@ -54,9 +54,9 @@ describe('size guide of a category (RNF-31.5)', () => {
     await userEvent.click(screen.getByRole('button', { name: messages.addRow }));
     await userEvent.type(row(2).getByLabelText(messages.sizeLabel), '6');
     await userEvent.type(row(2).getByLabelText('Edad'), '6 años');
-    await userEvent.click(screen.getByRole('button', { name: es.admin.save }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.save }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(es.admin.saved);
+    expect(await screen.findByRole('status')).toHaveTextContent(esAdmin.saved);
     expect(api.callsTo(`PUT ${GUIDE}`)[0]?.options).toMatchObject({
       params: { path: { id: 'cat-1' } },
       body: {
@@ -79,7 +79,7 @@ describe('size guide of a category (RNF-31.5)', () => {
     await userEvent.click(screen.getByRole('button', { name: messages.removeColumn('Busto (cm)') }));
     await userEvent.click(screen.getByRole('button', { name: messages.moveUp(2) }));
     await userEvent.click(screen.getByRole('button', { name: messages.addColumn }));
-    await userEvent.click(screen.getByRole('button', { name: es.admin.save }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.save }));
 
     await screen.findByRole('status');
     expect(api.callsTo(`PUT ${GUIDE}`)[0]?.options.body).toEqual({
@@ -95,7 +95,7 @@ describe('size guide of a category (RNF-31.5)', () => {
   it('given a guide with a row that lacks a value, when the server refuses it, then the rows are marked', async () => {
     await openPage(WOMEN, problem(422, { problem: 'INVALID_SIZE_GUIDE', fields: ['rows'] }));
 
-    await userEvent.click(screen.getByRole('button', { name: es.admin.save }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.save }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(messages.invalid);
     expect(screen.getByText(messages.invalidRows)).toBeInTheDocument();

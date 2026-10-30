@@ -1,12 +1,12 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { adminProduct, connectionLost, problem, signedIn, stubApi, variant } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
-const messages = es.admin.stock;
+const messages = esAdmin.stock;
 const PATH = '/admin/productos/p-1/variantes/v-M-Rosa/stock';
 const product = answer(200, adminProduct({ sizes: ['M'], colors: ['Rosa'], variants: [variant('M', 'Rosa')] }));
 
@@ -210,7 +210,7 @@ describe('stock management (UC-07)', () => {
     });
     renderRoute(PATH);
 
-    await userEvent.click(await screen.findByRole('button', { name: es.admin.showMore }));
+    await userEvent.click(await screen.findByRole('button', { name: esAdmin.showMore }));
 
     expect(await screen.findByText('+2')).toBeInTheDocument();
     expect(

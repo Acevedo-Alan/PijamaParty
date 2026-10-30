@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
 import { Link, useParams } from 'react-router';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { parseQuantity } from './adminInput.ts';
 import { newIdempotencyKey } from './adminSession.ts';
@@ -9,7 +9,7 @@ import { Feedback, type Notice } from './Feedback.tsx';
 import { adjustStock, fetchMovements, type AdjustAnswer, type StockMovement } from './stockApi.ts';
 import { useAdminProduct } from './useAdminProduct.ts';
 
-const messages = es.admin.stock;
+const messages = esAdmin.stock;
 
 function stockKey(variantId: string) {
   return ['admin', 'stock', variantId] as const;
@@ -191,20 +191,20 @@ export function StockPage() {
       <Link to={`/admin/productos/${productId}`} className="back-link">
         {messages.backToProduct}
       </Link>
-      <title>{`${messages.title} | ${es.admin.title}`}</title>
+      <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <h1>{messages.title}</h1>
       {product.data?.status === 'found' && variant !== undefined && (
         <p className="admin-lead">
           {messages.variant(product.data.product.name, variant.size, variant.color)} ·{' '}
-          {es.admin.variants.sku} {variant.sku}
+          {esAdmin.variants.sku} {variant.sku}
         </p>
       )}
-      {history.isPending && <p role="status">{es.admin.loading}</p>}
+      {history.isPending && <p role="status">{esAdmin.loading}</p>}
       {history.isError && first === undefined && (
         <div role="alert">
-          <p>{es.admin.loadError}</p>
+          <p>{esAdmin.loadError}</p>
           <button type="button" className="btn" onClick={() => void history.refetch()}>
-            {es.admin.retry}
+            {esAdmin.retry}
           </button>
         </div>
       )}
@@ -234,7 +234,7 @@ export function StockPage() {
                 disabled={history.isFetchingNextPage}
                 onClick={() => void history.fetchNextPage()}
               >
-                {history.isFetchingNextPage ? es.admin.loading : es.admin.showMore}
+                {history.isFetchingNextPage ? esAdmin.loading : esAdmin.showMore}
               </button>
             )}
           </section>

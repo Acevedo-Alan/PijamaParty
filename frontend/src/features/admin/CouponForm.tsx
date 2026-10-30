@@ -1,11 +1,11 @@
 import { useId, useState, type ReactNode, type SubmitEvent } from 'react';
-import { es } from '../../i18n/es.ts';
+import { esAdmin } from '../../i18n/esAdmin.ts';
 import { centsToPesosInput, parsePesos } from './adminInput.ts';
 import { CouponScopePicker } from './CouponScopePicker.tsx';
 import type { CouponData, CouponField, CouponScope, CouponType, SaveAnswer } from './couponsApi.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 
-const messages = es.admin.couponForm;
+const messages = esAdmin.couponForm;
 const TYPES: readonly CouponType[] = ['PERCENTAGE', 'FIXED_AMOUNT'];
 const WHOLE_CART: CouponScope = { productIds: [], categoryIds: [] };
 
@@ -174,7 +174,7 @@ export function CouponForm({ initial, submitLabel, onSubmit, onSaved, onCancel }
           if (initial === null) {
             setDraft(EMPTY);
           }
-          setNotice({ kind: 'ok', text: es.admin.saved });
+          setNotice({ kind: 'ok', text: esAdmin.saved });
           onSaved();
           break;
         case 'codeAlreadyUsed':
@@ -184,11 +184,11 @@ export function CouponForm({ initial, submitLabel, onSubmit, onSaved, onCancel }
           setNotice({ kind: 'error', text: messages.invalid });
           break;
         case 'notFound':
-          setNotice({ kind: 'error', text: es.admin.couponList.notFound });
+          setNotice({ kind: 'error', text: esAdmin.couponList.notFound });
           break;
       }
     } catch {
-      setNotice({ kind: 'error', text: es.admin.actionError });
+      setNotice({ kind: 'error', text: esAdmin.actionError });
     } finally {
       setSaving(false);
     }
@@ -327,7 +327,7 @@ export function CouponForm({ initial, submitLabel, onSubmit, onSaved, onCancel }
         </button>
         {onCancel !== undefined && (
           <button type="button" className="btn btn-secondary" onClick={onCancel}>
-            {es.admin.cancel}
+            {esAdmin.cancel}
           </button>
         )}
       </div>
