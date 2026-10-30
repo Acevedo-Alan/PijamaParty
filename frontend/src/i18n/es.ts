@@ -160,6 +160,11 @@ export const es = {
     /** T-E7-36: below a group still without a pick, once the add button was pressed. */
     pickSize: 'Elegí un talle',
     pickColor: 'Elegí un color',
+    /** E7: what the fixed bar on phones says is picked, e.g. "Talle M · Rosa"; null without picks. */
+    pickedSummary: (size: string | null, color: string | null) => {
+      const parts = [size === null ? null : `Talle ${size}`, color].filter((part) => part !== null);
+      return parts.length === 0 ? null : parts.join(' · ');
+    },
     addToCart: 'Agregar al carrito',
     adding: 'Agregando…',
     /** E7 motion: the add button confirms a successful add for a moment. */

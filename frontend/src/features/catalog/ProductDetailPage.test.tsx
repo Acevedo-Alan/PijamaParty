@@ -507,8 +507,28 @@ describe('product page as in the prototype (E7, changes to UC-03)', () => {
     expect(bar).not.toBeNull();
     const sticky = within(bar ?? document.body);
     expect(sticky.getByText(/^\$\s25\.000$/)).toBeInTheDocument();
+    // The picker is off screen by then: the bar says what its button adds.
+    expect(sticky.getByText(es.product.pickedSummary('M', 'Rosa') ?? '')).toBeInTheDocument();
     await userEvent.click(sticky.getByRole('button', { name: es.product.addToCart }));
     expect(post).toHaveBeenCalledWith('/api/cart/items', { body: { variantId: 'M-Rosa', quantity: 1 } });
+  });
+
+  it('given picks, when the fixed bar shows, then it names only the picked ones', () => {
+    expect(es.product.pickedSummary('M', 'Rosa')).toBe('Talle M · Rosa');
+    expect(es.product.pickedSummary('M', null)).toBe('Talle M');
+    expect(es.product.pickedSummary(null, 'Rosa')).toBe('Rosa');
+    expect(es.product.pickedSummary(null, null)).toBeNull();
+  });
+
+  it('given a picked color, when its swatch shows, then it carries the check badge for the eyes only', async () => {
+    stubPage();
+    renderRoute('/producto/luna');
+
+    const colors = await screen.findByRole('group', { name: es.product.color });
+    await userEvent.click(within(colors).getByRole('radio', { name: 'Rosa' }));
+
+    const swatch = within(colors).getByRole('radio', { name: 'Rosa' }).closest('label');
+    expect(swatch?.querySelector('.swatch-check')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('given the add button below the screen or back in view, when observed, then there is no fixed bar', async () => {

@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
@@ -181,6 +181,9 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
     onClick: addPicked,
   } as const;
   const addLabel = <AddButtonLabel state={addState} />;
+  // E7: the fixed bar says what its button adds, as the picker is off screen by then.
+  const picked = es.product.pickedSummary(selection.size, selection.color);
+  const pickedId = useId();
 
   return (
     <div className="pdp-layout">
@@ -229,8 +232,18 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         <PurchaseInfoSummary />
       </div>
       <StickyAddToCart target={addButton}>
-        <Price price={price} />
-        <button {...addButtonProps}>{addLabel}</button>
+        <div className="pdp-sticky-summary">
+          <Price price={price} />
+          {picked !== null && (
+            <p id={pickedId} className="pdp-sticky-picked">
+              {picked}
+            </p>
+          )}
+        </div>
+        {/* Its name stays the main button's; the picks describe it, as the picker is off screen. */}
+        <button {...addButtonProps} aria-describedby={picked === null ? undefined : pickedId}>
+          {addLabel}
+        </button>
       </StickyAddToCart>
     </div>
   );

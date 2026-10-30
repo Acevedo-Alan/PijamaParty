@@ -98,11 +98,20 @@
   gap: 8px;
 }
 
+/* E7: the largest text of the page without filling the phone's screen; balanced lines avoid a lone last word. */
 .pdp-info h1 {
   font-family: var(--ff-display);
   font-weight: 500;
-  font-size: 26px;
-  line-height: 1.2;
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+@media (min-width: 860px) {
+  .pdp-info h1 {
+    font-size: 28px;
+  }
 }
 
 /* The most scanned fact of the page: larger and bolder than the description (T-E7-22). */
@@ -536,8 +545,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 48px;
+  min-height: 48px;
   border-radius: 999px;
   cursor: pointer;
 }
@@ -550,8 +559,8 @@
 }
 
 .swatch {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.12);
 }
@@ -577,8 +586,42 @@
   transform: scale(1);
 }
 
+/* The check badge at the picked swatch's lower right, white-edged so it stays apart from any tone */
+.swatch-check {
+  position: absolute;
+  /* Above the selection ring, which would otherwise cover half of the check */
+  z-index: 1;
+  right: -3px;
+  bottom: -3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface);
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
+}
+
+.swatch-check circle {
+  fill: var(--accent);
+}
+
+.swatch-check path {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.swatch-option:has(input:checked) .swatch-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .swatch-option::after {
+  .swatch-option::after,
+  .swatch-check {
     transition:
       opacity var(--dur-fast) var(--ease-pop),
       transform var(--dur-fast) var(--ease-pop);
@@ -613,7 +656,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 38px;
+  width: 44px;
   height: 2px;
   border-radius: 1px;
   background: var(--ink-soft);
@@ -628,12 +671,16 @@
   text-decoration: line-through;
 }
 
+/* At least 48 × 48 px, past the 44 pt of Apple's HIG; tabular figures keep "2" and "16" the same visual weight */
 .chip.size-option {
   justify-content: center;
-  min-width: 46px;
-  padding: 8px 10px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 8px 12px;
   border-radius: var(--radius-s);
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /* E7: the quantity next to the add button. */
@@ -710,16 +757,32 @@
   backdrop-filter: blur(8px);
 }
 
+/* The price over what is picked: what the button adds, as the picker is off screen by then */
+.pdp-sticky-summary {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .pdp-sticky-cta .pdp-price {
   font-size: 16px;
   white-space: nowrap;
 }
 
+.pdp-sticky-picked {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The button keeps its label on one line; the summary takes what is left and cuts a long color with an ellipsis */
 .pdp-sticky-cta .add-cart {
-  flex: 1;
+  flex: 0 0 auto;
   width: auto;
   max-width: 260px;
   margin-top: 0;
+  white-space: nowrap;
 }
 
 @media (max-width: 859px) {

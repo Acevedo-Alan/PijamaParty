@@ -31,6 +31,14 @@ function SizeOption({ name, value, checked, disabled = false, soldOut, onPick }:
   );
 }
 
+/** E7: the pick reads at a glance on any tone; CSS shows it on the checked swatch only. */
+const SWATCH_CHECK = (
+  <svg className="swatch-check" viewBox="0 0 20 20" aria-hidden="true">
+    <circle cx="10" cy="10" r="10" />
+    <path d="M5.5 10.5l3 3 6-7" />
+  </svg>
+);
+
 /** A color as a swatch (D-04), or by its name when the map has no tone for it. */
 function ColorOption({ name, value, checked, soldOut, onPick }: OptionProps) {
   const tone = colorTone(value);
@@ -54,6 +62,7 @@ function ColorOption({ name, value, checked, soldOut, onPick }: OptionProps) {
             style={{ background: tone.background }}
             aria-hidden="true"
           />
+          {SWATCH_CHECK}
           <span className="visually-hidden">{value}</span>
         </>
       )}
