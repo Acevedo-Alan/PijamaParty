@@ -14,6 +14,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "sandbox": "node scripts/mercadopago-sandbox.ts",
     "api:generate": "openapi-typescript ../backend/target/openapi/openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
