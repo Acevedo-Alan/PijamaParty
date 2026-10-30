@@ -1,0 +1,9 @@
+# gitleaks false positives (RNF-29.10): made-up values in test sources, never real credentials. Each line is the
+# fingerprint of one finding (commit:file:rule:line), so a new secret in the same files is still reported.
+
+# Svix's documented example secret, to check a signature against Svix's published example (T-E3-22)
+708d43d2141759f7ff1021db3642a7dad1612550:backend/src/test/java/com/pijamaparty/store/notifications/adapter/in/webhook/ResendSignatureTest.java:generic-api-key:16
+# "whsec_" + base64 of "test", so the production profile starts in the migrations test (T-E3-22)
+708d43d2141759f7ff1021db3642a7dad1612550:backend/src/test/java/com/pijamaparty/store/platform/persistence/ProdMigrationsTest.java:generic-api-key:25
+# A made-up Resend API key for the email sender's contract test (T-E3-09)
+511b599bd8b9895d92c02b68f6fe82d9a76e5552:backend/src/test/java/com/pijamaparty/store/notifications/adapter/out/resend/ResendEmailSenderContractTest.java:generic-api-key:26
