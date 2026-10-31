@@ -34,9 +34,16 @@ interface Swipe {
 /**
  * A horizontal swipe or mouse drag between photos (E7 gallery motion). The element keeps `touch-action: pan-y`, so a
  * vertical move scrolls the page and is never captured. The click that ends a drag is swallowed, so dragging the main
- * photo does not also open the enlarged view.
+ * photo does not also open the enlarged view. Without `followFinger` the offset stays null, so a caller that cannot
+ * show the drag (the home carousel fades) does not re-render on every move.
  */
-export function useSwipe(index: number, count: number, onChange: (index: number) => void, enabled = true): Swipe {
+export function useSwipe(
+  index: number,
+  count: number,
+  onChange: (index: number) => void,
+  enabled = true,
+  followFinger = true,
+): Swipe {
   const [offset, setOffset] = useState<number | null>(null);
   const drag = useRef<Drag | null>(null);
   const dragged = useRef(false);
@@ -82,8 +89,10 @@ export function useSwipe(index: number, count: number, onChange: (index: number)
           current.dragging = true;
           event.currentTarget.setPointerCapture(event.pointerId);
         }
-        const pastEdge = (dx > 0 && index === 0) || (dx < 0 && index === count - 1);
-        setOffset(pastEdge ? dx * EDGE_RESISTANCE : dx);
+        if (followFinger) {
+          const pastEdge = (dx > 0 && index === 0) || (dx < 0 && index === count - 1);
+          setOffset(pastEdge ? dx * EDGE_RESISTANCE : dx);
+        }
       },
       onPointerUp(event) {
         const current = drag.current;

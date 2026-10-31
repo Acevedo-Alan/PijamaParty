@@ -170,6 +170,52 @@
   opacity: 1;
 }
 
+/* While it advances, the current pill is a track the slide's time fills from the left (UC-30): its time shows,
+   as iOS shows a story's. The fill freezes while the carousel waits, with the timer. */
+/* A faint track, so the fill stands apart from it from the start */
+.hero-dots button.timed::after {
+  opacity: 0.35;
+}
+
+.hero-dot-progress {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: 22px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.hero-dot-progress::before {
+  content: '';
+  display: block;
+  height: 100%;
+  background: var(--surface);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: hero-progress linear forwards;
+  animation-duration: inherit;
+}
+
+.hero-dots.waiting .hero-dot-progress::before {
+  animation-play-state: paused;
+}
+
+@keyframes hero-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* A swipe moves between slides; a vertical move still scrolls the page (useSwipe), and pinching still zooms */
+.hero {
+  touch-action: pan-y pinch-zoom;
+}
+
 .hero :focus-visible {
   outline-color: #fff;
 }

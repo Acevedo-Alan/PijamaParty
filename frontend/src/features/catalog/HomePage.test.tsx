@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
@@ -221,5 +221,203 @@ describe('welcome carousel (UC-30, D-14)', () => {
       'imagesrcset',
       '/assets/uno-640.webp 640w',
     );
+  });
+});
+
+describe('carousel that waits while used or unseen, with swipe and a timed pill (UC-30, Apple HIG)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    forgetMotionPreference();
+    setTabHidden(false);
+  });
+
+  function renderCarousel() {
+    vi.useFakeTimers();
+    render(<HeroCarousel onDiscover={vi.fn()} />);
+    return screen.getByRole('region', { name: carousel.label });
+  }
+
+  function wait(ms: number) {
+    act(() => {
+      vi.advanceTimersByTime(ms);
+    });
+  }
+
+  function swipe(hero: HTMLElement, from: number, to: number) {
+    // jsdom has no pointer capture, which the swipe takes once a drag starts.
+    HTMLElement.prototype.setPointerCapture = vi.fn();
+    fireEvent.pointerDown(hero, { pointerId: 1, pointerType: 'touch', clientX: from, clientY: 100 });
+    fireEvent.pointerMove(hero, { pointerId: 1, pointerType: 'touch', clientX: (from + to) / 2, clientY: 102 });
+    fireEvent.pointerUp(hero, { pointerId: 1, pointerType: 'touch', clientX: to, clientY: 102 });
+  }
+
+  function setTabHidden(hidden: boolean) {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: hidden ? 'hidden' : 'visible' });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+  }
+
+  it.each([false, true])('given the carousel (reduced motion: %s), when swiped left and right, then it moves to the next slide and back', (reduced) => {
+    preferReducedMotion(reduced);
+    const hero = renderCarousel();
+
+    swipe(hero, 300, 60);
+    expect(slide(2)).toHaveAttribute('aria-current', 'true');
+    swipe(hero, 60, 300);
+    expect(slide(1)).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('given the keyboard focus on a slide picker, when time passes, then it waits; once the focus leaves, the slide gets the time it had left', () => {
+    preferReducedMotion(false);
+    renderCarousel();
+
+    wait(SLIDE_MS / 2);
+    // No pointer pressed: the keyboard's focus.
+    act(() => {
+      slide(1).focus();
+    });
+    wait(SLIDE_MS * 2);
+    expect(slide(1)).toHaveAttribute('aria-current', 'true');
+
+    act(() => {
+      slide(1).blur();
+    });
+    wait(SLIDE_MS / 2 - 1);
+    expect(slide(1)).toHaveAttribute('aria-current', 'true');
+    wait(1);
+    expect(slide(2)).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('given a slide picker pressed with the mouse, when it keeps the focus, then the carousel still advances', () => {
+    preferReducedMotion(false);
+    renderCarousel();
+
+    fireEvent.pointerDown(slide(3), { pointerId: 1, pointerType: 'mouse', button: 0 });
+    act(() => {
+      slide(3).focus();
+      window.dispatchEvent(new Event('pointerup'));
+    });
+    fireEvent.click(slide(3));
+    expect(slide(3)).toHaveFocus();
+    wait(SLIDE_MS);
+
+    // From the last slide on to the first: the focus the press left does not stop it.
+    expect(slide(1)).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('given a slide picker tapped on a phone, when the focus comes after the finger lifts, then the carousel still advances', () => {
+    preferReducedMotion(false);
+    renderCarousel();
+
+    // A phone's order: the press, the lift, and only then the focus and the click.
+    fireEvent.pointerDown(slide(2), { pointerId: 1, pointerType: 'touch' });
+    act(() => {
+      window.dispatchEvent(new Event('pointerup'));
+    });
+    act(() => {
+      slide(2).focus();
+    });
+    fireEvent.click(slide(2));
+    wait(SLIDE_MS);
+
+    expect(slide(3)).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('given the focus on the pause button, when time passes, then it still advances: that button controls it', () => {
+    preferReducedMotion(false);
+    renderCarousel();
+
+    act(() => {
+      screen.getByRole('button', { name: carousel.pause }).focus();
+    });
+    wait(SLIDE_MS);
+
+    expect(slide(2)).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('given a finger on the carousel, when time passes, then it waits until the finger lifts, even outside it', () => {
+    preferReducedMotion(false);
+    const hero = renderCarousel();
+
+    fireEvent.pointerDown(hero, { pointerId: 1, pointerType: 'touch', clientX: 100, clientY: 100 });
+    wait(SLIDE_MS * 2);
+    expect(slide(1)).toHaveAttribute('aria-current', 'true');
+
+    act(() => {
+      window.dispatchEvent(new Event('pointerup'));
+    });
+    wait(SLIDE_MS);
+    expect(slide(2)).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('given a hidden tab, when time passes, then it waits until the tab shows again', () => {
+    preferReducedMotion(false);
+    renderCarousel();
+
+    setTabHidden(true);
+    wait(SLIDE_MS * 2);
+    expect(slide(1)).toHaveAttribute('aria-current', 'true');
+
+    setTabHidden(false);
+    wait(SLIDE_MS);
+    expect(slide(2)).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('given the carousel scrolled off the screen, when time passes, then it waits until it is back', () => {
+    const report: { see?: (seen: boolean) => void } = {};
+    vi.stubGlobal('IntersectionObserver', class {
+      constructor(callback: IntersectionObserverCallback) {
+        report.see = (seen) => {
+          callback([{ isIntersecting: seen }] as never, {} as never);
+        };
+      }
+
+      observe() {
+        // The test reports what is on screen.
+      }
+
+      disconnect() {
+        // Nothing to release.
+      }
+    });
+    preferReducedMotion(false);
+    renderCarousel();
+
+    act(() => {
+      report.see?.(false);
+    });
+    wait(SLIDE_MS * 2);
+    expect(slide(1)).toHaveAttribute('aria-current', 'true');
+
+    act(() => {
+      report.see?.(true);
+    });
+    wait(SLIDE_MS);
+    expect(slide(2)).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('given the carousel advancing, when a slide shows, then its pill holds the timed fill, frozen while it waits', () => {
+    preferReducedMotion(false);
+    renderCarousel();
+
+    const fill = () => slide(1).querySelector('.hero-dot-progress');
+    expect(fill()).toHaveStyle({ animationDuration: `${String(SLIDE_MS)}ms` });
+    expect(slide(2).querySelector('.hero-dot-progress')).toBeNull();
+    expect(slide(1).parentElement).not.toHaveClass('waiting');
+
+    act(() => {
+      screen.getByRole('button', { name: carousel.pause }).click();
+    });
+    expect(slide(1).parentElement).toHaveClass('waiting');
+    expect(fill()).not.toBeNull();
+  });
+
+  it('given reduced motion, when the carousel shows, then no pill fills', () => {
+    preferReducedMotion(true);
+    renderCarousel();
+
+    expect(document.querySelector('.hero-dot-progress')).toBeNull();
   });
 });
