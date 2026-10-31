@@ -43,7 +43,7 @@ El backoffice sigue con un único administrador, el dueño (CU-04): los usuarios
 
 Página inicial de `/admin`; reemplaza la redirección a "Productos".
 
-- **Para hacer hoy:** pedidos `PAGADO` sin preparar, pedidos `PREPARANDO`, arrepentimientos `RECIBIDA`, cambios abiertos (E8b), reseñas `PENDIENTE` y pedidos con alerta de correo rebotado. Cada número lleva a la lista ya filtrada.
+- **Para hacer hoy:** pedidos `PAGADO` sin preparar, pedidos `PREPARANDO`, arrepentimientos `RECIBIDA`, cambios abiertos (E8b), reseñas `PENDIENTE`, pedidos con alerta de correo rebotado, pedidos `ENVIADO` sin número de seguimiento y variantes agotadas. Cada número lleva a la lista ya filtrada.
 - **Ventas:** total vendido y cantidad de pedidos de hoy, de los últimos 7 días y del mes, con la variación contra el período anterior, y un gráfico de ventas por día (30 días) o por mes (12 meses). Cuenta como venta un pedido `PAGADO` o posterior, sin los cancelados.
 - **Ticket promedio** del mes.
 - **Stock bajo:** variantes activas de productos publicados con disponible igual o menor que el umbral de la tienda (CU-36), y las agotadas.
