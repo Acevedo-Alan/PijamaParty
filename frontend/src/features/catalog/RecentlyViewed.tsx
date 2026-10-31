@@ -22,6 +22,7 @@ function toListed(product: ProductDetail): ListedProduct {
     image: product.images[0] ?? null,
     secondImage: product.images[1] ?? null,
     fromPriceCents: product.fromPriceCents,
+    priceVaries: new Set(product.variants.map((variant) => variant.priceCents)).size > 1,
     soldOut: product.variants.every((variant) => variant.available === 0),
     colors: product.colors.filter(inStock),
     sizes: product.sizes.map((size) => ({ size, inStock: sizeInStock(size) })),

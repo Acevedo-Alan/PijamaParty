@@ -154,6 +154,7 @@
 .card-title {
   font-size: 13px;
   font-weight: 500;
+  color: var(--ink);
   margin-top: 9px;
   display: -webkit-box;
   line-clamp: 2;
@@ -162,10 +163,18 @@
   overflow: hidden;
 }
 
+/* The name medium, the price semibold in the same ink: the two facts a shopper scans, one level apart */
 .card .price {
   font-size: 14px;
-  color: var(--ink-soft);
+  font-weight: 600;
+  color: var(--ink);
   margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.card .price-from {
+  font-weight: 500;
+  color: var(--ink-soft);
 }
 
 .card-badges {
@@ -180,22 +189,38 @@
   pointer-events: none;
 }
 
+/* Minimal labels over the photo (Apple HIG: content first): small semibold text on a frosted capsule. "Nuevo" keeps
+   the store's identity with an accent dot and the accent's text tone; "Agotado" stays quiet. */
 .badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
   border-radius: 999px;
+  /* 94 % keeps both labels above 4.5:1 over the darkest photo; the blur only softens the photo's detail */
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
 }
 
 .badge.new {
-  background: var(--rose);
-  color: var(--ink);
+  color: var(--accent-text);
+}
+
+.badge.new::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
 .badge.sold-out {
-  background: var(--surface);
   color: var(--ink-soft);
-  border: 1px solid var(--line);
 }
 
 /* D-04: the colors with stock as small circles; light tones get the strong border (3:1, colorTones.ts). */
@@ -297,8 +322,93 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin-top: 32px;
+  gap: 14px;
+  margin-top: 36px;
+}
+
+/* How far the visitor got: a quiet line over a thin bar filled in that proportion */
+.show-more-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.show-more-bar {
+  display: block;
+  width: 160px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.show-more-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  transition: transform var(--dur-base) var(--ease-standard);
+}
+
+/* A tinted capsule (Apple HIG: a secondary action is tinted, not filled), 48 px tall, its label and chevron in the
+   accent's text tone */
+.load-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 220px;
+  min-height: 48px;
+  padding: 12px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--rose-soft);
+  color: var(--accent-text);
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-fast) var(--ease-standard);
+}
+
+.load-more-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.load-more-btn:disabled {
+  cursor: progress;
+}
+
+.show-more-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A quarter of a ring that turns while the next page loads */
+.show-more-icon.spinning circle {
+  stroke-dasharray: 11 44;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .show-more-icon.spinning svg {
+    animation: show-more-spin 0.8s linear infinite;
+  }
+}
+
+@keyframes show-more-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .show-more-error {
@@ -800,6 +910,12 @@ html:has(.filters-panel[open]) {
   .chip:hover:not(:has(input:checked)),
   .filter-btn:hover {
     border-color: var(--accent);
+  }
+
+  /* Hover raises the contrast: the label goes to --ink on the stronger rose (accent text there would fall below 4.5) */
+  .load-more-btn:hover:not(:disabled) {
+    background: var(--rose);
+    color: var(--ink);
   }
 
   .active-chip:hover {

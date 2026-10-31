@@ -2467,6 +2467,7 @@ export interface components {
             secondImage?: components["schemas"]["ListingImageResponse"];
             /** Format: int64 */
             fromPriceCents?: number;
+            priceVaries?: boolean;
             soldOut?: boolean;
             colors?: string[];
             sizes?: components["schemas"]["SizeOfferResponse"][];

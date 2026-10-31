@@ -1,8 +1,8 @@
 import { es } from '../../i18n/es.ts';
 import { colorTone } from './colorTones.ts';
 
-/** D-04 on the card: at most 5 colors, then "+N". */
-const CARD_SWATCHES = 5;
+/** D-04 on the card: at most 3 colors, then "+N", leaving the row's right end to the sizes. */
+const CARD_SWATCHES = 3;
 
 /**
  * The colors of a product as small circles (D-04); a color the map does not know shows its name. Screen readers

@@ -10,12 +10,13 @@ import java.util.Optional;
 
 /**
  * One product of the public grid (UC-01): its first photo, if any, and the one after it, shown on hover (T-E7-14),
- * the lowest price of its active priced variants, whether none of them has available stock, the colors of those with
+ * the lowest price of its active priced variants and whether they have more than one ("Desde" only then), whether none of them has available stock, the colors of those with
  * available stock in display order (D-04), the sizes of all of them in display order, each saying whether it has
  * available stock (T-E7-35), and whether it was created in the last 30 days (D-05).
  */
 public record ProductListingItem(String slug, String name, Optional<ListingImage> image,
-                                 Optional<ListingImage> secondImage, Money fromPrice, boolean soldOut,
+                                 Optional<ListingImage> secondImage, Money fromPrice, boolean priceVaries,
+                                 boolean soldOut,
                                  List<String> colors, List<SizeOffer> sizes, boolean isNew) {
 
     public ProductListingItem {

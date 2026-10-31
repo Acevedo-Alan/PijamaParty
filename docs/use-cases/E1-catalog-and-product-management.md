@@ -24,7 +24,7 @@
 
 **Business rules**
 - A product is listed when it is published, its category is active and it has an active priced variant. Hidden products and products of inactive categories never appear.
-- The "from" price is the lowest price among the product's active priced variants, with or without stock.
+- The "from" price is the lowest price among the product's active priced variants, with or without stock. The card says "Desde" before it only when those variants have different prices; with a single price it shows the price alone.
 - A product is sold out when none of its active priced variants has available stock (on hand − reserved).
 - Newest first by default (creation date of the product).
 - The grid shows the product's first photo (any color); a product without photos shows none.

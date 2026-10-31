@@ -12,7 +12,8 @@ import java.util.Optional;
  * {@link ProductListingItem} before the clock says whether it is new (D-05).
  */
 public record ListedProduct(String slug, String name, Optional<ProductListingItem.ListingImage> image,
-                            Optional<ProductListingItem.ListingImage> secondImage, Money fromPrice, boolean soldOut,
+                            Optional<ProductListingItem.ListingImage> secondImage, Money fromPrice,
+                            boolean priceVaries, boolean soldOut,
                             List<String> colors, List<ProductListingItem.SizeOffer> sizes, Instant createdAt) {
 
     public ListedProduct {
@@ -27,7 +28,7 @@ public record ListedProduct(String slug, String name, Optional<ProductListingIte
     }
 
     public ProductListingItem toItem(Instant now) {
-        return new ProductListingItem(slug, name, image, secondImage, fromPrice, soldOut, colors, sizes,
+        return new ProductListingItem(slug, name, image, secondImage, fromPrice, priceVaries, soldOut, colors, sizes,
             Product.isNew(createdAt, now));
     }
 }

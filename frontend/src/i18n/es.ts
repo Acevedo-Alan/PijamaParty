@@ -40,7 +40,10 @@ export const es = {
     /** D-11: the number of products that match, e.g. "1 producto" or "1.250 productos". */
     productCount: (count: number) =>
       `${count.toLocaleString('es-AR')} ${count === 1 ? 'producto' : 'productos'}`,
-    showMore: 'Ver más',
+    showMore: 'Ver más productos',
+    /** How far the visitor got, above "Ver más" (E7), e.g. "Viste 24 de 134". */
+    seenOf: (seen: number, total: number) =>
+      `Viste ${seen.toLocaleString('es-AR')} de ${total.toLocaleString('es-AR')}`,
     loading: 'Cargando productos…',
     loadingMore: 'Cargando…',
     emptyShop: 'Todavía no hay productos.',

@@ -119,7 +119,7 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
                 .map(image -> ProductListingItem.ListingImage.of(image.storageKey(), image.placeholder())),
             product.images().stream().skip(1).findFirst()
                 .map(image -> ProductListingItem.ListingImage.of(image.storageKey(), image.placeholder())),
-            fromPrice(product), inStock.isEmpty(),
+            fromPrice(product), priceVaries(product), inStock.isEmpty(),
             byPositionThenText(inStock, variant -> variant.color().value(), Variant::colorPosition),
             sizes(product), product.createdAt());
     }
@@ -138,6 +138,10 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
 
     private static List<Variant> sellable(Product product) {
         return product.variants().stream().filter(Variant::isActiveAndPriced).toList();
+    }
+
+    private static boolean priceVaries(Product product) {
+        return sellable(product).stream().map(variant -> variant.price().orElseThrow()).distinct().count() > 1;
     }
 
     private static Money fromPrice(Product product) {

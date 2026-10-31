@@ -23,14 +23,16 @@ describe('catalog grid (UC-01)', () => {
     vi.restoreAllMocks();
   });
 
-  it('given listed products, when the shop opens, then each shows its first photo, name and "from" price', async () => {
+  it('given listed products, when the shop opens, then each shows its first photo, name and price', async () => {
     const get = stubCatalogApi({ listings: [listed([product('rosa')])] });
 
     renderRoute('/');
 
     const card = await screen.findByRole('link', { name: /Pijama rosa/ });
     expect(card).toHaveAttribute('href', '/producto/rosa');
-    expect(within(card).getByText(/Desde \$\s12\.345$/)).toBeInTheDocument();
+    // One price: no "Desde" (UC-01).
+    expect(within(card).getByText(/^\$\s12\.345$/)).toBeInTheDocument();
+    expect(within(card).queryByText(es.catalog.fromPrice, { exact: false })).not.toBeInTheDocument();
     const photo = within(card).getByRole('img', { name: 'Pijama rosa' });
     expect(photo).toHaveAttribute('src', '/media/rosa-400.webp');
     expect(photo).toHaveAttribute(
@@ -38,6 +40,16 @@ describe('catalog grid (UC-01)', () => {
       '/media/rosa-400.webp 400w, /media/rosa-800.webp 800w, /media/rosa-1200.webp 1200w',
     );
     expect(queriesTo(get, PRODUCTS)).toEqual([{ page: 0 }]);
+  });
+
+  it('given variants with different prices, when listed, then the card says "Desde" before the lowest one', async () => {
+    stubCatalogApi({ listings: [listed([product('varios', { priceVaries: true })])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama varios/ });
+    // "Desde" is its own span, lighter than the price.
+    expect(card.querySelector('.price')?.textContent).toMatch(/^Desde\s+\$\s12\.345$/);
   });
 
   it('given a product whose variants are all out of stock, when listed, then it appears with "Sold out"', async () => {
@@ -63,7 +75,7 @@ describe('catalog grid (UC-01)', () => {
     expect(within(screen.getByRole('link', { name: /Pijama agotado/ })).queryByTestId('swatch')).not.toBeInTheDocument();
   });
 
-  it('given 7 colors, one unknown to the map, when listed, then 5 show, the unknown one by name, and "+2"', async () => {
+  it('given 7 colors, one unknown to the map, when listed, then 3 show, the unknown one by name, and "+4"', async () => {
     const colors = ['Rosa', 'Unicornio', 'Beige', 'Salvia', 'Negro', 'Celeste', 'Lila'];
     stubCatalogApi({ listings: [listed([product('muchos', { colors })])] });
 
@@ -71,9 +83,9 @@ describe('catalog grid (UC-01)', () => {
 
     const card = await screen.findByRole('link', { name: /Pijama muchos/ });
     expect(within(card).getAllByTestId('swatch').map((swatch) => swatch.getAttribute('title')))
-      .toEqual(['Rosa', 'Beige', 'Salvia', 'Negro']);
+      .toEqual(['Rosa', 'Beige']);
     expect(within(card).getByText('Unicornio')).toHaveAttribute('aria-hidden', 'true');
-    expect(within(card).getByText('+2')).toBeInTheDocument();
+    expect(within(card).getByText('+4')).toBeInTheDocument();
     expect(within(card).getByText('Colores: Rosa, Unicornio, Beige, Salvia, Negro, Celeste y Lila'))
       .toBeInTheDocument();
   });
@@ -95,12 +107,35 @@ describe('catalog grid (UC-01)', () => {
     renderRoute('/');
 
     expect(await listing().findAllByRole('listitem')).toHaveLength(24);
-    expect(listing().getByRole('status')).toHaveTextContent('30 productos');
+    expect(listing().getByText('30 productos')).toHaveAttribute('role', 'status');
+    // E7: how far the visitor got, above the button.
+    expect(screen.getByText(es.catalog.seenOf(24, 30))).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: es.catalog.showMore }));
     await waitFor(() => {
       expect(listing().getAllByRole('listitem')).toHaveLength(30);
     });
-    expect(listing().getByRole('status')).toHaveTextContent('30 productos');
+    expect(listing().getByText('30 productos')).toHaveAttribute('role', 'status');
+  });
+
+  it('given "Ver más" pressed, when the next page is on its way, then the button says "Cargando…", is busy and disabled', async () => {
+    let arrive: (page: unknown) => void = () => undefined;
+    // The second page waits until the test lets it arrive.
+    const secondPage = new Promise((resolve) => {
+      arrive = resolve;
+    });
+    stubCatalogApi({ listings: [listed(products(24, 'p'), true, 30), secondPage, listed([], false, 30)] });
+    renderRoute('/');
+    await listing().findAllByRole('listitem');
+
+    await userEvent.click(screen.getByRole('button', { name: es.catalog.showMore }));
+
+    const button = screen.getByRole('button', { name: es.catalog.loadingMore });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    arrive(listed(products(6, 'q'), false, 30));
+    await waitFor(() => {
+      expect(listing().getAllByRole('listitem')).toHaveLength(30);
+    });
   });
 
   it('given matches, when the listing opens, then the count ends the filter bar row, after the buttons (T-E7-11)', async () => {

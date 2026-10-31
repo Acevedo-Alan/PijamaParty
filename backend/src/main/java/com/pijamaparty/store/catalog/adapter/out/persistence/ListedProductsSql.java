@@ -35,7 +35,7 @@ final class ListedProductsSql {
     static final String RELEVANCE = "RELEVANCE";
 
     // A listed product: published, of an active category, with an active priced variant. Its "from" price is the
-    // lowest price of those variants, and it is sold out when none of them has available stock. With a text, it must
+    // lowest price of those variants, its price varies when they have more than one, and it is sold out when none of them has available stock. With a text, it must
     // match its search vector (web search syntax, spanish configuration, accents ignored). "matching" holds the
     // listed products that pass every filter; LIST and COUNT read it, so both apply the same conditions.
     private static final String MATCHING = """
@@ -45,6 +45,7 @@ final class ListedProductsSql {
         listed AS (
             SELECT p.id, p.slug, p.name, p.created_at, p.search_vector,
                    min(v.price_cents) AS from_price_cents,
+                   min(v.price_cents) <> max(v.price_cents) AS price_varies,
                    NOT bool_or(coalesce(a.available, 0) > 0) AS sold_out
             FROM product p
             JOIN category c ON c.id = p.category_id AND c.active
@@ -79,7 +80,7 @@ final class ListedProductsSql {
     // filter), and the sizes of all of them in display order, each with whether one has available stock (T-E7-35, the
     // order of the size filter): two arrays of the same length.
     static final String LIST = MATCHING + """
-        SELECT m.slug, m.name, m.from_price_cents, m.sold_out, m.created_at, i.storage_key, i.placeholder,
+        SELECT m.slug, m.name, m.from_price_cents, m.price_varies, m.sold_out, m.created_at, i.storage_key, i.placeholder,
                s.second_storage_key, s.second_placeholder, z.sizes, z.sizes_in_stock,
                ARRAY(SELECT v.color
                      FROM variant v
@@ -153,7 +154,7 @@ final class ListedProductsSql {
     static ListedProduct toListed(ResultSet row, int rowNumber) throws SQLException {
         return new ListedProduct(row.getString("slug"), row.getString("name"), image(row),
             image(row, "second_storage_key", "second_placeholder"),
-            Money.of(row.getLong("from_price_cents")), row.getBoolean("sold_out"),
+            Money.of(row.getLong("from_price_cents")), row.getBoolean("price_varies"), row.getBoolean("sold_out"),
             List.of((String[]) row.getArray("colors").getArray()), sizes(row),
             row.getObject("created_at", OffsetDateTime.class).toInstant());
     }

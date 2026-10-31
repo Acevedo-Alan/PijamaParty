@@ -64,8 +64,22 @@ public abstract class ProductListingQueryContractTest<T extends ProductListingQu
         assertThat(item.slug()).isEqualTo("pijama");
         assertThat(item.name()).isEqualTo("Pijama");
         assertThat(item.fromPrice()).isEqualTo(Money.of(4000));
+        // The inactive and the unpriced variants do not count: one price, so no "Desde".
+        assertThat(item.priceVaries()).isFalse();
         assertThat(item.soldOut()).isFalse();
         assertThat(item.createdAt()).isEqualTo(T0);
+    }
+
+    @Test
+    void givenActivePricedVariantsWithTwoPrices_whenListing_thenItsPriceVaries() {
+        stocked(product(summer, "Dos precios", 0, List.of("S", "M"), ROSA, 1000, p -> p.price("M", "Rosa", 1200)), 1);
+        stocked(product(summer, "Un precio", 1, List.of("S", "M"), ROSA, 1000), 1);
+        persistAndForget();
+
+        List<ListedProduct> items = list(ProductFilter.none(), ProductSort.NEWEST);
+
+        assertThat(items).extracting(ListedProduct::name, ListedProduct::priceVaries)
+            .containsExactlyInAnyOrder(tuple("Dos precios", true), tuple("Un precio", false));
     }
 
     @Test

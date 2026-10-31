@@ -3,8 +3,8 @@ import { es } from '../../i18n/es.ts';
 import { useCardSizesFont } from './cardSizesFont.ts';
 import type { SizeOffer } from './catalogApi.ts';
 
-/** T-E7-35 on the card: at most 6 sizes, then "+N". */
-const CARD_SIZES = 6;
+/** T-E7-35 on the card: at most 4 sizes, then "+N", so they keep to the swatches' row on a phone. */
+const CARD_SIZES = 4;
 
 /**
  * The sizes of a product on its card, "S · M · L" (T-E7-35), those without stock struck through. Screen readers hear

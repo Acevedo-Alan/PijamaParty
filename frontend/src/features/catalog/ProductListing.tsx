@@ -5,6 +5,7 @@ import { staggered, useEntranceMotion } from '../../components/motion/useActionM
 import { es } from '../../i18n/es.ts';
 import { listId, trackItemList } from '../analytics/catalogEvents.ts';
 import { countFilters, type ListingCriteria } from './listingCriteria.ts';
+import { ShowMore } from './ShowMore.tsx';
 import { ProductCard, type CardPhotoPriority } from './ProductCard.tsx';
 import type { ListingView } from './useListingView.ts';
 import { useProductListing } from './useProductListing.ts';
@@ -166,21 +167,13 @@ export function ProductListing({
         ))}
       </ul>
       {listing.hasNextPage && (
-        <div className="show-more">
-          {listing.isFetchNextPageError && (
-            <p className="show-more-error" role="alert">
-              {es.catalog.loadMoreError}
-            </p>
-          )}
-          <button
-            type="button"
-            className="btn"
-            disabled={listing.isFetchingNextPage}
-            onClick={() => void listing.fetchNextPage()}
-          >
-            {listing.isFetchingNextPage ? es.catalog.loadingMore : es.catalog.showMore}
-          </button>
-        </div>
+        <ShowMore
+          seen={products.length}
+          total={listing.data.pages.findLast((page) => page.status === 'listed')?.total ?? products.length}
+          loading={listing.isFetchingNextPage}
+          failed={listing.isFetchNextPageError}
+          onMore={() => void listing.fetchNextPage()}
+        />
       )}
     </>
   );

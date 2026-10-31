@@ -24,6 +24,8 @@ export interface ListedProduct {
   /** The photo after the first, shown over it on hover (T-E7-14); null without one. */
   secondImage: ListingImage | null;
   fromPriceCents: number;
+  /** Its variants have more than one price: the card says "Desde" only then (UC-01). */
+  priceVaries: boolean;
   soldOut: boolean;
   /** The colors with stock, in display order (D-04). */
   colors: string[];
@@ -80,6 +82,7 @@ function toProduct(item: ListItemResponse): ListedProduct {
     image: toImage(item.image),
     secondImage: toImage(item.secondImage),
     fromPriceCents,
+    priceVaries: item.priceVaries === true,
     soldOut: item.soldOut === true,
     colors: item.colors ?? [],
     sizes: (item.sizes ?? []).flatMap(({ size, inStock }) => (size === undefined ? [] : [{ size, inStock: inStock === true }])),

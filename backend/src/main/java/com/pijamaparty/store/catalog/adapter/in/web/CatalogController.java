@@ -233,19 +233,20 @@ class CatalogController {
     /**
      * {@code image} is the product's first photo, null when it has none; {@code secondImage} the one after it, shown
      * on hover, null without one; {@code colors} are those with available stock, in display order; {@code sizes} all
-     * of them in display order, each saying whether it has available stock; {@code isNew} says it was created in the
+     * of them in display order, each saying whether it has available stock; {@code priceVaries} says its variants have
+     * more than one price, so the card says "Desde" only then; {@code isNew} says it was created in the
      * last 30 days.
      */
     record ProductListItemResponse(String slug, String name, @Schema(nullable = true) ListingImageResponse image,
                                    @Schema(nullable = true) ListingImageResponse secondImage, long fromPriceCents,
-                                   boolean soldOut, List<String> colors, List<SizeOfferResponse> sizes,
+                                   boolean priceVaries, boolean soldOut, List<String> colors, List<SizeOfferResponse> sizes,
                                    boolean isNew) {
 
         static ProductListItemResponse of(ProductListingItem item) {
             return new ProductListItemResponse(item.slug(), item.name(),
                 item.image().map(ListingImageResponse::of).orElse(null),
                 item.secondImage().map(ListingImageResponse::of).orElse(null), item.fromPrice().cents(),
-                item.soldOut(), item.colors(), item.sizes().stream().map(SizeOfferResponse::of).toList(),
+                item.priceVaries(), item.soldOut(), item.colors(), item.sizes().stream().map(SizeOfferResponse::of).toList(),
                 item.isNew());
         }
     }
