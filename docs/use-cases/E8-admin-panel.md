@@ -57,6 +57,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - open orders with an email alert: orders in `PAID`, `PREPARING` or `SHIPPED` whose buyer email is `BOUNCED` or `FAILED` (UC-17, UC-18);
   - sold-out variants: active variants of published products with no available stock (UC-07), linking to the Stock screen filtered by sold out.
   Each count links to its list with that filter. A count of 0 still shows, without a link.
+  The counts show in three levels (D-E8-12), each with its own tone and title: Urgente (email alerts, withdrawal requests), Operativo (`PAID`, `PREPARING`, reviews) and Inventario (sold-out variants).
 - **Sales:** amount and number of orders for today, the last 7 days (today and the 6 days before) and this month (from the 1st to today). Each shows its variation in percent against the period before: yesterday, the 7 days before those, and the same days of the previous month (the 1st up to today's day number, or that month's last day if it is shorter). With nothing in the earlier period, the variation is "—". Variations are rounded to whole percents.
 - **Average ticket of the month:** the month's amount divided by its number of orders, rounded down to the cent; "—" without orders.
 - **Chart:** sales per day for the last 30 days (today included), or per month for the last 12 months (this month included). Days or months without sales show as 0, not as gaps. The view switches between days and months.
@@ -65,6 +66,8 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - **Recent orders:** the 5 newest orders of any status, with number, date, buyer name, status and total.
 - **Totals:** published products; registered customers, with how many registered this month.
 - The figures are read when the page opens. "Actualizar" reads them again, and nothing refreshes by itself.
+- Beside "Actualizar", the time of the last read: "Actualizado a las HH:MM".
+- **Quick actions** (D-E8-12): "Nuevo producto" (the new product form), "Cupones" and "Ver pedidos".
 
 **Acceptance criteria**
 - Given an administrator who signs in, when the back office opens, then it shows the summary, not the product list; `/admin` shows it too.
@@ -80,6 +83,8 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given 12 variants at or under the threshold, when the summary opens, then 10 show and the link reads 12.
 - Given a product sold in two sizes, 3 and 2 units, when the summary opens, then the best sellers show it once with 5 units.
 - Given 2 `PAID` orders, when "Para hacer hoy" is opened from its count, then the order list shows the `PAID` filter.
+- Given a bounced email and 2 `PAID` orders, when the summary opens, then the email alert shows under "Urgente" and the paid orders under "Operativo".
+- Given the summary read at 10:05, when it shows, then it reads "Actualizado a las 10:05".
 - Given a `SHIPPED` order with a bounced email, when the summary opens, then it counts in the email alerts; once `DELIVERED`, it does not.
 - Given a published product with one variant at 0 available units and one with 2, and a hidden product with a variant at 0, when the summary opens, then "Para hacer hoy" shows 1 sold-out variant.
 - Given a customer session, when it calls `GET /api/admin/dashboard`, then it gets `403`.
@@ -380,9 +385,9 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - Ventas: Pedidos, Arrepentimientos, Clientes;
   - Catálogo: Productos, Categorías, Stock;
   - Marketing: Cupones, Reseñas, Portada;
-  - Envíos;
-  - Configuración: Datos de la tienda, Actividad;
-  - then "Ver tienda" and "Cerrar sesión" (the label the back office already used).
+  - Tienda: Envíos, Datos de la tienda, Actividad (D-E8-12: one group for how the store runs, instead of Envíos alone and Configuración);
+  - then "Ver tienda", and who is signed in (the administrator's name and "Dueño de la tienda") with "Cerrar sesión" as an icon button named by that label.
+  Every entry has a small decorative icon; its label names it.
   E8b and E8c add their screens to these groups when they arrive, and so do the E8a screens still to come: Resumen (T-E8-13), Clientes (T-E8-10), Stock (T-E8-09) and Datos de la tienda (T-E8-04). Until then the menu lists only the screens that exist.
 - The current page is marked with `aria-current="page"`.
 - Under 860 px the menu is closed behind a "Menú" button, in a side panel. It traps the focus, Escape closes it and gives the focus back to the button, and choosing a link closes it; a window that grows to 860 px closes it too. From 860 px it is always visible, and a skip link ("Ir al contenido") leads the keyboard past it to the page.

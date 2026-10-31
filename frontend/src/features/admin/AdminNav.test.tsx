@@ -29,6 +29,7 @@ async function sideMenu() {
     getByRole: (role: string, options: { name: string | RegExp }) => menu.getByRole(role, { ...options, hidden: true }),
     findByRole: (role: string, options: { name: string | RegExp }) =>
       menu.findByRole(role, { ...options, hidden: true }),
+    getByText: (text: string) => menu.getByText(text),
   };
 }
 
@@ -42,7 +43,7 @@ describe('back-office navigation (E8a, T-E8-05)', () => {
     renderRoute('/admin/actividad');
 
     const menu = await sideMenu();
-    // Each group's list is named by its title; "Resumen", "Envíos" and the end stand alone.
+    // Each group's list is named by its title; "Resumen" and the end stand alone.
     expect(menu.getAllByRole('list').map((list) => list.getAttribute('aria-labelledby') === null
       ? null
       : document.getElementById(list.getAttribute('aria-labelledby') ?? '')?.textContent)).toEqual([
@@ -50,8 +51,7 @@ describe('back-office navigation (E8a, T-E8-05)', () => {
       esAdmin.navGroups.sales,
       esAdmin.navGroups.catalog,
       esAdmin.navGroups.marketing,
-      null,
-      esAdmin.navGroups.settings,
+      esAdmin.navGroups.store,
       null,
     ]);
     expect(menu.getAllByRole('link').map((link) => link.textContent)).toEqual([
@@ -68,6 +68,9 @@ describe('back-office navigation (E8a, T-E8-05)', () => {
       esAdmin.viewStore,
     ]);
     expect(menu.getByRole('button', { name: esAdmin.signOut })).toBeInTheDocument();
+    // Who is signed in, at the bottom (D-E8-12)
+    expect(menu.getByText('Dueña')).toBeInTheDocument();
+    expect(menu.getByText(esAdmin.owner)).toBeInTheDocument();
   });
 
   it('given /admin/actividad, when the menu shows, then "Actividad" is marked as the current page', async () => {
@@ -85,7 +88,7 @@ describe('back-office navigation (E8a, T-E8-05)', () => {
 
     const menu = await sideMenu();
     const orders = await menu.findByRole('link', { name: new RegExp(`^${esAdmin.orders}`) });
-    expect(orders).toHaveTextContent(`${esAdmin.orders}2`);
+    expect(orders).toHaveTextContent(`${esAdmin.orders} 2`);
     expect(orders).toHaveAccessibleName(`${esAdmin.orders} ${esAdmin.paidWaiting(2)}`);
   });
 

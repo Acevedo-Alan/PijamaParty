@@ -75,7 +75,7 @@ Cada cambio hecho desde el backoffice queda registrado: precios, stock, publicar
 - **CU-18:** buscar un pedido por número (`1001` o `#1001`), por nombre o email del comprador, y filtrar por rango de fechas además del estado. Botón "Imprimir remito" en el detalle: una página para imprimir con número de pedido, productos, talles, colores, cantidades, nombre, teléfono y dirección de envío, sin precios.
 - **CU-06:** buscar productos por nombre o SKU, y filtrar por categoría, estado (publicado u oculto) y stock (con stock, bajo, agotado).
 - **CU-07:** pantalla "Stock" con todas las variantes, filtrable por stock bajo o agotado, con ajuste rápido en la misma fila (mismas reglas e idempotencia de CU-07).
-- **Navegación:** menú lateral agrupado en Resumen; Ventas (pedidos, pagos, arrepentimientos, cambios, clientes); Catálogo (productos, categorías, stock); Marketing (cupones, destacados, reseñas, portada); Envíos; Reportes; y Configuración (datos de la tienda, actividad), más "Salir". Cada pantalla se suma al menú cuando llega su fase. En el celular, el menú se abre desde un botón.
+- **Navegación:** menú lateral agrupado en Resumen; Ventas (pedidos, pagos, arrepentimientos, cambios, clientes); Catálogo (productos, categorías, stock); Marketing (cupones, destacados, reseñas, portada); Reportes; y Tienda (envíos, datos de la tienda, actividad), más "Ver tienda" y quién entró, con "Cerrar sesión". Cada pantalla se suma al menú cuando llega su fase. En el celular, el menú se abre desde un botón.
 
 ## E8b – Operación
 
@@ -177,6 +177,13 @@ En pijamas el cambio de talle es lo más común, y hoy se resuelve por WhatsApp 
 | D-E8-09 | Precio anterior y destacados | Recomendado | Sí, con vigencia y validación legal del texto (CU-43, CU-44). |
 | D-E8-10 | Remito para imprimir | Decidido (2026-10-20) | Sí, desde el detalle del pedido, sin precios. |
 | D-E8-11 | Conservación del registro de actividad | Decidido (2026-10-20) | 2 años. |
+| D-E8-12 | Dirección visual del backoffice | Decidido (2026-10-31) | Componentes de shadcn/ui (Tailwind y Radix) solo en el backoffice, con la paleta, la tipografía Inter y los radios de la tienda, según la maqueta aprobada (https://claude.ai/artifact/Cp4rSdzuR65ybwUt2TGPu3). Jerarquía, profundidad y movimiento según las Human Interface Guidelines de Apple (abajo). La tienda no cambia. |
+
+**D-E8-12, en detalle (Human Interface Guidelines de Apple con la estética de la tienda):**
+
+- **Jerarquía:** un solo título por pantalla y una sola acción principal (relleno `--accent`); el resto, botones secundarios con borde. El dato más importante de un bloque es el más grande (26 px, 700), sus etiquetas van en 13 px. Los avisos tienen tres niveles que se distinguen por tono y por peso, no solo por color: urgente (tono de error), operativo (durazno) e inventario (ámbar); un 0 se ve apagado.
+- **Profundidad:** tres planos. El fondo crema es la base; las tarjetas son superficies blancas con un borde fino y una sombra cálida leve (nivel 1); lo que flota sobre ellas (menús, el panel del menú en el celular, avisos) lleva una sombra mayor (nivel 2), y un diálogo atenúa lo de atrás (nivel 3). Una tarjeta que es un enlace sube un poco al pasar el mouse. El menú lateral es un plano propio, apenas más claro, separado por una línea fina.
+- **Movimiento:** solo responde a algo que pasó y explica qué cambió: las tarjetas entran una tras otra al abrir la pantalla (desplazamiento corto y opacidad, una sola vez), la marca de un selector se desliza a la opción elegida, las barras del gráfico crecen desde la base al cambiar de período y un número que cambia se funde con el nuevo. Duraciones y curvas de `styles/motion.ts`; solo `transform` y `opacity`; con movimiento reducido no se anima nada, y una actualización automática no mueve la pantalla.
 
 El dueño aprobó el alcance de E8a el 2026-10-20, con D-E8-03, D-E8-10 y D-E8-11, que E8a usa. Las demás se confirman antes de empezar E8b y E8c.
 

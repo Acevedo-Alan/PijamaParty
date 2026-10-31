@@ -99,6 +99,29 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
     expect(todo.getByText(messages.todo.preparingOrders).closest('li')).toHaveTextContent('0');
   });
 
+  it('given a bounced email and 2 PAID orders, when the summary shows, then the alert is under "Urgente" and the paid orders under "Operativo"', async () => {
+    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: answer(200, dashboard({ todo: { ...dashboard().todo, emailAlerts: 1 } })) });
+    renderRoute('/admin');
+    await screen.findByRole('region', { name: messages.todo.title });
+
+    const todo = section(messages.todo.title);
+    const urgent = within(todo.getByRole('list', { name: messages.todo.levels.urgent }));
+    const operational = within(todo.getByRole('list', { name: messages.todo.levels.operational }));
+    expect(urgent.getByRole('link', { name: new RegExp(messages.todo.emailAlerts) })).toBeInTheDocument();
+    expect(operational.getByRole('link', { name: new RegExp(messages.todo.paidOrders) })).toBeInTheDocument();
+    expect(within(todo.getByRole('list', { name: messages.todo.levels.inventory })).getByText(messages.todo.soldOutVariants))
+      .toBeInTheDocument();
+  });
+
+  it('given the summary read, when it shows, then it says when it was read', async () => {
+    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: answer(200, dashboard()) });
+    renderRoute('/admin');
+
+    expect(await screen.findByText(/^Actualizado a las \d{2}:\d{2}$/)).toBeInTheDocument();
+  });
+
   it('given sales against the periods before, when the summary shows, then each period has its amount, orders and variation, "—" without sales before', async () => {
     stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard()) });
@@ -131,11 +154,13 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
     expect(chart.getByRole('table', { name: messages.chart.tableCaption('DAYS') })).toBeInTheDocument();
     expect(chart.getAllByRole('row')).toHaveLength(31);
 
-    await userEvent.click(chart.getByRole('button', { name: messages.chart.months }));
+    await userEvent.click(chart.getByRole('radio', { name: messages.chart.months }));
 
     expect(await chart.findByRole('table', { name: messages.chart.tableCaption('MONTHS') })).toBeInTheDocument();
     expect(chart.getAllByRole('row')).toHaveLength(13);
-    expect(chart.getByRole('button', { name: messages.chart.months })).toHaveAttribute('aria-pressed', 'true');
+    expect(chart.getByRole('radio', { name: messages.chart.months })).toBeChecked();
+    // 12 months without a sale: an empty state instead of the bars (D-E8-12)
+    expect(chart.getByText(messages.chart.empty)).toBeInTheDocument();
     expect(api.callsTo(DASHBOARD).map((call) => call.options.params?.query?.chart)).toEqual(['DAYS', 'MONTHS']);
   });
 

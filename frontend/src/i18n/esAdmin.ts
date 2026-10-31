@@ -6,7 +6,10 @@ export const esAdmin = {
   title: 'Backoffice',
   nav: 'Secciones del backoffice',
   /** E8a navigation: the menu's groups, and its button and panel under 860 px. */
-  navGroups: { sales: 'Ventas', catalog: 'Catálogo', marketing: 'Marketing', settings: 'Configuración' },
+  navGroups: { sales: 'Ventas', catalog: 'Catálogo', marketing: 'Marketing', store: 'Tienda' },
+  /** Who is signed in, at the bottom of the menu (D-E8-12), when the session has no name. */
+  administrator: 'Administrador',
+  owner: 'Dueño de la tienda',
   menu: 'Menú',
   closeMenu: 'Cerrar menú',
   skipToContent: 'Ir al contenido',
@@ -19,8 +22,13 @@ export const esAdmin = {
     refreshing: 'Actualizando…',
     loading: 'Cargando el resumen…',
     loadError: 'No pudimos cargar el resumen.',
+    /** The time of the last read, already formatted, e.g. "10:05". */
+    updatedAt: (time: string) => `Actualizado a las ${time}`,
+    quick: { title: 'Accesos rápidos', newProduct: 'Nuevo producto', coupons: 'Cupones', orders: 'Ver pedidos' },
     todo: {
       title: 'Para hacer hoy',
+      /** The three levels of D-E8-12, most urgent first. */
+      levels: { urgent: 'Urgente', operational: 'Operativo', inventory: 'Inventario' },
       paidOrders: 'Pedidos pagados por preparar',
       preparingOrders: 'Pedidos en preparación',
       receivedWithdrawals: 'Arrepentimientos sin resolver',
@@ -47,10 +55,12 @@ export const esAdmin = {
       noVariation: 'Sin ventas en el período anterior',
     },
     chart: {
-      title: 'Ventas por período',
+      title: 'Ventas de la tienda',
       days: 'Días',
       months: 'Meses',
       kindLabel: 'Ver el gráfico por',
+      empty: 'Todavía no hay ventas en este período.',
+      emptyHint: 'Cuando alguien compre, lo vas a ver acá.',
       tableCaption: (kind: 'DAYS' | 'MONTHS') =>
         kind === 'DAYS' ? 'Ventas de los últimos 30 días' : 'Ventas de los últimos 12 meses',
       period: 'Período',
