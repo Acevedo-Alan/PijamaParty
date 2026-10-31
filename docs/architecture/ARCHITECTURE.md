@@ -36,7 +36,7 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 | `accounts` | Users, authentication (password, Google and Facebook through OAuth2), 2FA, address book, account deletion and data export | `User`, `Address` | `activity` (the administrator's sign-ins) |
 | `reviews` | Reviews and moderation | `Review` | `ordering`, `catalog`, `accounts` (the author's name, its reviews in the data download and their deletion with the account, UC-24, UC-28), `activity` |
 | `activity` | The back-office activity log (UC-37): every admin change, recorded in the transaction of the change | `ActivityEntry` | – |
-| `backoffice` | Composition of admin screens that need data from several modules | read models only | `ordering`, `notifications`, `catalog`, `inventory` |
+| `backoffice` | Composition of admin screens that need data from several modules | read models only | `ordering`, `notifications`, `catalog`, `inventory`, `reviews` |
 | `platform` | Shared kernel: `Money`, `Clock`, ids, `Actor`, idempotency, rate limiting, problem+json, security context for RLS | – | – |
 
 **Rules**

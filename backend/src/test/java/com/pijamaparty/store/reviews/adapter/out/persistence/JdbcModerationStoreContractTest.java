@@ -71,6 +71,12 @@ class JdbcModerationStoreContractTest extends ModerationStoreContractTest<JdbcMo
         }
 
         @Override
+        public long count(ReviewStatus status) {
+            Long count = asAdmin(() -> adapter.count(status));
+            return count == null ? 0 : count;
+        }
+
+        @Override
         public Optional<Review> lockById(ReviewId id) {
             return asAdmin(() -> adapter.lockById(id));
         }

@@ -1,8 +1,11 @@
 package com.pijamaparty.store.notifications.application;
 
 import com.pijamaparty.store.notifications.api.BuyerEmailStatus;
+import com.pijamaparty.store.notifications.domain.EmailStatus;
 import com.pijamaparty.store.notifications.domain.EmailType;
+import java.util.EnumSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,5 +29,12 @@ class FindBuyerEmailProblemService implements BuyerEmailStatus {
                 case FAILED -> Optional.of(Problem.FAILED);
                 case BOUNCED -> Optional.of(Problem.BOUNCED);
             });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<UUID> ordersWithProblems() {
+        return statuses.referencesWithLatestIn(EmailType.ORDER_PAID_CUSTOMER,
+            EnumSet.of(EmailStatus.FAILED, EmailStatus.BOUNCED));
     }
 }

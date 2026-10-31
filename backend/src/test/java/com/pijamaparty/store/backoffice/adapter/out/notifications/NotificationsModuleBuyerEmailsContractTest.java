@@ -3,10 +3,13 @@ package com.pijamaparty.store.backoffice.adapter.out.notifications;
 import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.backoffice.application.BuyerEmails;
 import com.pijamaparty.store.backoffice.application.BuyerEmailsContractTest;
+import com.pijamaparty.store.backoffice.domain.OrderAlert.BuyerEmailProblem;
 import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import com.pijamaparty.store.platform.testing.ApiTest;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -43,8 +46,17 @@ class NotificationsModuleBuyerEmailsContractTest extends BuyerEmailsContractTest
     @Override
     protected BuyerEmails createSubject() {
         Actor admin = Actor.admin(UserId.of(UUID.randomUUID()));
-        return orderId -> CurrentActor.callAs(admin,
-            () -> transactions.execute(status -> adapter.problemOf(orderId)));
+        return new BuyerEmails() {
+            @Override
+            public Optional<BuyerEmailProblem> problemOf(UUID orderId) {
+                return CurrentActor.callAs(admin, () -> transactions.execute(status -> adapter.problemOf(orderId)));
+            }
+
+            @Override
+            public Set<UUID> ordersWithProblems() {
+                return CurrentActor.callAs(admin, () -> transactions.execute(status -> adapter.ordersWithProblems()));
+            }
+        };
     }
 
     @Override

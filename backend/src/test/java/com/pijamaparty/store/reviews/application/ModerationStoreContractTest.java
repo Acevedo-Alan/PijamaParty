@@ -79,6 +79,18 @@ public abstract class ModerationStoreContractTest<
     }
 
     @Test
+    void givenReviewsInEveryStatus_whenCounted_thenEachStatusCountsOnlyItsOwn() {
+        review(1, ReviewStatus.PENDING);
+        review(2, ReviewStatus.PENDING);
+        review(3, ReviewStatus.APPROVED);
+        persistAndForget();
+
+        assertThat(subject.count(ReviewStatus.PENDING)).isEqualTo(2);
+        assertThat(subject.count(ReviewStatus.APPROVED)).isEqualTo(1);
+        assertThat(subject.count(ReviewStatus.REJECTED)).isZero();
+    }
+
+    @Test
     void givenAStoredReview_whenLockedById_thenItComesAsStoredAndAnUnknownOneDoesNot() {
         Review review = review(1, ReviewStatus.APPROVED);
         persistAndForget();

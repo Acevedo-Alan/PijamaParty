@@ -4,6 +4,7 @@ import com.pijamaparty.store.backoffice.application.BuyerEmails;
 import com.pijamaparty.store.backoffice.domain.OrderAlert.BuyerEmailProblem;
 import com.pijamaparty.store.notifications.api.BuyerEmailStatus;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -23,5 +24,10 @@ class NotificationsModuleBuyerEmails implements BuyerEmails {
             case FAILED -> BuyerEmailProblem.FAILED;
             case BOUNCED -> BuyerEmailProblem.BOUNCED;
         });
+    }
+
+    @Override
+    public Set<UUID> ordersWithProblems() {
+        return status.ordersWithProblems();
     }
 }

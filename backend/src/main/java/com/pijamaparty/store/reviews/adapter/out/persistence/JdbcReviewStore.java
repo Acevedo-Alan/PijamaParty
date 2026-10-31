@@ -39,6 +39,11 @@ import org.springframework.stereotype.Repository;
 class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, RemoveCustomerReviews, ApprovedReviews,
     ReviewsForModeration, LockReview, SaveModeration, RemoveReview {
 
+    // UC-33: the pending reviews of the summary; the status comes from ReviewStatus (RNF-28).
+    private static final String COUNT_BY_STATUS = """
+        SELECT count(*) FROM review WHERE status = :status
+        """;
+
     private static final String SELECT = """
         SELECT id, product_id, user_id, rating, text, author_name, status, created_at, updated_at, moderated_at
         FROM review
@@ -183,6 +188,13 @@ class JdbcReviewStore implements LoadReview, SaveReview, CustomerReviews, Remove
         return jdbc.query(query, new MapSqlParameterSource("status", status.name())
             .addValue("offset", offset)
             .addValue("limit", limit), JdbcReviewStore::row);
+    }
+
+    @Override
+    public long count(ReviewStatus status) {
+        Long count = jdbc.queryForObject(COUNT_BY_STATUS, new MapSqlParameterSource("status", status.name()),
+            Long.class);
+        return count == null ? 0 : count;
     }
 
     @Override

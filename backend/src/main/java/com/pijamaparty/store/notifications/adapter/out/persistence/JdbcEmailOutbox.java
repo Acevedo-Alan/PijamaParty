@@ -10,10 +10,12 @@ import com.pijamaparty.store.notifications.domain.EmailStatus;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.notifications.domain.OutboxEmail;
 import com.pijamaparty.store.platform.application.IdGenerator;
+import java.sql.Types;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -92,6 +94,17 @@ class JdbcEmailOutbox
 
     // UC-18: the administrator reads the outbox for the back-office alert (email_outbox_admin_select): the latest
     // version (T-E3-23), over email_outbox_type_reference_version_uk.
+    // UC-33: the latest version of each reference's email of a type, kept when its status is one of those asked.
+    private static final String SELECT_LATEST_IN = """
+        SELECT reference FROM (
+            SELECT DISTINCT ON (reference) reference, status
+            FROM email_outbox
+            WHERE type = :type
+            ORDER BY reference, version DESC
+        ) latest
+        WHERE status = ANY (CAST(:statuses AS text[]))
+        """;
+
     private static final String SELECT_STATUS = """
         SELECT status FROM email_outbox WHERE type = :type AND reference = :reference
         ORDER BY version DESC
@@ -146,6 +159,13 @@ class JdbcEmailOutbox
         return jdbc.queryForList(SELECT_STATUS, new MapSqlParameterSource("type", type.name())
                 .addValue("reference", reference), String.class)
             .stream().findFirst().map(EmailStatus::valueOf);
+    }
+
+    @Override
+    public Set<UUID> referencesWithLatestIn(EmailType type, Set<EmailStatus> statuses) {
+        var params = new MapSqlParameterSource("type", type.name())
+            .addValue("statuses", statuses.stream().map(EmailStatus::name).toArray(String[]::new), Types.ARRAY);
+        return Set.copyOf(jdbc.queryForList(SELECT_LATEST_IN, params, UUID.class));
     }
 
     @Override

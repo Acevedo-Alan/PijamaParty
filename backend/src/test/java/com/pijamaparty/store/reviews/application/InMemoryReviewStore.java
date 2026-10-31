@@ -74,6 +74,11 @@ public class InMemoryReviewStore
     }
 
     @Override
+    public synchronized long count(ReviewStatus status) {
+        return reviews.values().stream().filter(review -> review.status() == status).count();
+    }
+
+    @Override
     public synchronized List<Review> withStatus(ReviewStatus status, int offset, int limit) {
         Comparator<Review> oldestFirst = Comparator.comparing(Review::updatedAt)
             .thenComparing(review -> review.id().value());

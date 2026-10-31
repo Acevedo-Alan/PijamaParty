@@ -1,6 +1,7 @@
 package com.pijamaparty.store.notifications.api;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -11,6 +12,9 @@ public interface BuyerEmailStatus {
 
     /** Empty while the email is pending, once it is sent, or when the order has none. */
     Optional<Problem> problemOf(UUID orderId);
+
+    /** UC-33: the orders whose buyer has a {@link Problem} with the payment-confirmed email. */
+    Set<UUID> ordersWithProblems();
 
     /** Why the buyer did not get the email. */
     enum Problem {

@@ -9,6 +9,7 @@ import com.pijamaparty.store.notifications.domain.OutboxEmail;
 import com.pijamaparty.store.platform.testing.ContractTest;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -160,6 +161,24 @@ public abstract class EmailOutboxContractTest<T extends EnqueueEmails & LockDueE
         assertThat(subject.statusOf(first.type() == EmailType.ORDER_PAID_CUSTOMER ? EmailType.ORDER_PAID_ADMIN
             : EmailType.ORDER_PAID_CUSTOMER, order)).contains(EmailStatus.PENDING);
         assertThat(subject.statusOf(EmailType.ORDER_PAID_CUSTOMER, UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    void givenEmailsOfSeveralOrders_whenAskedWhichLatestFailed_thenOnlyThoseOfThatTypeAndStatusAnswer() {
+        UUID failedOrder = UUID.randomUUID();
+        UUID pendingOrder = UUID.randomUUID();
+        subject.enqueue(EmailType.ORDER_PAID_CUSTOMER, failedOrder, NOW);
+        subject.enqueue(EmailType.ORDER_PAID_CUSTOMER, pendingOrder, NOW.plusSeconds(1));
+        OutboxEmail first = subject.lockNextDue(NOW).orElseThrow();
+        subject.failed(first.id(), NOW.plusSeconds(2));
+        persistAndForget();
+
+        assertThat(subject.referencesWithLatestIn(EmailType.ORDER_PAID_CUSTOMER,
+            EnumSet.of(EmailStatus.FAILED, EmailStatus.BOUNCED))).containsExactly(failedOrder);
+        assertThat(subject.referencesWithLatestIn(EmailType.ORDER_PAID_ADMIN, EnumSet.of(EmailStatus.FAILED)))
+            .isEmpty();
+        assertThat(subject.referencesWithLatestIn(EmailType.ORDER_PAID_CUSTOMER, EnumSet.of(EmailStatus.PENDING)))
+            .containsExactly(pendingOrder);
     }
 
     @Test

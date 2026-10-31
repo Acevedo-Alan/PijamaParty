@@ -35,6 +35,14 @@ public enum OrderStatus {
         return this == PAID || this == PREPARING || this == SHIPPED || this == DELIVERED;
     }
 
+    /**
+     * UC-33: whether the store still has work on an order in this status: paid and neither delivered nor cancelled.
+     * An email that did not reach its buyer is an alert only while the order is open.
+     */
+    public boolean isOpen() {
+        return this == PAID || this == PREPARING || this == SHIPPED;
+    }
+
     /** Whether the state diagram allows going from this status to {@code next}. */
     public boolean canBecome(OrderStatus next) {
         return TRANSITIONS.get(this).contains(next);

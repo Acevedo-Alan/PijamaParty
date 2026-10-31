@@ -4,6 +4,7 @@ import com.pijamaparty.store.backoffice.domain.OrderAlert.BuyerEmailProblem;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /** Fake of {@link BuyerEmails}: the orders whose buyer did not get the email. */
@@ -19,6 +20,11 @@ public class InMemoryBuyerEmails implements BuyerEmails {
     /** Test arrangement: the buyer's email of the order bounced. */
     public synchronized void bounced(UUID orderId) {
         problems.put(orderId, BuyerEmailProblem.BOUNCED);
+    }
+
+    @Override
+    public synchronized Set<UUID> ordersWithProblems() {
+        return Set.copyOf(problems.keySet());
     }
 
     @Override

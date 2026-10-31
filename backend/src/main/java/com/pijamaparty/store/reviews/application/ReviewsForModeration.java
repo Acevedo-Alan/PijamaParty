@@ -12,4 +12,7 @@ public interface ReviewsForModeration {
      * submission to the newest, the others newest first (last submission, then id).
      */
     List<Review> withStatus(ReviewStatus status, int offset, int limit);
+
+    /** UC-33: how many reviews are in {@code status}, e.g. the pending ones of the summary. */
+    long count(ReviewStatus status);
 }

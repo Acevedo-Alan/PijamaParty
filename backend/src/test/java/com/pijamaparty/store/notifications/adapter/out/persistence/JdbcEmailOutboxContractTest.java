@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -138,6 +139,12 @@ class JdbcEmailOutboxContractTest extends EmailOutboxContractTest<JdbcEmailOutbo
         public Optional<EmailStatus> statusOf(EmailType type, UUID reference) {
             return CurrentActor.callAs(Actor.admin(UserId.of(UUID.randomUUID())),
                 () -> transactions.execute(status -> adapter.statusOf(type, reference)));
+        }
+
+        @Override
+        public Set<UUID> referencesWithLatestIn(EmailType type, Set<EmailStatus> statuses) {
+            return CurrentActor.callAs(Actor.admin(UserId.of(UUID.randomUUID())),
+                () -> transactions.execute(status -> adapter.referencesWithLatestIn(type, statuses)));
         }
 
         @Override

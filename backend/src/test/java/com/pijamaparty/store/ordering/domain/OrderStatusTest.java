@@ -26,6 +26,12 @@ class OrderStatusTest {
     }
 
     @Test
+    void givenEveryStatus_whenAskedWhetherItIsOpen_thenOnlyPaidPreparingAndShippedAre() {
+        assertThat(EnumSet.allOf(OrderStatus.class).stream().filter(OrderStatus::isOpen))
+            .containsExactlyInAnyOrder(OrderStatus.PAID, OrderStatus.PREPARING, OrderStatus.SHIPPED);
+    }
+
+    @Test
     void givenAnAwaitingPaymentOrder_whenMovingItToShipped_thenItIsNotAllowed() {
         assertThat(OrderStatus.AWAITING_PAYMENT.canBecome(OrderStatus.SHIPPED)).isFalse();
     }

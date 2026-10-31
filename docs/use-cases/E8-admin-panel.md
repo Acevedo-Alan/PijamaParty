@@ -45,7 +45,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 
 **Alternative flows**
 - No sales in a period: its figures show `$0` and `0 pedidos`, and the variation reads "—".
-- A block cannot be loaded: that block shows an error with "Reintentar" and the others still show.
+- The summary cannot be loaded: the page shows an error with "Reintentar". It is one read in one transaction (design notes), so the blocks load or fail together.
 - No variant at or under the threshold: the low-stock block reads "Sin productos con stock bajo".
 
 **Business rules**
@@ -55,7 +55,6 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - withdrawal requests `RECEIVED` (UC-29);
   - `PENDING` reviews (UC-25);
   - open orders with an email alert: orders in `PAID`, `PREPARING` or `SHIPPED` whose buyer email is `BOUNCED` or `FAILED` (UC-17, UC-18);
-  - `SHIPPED` orders without a tracking number: the buyer's tracking page shows it only once there is one (UC-18);
   - sold-out variants: active variants of published products with no available stock (UC-07), linking to the Stock screen filtered by sold out.
   Each count links to its list with that filter. A count of 0 still shows, without a link.
 - **Sales:** amount and number of orders for today, the last 7 days (today and the 6 days before) and this month (from the 1st to today). Each shows its variation in percent against the period before: yesterday, the 7 days before those, and the same days of the previous month (the 1st up to today's day number, or that month's last day if it is shorter). With nothing in the earlier period, the variation is "—". Variations are rounded to whole percents.
@@ -82,25 +81,30 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given a product sold in two sizes, 3 and 2 units, when the summary opens, then the best sellers show it once with 5 units.
 - Given 2 `PAID` orders, when "Para hacer hoy" is opened from its count, then the order list shows the `PAID` filter.
 - Given a `SHIPPED` order with a bounced email, when the summary opens, then it counts in the email alerts; once `DELIVERED`, it does not.
-- Given two `SHIPPED` orders, one with a tracking number, when the summary opens, then "Para hacer hoy" shows 1 shipped order without tracking; once it gets its number, 0.
 - Given a published product with one variant at 0 available units and one with 2, and a hidden product with a variant at 0, when the summary opens, then "Para hacer hoy" shows 1 sold-out variant.
 - Given a customer session, when it calls `GET /api/admin/dashboard`, then it gets `403`.
 
 **Design notes**
 - **Inbound port:** `backoffice.application.GetDashboard` (`Query(actor, chart: DAYS | MONTHS)`; result `Shown(Dashboard)` or `Forbidden`). It is one read-only transaction as `ADMIN`. `Dashboard` is a record of the blocks above. The periods are computed by `backoffice.domain.SalesPeriods` from the `Clock`'s date in Argentina (pure, unit tested: month ends, a 31st against a 30-day month, a leap year). The variation and the average ticket are computed by `backoffice.domain.Variation` and `Money`.
 - **Outbound ports of `backoffice`, each backed by an `api` of its owner:**
+  - As built in T-E8-12, the ports are named after what the summary reads: `SalesReadings` (`total`, `perDay`, `perMonth`, `byVariant`) over `ordering.api.SalesFigures`; `OrderCounts` (the `OrderWorkload` below) over `ordering.api.OrderWorkload`; `BuyerEmails.ordersWithProblems` over `notifications.api.BuyerEmailStatus`; `CatalogFigures` (low stock, published products and the product of each sold variant) over `catalog.api.LowStockVariants`, `PublishedProducts` and `VariantDescriptions`; `PendingReviewCount` over `reviews.api.PendingReviews`; and `LowStockThreshold`. The catalog's `LowStockVariants` and `PublishedProducts` share one service and one port (`StockWatch`), both being small reads of the same tables for the summary; T-E8-09 splits them if the Stock screen needs more. The rule of an open order (`PAID`, `PREPARING` or `SHIPPED`) is `OrderStatus.isOpen()` in `ordering.domain`.
   - `SalesFigures`, backed by a new `ordering.api.SalesFigures`: `totals(from, to)` → amount and count; `perDay(from, to)` and `perMonth(from, to)` → series; `unitsByVariant(from, to)` → variant id, units and amount. These are SQL aggregates with `status IN (...)` from an enum-built constant list, and Argentina dates through `created_at AT TIME ZONE 'America/Argentina/Buenos_Aires'`. Days without rows are filled in the domain, not in SQL.
-  - `OrderWorkload`, backed by a new `ordering.api.OrderWorkload` (T-E8-05 built its first part as `backoffice.application.OrderCounts.paidWaiting()`, the menu's badge; UC-33 grows that port rather than adding a second one over the same data): counts by status, `SHIPPED` orders without a tracking number, `RECEIVED` withdrawals, the 5 newest orders, and the open orders among a set of ids.
+  - `OrderWorkload`, backed by a new `ordering.api.OrderWorkload` (T-E8-05 built its first part as `backoffice.application.OrderCounts.paidWaiting()`, the menu's badge; UC-33 grows that port rather than adding a second one over the same data): counts by status, `RECEIVED` withdrawals, the 5 newest orders, and the open orders among a set of ids.
   - `EmailAlerts`, backed by a new method on `notifications.api.BuyerEmailStatus`: the ids of orders whose buyer email is `BOUNCED` or `FAILED`.
   - `LowStock`, backed by a new `catalog.api.LowStockVariants`: `list(threshold, limit)` and `count(threshold)` (`count(0)` gives the sold-out variants of "Para hacer hoy"), over the catalog tables joined to `inventory.v_variant_availability` (ARCHITECTURE.md rule 4). Shared with the Stock screen (changes to UC-07).
   - `ProductNames`, backed by `catalog.api.VariantDescriptions` and `ProductNames`: groups the best sellers' variants by product.
   - `CustomerCounts`, backed by a new `accounts.api.CustomerCounts`: total, and registered since a date (needs the RLS change of UC-34).
   - `PendingReviews`, backed by a new `reviews.api.PendingReviews.count()`.
   - `LowStockThreshold`, backed by `settings.api.StoreSettings` (UC-36).
-- **Module graph:** `backoffice` adds `accounts`, `reviews` and `settings` to its dependencies. Nobody depends on `backoffice`, so no cycle.
+- **Built before T-E8-04, T-E8-09 and T-E8-10 (decided 2026-10-31, the owner wanted the summary first):**
+  - The low-stock threshold comes from the `LowStockThreshold` port through an adapter that answers the default of D-E8-03, 3 units, until T-E8-04 backs it with `settings.api.StoreSettings`.
+  - `catalog.api.LowStockVariants` is written here; T-E8-09 reuses it for the Stock screen. Until that screen exists, the low-stock link and the sold-out count of "Para hacer hoy" lead to the product list.
+  - The totals show the published products only; the registered customers join them with T-E8-10, which brings the RLS change `CustomerCounts` needs.
+  - No migration of its own: the `orders (created_at DESC)` index of T-E8-06 also serves the period sums (a btree reads both ways), and V42 and V43 stay with T-E8-04 and T-E8-10. Until T-E8-06, the sums scan under 10,000 rows a year.
+- **Module graph:** `backoffice` adds `accounts`, `reviews` and `settings` to its dependencies (`reviews` now; `accounts` with T-E8-10 and `settings` with T-E8-04). Nobody depends on `backoffice`, so no cycle.
 - **Endpoint:** `GET /api/admin/dashboard?chart=DAYS|MONTHS` → `200` with the blocks (amounts in cents); `400` for another `chart`. OpenAPI is updated.
 - **Indexes:** `orders (created_at)` for the period sums (the existing index leads with `status`). At under 20 orders a day, 12 months are under 10,000 rows, so no materialized view.
-- **Page:** `DashboardPage` at `/admin` (the index route, replacing the redirect to `/admin/productos`). After signing in, the administrator lands on `/admin` unless they were sent to sign in from another admin page. The chart is a hand-written SVG bar chart (no chart library in the admin chunk), with a visually hidden table of the same values for screen readers. Blocks are cards: one column at 360 px, two from 860 px (RNF-26). Amounts are formatted with the shared ARS formatter.
+- **Page:** `DashboardPage` at `/admin` (the index route, replacing the redirect to `/admin/productos`). After signing in, the administrator lands on `/admin` unless they were sent to sign in from another admin page. The "Resumen" entry heads the menu. Switching days and months keeps the figures on screen until the other chart arrives, and loading the summary refreshes the menu's badge. The email alerts lead to the unfiltered order list until it gets a filter for them. The chart is a hand-written SVG bar chart (no chart library in the admin chunk), with a visually hidden table of the same values for screen readers. Blocks are cards: one column at 360 px, two from 860 px (RNF-26). Amounts are formatted with the shared ARS formatter.
 
 ---
 

@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -90,6 +91,16 @@ public class InMemoryEmailOutbox
     public synchronized Optional<EmailStatus> statusOf(EmailType type, UUID reference) {
         return versions(type, reference).stream().reduce((first, second) -> second)
             .map(stored -> EmailStatus.valueOf(stored.status()));
+    }
+
+    @Override
+    public synchronized Set<UUID> referencesWithLatestIn(EmailType type, Set<EmailStatus> statuses) {
+        return emails.values().stream()
+            .filter(stored -> stored.type() == type)
+            .map(Stored::reference)
+            .distinct()
+            .filter(reference -> statusOf(type, reference).filter(statuses::contains).isPresent())
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     @Override

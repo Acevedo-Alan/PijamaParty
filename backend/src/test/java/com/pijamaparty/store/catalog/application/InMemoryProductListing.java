@@ -1,5 +1,6 @@
 package com.pijamaparty.store.catalog.application;
 
+import com.pijamaparty.store.catalog.api.LowStockVariants.LowStockVariant;
 import com.pijamaparty.store.catalog.domain.Category;
 import com.pijamaparty.store.catalog.domain.CategoryId;
 import com.pijamaparty.store.catalog.domain.Product;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
  * product fakes, with the inventory's available stock set by {@link #setAvailable}. Ids break ties as PostgreSQL
  * orders UUIDs (by their text).
  */
-public class InMemoryProductListing implements ProductListingQuery, FilterOptionsQuery, ListedProductSlugs {
+public class InMemoryProductListing implements ProductListingQuery, FilterOptionsQuery, ListedProductSlugs, StockWatch {
 
     private static final Comparator<Product> NEWEST_FIRST = Comparator.comparing(Product::createdAt)
         .thenComparing((Product product) -> product.id().value().toString())
@@ -88,6 +89,41 @@ public class InMemoryProductListing implements ProductListingQuery, FilterOption
     }
 
     /** Published products of an active category with an active priced variant. */
+    /** An active variant of a published product with its available units (UC-33). */
+    private record Watched(Product product, Variant variant, long available) {}
+
+    private List<Watched> lowStockOf(int threshold) {
+        return products.all().stream()
+            .filter(Product::published)
+            .flatMap(product -> product.variants().stream().filter(Variant::active)
+                .map(variant -> new Watched(product, variant, available.getOrDefault(variant.id(), 0))))
+            .filter(watched -> watched.available() <= threshold)
+            .sorted(Comparator.comparingLong(Watched::available)
+                .thenComparing(watched -> watched.product().details().name().value())
+                .thenComparingInt(watched -> watched.variant().sizePosition())
+                .thenComparingInt(watched -> watched.variant().colorPosition()))
+            .toList();
+    }
+
+    @Override
+    public List<LowStockVariant> lowStock(int threshold, int limit) {
+        return lowStockOf(threshold).stream().limit(limit)
+            .map(watched -> new LowStockVariant(watched.variant().id().value(), watched.product().id().value(),
+                watched.product().details().name().value(), watched.variant().size().value(),
+                watched.variant().color().value(), watched.available()))
+            .toList();
+    }
+
+    @Override
+    public long lowStockCount(int threshold) {
+        return lowStockOf(threshold).size();
+    }
+
+    @Override
+    public long publishedProducts() {
+        return products.all().stream().filter(Product::published).count();
+    }
+
     private List<Product> listed(Optional<CategoryId> category) {
         List<CategoryId> active = categories.findAll().stream().filter(Category::active).map(Category::id).toList();
         return products.all().stream()

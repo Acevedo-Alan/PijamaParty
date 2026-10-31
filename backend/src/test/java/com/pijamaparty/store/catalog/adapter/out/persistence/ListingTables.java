@@ -56,6 +56,11 @@ final class ListingTables {
         }
     }
 
+    /** UC-33: units of a variant reserved by orders awaiting payment; available is on hand minus reserved (V17). */
+    void setReserved(VariantId variant, int reserved) {
+        owner.update("update stock_level set reserved = ? where variant_id = ?", reserved, variant.value());
+    }
+
     void setAvailable(VariantId variant, int available) {
         app.update("""
             insert into stock_level (variant_id, on_hand, updated_at) values (?, ?, now())

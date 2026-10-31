@@ -36,6 +36,18 @@ public abstract class BuyerEmailsContractTest<T extends BuyerEmails> extends Con
     }
 
     @Test
+    void givenFailedBouncedAndPendingEmails_whenTheProblemOrdersAreAsked_thenOnlyTheFailedAndBouncedAre() {
+        UUID failed = UUID.randomUUID();
+        UUID bounced = UUID.randomUUID();
+        UUID pending = UUID.randomUUID();
+        givenFailed(failed);
+        givenBounced(bounced);
+        givenPending(pending);
+
+        assertThat(subject.ordersWithProblems()).contains(failed, bounced).doesNotContain(pending);
+    }
+
+    @Test
     void givenTheBuyersEmailPendingOrNone_whenAskedAbout_thenThereIsNoProblem() {
         UUID order = UUID.randomUUID();
         givenPending(order);
