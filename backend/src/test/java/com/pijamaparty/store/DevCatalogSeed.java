@@ -47,10 +47,13 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -77,7 +80,9 @@ import org.springframework.context.annotation.Bean;
  * <p>When the folder of {@code store.dev.demo-photos} ({@code ../treinta-photos} by default, the repository root seen
  * from {@code backend/}) has a {@code catalog.json}, the products are the shop's real ones instead, copied from its
  * Treinta catalog: their names, descriptions, sizes, prices, stock and one photo each from that folder. Treinta has no
- * category, material, season or audience for them, so those were guessed from the names. The folder is not in git.
+ * category, material, season or audience for them, so those were guessed from the names. Each Treinta product has a
+ * single price, so one in five with three sizes or more gets its larger sizes 10 % dearer, for cards that say "Desde"
+ * (UC-01). The folder is not in git.
  */
 @TestConfiguration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = "store.dev.demo-catalog", havingValue = "true", matchIfMissing = true)
@@ -214,6 +219,42 @@ class DevCatalogSeed {
                 .map(real -> new Offer(real.priceCents(), real.stock()))
                 .orElseGet(() -> new Offer(variants.getFirst().priceCents(), 0));
         }
+
+        /**
+         * The same product with its larger half of sizes (in natural order: numbers, then letters) 10 % dearer,
+         * rounded up to ARS 500; unchanged with fewer than {@link DevCatalogSeed#SIZES_TO_VARY} sizes.
+         */
+        RealProduct withLargerSizesDearer() {
+            List<String> bySize = sizes().stream().sorted(Comparator.comparingInt(DevCatalogSeed::sizeRank)).toList();
+            if (bySize.size() < SIZES_TO_VARY) {
+                return this;
+            }
+            Set<String> larger = Set.copyOf(bySize.subList(bySize.size() / 2, bySize.size()));
+            return new RealProduct(photo, name, description, category, material, season, audience, variants.stream()
+                .map(real -> larger.contains(real.size())
+                    ? new RealVariant(real.size(), real.color(), dearer(real.priceCents()), real.stock())
+                    : real)
+                .toList());
+        }
+
+        private static long dearer(long cents) {
+            return Math.ceilDiv(cents * 11 / 10, PRICE_STEP_CENTS) * PRICE_STEP_CENTS;
+        }
+    }
+
+    /** Treinta's products have one price each: one in this many gets dearer larger sizes, so some cards say "Desde". */
+    private static final int VARIED_EVERY = 5;
+    private static final int SIZES_TO_VARY = 3;
+    private static final long PRICE_STEP_CENTS = 50_000;
+    private static final List<String> LETTER_SIZES = List.of("XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL");
+
+    /** Numbers by value, then letters from XXS to XXXL, then the rest (Único). */
+    private static int sizeRank(String size) {
+        if (size.matches("\\d{1,3}")) {
+            return Integer.parseInt(size);
+        }
+        int letter = LETTER_SIZES.indexOf(size.toUpperCase(Locale.ROOT));
+        return letter >= 0 ? 1_000 + letter : 2_000;
     }
 
     private record RealVariant(String size, String color, long priceCents, int stock) {}
@@ -302,7 +343,13 @@ class DevCatalogSeed {
             log.info("Demo catalog: creating the {} real products of {}", products.size(), realPhotos.toAbsolutePath());
             Map<String, CategoryId> categories = new LinkedHashMap<>();
             boolean photos = true;
-            for (RealProduct real : products) {
+            int varied = 0;
+            for (int index = 0; index < products.size(); index++) {
+                RealProduct listed = products.get(index);
+                RealProduct real = index % VARIED_EVERY == 0 ? listed.withLargerSizesDearer() : listed;
+                if (!real.equals(listed)) {
+                    varied++;
+                }
                 CategoryId category = categories.computeIfAbsent(real.category(), this::category);
                 var details = new ProductDetailsInput(category, real.name(), real.description(), real.material(),
                     real.season(), real.audience());
@@ -311,7 +358,8 @@ class DevCatalogSeed {
             }
             categories.forEach(this::sizeGuide);
             shipping();
-            log.info("Demo catalog created: {} categories, {} real products{}", categories.size(), products.size(),
+            log.info("Demo catalog created: {} categories, {} real products ({} with dearer larger sizes){}",
+                categories.size(), products.size(), varied,
                 photos ? "" : " (without photos: install libvips or set VIPS_BIN_DIR)");
         }
 
