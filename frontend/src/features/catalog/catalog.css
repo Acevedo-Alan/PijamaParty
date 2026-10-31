@@ -11,7 +11,7 @@
   margin-bottom: 24px;
 }
 
-.grid {
+.product-grid {
   list-style: none;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -19,13 +19,13 @@
 }
 
 @media (min-width: 640px) {
-  .grid {
+  .product-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (min-width: 980px) {
-  .grid {
+  .product-grid {
     grid-template-columns: repeat(4, 1fr);
   }
 }
@@ -537,7 +537,7 @@
 }
 
 /* T-E7-06: the list view, a row per product with its photo at the side */
-.grid.list-view {
+.product-grid.list-view {
   grid-template-columns: 1fr;
   gap: 12px;
 }

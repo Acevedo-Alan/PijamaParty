@@ -1,0 +1,72 @@
+/*
+ * D-E8-12: Tailwind for the back office's shadcn/ui components, imported only by the back office chunk. No preflight
+ * (Tailwind's CSS reset): base.css already sets the page, and the storefront must not change. The utilities come from
+ * the components and the back office's pages only, and every shadcn color name points at a token of tokens.css.
+ */
+/* base.css is in the layer "base", declared first by the store, so these utilities beat its reset */
+@layer base, theme, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@source './';
+@source '../../features/admin';
+
+@theme inline {
+  --font-sans: var(--ff-body);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--ink);
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-hover);
+  --color-primary-foreground: var(--surface);
+  --color-primary-text: var(--accent-text);
+  --color-secondary: var(--peach-soft);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: #fff3ec;
+  --color-muted-foreground: var(--ink-soft);
+  --color-accent: var(--rose-soft);
+  --color-accent-foreground: var(--accent-text);
+  --color-border: #f3e3da;
+  --color-input: var(--line-strong);
+  --color-ring: var(--accent);
+  --color-destructive: var(--danger);
+  --color-destructive-soft: var(--danger-bg);
+  --color-destructive-strong: var(--danger-strong);
+  --color-warning: #6d5615;
+  --color-warning-soft: #fdf6e3;
+  --color-warning-border: #efdca8;
+  --color-success: #2f6b3f;
+  --color-success-soft: #e9f5ec;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: var(--radius-s);
+  --radius-xl: var(--radius-m);
+  /* Apple HIG depth: three planes over the cream base, warm shadows tinted with --ink */
+  --shadow-card: 0 1px 2px rgb(74 58 58 / 0.05), 0 1px 1px rgb(74 58 58 / 0.03);
+  --shadow-raised: 0 6px 16px -4px rgb(74 58 58 / 0.12), 0 2px 4px rgb(74 58 58 / 0.05);
+  --shadow-overlay: 0 18px 40px -8px rgb(74 58 58 / 0.22), 0 4px 10px rgb(74 58 58 / 0.08);
+  /* Apple HIG motion, only after something happened, transform and opacity only; used behind motion-safe: */
+  /* a card rises in once when the screen opens, a bar grows from its base, a changed number fades into the new one */
+  --animate-rise: admin-rise var(--dur-slow) var(--ease-out) both;
+  --animate-grow: admin-grow var(--dur-panel) var(--ease-out) both;
+  --animate-fade: admin-fade var(--dur-base) var(--ease-out);
+
+  @keyframes admin-rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  @keyframes admin-grow {
+    from {
+      transform: scaleY(0);
+    }
+  }
+
+  @keyframes admin-fade {
+    from {
+      opacity: 0;
+    }
+  }
+}

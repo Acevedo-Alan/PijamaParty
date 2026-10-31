@@ -24,7 +24,7 @@ function photoPriority(index: number): CardPhotoPriority {
 }
 
 function gridClass(view: ListingView): string {
-  return view === 'list' ? 'grid list-view' : 'grid';
+  return view === 'list' ? 'product-grid list-view' : 'product-grid';
 }
 
 function Skeleton({ view }: { view: ListingView }) {

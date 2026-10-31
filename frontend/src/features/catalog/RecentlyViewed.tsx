@@ -64,7 +64,7 @@ export function RecentlyViewed({ exclude, className }: { exclude?: string; class
       <h2 id={titleId} className="related-title">
         {es.product.recentlyViewed}
       </h2>
-      <ul className="grid">
+      <ul className="product-grid">
         {viewed.map((product) => (
           <li key={product.slug}>
             <ProductCard product={product} />

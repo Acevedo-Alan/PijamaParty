@@ -28,7 +28,7 @@ export function RelatedProducts({ category, slug }: { category: string; slug: st
       <h2 id="related-title" className="related-title">
         {es.product.related}
       </h2>
-      <ul className="grid">
+      <ul className="product-grid">
         {related.map((product) => (
           <li key={product.slug}>
             <ProductCard product={product} />

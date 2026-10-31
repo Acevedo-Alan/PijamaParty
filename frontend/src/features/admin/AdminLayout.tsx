@@ -8,6 +8,7 @@ import { AdminNav } from './AdminNav.tsx';
 import { onSessionExpired } from './adminSession.ts';
 import { signOut } from './authApi.ts';
 import { useSession, type SignInState } from './useSession.ts';
+import '../../components/ui/ui.css';
 import './admin.css';
 
 /** The page's content, where "Ir al contenido" goes. */

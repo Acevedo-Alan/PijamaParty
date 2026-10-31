@@ -274,7 +274,7 @@ Fakes never live in main sources, and use-case tests build the service with `new
 
 ### Design tokens
 
-Taken as-is from the prototype (`docs/design/prototype/index.html`, read-only reference, never deployed) and defined once in `frontend/src/styles/tokens.css` as CSS variables with the same names. Styling uses plain CSS variables (no Tailwind), as the E0 plan says.
+Taken as-is from the prototype (`docs/design/prototype/index.html`, read-only reference, never deployed) and defined once in `frontend/src/styles/tokens.css` as CSS variables with the same names. Styling uses plain CSS variables (no Tailwind), as the E0 plan says. **Exception (D-E8-12, 2026-10-31):** the back office uses shadcn/ui components (Tailwind CSS 4 and Radix, copied into `frontend/src/components/ui`), themed with these same tokens. Tailwind is loaded only by the back office chunk and without its CSS reset (preflight), so the storefront's CSS and first load do not change.
 
 | Token | Value | Use |
 |---|---|---|

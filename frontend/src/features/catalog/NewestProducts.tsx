@@ -34,7 +34,7 @@ export function NewestProducts({ className, onOpen }: { className?: string; onOp
       {/* Opening a card may need to close what holds it (the cart panel). The router's links prevent the default of
           every click, so that cannot tell; a swipe stops its click from reaching here instead. */}
       <ul
-        className="grid newest-grid"
+        className="product-grid newest-grid"
         onClick={(event) => {
           if (event.target instanceof Element && event.target.closest('a') !== null) {
             onOpen?.();
