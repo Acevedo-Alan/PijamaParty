@@ -1643,6 +1643,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The summary: what to do today, sales, the chart, low stock, best sellers, recent orders and the totals */
+        get: operations["get_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/dashboard/counts": {
         parameters: {
             query?: never;
@@ -1651,7 +1668,7 @@ export interface paths {
             cookie?: never;
         };
         /** The counts of the back-office menu: the PAID orders waiting to be prepared */
-        get: operations["get_5"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2704,6 +2721,99 @@ export interface components {
             outOfTerm?: boolean;
             /** Format: date-time */
             requestedAt?: string;
+        };
+        BestSellerResponse: {
+            productSlug?: string;
+            productName?: string;
+            /** Format: int64 */
+            units?: number;
+            /** Format: int64 */
+            amountCents?: number;
+        };
+        ChartResponse: {
+            /** @enum {string} */
+            kind?: "DAYS" | "MONTHS";
+            points?: components["schemas"]["PointResponse"][];
+        };
+        DashboardResponse: {
+            todo?: components["schemas"]["TodoResponse"];
+            sales?: components["schemas"]["SalesResponse"];
+            chart?: components["schemas"]["ChartResponse"];
+            lowStock?: components["schemas"]["LowStockResponse"];
+            bestSellers?: components["schemas"]["BestSellerResponse"][];
+            recentOrders?: components["schemas"]["RecentOrderResponse"][];
+            totals?: components["schemas"]["TotalsResponse"];
+        };
+        LowStockItemResponse: {
+            /** Format: uuid */
+            variantId?: string;
+            /** Format: uuid */
+            productId?: string;
+            productName?: string;
+            size?: string;
+            color?: string;
+            /** Format: int64 */
+            available?: number;
+        };
+        LowStockResponse: {
+            /** Format: int32 */
+            threshold?: number;
+            /** Format: int64 */
+            count?: number;
+            items?: components["schemas"]["LowStockItemResponse"][];
+        };
+        PeriodResponse: {
+            /** Format: int64 */
+            amountCents?: number;
+            /** Format: int64 */
+            orders?: number;
+            /** Format: int32 */
+            variation?: number | null;
+        };
+        PointResponse: {
+            period?: string;
+            /** Format: int64 */
+            amountCents?: number;
+            /** Format: int64 */
+            orders?: number;
+        };
+        RecentOrderResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int64 */
+            number?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            buyerName?: string;
+            /** @enum {string} */
+            status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            /** Format: int64 */
+            totalCents?: number;
+        };
+        SalesResponse: {
+            today?: components["schemas"]["PeriodResponse"];
+            lastWeek?: components["schemas"]["PeriodResponse"];
+            month?: components["schemas"]["PeriodResponse"];
+            /** Format: int64 */
+            averageTicketCents?: number | null;
+        };
+        TodoResponse: {
+            /** Format: int64 */
+            paidOrders?: number;
+            /** Format: int64 */
+            preparingOrders?: number;
+            /** Format: int64 */
+            receivedWithdrawals?: number;
+            /** Format: int64 */
+            pendingReviews?: number;
+            /** Format: int64 */
+            emailAlerts?: number;
+            /** Format: int64 */
+            soldOutVariants?: number;
+        };
+        TotalsResponse: {
+            /** Format: int64 */
+            publishedProducts?: number;
         };
         WorkloadCountsResponse: {
             /** Format: int64 */
@@ -7157,6 +7267,47 @@ export interface operations {
         };
     };
     get_5: {
+        parameters: {
+            query?: {
+                /** @description The chart by the last 30 days or the last 12 months */
+                chart?: "DAYS" | "MONTHS";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardResponse"];
+                };
+            };
+            /** @description A chart other than DAYS or MONTHS */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    get_6: {
         parameters: {
             query?: never;
             header?: never;

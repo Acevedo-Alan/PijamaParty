@@ -30,3 +30,17 @@ export function formatTime(date: Date): string {
 export function formatDateTime(date: Date): string {
   return dateTime.format(date);
 }
+
+// A calendar date or month that the server already counted in Argentina time (UC-33): read as UTC so it never shifts.
+const dayMonth = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const monthYear = new Intl.DateTimeFormat('es-AR', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+/** A calendar day, "2026-10-15" to "15 oct". */
+export function formatDayMonth(isoDay: string): string {
+  return dayMonth.format(new Date(`${isoDay}T00:00:00Z`));
+}
+
+/** A calendar month, "2026-10" to "oct 2026". */
+export function formatMonthYear(isoMonth: string): string {
+  return monthYear.format(new Date(`${isoMonth}-01T00:00:00Z`));
+}

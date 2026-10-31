@@ -94,8 +94,9 @@ describe('back-office sign-in (UC-04)', () => {
           recoveryCodes: ['AB7K3-M9QX2', 'ZZZZZ-00000'],
         }),
       ],
-      'GET /api/admin/catalog/products': productList,
-      'GET /api/admin/catalog/categories': categoryList,
+      // UC-33: signing in from the sign-in page itself lands on the summary.
+      'GET /api/admin/dashboard': problem(500),
+      'GET /api/admin/dashboard/counts': answer(200, { paidOrders: 0 }),
     });
     const { router } = renderRoute('/admin/ingresar');
 
@@ -118,8 +119,8 @@ describe('back-office sign-in (UC-04)', () => {
     await userEvent.click(screen.getByLabelText(messages.saved));
     await userEvent.click(enter);
 
-    expect(await screen.findByRole('heading', { level: 1, name: esAdmin.productList.title })).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/admin/productos');
+    expect(await screen.findByRole('heading', { level: 1, name: esAdmin.dashboard.title })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/admin');
     expect(api.callsTo('GET /api/admin/auth/enrollment')).toHaveLength(1);
   });
 

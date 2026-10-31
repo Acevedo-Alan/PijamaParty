@@ -42,10 +42,11 @@ describe('back-office navigation (E8a, T-E8-05)', () => {
     renderRoute('/admin/actividad');
 
     const menu = await sideMenu();
-    // Each group's list is named by its title; "Envíos" and the end stand alone.
+    // Each group's list is named by its title; "Resumen", "Envíos" and the end stand alone.
     expect(menu.getAllByRole('list').map((list) => list.getAttribute('aria-labelledby') === null
       ? null
       : document.getElementById(list.getAttribute('aria-labelledby') ?? '')?.textContent)).toEqual([
+      null,
       esAdmin.navGroups.sales,
       esAdmin.navGroups.catalog,
       esAdmin.navGroups.marketing,
@@ -54,6 +55,7 @@ describe('back-office navigation (E8a, T-E8-05)', () => {
       null,
     ]);
     expect(menu.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      esAdmin.summary,
       esAdmin.orders,
       esAdmin.withdrawals,
       esAdmin.products,

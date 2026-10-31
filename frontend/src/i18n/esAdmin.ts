@@ -10,6 +10,79 @@ export const esAdmin = {
   menu: 'Menú',
   closeMenu: 'Cerrar menú',
   skipToContent: 'Ir al contenido',
+  summary: 'Resumen',
+  /** UC-33: the summary the back office opens on. */
+  dashboard: {
+    title: 'Resumen',
+    intro: 'Así está tu tienda hoy.',
+    refresh: 'Actualizar',
+    refreshing: 'Actualizando…',
+    loading: 'Cargando el resumen…',
+    loadError: 'No pudimos cargar el resumen.',
+    todo: {
+      title: 'Para hacer hoy',
+      paidOrders: 'Pedidos pagados por preparar',
+      preparingOrders: 'Pedidos en preparación',
+      receivedWithdrawals: 'Arrepentimientos sin resolver',
+      pendingReviews: 'Reseñas por moderar',
+      emailAlerts: 'Pedidos con email rebotado',
+      soldOutVariants: 'Variantes agotadas',
+    },
+    sales: {
+      title: 'Ventas',
+      today: 'Hoy',
+      lastWeek: 'Últimos 7 días',
+      month: 'Este mes',
+      averageTicket: 'Ticket promedio del mes',
+      /** E.g. "3 pedidos". */
+      orders: (count: number) => (count === 1 ? '1 pedido' : `${count.toLocaleString('es-AR')} pedidos`),
+      /** The variation against the period before, e.g. "+50 %" or "−12 %"; "—" without sales before. */
+      variation: (percent: number | null) =>
+        percent === null
+          ? '—'
+          : `${percent > 0 ? '+' : percent < 0 ? '−' : ''}${Math.abs(percent).toLocaleString('es-AR')}\u00a0%`,
+      /** A figure there is none of, as an average ticket without orders. */
+      none: '—',
+      versus: { today: 'vs. ayer', lastWeek: 'vs. 7 días anteriores', month: 'vs. mismos días del mes pasado' },
+      noVariation: 'Sin ventas en el período anterior',
+    },
+    chart: {
+      title: 'Ventas por período',
+      days: 'Días',
+      months: 'Meses',
+      kindLabel: 'Ver el gráfico por',
+      tableCaption: (kind: 'DAYS' | 'MONTHS') =>
+        kind === 'DAYS' ? 'Ventas de los últimos 30 días' : 'Ventas de los últimos 12 meses',
+      period: 'Período',
+      amount: 'Monto',
+      orders: 'Pedidos',
+    },
+    lowStock: {
+      title: 'Stock bajo',
+      /** E.g. "Con 3 unidades o menos". */
+      threshold: (units: number) =>
+        `Con ${units.toLocaleString('es-AR')} ${units === 1 ? 'unidad' : 'unidades'} o menos`,
+      none: 'Sin productos con stock bajo',
+      soldOut: 'Agotado',
+      available: (units: number) => (units === 1 ? '1 disponible' : `${units.toLocaleString('es-AR')} disponibles`),
+      seeAll: (count: number) => `Ver los ${count.toLocaleString('es-AR')} en productos`,
+    },
+    bestSellers: {
+      title: 'Más vendidos',
+      subtitle: 'Últimos 30 días',
+      none: 'Todavía no hay ventas en los últimos 30 días.',
+      units: (count: number) => (count === 1 ? '1 unidad' : `${count.toLocaleString('es-AR')} unidades`),
+    },
+    recentOrders: {
+      title: 'Pedidos recientes',
+      none: 'Todavía no hay pedidos.',
+      seeAll: 'Ver todos los pedidos',
+    },
+    totals: {
+      title: 'Totales',
+      publishedProducts: 'Productos publicados',
+    },
+  },
   /** What the badge on "Pedidos" says to screen readers (T-E8-05). */
   paidWaiting: (count: number) =>
     count === 1 ? '1 pedido pagado por preparar' : `${String(count)} pedidos pagados por preparar`,

@@ -1,4 +1,4 @@
-import { Navigate, type RouteObject } from 'react-router';
+import { type RouteObject } from 'react-router';
 import {
   ACCOUNT_PATH,
   ADDRESSES_PATH,
@@ -75,7 +75,7 @@ export const routes: RouteObject[] = [
     path: '/admin',
     lazy: async () => ({ Component: (await admin()).AdminLayout }),
     children: [
-      { index: true, element: <Navigate to="/admin/productos" replace /> },
+      { index: true, lazy: async () => ({ Component: (await admin()).DashboardPage }) },
       { path: 'pedidos', lazy: async () => ({ Component: (await admin()).OrdersPage }) },
       { path: 'pedidos/:orderId', lazy: async () => ({ Component: (await admin()).OrderDetailPage }) },
       { path: 'arrepentimientos', lazy: async () => ({ Component: (await admin()).WithdrawalsPage }) },

@@ -761,3 +761,247 @@
   padding-left: 20px;
   overflow-wrap: anywhere;
 }
+
+/* UC-33: the summary. Cards in one column at 360 px, two from 860 px; "Para hacer hoy" and the sales first. */
+.dashboard-subtitle {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+@media (min-width: 860px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-todo,
+  .dashboard-sales,
+  .dashboard-chart {
+    grid-column: 1 / -1;
+  }
+}
+
+.dashboard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+}
+
+.dashboard-card h2 {
+  font-size: 17px;
+}
+
+.dashboard-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dashboard-count {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "Para hacer hoy": a count per row; a 0 is quieter and not a link */
+.dashboard-todo ul {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .dashboard-todo ul {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+.dashboard-todo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border-radius: var(--radius-s);
+  background: var(--peach-soft);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.dashboard-todo a.dashboard-todo-row {
+  border: 1px solid transparent;
+}
+
+.dashboard-todo li.done .dashboard-todo-row {
+  background: var(--bg);
+  color: var(--ink-soft);
+}
+
+@media (hover: hover) {
+  .dashboard-todo a.dashboard-todo-row:hover {
+    border-color: var(--accent-text);
+  }
+}
+
+/* Sales: three periods side by side from 640 px */
+.dashboard-periods {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .dashboard-periods {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.dashboard-period-label {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dashboard-amount {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-period-meta,
+.dashboard-ticket {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.dashboard-variation {
+  font-weight: 700;
+}
+
+.dashboard-variation.up {
+  color: var(--accent-text);
+}
+
+.dashboard-variation.down {
+  color: var(--danger);
+}
+
+.dashboard-variation abbr {
+  text-decoration: none;
+}
+
+/* The chart's days/months switch */
+/* No overflow: hidden here: it would clip the buttons' focus ring; the outer buttons round the corners instead */
+.dashboard-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+}
+
+.dashboard-toggle button:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.dashboard-toggle button:last-child {
+  border-radius: 0 999px 999px 0;
+}
+
+.dashboard-toggle button {
+  min-height: 44px;
+  padding: 0 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* The pressed one stands apart by more than color tint: the accent fill with white text */
+.dashboard-toggle button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.sales-chart {
+  display: block;
+  width: 100%;
+  height: 160px;
+}
+
+.sales-chart rect {
+  fill: var(--accent);
+}
+
+/* A day without sales still carries a value: a visible line, not a decorative one */
+.sales-chart rect.empty {
+  fill: var(--line-strong);
+}
+
+.sales-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+/* Lists of rows: name on the left, figure on the right */
+.dashboard-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-rows li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-rows li:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-muted {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.dashboard-order-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-badge.danger {
+  color: var(--danger-strong);
+  background: var(--danger-bg);
+}
+
+.dashboard-total {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}

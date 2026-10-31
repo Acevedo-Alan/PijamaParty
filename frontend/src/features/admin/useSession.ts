@@ -12,7 +12,7 @@ export function useSession() {
 export function returnPath(from: unknown): string {
   return typeof from === 'string' && from.startsWith('/admin/') && !from.startsWith('/admin/ingresar')
     ? from
-    : '/admin/productos';
+    : '/admin';
 }
 
 /** The router state the sign-in page reads. */

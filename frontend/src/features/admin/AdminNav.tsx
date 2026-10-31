@@ -8,6 +8,8 @@ interface NavEntry {
   label: string;
   /** The count shown beside the entry, when it is above 0. */
   badge?: keyof WorkloadCounts;
+  /** Marked current only on its own path, not on the paths below it ("Resumen" at /admin). */
+  end?: boolean;
 }
 
 interface NavGroup {
@@ -18,9 +20,10 @@ interface NavGroup {
 
 /**
  * The back office's sections, grouped (E8a navigation). A data list, so a phase adds its screens here without
- * touching the menu's logic: Resumen, Clientes, Stock and Datos de la tienda join when their tasks arrive.
+ * touching the menu's logic: Clientes, Stock and Datos de la tienda join when their tasks arrive.
  */
 export const NAV_GROUPS: readonly NavGroup[] = [
+  { title: null, entries: [{ to: '/admin', label: esAdmin.summary, end: true }] },
   {
     title: esAdmin.navGroups.sales,
     entries: [
@@ -52,7 +55,7 @@ function Entry({ entry, counts, onChoose }: { entry: NavEntry; counts: WorkloadC
   return (
     <li>
       {/* NavLink marks the current page with aria-current="page". */}
-      <NavLink to={entry.to} onClick={onChoose}>
+      <NavLink to={entry.to} end={entry.end === true} onClick={onChoose}>
         <span>{entry.label}</span>
         {count > 0 && (
           <span className="admin-nav-badge">

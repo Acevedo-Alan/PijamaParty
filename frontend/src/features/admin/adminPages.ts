@@ -3,6 +3,7 @@ export { ActivityPage } from './ActivityPage.tsx';
 export { AdminLayout } from './AdminLayout.tsx';
 export { CategoriesPage } from './CategoriesPage.tsx';
 export { CouponsPage } from './CouponsPage.tsx';
+export { DashboardPage } from './DashboardPage.tsx';
 export { HomeBannerPage } from './HomeBannerPage.tsx';
 export { ShippingPage } from './ShippingPage.tsx';
 export { NewProductPage } from './NewProductPage.tsx';
