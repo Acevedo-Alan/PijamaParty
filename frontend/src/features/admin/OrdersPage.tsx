@@ -1,10 +1,11 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useId } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { WORKLOAD_COUNTS_KEY } from './dashboardApi.ts';
 import { fetchOrders, ORDER_STATUSES, type OrderStatus } from './ordersApi.ts';
 
 const messages = esAdmin.orderList;
@@ -21,9 +22,17 @@ export function OrdersPage() {
   const filterId = useId();
   const [params, setParams] = useSearchParams();
   const status = statusOf(params);
+  const queryClient = useQueryClient();
   const orders = useInfiniteQuery({
     queryKey: ['admin', 'orders', 'list', status],
-    queryFn: ({ pageParam, signal }) => fetchOrders(status, pageParam, signal),
+    queryFn: ({ pageParam, signal }) => {
+      // T-E8-05: the menu's count of paid orders is read again whenever the list loads from its start, alongside it.
+      // A count already on its way is kept, not sent again.
+      if (pageParam === 0) {
+        void queryClient.invalidateQueries({ queryKey: WORKLOAD_COUNTS_KEY }, { cancelRefetch: false });
+      }
+      return fetchOrders(status, pageParam, signal);
+    },
     initialPageParam: 0,
     getNextPageParam: (last, _pages, page) => (last.hasMore ? page + 1 : undefined),
   });

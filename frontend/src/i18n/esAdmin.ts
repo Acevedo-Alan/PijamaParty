@@ -5,6 +5,14 @@
 export const esAdmin = {
   title: 'Backoffice',
   nav: 'Secciones del backoffice',
+  /** E8a navigation: the menu's groups, and its button and panel under 860 px. */
+  navGroups: { sales: 'Ventas', catalog: 'Catálogo', marketing: 'Marketing', settings: 'Configuración' },
+  menu: 'Menú',
+  closeMenu: 'Cerrar menú',
+  skipToContent: 'Ir al contenido',
+  /** What the badge on "Pedidos" says to screen readers (T-E8-05). */
+  paidWaiting: (count: number) =>
+    count === 1 ? '1 pedido pagado por preparar' : `${String(count)} pedidos pagados por preparar`,
   orders: 'Pedidos',
   withdrawals: 'Arrepentimientos',
   products: 'Productos',

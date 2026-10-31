@@ -184,7 +184,9 @@ describe('back-office sign-in (UC-04)', () => {
     });
     const { router } = renderRoute('/admin');
 
-    await userEvent.click(await screen.findByRole('button', { name: esAdmin.signOut }));
+    // As on a phone: "Cerrar sesión" is in the menu's panel.
+    await userEvent.click(await screen.findByRole('button', { name: esAdmin.menu }));
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.signOut }));
 
     expect(await screen.findByRole('heading', { level: 1, name: esAdmin.signIn.title })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/admin/ingresar');

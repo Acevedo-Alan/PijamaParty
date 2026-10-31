@@ -1,12 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { NoIndex } from '../seo/NoIndex.tsx';
+import { AdminMenuPanel } from './AdminMenuPanel.tsx';
+import { AdminNav } from './AdminNav.tsx';
 import { onSessionExpired } from './adminSession.ts';
 import { signOut } from './authApi.ts';
 import { useSession, type SignInState } from './useSession.ts';
 import './admin.css';
+
+/** The page's content, where "Ir al contenido" goes. */
+const MAIN_ID = 'admin-content';
 
 function AccessDenied() {
   return (
@@ -77,39 +82,35 @@ export function AdminLayout() {
     return <AccessDenied />;
   }
 
+  const signOutProps = {
+    signingOut: leave.isPending,
+    onSignOut: () => {
+      leave.mutate();
+    },
+  };
+
+  // E8a navigation: the grouped menu at the side from 860 px; under it, behind "Menú" in a panel (CSS picks one).
   return (
     <>
       <NoIndex />
+      {/* Past the menu's entries to the page, for the keyboard (the main element takes the focus). */}
+      <a className="admin-skip-link" href={`#${MAIN_ID}`}>
+        {esAdmin.skipToContent}
+      </a>
       <header className="admin-header">
-        <div className="wrap admin-header-inner">
+        <div className="admin-header-inner">
+          <AdminMenuPanel {...signOutProps} />
           <p className="admin-brand">{esAdmin.title}</p>
-          <nav aria-label={esAdmin.nav} className="admin-nav">
-            <NavLink to="/admin/pedidos">{esAdmin.orders}</NavLink>
-            <NavLink to="/admin/arrepentimientos">{esAdmin.withdrawals}</NavLink>
-            <NavLink to="/admin/productos">{esAdmin.products}</NavLink>
-            <NavLink to="/admin/categorias">{esAdmin.categories}</NavLink>
-            <NavLink to="/admin/cupones">{esAdmin.coupons}</NavLink>
-            <NavLink to="/admin/resenas">{esAdmin.reviews}</NavLink>
-            <NavLink to="/admin/envios">{esAdmin.shipping}</NavLink>
-            <NavLink to="/admin/portada">{esAdmin.home}</NavLink>
-            <NavLink to="/admin/actividad">{esAdmin.activity}</NavLink>
-            <Link to="/">{esAdmin.viewStore}</Link>
-            <button
-              type="button"
-              className="link-btn"
-              disabled={leave.isPending}
-              onClick={() => {
-                leave.mutate();
-              }}
-            >
-              {esAdmin.signOut}
-            </button>
-          </nav>
         </div>
       </header>
-      <main className="wrap admin-main">
-        <Outlet />
-      </main>
+      <div className="admin-shell">
+        <div className="admin-side">
+          <AdminNav {...signOutProps} />
+        </div>
+        <main id={MAIN_ID} className="admin-main" tabIndex={-1}>
+          <Outlet />
+        </main>
+      </div>
     </>
   );
 }

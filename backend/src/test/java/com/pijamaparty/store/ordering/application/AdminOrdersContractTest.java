@@ -35,11 +35,12 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Contract of {@link OrderPages}, {@link AdminOrderViews}, {@link OrderStatuses}, {@link StatusChanges},
+ * Contract of {@link OrderPages}, {@link OrderStatusCounts}, {@link AdminOrderViews}, {@link OrderStatuses}, {@link StatusChanges},
  * {@link ShipmentTrackingNumbers} and {@link LatePayments} over orders placed through {@link SaveOrders} (UC-18,
  * RNF-20.5): what is written shows in the back-office list and detail.
  */
-public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumbers & OrderPages & AdminOrderViews
+public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumbers & OrderPages & OrderStatusCounts
+    & AdminOrderViews
     & OrderStatuses & OrderTransitions & StatusChanges & ShipmentTrackingNumbers & LatePayments>
     extends ContractTest<T> {
 
@@ -92,6 +93,20 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
             paid.id(), paid.number(), NOW.plusSeconds(1), OrderStatus.PAID, "Ana María Pérez", "Santa Fe",
             Province.SANTA_FE, Money.of(5_300_000)));
         assertThat(subject.page(Optional.of(OrderStatus.SHIPPED), 0, 10)).isEmpty();
+    }
+
+    @Test
+    void givenOrdersInSeveralStatuses_whenCounted_thenEachStatusCountsOnlyItsOwn() {
+        placed(NOW, Optional.empty());
+        NewOrder first = placed(NOW.plusSeconds(1), Optional.empty());
+        NewOrder second = placed(NOW.plusSeconds(2), Optional.empty());
+        subject.transition(first.id(), OrderStatus.AWAITING_PAYMENT, OrderStatus.PAID, NOW.plusSeconds(3));
+        subject.transition(second.id(), OrderStatus.AWAITING_PAYMENT, OrderStatus.PAID, NOW.plusSeconds(3));
+        persistAndForget();
+
+        assertThat(subject.count(OrderStatus.PAID)).isEqualTo(2);
+        assertThat(subject.count(OrderStatus.AWAITING_PAYMENT)).isEqualTo(1);
+        assertThat(subject.count(OrderStatus.SHIPPED)).isZero();
     }
 
     @Test

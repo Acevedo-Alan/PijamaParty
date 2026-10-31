@@ -20,6 +20,7 @@ import com.pijamaparty.store.ordering.application.GuestOrderLinks;
 import com.pijamaparty.store.ordering.application.LatePayments;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderPages;
+import com.pijamaparty.store.ordering.application.OrderStatusCounts;
 import com.pijamaparty.store.ordering.application.OrderStatuses;
 import com.pijamaparty.store.ordering.application.OrderStatuses.LockedOrder;
 import com.pijamaparty.store.ordering.application.OrderSummary;
@@ -74,9 +75,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 class JdbcOrderStore
     implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay, ConfirmableOrders,
-    TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews, StatusChanges,
-    ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails, CustomerOrderPages, CustomerOrderViews,
-    GuestOrderLinks, CustomerOrderExports, CustomerOrderUnlinks {
+    TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, OrderStatusCounts,
+    AdminOrderViews, StatusChanges, ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails,
+    CustomerOrderPages, CustomerOrderViews, GuestOrderLinks, CustomerOrderExports, CustomerOrderUnlinks {
 
     // UC-16: oldest expiry first, over the partial index orders_reservation_expiry_idx. SKIP LOCKED lets two runs work
     // side by side without expiring the same order.
@@ -220,6 +221,11 @@ class JdbcOrderStore
         """;
 
     // UC-18: by status, over orders_status_created_idx (V14).
+    // T-E8-05: the "Pedidos" badge of the back-office menu; the status comes from the OrderStatus enum (RNF-28).
+    private static final String COUNT_BY_STATUS = """
+        SELECT count(*) FROM orders WHERE status = :status
+        """;
+
     private static final String PAGE_BY_STATUS = """
         SELECT id, number, created_at, status, customer_first_name || ' ' || customer_last_name AS customer_full_name,
                city, province, total_cents
@@ -493,6 +499,13 @@ class JdbcOrderStore
         return status.isPresent()
             ? jdbc.query(PAGE_BY_STATUS, params, JdbcOrderStore::summary)
             : jdbc.query(PAGE_ALL, params, JdbcOrderStore::summary);
+    }
+
+    @Override
+    public long count(OrderStatus status) {
+        Long count = jdbc.queryForObject(COUNT_BY_STATUS, new MapSqlParameterSource("status", status.name()),
+            Long.class);
+        return count == null ? 0 : count;
     }
 
     private static OrderSummary summary(ResultSet row, int rowNumber) throws SQLException {

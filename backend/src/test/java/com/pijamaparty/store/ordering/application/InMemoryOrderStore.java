@@ -32,7 +32,8 @@ import java.util.UUID;
  * {@link CustomerOrderUnlinks} over the same orders. Locks are not modeled.
  */
 public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, SaveOrders, OrderNumbers, OrdersToPay,
-    ConfirmableOrders, TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, AdminOrderViews,
+    ConfirmableOrders, TrackedOrders, PaidOrderDetails, SaveTrackingLinks, OrderStatuses, OrderPages, OrderStatusCounts,
+    AdminOrderViews,
     StatusChanges, ShipmentTrackingNumbers, LatePayments, CorrectableOrders, BuyerEmails, CustomerOrderPages,
     CustomerOrderViews, GuestOrderLinks, CustomerOrderExports, CustomerOrderUnlinks {
 
@@ -207,6 +208,11 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
                 orders.get(order.id()).status(), fullNameOf(order), order.address().city(), order.province(),
                 order.amounts().total()))
             .toList();
+    }
+
+    @Override
+    public synchronized long count(OrderStatus status) {
+        return orders.values().stream().filter(order -> order.status() == status).count();
     }
 
     /** Only the orders the checkout placed carry what the detail shows. */

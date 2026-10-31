@@ -54,7 +54,8 @@ describe('character banner in the back office (UC-32)', () => {
   it('given the back office menu, when it shows, then "Portada" opens the banner page', async () => {
     await openPage(EMPTY);
 
-    expect(screen.getByRole('link', { name: esAdmin.home })).toHaveAttribute('href', '/admin/portada');
+    // In the side menu, which jsdom keeps in its phone style (display: none): see AdminNav.test.tsx.
+    expect(screen.getByRole('link', { name: esAdmin.home, hidden: true })).toHaveAttribute('href', '/admin/portada');
     expect(screen.getByText(messages.hiddenState)).toBeInTheDocument();
     expect(screen.getByText(messages.noPhoto)).toBeInTheDocument();
   });

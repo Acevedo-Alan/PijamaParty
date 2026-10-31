@@ -1643,6 +1643,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/dashboard/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The counts of the back-office menu: the PAID orders waiting to be prepared */
+        get: operations["get_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/me": {
         parameters: {
             query?: never;
@@ -2687,6 +2704,10 @@ export interface components {
             outOfTerm?: boolean;
             /** Format: date-time */
             requestedAt?: string;
+        };
+        WorkloadCountsResponse: {
+            /** Format: int64 */
+            paidOrders?: number;
         };
         ProductPageResponse: {
             items?: components["schemas"]["ProductSummaryResponse"][];
@@ -7126,6 +7147,35 @@ export interface operations {
             };
             /** @description No such order (problem ORDER_NOT_FOUND) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkloadCountsResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

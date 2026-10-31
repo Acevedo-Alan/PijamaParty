@@ -10,6 +10,7 @@ import com.pijamaparty.store.ordering.application.AdminOrdersContractTest;
 import com.pijamaparty.store.ordering.application.LatePayments;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderPages;
+import com.pijamaparty.store.ordering.application.OrderStatusCounts;
 import com.pijamaparty.store.ordering.application.OrderStatuses;
 import com.pijamaparty.store.ordering.application.OrderSummary;
 import com.pijamaparty.store.ordering.application.OrderTransitions;
@@ -144,7 +145,8 @@ class JdbcAdminOrdersContractTest extends AdminOrdersContractTest<JdbcAdminOrder
      * administrator.
      */
     record AsActors(JdbcOrderStore adapter, TransactionTemplate transactions, Map<String, TrackingToken> tokens)
-        implements SaveOrders, OrderNumbers, OrderPages, AdminOrderViews, OrderStatuses, OrderTransitions,
+        implements SaveOrders, OrderNumbers, OrderPages, OrderStatusCounts, AdminOrderViews, OrderStatuses,
+        OrderTransitions,
         StatusChanges, ShipmentTrackingNumbers, LatePayments {
 
         <R> R as(Actor actor, Supplier<R> work) {
@@ -169,6 +171,12 @@ class JdbcAdminOrdersContractTest extends AdminOrdersContractTest<JdbcAdminOrder
         @Override
         public List<OrderSummary> page(Optional<OrderStatus> status, int offset, int limit) {
             return as(ADMIN, () -> adapter.page(status, offset, limit));
+        }
+
+        @Override
+        public long count(OrderStatus status) {
+            Long count = as(ADMIN, () -> adapter.count(status));
+            return count == null ? 0 : count;
         }
 
         @Override

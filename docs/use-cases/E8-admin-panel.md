@@ -378,15 +378,15 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - Marketing: Cupones, Reseñas, Portada;
   - Envíos;
   - Configuración: Datos de la tienda, Actividad;
-  - then "Ver tienda" and "Salir".
-  E8b and E8c add their screens to these groups when they arrive.
+  - then "Ver tienda" and "Cerrar sesión" (the label the back office already used).
+  E8b and E8c add their screens to these groups when they arrive, and so do the E8a screens still to come: Resumen (T-E8-13), Clientes (T-E8-10), Stock (T-E8-09) and Datos de la tienda (T-E8-04). Until then the menu lists only the screens that exist.
 - The current page is marked with `aria-current="page"`.
-- Under 860 px the menu is closed behind a "Menú" button, in a side panel. It traps the focus, Escape closes it and gives the focus back to the button, and choosing a link closes it. From 860 px it is always visible.
+- Under 860 px the menu is closed behind a "Menú" button, in a side panel. It traps the focus, Escape closes it and gives the focus back to the button, and choosing a link closes it; a window that grows to 860 px closes it too. From 860 px it is always visible, and a skip link ("Ir al contenido") leads the keyboard past it to the page.
 - "Pedidos" shows the number of `PAID` orders waiting as a badge, from the same read as UC-33's "Para hacer hoy" (a count, refreshed when the summary or the order list loads).
 
 **Acceptance criteria**
 - Given a 360 px screen, when "Menú" is pressed, then the panel opens with every group, and Escape closes it and returns the focus to "Menú".
-- Given `/admin/stock`, when the menu shows, then "Stock" is marked as the current page.
+- Given `/admin/stock`, when the menu shows, then "Stock" is marked as the current page (with T-E8-09; until then, the same holds for any listed screen, as `/admin/actividad`).
 - Given 2 `PAID` orders, when the back office opens, then "Pedidos" shows 2.
 
 **Design notes**
