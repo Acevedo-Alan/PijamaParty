@@ -1,8 +1,9 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { components } from '../../api/schema.d.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { storeDay } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { signedIn, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
@@ -13,10 +14,15 @@ type Body = components['schemas']['DashboardResponse'];
 const messages = esAdmin.dashboard;
 const DASHBOARD = 'GET /api/admin/dashboard';
 const COUNTS = 'GET /api/admin/dashboard/counts';
+const ACTIVITY = 'GET /api/admin/activity';
+const NO_ACTIVITY = answer(200, { items: [], hasMore: false });
 
-function period(amountCents: number, orders: number, variation: number | null) {
-  return { amountCents, orders, variation };
+/** Every test reads the recent activity too (its own read); empty unless the test says otherwise. */
+function stub(routes: Parameters<typeof stubApi>[0]) {
+  return stubApi({ [ACTIVITY]: NO_ACTIVITY, ...routes });
 }
+
+type Query = { params?: { query?: Record<string, unknown> } };
 
 function days(count: number) {
   return Array.from({ length: count }, (_, index) => ({
@@ -30,12 +36,8 @@ function dashboard(overrides: Partial<Body> = {}): Body {
   return {
     todo: { paidOrders: 2, preparingOrders: 0, receivedWithdrawals: 1, pendingReviews: 3, emailAlerts: 0,
       soldOutVariants: 1 },
-    sales: {
-      today: period(15_000_000, 1, 50),
-      lastWeek: period(25_000_000, 2, null),
-      month: period(30_000_000, 3, -12),
-      averageTicketCents: 10_000_000,
-    },
+    sales: { period: 'MONTH', from: '2026-10-01', to: '2026-10-15', amountCents: 30_000_000, orders: 3,
+      variation: -12, averageTicketCents: 10_000_000 },
     chart: { kind: 'DAYS', points: days(30) },
     lowStock: {
       threshold: 3,
@@ -70,10 +72,12 @@ function section(title: string) {
 describe('the back-office summary (UC-33, T-E8-13)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
+    localStorage.clear();
   });
 
   it('given an administrator, when /admin opens, then it shows the summary, not the product list', async () => {
-    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard()) });
 
     renderRoute('/admin');
@@ -83,7 +87,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
   });
 
   it('given work waiting, when the summary shows, then each count links to its list already filtered and a 0 does not link', async () => {
-    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard()) });
     renderRoute('/admin');
     await screen.findByRole('region', { name: messages.todo.title });
@@ -100,7 +104,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
   });
 
   it('given a bounced email and 2 PAID orders, when the summary shows, then the alert is under "Urgente" and the paid orders under "Operativo"', async () => {
-    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard({ todo: { ...dashboard().todo, emailAlerts: 1 } })) });
     renderRoute('/admin');
     await screen.findByRole('region', { name: messages.todo.title });
@@ -115,35 +119,132 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
   });
 
   it('given the summary read, when it shows, then it says when it was read', async () => {
-    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard()) });
     renderRoute('/admin');
 
     expect(await screen.findByText(/^Actualizado a las \d{2}:\d{2}$/)).toBeInTheDocument();
   });
 
-  it('given sales against the periods before, when the summary shows, then each period has its amount, orders and variation, "—" without sales before', async () => {
-    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+  it('given this month by default, when "Hoy" is chosen, then it asks for today and shows its figures, "—" without sales before', async () => {
+    const api = stub({
+      'GET /api/admin/auth/me': signedIn,
+      [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: (options: Query) =>
+        answer(200, options.params?.query?.period === 'TODAY'
+          ? dashboard({ sales: { period: 'TODAY', from: '2026-10-15', to: '2026-10-15', amountCents: 15_000_000,
+            orders: 1, variation: null, averageTicketCents: 15_000_000 } })
+          : dashboard()),
+    });
+    renderRoute('/admin');
+    await screen.findByRole('region', { name: messages.sales.title });
+    const sales = section(messages.sales.title);
+    expect(sales.getByRole('radio', { name: messages.sales.periods.MONTH })).toBeChecked();
+    expect(sales.getByText(money(30_000_000))).toBeInTheDocument();
+    expect(sales.getByText(plain(messages.sales.variation(-12)))).toBeInTheDocument();
+    expect(sales.getByText(money(10_000_000))).toBeInTheDocument();
+
+    await userEvent.click(sales.getByRole('radio', { name: messages.sales.periods.TODAY }));
+
+    expect(await sales.findByText(messages.sales.versus.TODAY, { exact: false })).toBeInTheDocument();
+    expect(sales.getAllByText(money(15_000_000))).toHaveLength(2);
+    // The dash is for the eyes; screen readers hear why there is none.
+    expect(sales.getByText(messages.sales.noVariation)).toHaveClass('visually-hidden');
+    expect(api.callsTo(DASHBOARD).map((call) => call.options.params?.query?.period)).toEqual(['MONTH', 'TODAY']);
+  });
+
+  it('given "Fechas", when valid dates are chosen, then it asks for them; when "Desde" is after "Hasta", it says so and does not ask', async () => {
+    const today = storeDay(new Date());
+    const first = `${today.slice(0, 8)}01`;
+    const api = stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard()) });
     renderRoute('/admin');
     await screen.findByRole('region', { name: messages.sales.title });
-
     const sales = section(messages.sales.title);
-    expect(sales.getByText(money(15_000_000))).toBeInTheDocument();
-    expect(sales.getByText(plain(messages.sales.variation(50)))).toBeInTheDocument();
-    expect(sales.getByText(plain(messages.sales.variation(-12)))).toBeInTheDocument();
-    // The dash is for the eyes; screen readers hear why there is none.
-    expect(sales.getByText(messages.sales.noVariation)).toHaveClass('visually-hidden');
-    expect(sales.getByText(money(10_000_000))).toBeInTheDocument();
+
+    await userEvent.click(sales.getByRole('radio', { name: messages.sales.periods.CUSTOM }));
+
+    await vi.waitFor(() => {
+      expect(api.callsTo(DASHBOARD).at(-1)?.options.params?.query).toMatchObject({ period: 'CUSTOM', from: first, to: today });
+    });
+    const calls = api.callsTo(DASHBOARD).length;
+
+    fireEvent.change(sales.getByLabelText(messages.sales.from), { target: { value: '2099-01-02' } });
+
+    expect(sales.getByText(messages.sales.invalid.order)).toBeInTheDocument();
+    expect(sales.getByLabelText(messages.sales.from)).toHaveAttribute('aria-invalid', 'true');
+    expect(api.callsTo(DASHBOARD)).toHaveLength(calls);
+  });
+
+  it('given "Actualizar cada 5 minutos" on, when 5 minutes pass, then it reads the figures again, and the switch is remembered', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: answer(200, dashboard()) });
+    const view = renderRoute('/admin');
+    await screen.findByRole('region', { name: messages.sales.title });
+    const toggle = screen.getByRole('switch', { name: messages.autoRefresh });
+    expect(toggle).not.toBeChecked();
+
+    fireEvent.click(toggle);
+    await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+
+    await vi.waitFor(() => {
+      expect(api.callsTo(DASHBOARD)).toHaveLength(2);
+    });
+    expect(api.callsTo(ACTIVITY)).toHaveLength(2);
+    view.unmount();
+    renderRoute('/admin');
+    expect(await screen.findByRole('switch', { name: messages.autoRefresh })).toBeChecked();
+  });
+
+  it('given 12 variants with low stock under a threshold of 3, when the summary shows, then "Inventario" counts them', async () => {
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: answer(200, dashboard()) });
+    renderRoute('/admin');
+    await screen.findByRole('region', { name: messages.todo.title });
+
+    const inventory = within(section(messages.todo.title).getByRole('list', { name: messages.todo.levels.inventory }));
+    expect(inventory.getByRole('link', { name: `12 ${messages.todo.lowStock(3)}` }))
+      .toHaveAttribute('href', '/admin/productos');
+  });
+
+  it('given 7 activity entries, when the summary shows, then "Actividad reciente" lists the 5 newest', async () => {
+    const entries = Array.from({ length: 7 }, (_, index) => ({
+      id: `a-${String(index)}`,
+      occurredAt: '2026-10-15T15:00:00Z',
+      area: 'CATALOG',
+      action: 'PRODUCT_HIDDEN',
+      subject: { type: 'PRODUCT', id: 'p-1', label: `Pijama ${String(index)}` },
+      changes: [],
+    }));
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: answer(200, dashboard()), [ACTIVITY]: answer(200, { items: entries, hasMore: false }) });
+    renderRoute('/admin');
+
+    const activity = await screen.findByRole('region', { name: messages.activity.title });
+    await within(activity).findByText('Pijama 0');
+    expect(within(activity).getAllByRole('listitem')).toHaveLength(5);
+    expect(within(activity).getByRole('link', { name: messages.activity.seeAll })).toHaveAttribute('href', '/admin/actividad');
+  });
+
+  it('given the activity cannot be read, when the summary shows, then only its block says so', async () => {
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: answer(200, dashboard()), [ACTIVITY]: answer(500) });
+    renderRoute('/admin');
+
+    const activity = await screen.findByRole('region', { name: messages.activity.title });
+    expect(await within(activity).findByText(messages.activity.loadError)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: messages.sales.title })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('given the chart by days, when the months are chosen, then it asks for them and shows 12 rows for screen readers', async () => {
     const months = Array.from({ length: 12 }, (_, index) => ({
       period: `2026-${String(index + 1).padStart(2, '0')}`, amountCents: 0, orders: 0 }));
-    const api = stubApi({
+    const api = stub({
       'GET /api/admin/auth/me': signedIn,
       [COUNTS]: answer(200, { paidOrders: 2 }),
-      [DASHBOARD]: (options: { params?: { query?: Record<string, unknown> } }) =>
+      [DASHBOARD]: (options: Query) =>
         answer(200, options.params?.query?.chart === 'MONTHS'
           ? dashboard({ chart: { kind: 'MONTHS', points: months } })
           : dashboard()),
@@ -165,7 +266,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
   });
 
   it('given 12 variants at or under the threshold, when the summary shows, then 10 show at most, sold-out first, and the link reads 12', async () => {
-    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard()) });
     renderRoute('/admin');
     await screen.findByRole('region', { name: messages.lowStock.title });
@@ -176,7 +277,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
   });
 
   it('given no variant at or under the threshold, when the summary shows, then low stock says so', async () => {
-    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard({ lowStock: { threshold: 3, count: 0, items: [] } })) });
     renderRoute('/admin');
 
@@ -184,7 +285,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
   });
 
   it('given recent orders and best sellers, when the summary shows, then each order links to its detail', async () => {
-    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard()) });
     renderRoute('/admin');
     await screen.findByRole('region', { name: messages.recentOrders.title });
@@ -196,7 +297,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
   });
 
   it('given the summary, when "Actualizar" is pressed, then it reads the figures again', async () => {
-    const api = stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+    const api = stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard()) });
     renderRoute('/admin');
     await screen.findByRole('region', { name: messages.todo.title });
@@ -209,7 +310,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
   });
 
   it('given the summary cannot be read, when it opens, then it says so and offers to retry', async () => {
-    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }), [DASHBOARD]: answer(500) });
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }), [DASHBOARD]: answer(500) });
     renderRoute('/admin');
 
     expect(await screen.findByRole('alert')).toHaveTextContent(messages.loadError);

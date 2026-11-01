@@ -1650,7 +1650,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The summary: what to do today, sales, the chart, low stock, best sellers, recent orders and the totals */
+        /** The summary: what to do today, the sales of a period, the chart, low stock, best sellers, recent orders and the totals */
         get: operations["get_5"];
         put?: never;
         post?: never;
@@ -2762,14 +2762,6 @@ export interface components {
             count?: number;
             items?: components["schemas"]["LowStockItemResponse"][];
         };
-        PeriodResponse: {
-            /** Format: int64 */
-            amountCents?: number;
-            /** Format: int64 */
-            orders?: number;
-            /** Format: int32 */
-            variation?: number | null;
-        };
         PointResponse: {
             period?: string;
             /** Format: int64 */
@@ -2791,9 +2783,18 @@ export interface components {
             totalCents?: number;
         };
         SalesResponse: {
-            today?: components["schemas"]["PeriodResponse"];
-            lastWeek?: components["schemas"]["PeriodResponse"];
-            month?: components["schemas"]["PeriodResponse"];
+            /** @enum {string} */
+            period?: "TODAY" | "LAST_7_DAYS" | "MONTH" | "CUSTOM";
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            /** Format: int64 */
+            amountCents?: number;
+            /** Format: int64 */
+            orders?: number;
+            /** Format: int32 */
+            variation?: number | null;
             /** Format: int64 */
             averageTicketCents?: number | null;
         };
@@ -7271,6 +7272,12 @@ export interface operations {
             query?: {
                 /** @description The chart by the last 30 days or the last 12 months */
                 chart?: "DAYS" | "MONTHS";
+                /** @description The sales block's period; CUSTOM takes from and to */
+                period?: "TODAY" | "LAST_7_DAYS" | "MONTH" | "CUSTOM";
+                /** @description First day of a CUSTOM period, a store date, included */
+                from?: string;
+                /** @description Last day of a CUSTOM period, a store date, included */
+                to?: string;
             };
             header?: never;
             path?: never;
@@ -7287,7 +7294,7 @@ export interface operations {
                     "application/json": components["schemas"]["DashboardResponse"];
                 };
             };
-            /** @description A chart other than DAYS or MONTHS */
+            /** @description Another chart or period, or a custom period that is not valid: without both dates, dates with another period, from after to, to after today, or more than 366 days */
             400: {
                 headers: {
                     [name: string]: unknown;

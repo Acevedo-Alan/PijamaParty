@@ -6,6 +6,7 @@ import com.pijamaparty.store.backoffice.domain.BestSellers;
 import com.pijamaparty.store.backoffice.domain.BestSellers.Sold;
 import com.pijamaparty.store.backoffice.domain.DateRange;
 import com.pijamaparty.store.backoffice.domain.SalesPeriods;
+import com.pijamaparty.store.backoffice.domain.SalesPeriods.Compared;
 import com.pijamaparty.store.backoffice.domain.SalesSeries;
 import com.pijamaparty.store.backoffice.domain.SalesSeries.Point;
 import com.pijamaparty.store.backoffice.domain.SalesTotal;
@@ -15,6 +16,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,21 +55,39 @@ class GetDashboardService implements GetDashboard {
             return new Result.Forbidden();
         }
         SalesPeriods periods = SalesPeriods.of(LocalDate.now(clock.withZone(SalesPeriods.ARGENTINA)));
+        Optional<Compared> chosen = chosen(query, periods);
+        if (chosen.isEmpty()) {
+            return new Result.InvalidPeriod();
+        }
         int units = threshold.units();
         var todo = new Todo(orders.paidWaiting(), orders.preparing(), orders.receivedWithdrawals(), reviews.pending(),
             orders.openAmong(buyerEmails.ordersWithProblems()).size(), catalog.lowStockCount(0));
-        SalesTotal month = sales.total(periods.month());
-        var salesBlock = new Sales(period(periods.today(), periods.yesterday()),
-            period(periods.lastWeek(), periods.weekBefore()), period(month, periods.monthBefore()),
-            month.averageTicket());
+        DateRange period = chosen.get().period();
+        SalesTotal total = sales.total(period);
+        var salesBlock = new Sales(query.period(), period, period(total, chosen.get().before()), total.averageTicket());
         var lowStock = new LowStock(units, catalog.lowStock(units, LOW_STOCK_SHOWN), catalog.lowStockCount(units));
         return new Result.Shown(new Dashboard(todo, salesBlock, query.chart(), chart(query.chart(), periods), lowStock,
             bestSellers(periods.chartDays()), orders.newest(RECENT_ORDERS_SHOWN),
             new Totals(catalog.publishedProducts())));
     }
 
-    private PeriodSales period(DateRange range, DateRange before) {
-        return period(sales.total(range), before);
+    /** The chosen period and the one it is compared against; empty when the query's period is not valid. */
+    private static Optional<Compared> chosen(Query query, SalesPeriods periods) {
+        if (query.period() == Period.CUSTOM) {
+            return query.from().isEmpty() || query.to().isEmpty()
+                ? Optional.empty()
+                : periods.custom(query.from().get(), query.to().get())
+                    .map(range -> new Compared(range, SalesPeriods.before(range)));
+        }
+        if (query.from().isPresent() || query.to().isPresent()) {
+            return Optional.empty();
+        }
+        return Optional.of(switch (query.period()) {
+            case TODAY -> new Compared(periods.today(), periods.yesterday());
+            case LAST_7_DAYS -> new Compared(periods.lastWeek(), periods.weekBefore());
+            // CUSTOM returned above; the switch lists it to stay exhaustive
+            case MONTH, CUSTOM -> new Compared(periods.month(), periods.monthBefore());
+        });
     }
 
     private PeriodSales period(SalesTotal total, DateRange before) {

@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.backoffice.application.GetDashboard.Chart;
 import com.pijamaparty.store.backoffice.application.GetDashboard.Dashboard;
+import com.pijamaparty.store.backoffice.application.GetDashboard.Period;
 import com.pijamaparty.store.backoffice.application.GetDashboard.Query;
 import com.pijamaparty.store.backoffice.application.GetDashboard.Result;
 import com.pijamaparty.store.backoffice.domain.BestSellers.Sold;
+import com.pijamaparty.store.backoffice.domain.DateRange;
 import com.pijamaparty.store.backoffice.domain.SalesSeries.Point;
 import com.pijamaparty.store.backoffice.domain.SalesTotal;
 import com.pijamaparty.store.ordering.api.AdminOrderDetails.Status;
@@ -15,6 +17,7 @@ import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,6 +43,17 @@ class GetDashboardServiceTest {
         return ((Result.Shown) result).dashboard();
     }
 
+    private GetDashboard.Sales salesOf(Period period) {
+        Result result = service.execute(new Query(ADMIN, Chart.DAYS, period, Optional.empty(), Optional.empty()));
+        assertThat(result).isInstanceOf(Result.Shown.class);
+        return ((Result.Shown) result).dashboard().sales();
+    }
+
+    private Result custom(String from, String to) {
+        return service.execute(new Query(ADMIN, Chart.DAYS, Period.CUSTOM, Optional.of(LocalDate.parse(from)),
+            Optional.of(LocalDate.parse(to))));
+    }
+
     private void sold(String at, long cents) {
         sales.sold(Instant.parse(at), Money.of(cents), UUID.randomUUID(), 1, Money.of(cents));
     }
@@ -52,31 +66,72 @@ class GetDashboardServiceTest {
     }
 
     @Test
-    void given100000YesterdayAnd150000Today_whenTheSummaryOpens_thenTodayShowsPlus50Percent() {
+    void given100000YesterdayAnd150000Today_whenHoyIsChosen_thenItShowsPlus50Percent() {
         sold("2026-10-14T15:00:00Z", 10_000_000);
         sold("2026-10-15T14:00:00Z", 15_000_000);
 
-        var today = shown(Chart.DAYS).sales().today();
+        var today = salesOf(Period.TODAY);
 
-        assertThat(today.total()).isEqualTo(new SalesTotal(Money.of(15_000_000), 1));
-        assertThat(today.variation()).hasValue(50);
+        assertThat(today.range()).isEqualTo(new DateRange(LocalDate.parse("2026-10-15"), LocalDate.parse("2026-10-15")));
+        assertThat(today.sales().total()).isEqualTo(new SalesTotal(Money.of(15_000_000), 1));
+        assertThat(today.sales().variation()).hasValue(50);
+    }
+
+    @Test
+    void givenNoPeriod_whenTheSummaryOpens_thenItShowsThisMonth() {
+        var month = shown(Chart.DAYS).sales();
+
+        assertThat(month.period()).isEqualTo(Period.MONTH);
+        assertThat(month.range()).isEqualTo(new DateRange(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-15")));
+    }
+
+    @Test
+    void given90000OnOctober1To3And60000OnSeptember28To30_whenThatIsTheCustomPeriod_thenItShowsPlus50Percent() {
+        sold("2026-09-28T15:00:00Z", 6_000_000);
+        sold("2026-10-01T15:00:00Z", 4_000_000);
+        sold("2026-10-03T15:00:00Z", 5_000_000);
+        sold("2026-10-04T15:00:00Z", 1_000_000);
+
+        Result result = custom("2026-10-01", "2026-10-03");
+
+        var custom = ((Result.Shown) result).dashboard().sales();
+        assertThat(custom.period()).isEqualTo(Period.CUSTOM);
+        assertThat(custom.sales().total()).isEqualTo(new SalesTotal(Money.of(9_000_000), 2));
+        assertThat(custom.sales().variation()).hasValue(50);
+        assertThat(custom.averageTicket()).contains(Money.of(4_500_000));
+    }
+
+    @Test
+    void givenACustomPeriod_whenTheSummaryShows_thenTheChartKeeps30Days() {
+        Result result = custom("2026-10-01", "2026-10-03");
+
+        assertThat(((Result.Shown) result).dashboard().points()).hasSize(30);
+    }
+
+    @Test
+    void givenACustomPeriodThatIsNotOne_whenTheSummaryIsAsked_thenThePeriodIsInvalid() {
+        assertThat(custom("2026-10-05", "2026-10-04")).isEqualTo(new Result.InvalidPeriod());
+        assertThat(custom("2026-10-10", "2026-10-16")).isEqualTo(new Result.InvalidPeriod());
+        assertThat(custom("2025-10-14", "2026-10-15")).isEqualTo(new Result.InvalidPeriod());
+        assertThat(service.execute(new Query(ADMIN, Chart.DAYS, Period.CUSTOM, Optional.of(LocalDate.parse("2026-10-01")),
+            Optional.empty()))).isEqualTo(new Result.InvalidPeriod());
+        assertThat(service.execute(new Query(ADMIN, Chart.DAYS, Period.TODAY, Optional.of(LocalDate.parse("2026-10-01")),
+            Optional.of(LocalDate.parse("2026-10-02"))))).isEqualTo(new Result.InvalidPeriod());
     }
 
     @Test
     void givenNothingSoldYesterday_whenTheSummaryOpens_thenTodaysVariationIsEmpty() {
         sold("2026-10-15T14:00:00Z", 15_000_000);
 
-        assertThat(shown(Chart.DAYS).sales().today().variation()).isEmpty();
+        assertThat(salesOf(Period.TODAY).sales().variation()).isEmpty();
     }
 
     @Test
     void givenAnOrderAt2330InArgentinaYesterday_whenTheSummaryOpens_thenItIsYesterdaysNotTodays() {
         sold("2026-10-15T02:30:00Z", 1_000_000);
 
-        var salesBlock = shown(Chart.DAYS).sales();
-
-        assertThat(salesBlock.today().total()).isEqualTo(SalesTotal.NONE);
-        assertThat(salesBlock.lastWeek().total()).isEqualTo(new SalesTotal(Money.of(1_000_000), 1));
+        assertThat(salesOf(Period.TODAY).sales().total()).isEqualTo(SalesTotal.NONE);
+        assertThat(salesOf(Period.LAST_7_DAYS).sales().total()).isEqualTo(new SalesTotal(Money.of(1_000_000), 1));
     }
 
     @Test

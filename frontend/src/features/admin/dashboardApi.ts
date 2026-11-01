@@ -33,11 +33,25 @@ export function useWorkloadCounts() {
 /** UC-33: the chart by the last 30 days or the last 12 months. */
 export type Chart = 'DAYS' | 'MONTHS';
 
+/** UC-33 (T-E8-20): the sales block's period. */
+export type SalesPeriod = 'TODAY' | 'LAST_7_DAYS' | 'MONTH' | 'CUSTOM';
+
+/** The period asked for: a custom one carries its store dates (yyyy-mm-dd), both included. */
+export type PeriodChoice =
+  | { period: Exclude<SalesPeriod, 'CUSTOM'> }
+  | { period: 'CUSTOM'; from: string; to: string };
+
+/** The chosen period's sales, with the dates the server took for it. */
 export interface PeriodSales {
+  period: SalesPeriod;
+  from: string;
+  to: string;
   amountCents: number;
   orders: number;
   /** Whole percents against the period before; null ("—") when nothing sold then. */
   variation: number | null;
+  /** The period's amount over its orders, rounded down; null ("—") without orders. */
+  averageTicketCents: number | null;
 }
 
 export interface ChartPoint {
@@ -80,7 +94,7 @@ export interface Dashboard {
     emailAlerts: number;
     soldOutVariants: number;
   };
-  sales: { today: PeriodSales; lastWeek: PeriodSales; month: PeriodSales; averageTicketCents: number | null };
+  sales: PeriodSales;
   chart: { kind: Chart; points: ChartPoint[] };
   lowStock: { threshold: number; count: number; items: LowStockItem[] };
   bestSellers: BestSeller[];
@@ -88,13 +102,19 @@ export interface Dashboard {
   totals: { publishedProducts: number };
 }
 
-type Period = components['schemas']['PeriodResponse'];
-
-function period(value: Period | undefined): PeriodSales {
-  return { amountCents: value?.amountCents ?? 0, orders: value?.orders ?? 0, variation: value?.variation ?? null };
+function toSales(value: components['schemas']['SalesResponse'] | undefined, choice: PeriodChoice): PeriodSales {
+  return {
+    period: value?.period ?? choice.period,
+    from: value?.from ?? '',
+    to: value?.to ?? '',
+    amountCents: value?.amountCents ?? 0,
+    orders: value?.orders ?? 0,
+    variation: value?.variation ?? null,
+    averageTicketCents: value?.averageTicketCents ?? null,
+  };
 }
 
-function toDashboard(data: components['schemas']['DashboardResponse'], chart: Chart): Dashboard {
+function toDashboard(data: components['schemas']['DashboardResponse'], chart: Chart, choice: PeriodChoice): Dashboard {
   const todo = data.todo ?? {};
   return {
     todo: {
@@ -105,12 +125,7 @@ function toDashboard(data: components['schemas']['DashboardResponse'], chart: Ch
       emailAlerts: todo.emailAlerts ?? 0,
       soldOutVariants: todo.soldOutVariants ?? 0,
     },
-    sales: {
-      today: period(data.sales?.today),
-      lastWeek: period(data.sales?.lastWeek),
-      month: period(data.sales?.month),
-      averageTicketCents: data.sales?.averageTicketCents ?? null,
-    },
+    sales: toSales(data.sales, choice),
     chart: {
       kind: data.chart?.kind ?? chart,
       points: (data.chart?.points ?? []).map((point) => ({
@@ -148,35 +163,40 @@ function toDashboard(data: components['schemas']['DashboardResponse'], chart: Ch
   };
 }
 
-export async function fetchDashboard(chart: Chart, signal?: AbortSignal): Promise<Dashboard> {
+export async function fetchDashboard(chart: Chart, choice: PeriodChoice, signal?: AbortSignal): Promise<Dashboard> {
   const { data, response } = await api.GET('/api/admin/dashboard', {
-    params: { query: { chart } },
+    params: { query: { chart, ...choice } },
     signal: signal ?? null,
   });
   ensureSignedIn(response);
   if (data === undefined) {
     throw new Error(`Dashboard failed with status ${String(response.status)}`);
   }
-  return toDashboard(data, chart);
+  return toDashboard(data, chart, choice);
 }
 
+/** "Actualizar cada 5 minutos" (UC-33, T-E8-20). */
+export const AUTO_REFRESH_MS = 5 * 60 * 1000;
+
 /**
- * UC-33: read when the page opens and again with "Actualizar"; nothing refreshes by itself (no refetch on focus or
- * on a timer). The menu's count is the same read, so it follows the summary.
+ * UC-33: read when the page opens, when the chart or the period changes, and again with "Actualizar"; with the
+ * auto-refresh on, every 5 minutes while the page is visible (TanStack Query pauses the timer in a hidden tab). No
+ * refetch on focus. The menu's count is the same read, so it follows the summary.
  */
-export function useDashboard(chart: Chart) {
+export function useDashboard(chart: Chart, choice: PeriodChoice, autoRefresh: boolean) {
   const queryClient = useQueryClient();
   return useQuery({
-    queryKey: ['admin', 'dashboard', 'summary', chart],
+    queryKey: ['admin', 'dashboard', 'summary', chart, choice],
     queryFn: async ({ signal }) => {
-      const dashboard = await fetchDashboard(chart, signal);
+      const dashboard = await fetchDashboard(chart, choice, signal);
       // The menu's badge comes from the same read, without a request of its own (T-E8-05).
       queryClient.setQueryData<WorkloadCounts>(WORKLOAD_COUNTS_KEY, { paidOrders: dashboard.todo.paidOrders });
       return dashboard;
     },
     staleTime: Infinity,
     refetchOnWindowFocus: false,
-    // Switching days and months keeps the figures on screen until the other chart arrives.
+    refetchInterval: autoRefresh ? AUTO_REFRESH_MS : false,
+    // Switching the chart or the period keeps the figures on screen until the others arrive.
     placeholderData: keepPreviousData,
   });
 }

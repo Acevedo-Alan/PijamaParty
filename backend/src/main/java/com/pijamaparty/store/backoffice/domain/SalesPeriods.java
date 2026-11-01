@@ -4,12 +4,14 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * UC-33: the periods of the summary from today's Argentina date: today against yesterday, the last 7 days (today and
  * the 6 before) against the 7 before those, and this month (the 1st to today) against the same days of the previous
  * month (the 1st up to today's day number, or that month's last day if it is shorter); and the chart's 30 days and 12
- * months, today and this month included.
+ * months, today and this month included. A custom period (T-E8-20) is compared against the same number of days just
+ * before it.
  */
 public final class SalesPeriods {
 
@@ -19,8 +21,19 @@ public final class SalesPeriods {
     static final int WEEK_DAYS = 7;
     static final int CHART_DAYS = 30;
     static final int CHART_MONTHS = 12;
+    /** The longest custom period: a leap year. */
+    static final int MAX_CUSTOM_DAYS = 366;
 
     private final LocalDate today;
+
+    /** A period of the sales block and the period it is compared against. */
+    public record Compared(DateRange period, DateRange before) {
+
+        public Compared {
+            Objects.requireNonNull(period, "period");
+            Objects.requireNonNull(before, "before");
+        }
+    }
 
     private SalesPeriods(LocalDate today) {
         this.today = Objects.requireNonNull(today, "today");
@@ -54,6 +67,23 @@ public final class SalesPeriods {
     public DateRange monthBefore() {
         YearMonth previous = YearMonth.from(today).minusMonths(1);
         return new DateRange(previous.atDay(1), previous.atDay(Math.min(today.getDayOfMonth(), previous.lengthOfMonth())));
+    }
+
+    /**
+     * A custom period, both dates included, or empty when it is not one: {@code from} after {@code to}, {@code to}
+     * after today, or more than 366 days.
+     */
+    public Optional<DateRange> custom(LocalDate from, LocalDate to) {
+        if (from.isAfter(to) || to.isAfter(today)) {
+            return Optional.empty();
+        }
+        DateRange range = new DateRange(from, to);
+        return range.days() > MAX_CUSTOM_DAYS ? Optional.empty() : Optional.of(range);
+    }
+
+    /** The same number of days just before {@code range}: what a custom period is compared against. */
+    public static DateRange before(DateRange range) {
+        return new DateRange(range.from().minusDays(range.days()), range.from().minusDays(1));
     }
 
     /** The chart by days: the last 30, today included. */

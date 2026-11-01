@@ -24,6 +24,7 @@ export const esAdmin = {
     loadError: 'No pudimos cargar el resumen.',
     /** The time of the last read, already formatted, e.g. "10:05". */
     updatedAt: (time: string) => `Actualizado a las ${time}`,
+    autoRefresh: 'Actualizar cada 5 minutos',
     quick: { title: 'Accesos rápidos', newProduct: 'Nuevo producto', coupons: 'Cupones', orders: 'Ver pedidos' },
     todo: {
       title: 'Para hacer hoy',
@@ -35,13 +36,24 @@ export const esAdmin = {
       pendingReviews: 'Reseñas por moderar',
       emailAlerts: 'Pedidos con email rebotado',
       soldOutVariants: 'Variantes agotadas',
+      /** E.g. "Con stock bajo (3 o menos)". */
+      lowStock: (units: number) => `Con stock bajo (${units.toLocaleString('es-AR')} o menos)`,
     },
     sales: {
       title: 'Ventas',
-      today: 'Hoy',
-      lastWeek: 'Últimos 7 días',
-      month: 'Este mes',
-      averageTicket: 'Ticket promedio del mes',
+      averageTicket: 'Ticket promedio del período',
+      periodLabel: 'Período de las ventas',
+      periods: { TODAY: 'Hoy', LAST_7_DAYS: '7 días', MONTH: 'Este mes', CUSTOM: 'Fechas' },
+      from: 'Desde',
+      to: 'Hasta',
+      /** The dates the figures cover, e.g. "1 oct al 15 oct". */
+      dates: (from: string, to: string) => (from === to ? from : `${from} al ${to}`),
+      invalid: {
+        missing: 'Elegí las dos fechas.',
+        order: '"Desde" tiene que ser antes de "Hasta" o el mismo día.',
+        future: '"Hasta" no puede ser después de hoy.',
+        tooLong: 'Elegí un período de hasta 366 días.',
+      },
       /** E.g. "3 pedidos". */
       orders: (count: number) => (count === 1 ? '1 pedido' : `${count.toLocaleString('es-AR')} pedidos`),
       /** The variation against the period before, e.g. "+50 %" or "−12 %"; "—" without sales before. */
@@ -51,7 +63,12 @@ export const esAdmin = {
           : `${percent > 0 ? '+' : percent < 0 ? '−' : ''}${Math.abs(percent).toLocaleString('es-AR')}\u00a0%`,
       /** A figure there is none of, as an average ticket without orders. */
       none: '—',
-      versus: { today: 'vs. ayer', lastWeek: 'vs. 7 días anteriores', month: 'vs. mismos días del mes pasado' },
+      versus: {
+        TODAY: 'vs. ayer',
+        LAST_7_DAYS: 'vs. 7 días anteriores',
+        MONTH: 'vs. mismos días del mes pasado',
+        CUSTOM: (days: number) => (days === 1 ? 'vs. el día anterior' : `vs. ${days.toLocaleString('es-AR')} días anteriores`),
+      },
       noVariation: 'Sin ventas en el período anterior',
     },
     chart: {
@@ -87,6 +104,12 @@ export const esAdmin = {
       title: 'Pedidos recientes',
       none: 'Todavía no hay pedidos.',
       seeAll: 'Ver todos los pedidos',
+    },
+    activity: {
+      title: 'Actividad reciente',
+      seeAll: 'Ver toda la actividad',
+      none: 'Todavía no hay cambios registrados.',
+      loadError: 'No pudimos cargar la actividad.',
     },
     totals: {
       title: 'Totales',

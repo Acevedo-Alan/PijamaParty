@@ -31,6 +31,13 @@ export function formatDateTime(date: Date): string {
   return dateTime.format(date);
 }
 
+const isoDay = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TIME_ZONE });
+
+/** The store's date (Argentina) at that instant, as yyyy-mm-dd: what a date field takes. */
+export function storeDay(date: Date): string {
+  return isoDay.format(date);
+}
+
 // A calendar date or month that the server already counted in Argentina time (UC-33): read as UTC so it never shifts.
 const dayMonth = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const monthYear = new Intl.DateTimeFormat('es-AR', { month: 'short', year: 'numeric', timeZone: 'UTC' });

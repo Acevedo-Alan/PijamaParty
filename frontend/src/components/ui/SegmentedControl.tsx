@@ -57,7 +57,7 @@ export function SegmentedControl<T extends string>({
           key={option.value}
           value={option.value}
           className={cn(
-            'relative z-[1] min-h-9 cursor-pointer rounded-sm border-0 bg-transparent px-3 text-[13px] font-semibold',
+            'relative z-[1] min-h-9 cursor-pointer rounded-sm border-0 bg-transparent px-2 text-[13px] font-semibold whitespace-nowrap',
             'text-muted-foreground transition-colors data-[state=on]:text-primary-text',
             'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
           )}

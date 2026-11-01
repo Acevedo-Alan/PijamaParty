@@ -40,12 +40,13 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 
 **Main flow**
 1. The administrator signs in, or opens `/admin`.
-2. The system shows the summary: "Para hacer hoy", sales, the sales chart, low stock, best sellers, recent orders and the totals.
+2. The system shows the summary: "Para hacer hoy", sales of the chosen period, the sales chart, low stock, best sellers, recent orders, recent activity and the totals.
 3. Each count and row links to its screen, already filtered.
 
 **Alternative flows**
 - No sales in a period: its figures show `$0` and `0 pedidos`, and the variation reads "—".
-- The summary cannot be loaded: the page shows an error with "Reintentar". It is one read in one transaction (design notes), so the blocks load or fail together.
+- The summary cannot be loaded: the page shows an error with "Reintentar". It is one read in one transaction (design notes), so the blocks load or fail together. "Actividad reciente" is its own read of UC-37: if only it fails, only its block says so.
+- A custom period that is not valid (design notes): the summary is not asked for, and the dates say what is wrong; the API answers `400`.
 - No variant at or under the threshold: the low-stock block reads "Sin productos con stock bajo".
 
 **Business rules**
@@ -57,15 +58,18 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - open orders with an email alert: orders in `PAID`, `PREPARING` or `SHIPPED` whose buyer email is `BOUNCED` or `FAILED` (UC-17, UC-18);
   - sold-out variants: active variants of published products with no available stock (UC-07), linking to the Stock screen filtered by sold out.
   Each count links to its list with that filter. A count of 0 still shows, without a link.
-  The counts show in three levels (D-E8-12), each with its own tone and title: Urgente (email alerts, withdrawal requests), Operativo (`PAID`, `PREPARING`, reviews) and Inventario (sold-out variants).
-- **Sales:** amount and number of orders for today, the last 7 days (today and the 6 days before) and this month (from the 1st to today). Each shows its variation in percent against the period before: yesterday, the 7 days before those, and the same days of the previous month (the 1st up to today's day number, or that month's last day if it is shorter). With nothing in the earlier period, the variation is "—". Variations are rounded to whole percents.
-- **Average ticket of the month:** the month's amount divided by its number of orders, rounded down to the cent; "—" without orders.
+  The counts show in three levels (D-E8-12), each with its own tone and title: Urgente (email alerts, withdrawal requests), Operativo (`PAID`, `PREPARING`, reviews) and Inventario (sold-out variants, and the variants with low stock: the count of the low-stock block, "Con stock bajo (N o menos)", linking where that block's link goes).
+- **Sales of one period**, chosen with a selector (D-E8-12): "Hoy", "7 días" (today and the 6 days before), "Este mes" (from the 1st to today; the default) or "Fechas", a custom period ("Desde" and "Hasta", store dates, both included). It shows the amount and the number of orders, and the variation of the amount in percent against the period before: yesterday; the 7 days before those; the same days of the previous month (the 1st up to today's day number, or that month's last day if it is shorter); and for a custom period, the same number of days just before "Desde". With nothing in the earlier period, the variation is "—". Variations are rounded to whole percents.
+- **Custom period:** "Desde" on or before "Hasta", "Hasta" not after today, at most 366 days. Only the sales block follows it: the chart, best sellers and the rest keep their own periods.
+- **Average ticket of the period:** the chosen period's amount divided by its number of orders, rounded down to the cent; "—" without orders.
 - **Chart:** sales per day for the last 30 days (today included), or per month for the last 12 months (this month included). Days or months without sales show as 0, not as gaps. The view switches between days and months.
 - **Low stock:** active variants of published products whose available stock (UC-07: on hand minus reserved) is at or under the threshold of UC-36, sold-out ones first, then by available stock and product name. At most 10, with the number of all of them and a link to the Stock screen filtered by low stock. Each row shows the product, size, color and available units.
 - **Best sellers:** the 5 products with the most units sold in the last 30 days, among orders that count as sales, grouped by product (every size and color together). Each row shows the units and the amount. Ties are broken by amount, then by name.
 - **Recent orders:** the 5 newest orders of any status, with number, date, buyer name, status and total.
 - **Totals:** published products; registered customers, with how many registered this month.
-- The figures are read when the page opens. "Actualizar" reads them again, and nothing refreshes by itself.
+- **Recent activity:** the 5 newest entries of the activity log (UC-37), each with its action, what it was about and its time, and a link to "Actividad".
+- **Payment methods:** deferred until E3b adds MODO; until then every payment is MercadoPago, and the block would only say 100 %.
+- The figures are read when the page opens and when the period changes. "Actualizar" reads them again. "Actualizar cada 5 minutos", a switch off by default and remembered in that browser, reads them every 5 minutes while the page is visible; a refresh keeps everything in place (D-E8-12).
 - Beside "Actualizar", the time of the last read: "Actualizado a las HH:MM".
 - **Quick actions** (D-E8-12): "Nuevo producto" (the new product form), "Cupones" and "Ver pedidos".
 
@@ -74,10 +78,16 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given one paid and one cancelled order today, when the summary opens, then today's sales count only the paid one.
 - Given an order created at 23:30 Argentina time, when the summary opens the next day, then it is in yesterday's sales, not today's.
 - Given an `AWAITING_PAYMENT` order and an `EXPIRED` one, when the summary opens, then neither counts as a sale.
-- Given $100,000 yesterday and $150,000 today, when the summary opens, then today shows +50%.
+- Given $100,000 yesterday and $150,000 today, when "Hoy" is chosen, then it shows +50%.
+- Given $90,000 from October 1 to 3 and $60,000 from September 28 to 30, when the period is October 1 to 3, then it shows $90,000 and +50%.
+- Given "Desde" after "Hasta", "Hasta" after today, or more than 366 days, when the API is asked, then it answers `400`; the page does not ask.
+- Given a custom period, when the summary shows, then the chart and the best sellers keep their own periods.
+- Given 3 orders of $30,000, $20,000 and $10,000 in the chosen period, when it shows, then the average ticket is $20,000.
+- Given "Actualizar cada 5 minutos" on, when 5 minutes pass with the page visible, then the figures are read again; when the page opens again in that browser, the switch is still on.
+- Given 7 activity entries, when the summary shows, then "Actividad reciente" lists the 5 newest.
 - Given nothing sold yesterday, when the summary opens, then today's variation reads "—".
 - Given a day without sales within the last 30, when the chart shows days, then that day is a 0 bar.
-- Given a threshold of 3, and published variants with 2, 3 and 4 available units, when the summary opens, then the first two show in "Stock bajo" and the third does not.
+- Given a threshold of 3, and published variants with 2, 3 and 4 available units, when the summary opens, then the first two show in "Stock bajo" and the third does not, and "Inventario" reads 2 with low stock.
 - Given a variant with 5 on hand and 3 reserved, and a threshold of 3, when the summary opens, then it shows with 2 available.
 - Given a variant of a hidden product with 0 units, when the summary opens, then it is not in "Stock bajo".
 - Given 12 variants at or under the threshold, when the summary opens, then 10 show and the link reads 12.
@@ -90,7 +100,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given a customer session, when it calls `GET /api/admin/dashboard`, then it gets `403`.
 
 **Design notes**
-- **Inbound port:** `backoffice.application.GetDashboard` (`Query(actor, chart: DAYS | MONTHS)`; result `Shown(Dashboard)` or `Forbidden`). It is one read-only transaction as `ADMIN`. `Dashboard` is a record of the blocks above. The periods are computed by `backoffice.domain.SalesPeriods` from the `Clock`'s date in Argentina (pure, unit tested: month ends, a 31st against a 30-day month, a leap year). The variation and the average ticket are computed by `backoffice.domain.Variation` and `Money`.
+- **Inbound port:** `backoffice.application.GetDashboard` (`Query(actor, chart: DAYS | MONTHS, period: TODAY | LAST_7_DAYS | MONTH | CUSTOM, from?, to?)`; result `Shown(Dashboard)`, `InvalidPeriod` or `Forbidden`). `SalesPeriods` checks a custom period and gives the range before it. It is one read-only transaction as `ADMIN`. `Dashboard` is a record of the blocks above. The periods are computed by `backoffice.domain.SalesPeriods` from the `Clock`'s date in Argentina (pure, unit tested: month ends, a 31st against a 30-day month, a leap year). The variation and the average ticket are computed by `backoffice.domain.Variation` and `Money`.
 - **Outbound ports of `backoffice`, each backed by an `api` of its owner:**
   - As built in T-E8-12, the ports are named after what the summary reads: `SalesReadings` (`total`, `perDay`, `perMonth`, `byVariant`) over `ordering.api.SalesFigures`; `OrderCounts` (the `OrderWorkload` below) over `ordering.api.OrderWorkload`; `BuyerEmails.ordersWithProblems` over `notifications.api.BuyerEmailStatus`; `CatalogFigures` (low stock, published products and the product of each sold variant) over `catalog.api.LowStockVariants`, `PublishedProducts` and `VariantDescriptions`; `PendingReviewCount` over `reviews.api.PendingReviews`; and `LowStockThreshold`. The catalog's `LowStockVariants` and `PublishedProducts` share one service and one port (`StockWatch`), both being small reads of the same tables for the summary; T-E8-09 splits them if the Stock screen needs more. The rule of an open order (`PAID`, `PREPARING` or `SHIPPED`) is `OrderStatus.isOpen()` in `ordering.domain`.
   - `SalesFigures`, backed by a new `ordering.api.SalesFigures`: `totals(from, to)` → amount and count; `perDay(from, to)` and `perMonth(from, to)` → series; `unitsByVariant(from, to)` → variant id, units and amount. These are SQL aggregates with `status IN (...)` from an enum-built constant list, and Argentina dates through `created_at AT TIME ZONE 'America/Argentina/Buenos_Aires'`. Days without rows are filled in the domain, not in SQL.
@@ -107,7 +117,8 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - The totals show the published products only; the registered customers join them with T-E8-10, which brings the RLS change `CustomerCounts` needs.
   - No migration of its own: the `orders (created_at DESC)` index of T-E8-06 also serves the period sums (a btree reads both ways), and V42 and V43 stay with T-E8-04 and T-E8-10. Until T-E8-06, the sums scan under 10,000 rows a year.
 - **Module graph:** `backoffice` adds `accounts`, `reviews` and `settings` to its dependencies (`reviews` now; `accounts` with T-E8-10 and `settings` with T-E8-04). Nobody depends on `backoffice`, so no cycle.
-- **Endpoint:** `GET /api/admin/dashboard?chart=DAYS|MONTHS` → `200` with the blocks (amounts in cents); `400` for another `chart`. OpenAPI is updated.
+- **Endpoint:** `GET /api/admin/dashboard?chart=DAYS|MONTHS&period=TODAY|LAST_7_DAYS|MONTH|CUSTOM&from=&to=` (default `MONTH`; `from` and `to` only with `CUSTOM`, both required then) → `200` with the blocks (amounts in cents; the sales block carries its period, its dates and the average ticket); `400` problem for another `chart` or `period`, or an invalid custom period. OpenAPI is updated.
+- **Recent activity** reads `GET /api/admin/activity` (UC-37), the first page, newest first, and shows 5: no new port, and `backoffice` does not depend on `activity`.
 - **Indexes:** `orders (created_at)` for the period sums (the existing index leads with `status`). At under 20 orders a day, 12 months are under 10,000 rows, so no materialized view.
 - **Page:** `DashboardPage` at `/admin` (the index route, replacing the redirect to `/admin/productos`). After signing in, the administrator lands on `/admin` unless they were sent to sign in from another admin page. The "Resumen" entry heads the menu. Switching days and months keeps the figures on screen until the other chart arrives, and loading the summary refreshes the menu's badge. The email alerts lead to the unfiltered order list until it gets a filter for them. The chart is a hand-written SVG bar chart (no chart library in the admin chunk), with a visually hidden table of the same values for screen readers. Blocks are cards: one column at 360 px, two from 860 px (RNF-26). Amounts are formatted with the shared ARS formatter.
 

@@ -3,6 +3,7 @@ package com.pijamaparty.store.backoffice.adapter.in.web;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -12,6 +13,8 @@ import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,9 +62,9 @@ class DashboardAdminApiTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.todo.paidOrders").value(2))
             .andExpect(jsonPath("$.todo.preparingOrders").value(0))
-            .andExpect(jsonPath("$.sales.today.orders").value(2))
-            .andExpect(jsonPath("$.sales.today.amountCents").value(4_600_000))
-            .andExpect(jsonPath("$.sales.today.variation").isEmpty())
+            .andExpect(jsonPath("$.sales.period").value("MONTH"))
+            .andExpect(jsonPath("$.sales.orders").value(2))
+            .andExpect(jsonPath("$.sales.amountCents").value(4_600_000))
             .andExpect(jsonPath("$.sales.averageTicketCents").value(2_300_000))
             .andExpect(jsonPath("$.chart.kind").value("DAYS"))
             .andExpect(jsonPath("$.chart.points", hasSize(30)))
@@ -69,6 +72,33 @@ class DashboardAdminApiTest {
             .andExpect(jsonPath("$.recentOrders", hasSize(2)))
             .andExpect(jsonPath("$.recentOrders[0].buyerName").value("Ana Pérez"))
             .andExpect(jsonPath("$.recentOrders[0].status").value("PAID"));
+        mvc.perform(get(DASHBOARD).param("period", "TODAY").with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.sales.period").value("TODAY"))
+            .andExpect(jsonPath("$.sales.orders").value(2))
+            .andExpect(jsonPath("$.sales.variation").isEmpty());
+    }
+
+    @Test
+    void givenACustomPeriod_whenTheSummaryOpens_thenTheSalesCarryItsDates() throws Exception {
+        String today = LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires")).toString();
+
+        mvc.perform(get(DASHBOARD).param("period", "CUSTOM").param("from", today).param("to", today).with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.sales.period").value("CUSTOM"))
+            .andExpect(jsonPath("$.sales.from").value(today))
+            .andExpect(jsonPath("$.sales.to").value(today));
+    }
+
+    @Test
+    void givenACustomPeriodThatIsNotOne_whenTheSummaryIsAsked_thenItIsAProblem() throws Exception {
+        mvc.perform(get(DASHBOARD).param("period", "CUSTOM").param("from", "2026-10-05").param("to", "2026-10-04")
+                .with(ADMIN))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+            .andExpect(jsonPath("$.title").value("Invalid period"));
+        mvc.perform(get(DASHBOARD).param("period", "CUSTOM").with(ADMIN)).andExpect(status().isBadRequest());
+        mvc.perform(get(DASHBOARD).param("period", "YEAR").with(ADMIN)).andExpect(status().isBadRequest());
     }
 
     @Test

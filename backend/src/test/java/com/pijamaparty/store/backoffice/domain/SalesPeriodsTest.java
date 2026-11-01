@@ -96,4 +96,25 @@ class SalesPeriodsTest {
                 org.assertj.core.groups.Tuple.tuple("2026-09", 700_000L),
                 org.assertj.core.groups.Tuple.tuple("2026-10", 0L));
     }
+
+    @Test
+    void givenOctober1To3_whenItIsACustomPeriod_thenItIsComparedAgainstSeptember28To30() {
+        SalesPeriods periods = SalesPeriods.of(LocalDate.parse("2026-10-15"));
+
+        DateRange custom = periods.custom(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-03")).orElseThrow();
+
+        assertThat(custom).isEqualTo(range("2026-10-01", "2026-10-03"));
+        assertThat(SalesPeriods.before(custom)).isEqualTo(range("2026-09-28", "2026-09-30"));
+    }
+
+    @Test
+    void givenACustomPeriod_whenItIsBackwardsInTheFutureOrLongerThan366Days_thenItIsNotOne() {
+        SalesPeriods periods = SalesPeriods.of(LocalDate.parse("2026-10-15"));
+
+        assertThat(periods.custom(LocalDate.parse("2026-10-05"), LocalDate.parse("2026-10-04"))).isEmpty();
+        assertThat(periods.custom(LocalDate.parse("2026-10-10"), LocalDate.parse("2026-10-16"))).isEmpty();
+        assertThat(periods.custom(LocalDate.parse("2025-10-14"), LocalDate.parse("2026-10-15"))).isEmpty();
+        assertThat(periods.custom(LocalDate.parse("2025-10-15"), LocalDate.parse("2026-10-15"))).isPresent();
+        assertThat(periods.custom(LocalDate.parse("2026-10-15"), LocalDate.parse("2026-10-15"))).isPresent();
+    }
 }

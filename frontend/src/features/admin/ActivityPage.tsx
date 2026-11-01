@@ -9,13 +9,11 @@ import {
   fetchActivity,
   type ActivityArea,
   type ActivityChange,
-  type ActivityEntry,
   type ActivityFilter,
 } from './activityApi.ts';
+import { subjectLabel, subjectPath } from './activitySubjects.ts';
 
 const messages = esAdmin.activityList;
-const subjectNames: Readonly<Partial<Record<string, string>>> = messages.subjects;
-const provinceNames: Readonly<Partial<Record<string, string>>> = es.provinces;
 /** The recorded names translated, with the order statuses and coupon types in the words of their own screens. */
 const values: Readonly<Partial<Record<string, Readonly<Partial<Record<string, string>>>>>> = {
   ...messages.values,
@@ -39,38 +37,6 @@ function filterOf(params: URLSearchParams): ActivityFilter {
     from: date(FROM_PARAM),
     to: date(TO_PARAM),
   };
-}
-
-/** The screen of the thing an entry is about, when it has one. */
-function subjectPath({ type, id }: ActivityEntry['subject']): string | null {
-  switch (type) {
-    case 'PRODUCT':
-      return id === null ? null : `/admin/productos/${id}`;
-    case 'ORDER':
-      return id === null ? null : `/admin/pedidos/${id}`;
-    case 'CATEGORY':
-      return '/admin/categorias';
-    case 'WITHDRAWAL':
-      return '/admin/arrepentimientos';
-    case 'COUPON':
-      return '/admin/cupones';
-    case 'REVIEW':
-      return '/admin/resenas';
-    case 'SHIPPING':
-      return '/admin/envios';
-    case 'HOME_BANNER':
-      return '/admin/portada';
-    default:
-      return null;
-  }
-}
-
-/** How the screen names an entry's subject: its label (a province translated), or else its section. */
-function subjectLabel({ type, label }: ActivityEntry['subject']): string | null {
-  if (label === null) {
-    return subjectNames[type] ?? null;
-  }
-  return type === 'SHIPPING' ? (provinceNames[label] ?? label) : label;
 }
 
 function changeText({ field, before, after }: ActivityChange): string {

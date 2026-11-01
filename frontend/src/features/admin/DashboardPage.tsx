@@ -1,7 +1,9 @@
 import type { VariantProps } from 'class-variance-authority';
+import { useQuery } from '@tanstack/react-query';
 import {
   CircleAlert,
   ClipboardList,
+  History,
   PackageX,
   Plus,
   RefreshCw,
@@ -17,12 +19,24 @@ import { Badge, type badgeVariants } from '../../components/ui/Badge.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/Card.tsx';
 import { cn } from '../../components/ui/cn.ts';
+import { EmptyState } from '../../components/ui/EmptyState.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
+import { Switch } from '../../components/ui/Switch.tsx';
 import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
-import { formatDateTime, formatTime } from '../../i18n/formatDate.ts';
+import { formatDateTime, formatDayMonth, formatTime, storeDay } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
-import { useDashboard, type Chart, type Dashboard, type PeriodSales } from './dashboardApi.ts';
+import { fetchActivity } from './activityApi.ts';
+import { subjectLabel } from './activitySubjects.ts';
+import { useAutoRefresh } from './autoRefresh.ts';
+import {
+  AUTO_REFRESH_MS,
+  useDashboard,
+  type Chart,
+  type Dashboard,
+  type PeriodChoice,
+  type SalesPeriod,
+} from './dashboardApi.ts';
 import type { OrderStatus } from './ordersApi.ts';
 import { SalesChart } from './SalesChart.tsx';
 
@@ -39,34 +53,54 @@ function rise(order: number): { className: string; style: CSSProperties } {
 type Level = keyof typeof messages.todo.levels;
 
 interface TodoEntry {
-  key: keyof Dashboard['todo'];
+  id: string;
   /** Where the count leads, already filtered. */
   to: string;
+  count: (dashboard: Dashboard) => number;
+  label: (dashboard: Dashboard) => string;
+}
+
+/** An entry counted by "Para hacer hoy" itself. */
+function todo(key: keyof Dashboard['todo'], to: string): TodoEntry {
+  return { id: key, to, count: (dashboard) => dashboard.todo[key], label: () => messages.todo[key] };
 }
 
 /**
  * "Para hacer hoy" in its three levels (D-E8-12), most urgent first. The email alerts lead to the order list (it has
- * no filter for them yet), and the sold-out variants to the products until the Stock screen exists (T-E8-09).
+ * no filter for them yet); the sold-out and low-stock variants to the products until the Stock screen exists
+ * (T-E8-09). The low-stock count is the low-stock block's (T-E8-20).
  */
 const LEVELS: readonly { level: Level; icon: LucideIcon; entries: readonly TodoEntry[] }[] = [
   {
     level: 'urgent',
     icon: CircleAlert,
     entries: [
-      { key: 'emailAlerts', to: '/admin/pedidos' },
-      { key: 'receivedWithdrawals', to: '/admin/arrepentimientos?estado=RECEIVED' },
+      todo('emailAlerts', '/admin/pedidos'),
+      todo('receivedWithdrawals', '/admin/arrepentimientos?estado=RECEIVED'),
     ],
   },
   {
     level: 'operational',
     icon: ClipboardList,
     entries: [
-      { key: 'paidOrders', to: '/admin/pedidos?estado=PAID' },
-      { key: 'preparingOrders', to: '/admin/pedidos?estado=PREPARING' },
-      { key: 'pendingReviews', to: '/admin/resenas' },
+      todo('paidOrders', '/admin/pedidos?estado=PAID'),
+      todo('preparingOrders', '/admin/pedidos?estado=PREPARING'),
+      todo('pendingReviews', '/admin/resenas'),
     ],
   },
-  { level: 'inventory', icon: PackageX, entries: [{ key: 'soldOutVariants', to: '/admin/productos' }] },
+  {
+    level: 'inventory',
+    icon: PackageX,
+    entries: [
+      todo('soldOutVariants', '/admin/productos'),
+      {
+        id: 'lowStock',
+        to: '/admin/productos',
+        count: (dashboard) => dashboard.lowStock.count,
+        label: (dashboard) => messages.todo.lowStock(dashboard.lowStock.threshold),
+      },
+    ],
+  },
 ];
 
 /** Each level by tone and weight, not by color alone: its titled group, and a count above 0 tinted in its tone. */
@@ -78,7 +112,7 @@ const LEVEL_TONE: Record<Level, { title: string; row: string }> = {
 
 const ROW = 'flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-sm no-underline';
 
-function Todo({ todo, order }: { todo: Dashboard['todo']; order: number }) {
+function Todo({ dashboard, order }: { dashboard: Dashboard; order: number }) {
   const titleId = useId();
   const { className, style } = rise(order);
   return (
@@ -88,18 +122,18 @@ function Todo({ todo, order }: { todo: Dashboard['todo']; order: number }) {
       </CardHeader>
       <CardContent className="grid gap-4 min-[860px]:grid-cols-3">
         {LEVELS.map(({ level, icon: Icon, entries }) => (
-          <TodoLevel key={level} level={level} icon={Icon} entries={entries} todo={todo} />
+          <TodoLevel key={level} level={level} icon={Icon} entries={entries} dashboard={dashboard} />
         ))}
       </CardContent>
     </Card>
   );
 }
 
-function TodoLevel({ level, icon: Icon, entries, todo }: {
+function TodoLevel({ level, icon: Icon, entries, dashboard }: {
   level: Level;
   icon: LucideIcon;
   entries: readonly TodoEntry[];
-  todo: Dashboard['todo'];
+  dashboard: Dashboard;
 }) {
   const titleId = useId();
   const tone = LEVEL_TONE[level];
@@ -110,17 +144,17 @@ function TodoLevel({ level, icon: Icon, entries, todo }: {
         {messages.todo.levels[level]}
       </h3>
       <ul aria-labelledby={titleId} className="m-0 flex list-none flex-col gap-1 p-0">
-        {entries.map(({ key, to }) => {
-          const count = todo[key];
+        {entries.map(({ id, to, count: countOf, label }) => {
+          const count = countOf(dashboard);
           const content = (
             <>
-              <span className="min-w-7 text-xl font-bold tabular-nums">{count.toLocaleString('es-AR')}</span>
-              <span className="font-medium">{messages.todo[key]}</span>
+              <span className="min-w-7 text-xl font-bold tabular-nums">{count.toLocaleString('es-AR')}</span>{' '}
+              <span className="font-medium">{label(dashboard)}</span>
             </>
           );
           // A count of 0 still shows, without a link (UC-33), and quiet.
           return (
-            <li key={key}>
+            <li key={id}>
               {count === 0 ? (
                 <span className={cn(ROW, 'text-muted-foreground')}>{content}</span>
               ) : (
@@ -168,32 +202,141 @@ function Figure({ value, className }: { value: string; className?: string }) {
   );
 }
 
-function Period({ label, versus, sales }: { label: string; versus: string; sales: PeriodSales }) {
+const PERIODS: readonly SalesPeriod[] = ['TODAY', 'LAST_7_DAYS', 'MONTH', 'CUSTOM'];
+
+/** The custom period's dates as typed, yyyy-mm-dd, empty while not chosen. */
+interface DatesDraft {
+  from: string;
+  to: string;
+}
+
+type DatesProblem = keyof typeof messages.sales.invalid;
+
+/** Days from one store date to another, both included. */
+function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1;
+}
+
+/** UC-33's custom period rules, checked before asking (the API answers 400 to the same). */
+function datesProblem({ from, to }: DatesDraft, today: string): DatesProblem | null {
+  if (from === '' || to === '') {
+    return 'missing';
+  }
+  if (from > to) {
+    return 'order';
+  }
+  if (to > today) {
+    return 'future';
+  }
+  return daysBetween(from, to) > 366 ? 'tooLong' : null;
+}
+
+function versusOf(sales: Dashboard['sales']): string {
+  return sales.period === 'CUSTOM'
+    ? messages.sales.versus.CUSTOM(daysBetween(sales.from, sales.to))
+    : messages.sales.versus[sales.period];
+}
+
+const FIELD = 'min-h-11 rounded-md border border-input bg-card px-3 text-sm text-foreground aria-invalid:border-destructive';
+
+function CustomDates({ draft, onDraft, problem, today }: {
+  draft: DatesDraft;
+  onDraft: (draft: DatesDraft) => void;
+  problem: DatesProblem | null;
+  today: string;
+}) {
+  const problemId = useId();
+  const invalid = problem !== null;
+  const described = invalid ? { 'aria-describedby': problemId, 'aria-invalid': true } : {};
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-border p-4">
-      <p className="m-0 text-[13px] font-semibold text-muted-foreground">{label}</p>
-      <Figure value={formatMoney(sales.amountCents)} />
-      <p className="m-0 flex flex-wrap gap-x-1.5 text-[13px]">
-        <span className="text-muted-foreground">{messages.sales.orders(sales.orders)} ·</span>
-        <Variation variation={sales.variation} versus={versus} />
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-3">
+        <label className="flex flex-col gap-1 text-[13px] font-semibold text-muted-foreground">
+          {messages.sales.from}
+          <input
+            type="date"
+            className={FIELD}
+            value={draft.from}
+            max={today}
+            onChange={(event) => {
+              onDraft({ ...draft, from: event.target.value });
+            }}
+            {...described}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[13px] font-semibold text-muted-foreground">
+          {messages.sales.to}
+          <input
+            type="date"
+            className={FIELD}
+            value={draft.to}
+            max={today}
+            onChange={(event) => {
+              onDraft({ ...draft, to: event.target.value });
+            }}
+            {...described}
+          />
+        </label>
+      </div>
+      {/* Polite: it speaks once the dates are typed, not on every key */}
+      <p id={problemId} aria-live="polite" className="m-0 min-h-5 text-[13px] font-semibold text-destructive-strong">
+        {problem === null ? '' : messages.sales.invalid[problem]}
       </p>
     </div>
   );
 }
 
-function Sales({ sales, order }: { sales: Dashboard['sales']; order: number }) {
+interface SalesProps {
+  sales: Dashboard['sales'];
+  /** The period chosen on screen: while its figures load, the ones shown are still the previous period's. */
+  period: SalesPeriod;
+  onPeriod: (period: SalesPeriod) => void;
+  draft: DatesDraft;
+  onDraft: (draft: DatesDraft) => void;
+  problem: DatesProblem | null;
+  today: string;
+  loading: boolean;
+  order: number;
+}
+
+function Sales({ sales, period, onPeriod, draft, onDraft, problem, today, loading, order }: SalesProps) {
   const titleId = useId();
   const { className, style } = rise(order);
   return (
-    <Card aria-labelledby={titleId} className={cn('min-[860px]:col-span-3', className)} style={style}>
+    <Card
+      aria-labelledby={titleId}
+      aria-busy={loading}
+      className={cn('min-[860px]:col-span-3', className)}
+      style={style}
+    >
       <CardHeader>
-        <CardTitle id={titleId}>{messages.sales.title}</CardTitle>
+        <div className="flex flex-col gap-0.5">
+          <CardTitle id={titleId}>{messages.sales.title}</CardTitle>
+          <CardDescription>
+            {messages.sales.dates(formatDayMonth(sales.from), formatDayMonth(sales.to))}
+          </CardDescription>
+        </div>
+        <SegmentedControl
+          label={messages.sales.periodLabel}
+          options={PERIODS.map((value) => ({ value, label: messages.sales.periods[value] }))}
+          value={period}
+          onValueChange={onPeriod}
+          className="w-full min-[560px]:w-auto"
+        />
       </CardHeader>
-      <CardContent className="grid gap-3 min-[560px]:grid-cols-2 min-[1100px]:grid-cols-4">
-        <Period label={messages.sales.today} versus={messages.sales.versus.today} sales={sales.today} />
-        <Period label={messages.sales.lastWeek} versus={messages.sales.versus.lastWeek} sales={sales.lastWeek} />
-        <Period label={messages.sales.month} versus={messages.sales.versus.month} sales={sales.month} />
-        {/* The highlighted figure: the month's average ticket, tinted as the store's accent */}
+      {period === 'CUSTOM' && <CustomDates draft={draft} onDraft={onDraft} problem={problem} today={today} />}
+      <CardContent
+        className={cn('grid gap-3 transition-opacity min-[560px]:grid-cols-2', loading && 'opacity-60')}
+      >
+        <div className="flex flex-col gap-1 rounded-lg border border-border p-4">
+          <p className="m-0 text-[13px] font-semibold text-muted-foreground">{messages.sales.periods[sales.period]}</p>
+          <Figure value={formatMoney(sales.amountCents)} />
+          <p className="m-0 flex flex-wrap gap-x-1.5 text-[13px]">
+            <span className="text-muted-foreground">{messages.sales.orders(sales.orders)} ·</span>
+            <Variation variation={sales.variation} versus={versusOf(sales)} />
+          </p>
+        </div>
+        {/* The highlighted figure: the period's average ticket, tinted as the store's accent */}
         <div className="flex flex-col gap-1 rounded-lg bg-accent p-4 text-accent-foreground">
           <p className="m-0 text-[13px] font-semibold">{messages.sales.averageTicket}</p>
           <Figure
@@ -415,6 +558,85 @@ function LowStock({ lowStock, order }: { lowStock: Dashboard['lowStock']; order:
   );
 }
 
+/** The 5 newest entries of the activity log, its own read (UC-37); `Actualizar` and the auto-refresh read it too. */
+const RECENT_ACTIVITY = 5;
+const RECENT_ACTIVITY_KEY = ['admin', 'activity', 'recent'] as const;
+
+function useRecentActivity(autoRefresh: boolean) {
+  return useQuery({
+    queryKey: RECENT_ACTIVITY_KEY,
+    queryFn: async ({ signal }) => {
+      const page = await fetchActivity({ area: null, from: null, to: null }, 0, signal);
+      return page.items.slice(0, RECENT_ACTIVITY);
+    },
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchInterval: autoRefresh ? AUTO_REFRESH_MS : false,
+  });
+}
+
+/** Today's entries by their time; older ones by day and time. */
+function whenOf(occurredAt: Date, today: string): string {
+  return storeDay(occurredAt) === today ? formatTime(occurredAt) : formatDateTime(occurredAt);
+}
+
+function RecentActivity({ activity, today, order }: {
+  activity: ReturnType<typeof useRecentActivity>;
+  today: string;
+  order: number;
+}) {
+  const titleId = useId();
+  const { className, style } = rise(order);
+  return (
+    <Card aria-labelledby={titleId} aria-busy={activity.isFetching} className={className} style={style}>
+      <CardHeader>
+        <CardTitle id={titleId}>{messages.activity.title}</CardTitle>
+        {activity.data !== undefined && activity.data.length > 0 && (
+          <Button asChild variant="link" size="sm">
+            <Link to="/admin/actividad">{messages.activity.seeAll}</Link>
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {activity.isPending && <p className="m-0 text-sm text-muted-foreground">{messages.loading}</p>}
+        {/* Only this block says so: the rest of the summary is another read (UC-33) */}
+        {activity.isError && (
+          <div className="flex flex-col items-start gap-2">
+            <p className="m-0 text-sm">{messages.activity.loadError}</p>
+            <Button size="sm" onClick={() => void activity.refetch()}>
+              {esAdmin.retry}
+            </Button>
+          </div>
+        )}
+        {activity.data?.length === 0 && (
+          <EmptyState icon={<History />} title={messages.activity.none} />
+        )}
+        {activity.data !== undefined && activity.data.length > 0 && (
+          <ul className={ROWS}>
+            {activity.data.map((entry) => {
+              const label = subjectLabel(entry.subject);
+              return (
+                <li key={entry.id}>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-sm font-semibold">{esAdmin.activityList.actions[entry.action]}</span>
+                    {label !== null && <span className="text-[13px] text-muted-foreground">{label}</span>}
+                  </span>
+                  <time
+                    dateTime={entry.occurredAt.toISOString()}
+                    className="shrink-0 text-[13px] text-muted-foreground tabular-nums"
+                  >
+                    {whenOf(entry.occurredAt, today)}
+                  </time>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function Totals({ totals, order }: { totals: Dashboard['totals']; order: number }) {
   const titleId = useId();
   const { className, style } = rise(order);
@@ -433,11 +655,37 @@ function Totals({ totals, order }: { totals: Dashboard['totals']; order: number 
 
 /**
  * UC-33 at /admin: the summary the back office opens on, in the look of D-E8-12. The figures are read when the page
- * opens and again with "Actualizar"; nothing refreshes by itself. One column at 360 px, three from 860 px (RNF-26).
+ * opens, when the chart or the sales period changes, with "Actualizar", and every 5 minutes if the administrator
+ * turned that on. One column at 360 px, three from 860 px (RNF-26).
  */
 export function DashboardPage() {
+  const [today] = useState(() => storeDay(new Date()));
   const [chart, setChart] = useState<Chart>('DAYS');
-  const dashboard = useDashboard(chart);
+  const [period, setPeriod] = useState<SalesPeriod>('MONTH');
+  const [draft, setDraft] = useState<DatesDraft>({ from: `${today.slice(0, 8)}01`, to: today });
+  // The period asked for: a custom one only once its dates are valid, so a half-typed date never reaches the API.
+  const [choice, setChoice] = useState<PeriodChoice>({ period: 'MONTH' });
+  const [autoRefresh, setAutoRefresh] = useAutoRefresh();
+  const dashboard = useDashboard(chart, choice, autoRefresh);
+  const activity = useRecentActivity(autoRefresh);
+  const switchId = useId();
+  const problem = period === 'CUSTOM' ? datesProblem(draft, today) : null;
+
+  const choosePeriod = (next: SalesPeriod) => {
+    setPeriod(next);
+    if (next !== 'CUSTOM') {
+      setChoice({ period: next });
+    } else if (datesProblem(draft, today) === null) {
+      setChoice({ period: 'CUSTOM', ...draft });
+    }
+  };
+  const changeDates = (next: DatesDraft) => {
+    setDraft(next);
+    if (datesProblem(next, today) === null) {
+      setChoice({ period: 'CUSTOM', ...next });
+    }
+  };
+  const fetching = dashboard.isFetching || activity.isFetching;
 
   return (
     <>
@@ -447,7 +695,11 @@ export function DashboardPage() {
           <h1>{messages.title}</h1>
           <p className="m-0 text-sm text-muted-foreground">{messages.intro}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <label htmlFor={switchId} className="flex min-h-11 cursor-pointer items-center gap-2 text-[13px] font-semibold">
+            <Switch id={switchId} checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+            {messages.autoRefresh}
+          </label>
           {dashboard.data !== undefined && (
             <p className="m-0 text-[13px] text-muted-foreground tabular-nums">
               {messages.updatedAt(formatTime(new Date(dashboard.dataUpdatedAt)))}
@@ -456,14 +708,15 @@ export function DashboardPage() {
           {/* Focusable while it reads (aria-disabled), so a keyboard does not lose its place. */}
           <Button
             variant="secondary"
-            aria-disabled={dashboard.isFetching}
+            aria-disabled={fetching}
             onClick={() => {
-              if (!dashboard.isFetching) {
+              if (!fetching) {
                 void dashboard.refetch();
+                void activity.refetch();
               }
             }}
           >
-            <RefreshCw aria-hidden="true" className={cn(dashboard.isFetching && 'motion-safe:animate-spin')} />
+            <RefreshCw aria-hidden="true" className={cn(fetching && 'motion-safe:animate-spin')} />
             {messages.refresh}
           </Button>
         </div>
@@ -488,8 +741,18 @@ export function DashboardPage() {
       {/* Words wrap whole here: the back office's overflow-wrap: anywhere would split figures and labels in narrow cards */}
       {dashboard.data !== undefined && (
         <div className="grid gap-4 wrap-break-word min-[860px]:grid-cols-3">
-          <Todo todo={dashboard.data.todo} order={0} />
-          <Sales sales={dashboard.data.sales} order={1} />
+          <Todo dashboard={dashboard.data} order={0} />
+          <Sales
+            sales={dashboard.data.sales}
+            period={period}
+            onPeriod={choosePeriod}
+            draft={draft}
+            onDraft={changeDates}
+            problem={problem}
+            today={today}
+            loading={dashboard.isPlaceholderData}
+            order={1}
+          />
           <ChartBlock
             chart={dashboard.data.chart}
             requested={chart}
@@ -499,9 +762,10 @@ export function DashboardPage() {
           />
           <QuickActions order={3} />
           <RecentOrders orders={dashboard.data.recentOrders} order={4} />
-          <BestSellers bestSellers={dashboard.data.bestSellers} order={5} />
+          <RecentActivity activity={activity} today={today} order={5} />
           <LowStock lowStock={dashboard.data.lowStock} order={6} />
-          <Totals totals={dashboard.data.totals} order={7} />
+          <BestSellers bestSellers={dashboard.data.bestSellers} order={7} />
+          <Totals totals={dashboard.data.totals} order={8} />
         </div>
       )}
     </>
