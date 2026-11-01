@@ -59,26 +59,36 @@
 
 **Flujo principal**
 1. Al confirmar, el sistema crea el pedido en estado PENDIENTE_PAGO y reserva el stock (CU-16).
-2. Crea el pago en el proveedor elegido y redirige al cliente.
-3. El cliente paga y vuelve a la tienda, a una página que muestra el estado del pedido.
+2. Con MercadoPago, el cliente pasa a la página de su pedido en la tienda, con el formulario de la tarjeta ya abierto; la carga ahí, sin salir de la tienda, y ve el resultado en el momento. Con MODO, el sistema crea el pago y lo redirige a MODO.
+3. El cliente paga y la tienda le muestra el estado del pedido.
 4. El resultado definitivo lo confirma el webhook (CU-15).
 
 **Alternativos**
 - El cliente cancela o falla el pago: el pedido sigue PENDIENTE_PAGO hasta vencer la reserva y puede reintentar el pago desde el enlace de seguimiento.
+- La tarjeta es rechazada: la tienda dice por qué en palabras simples (fondos insuficientes, código de seguridad o vencimiento mal escritos, el banco pide autorizar el pago, tarjeta deshabilitada, otra) y el cliente puede probar con otra tarjeta mientras dure la reserva.
+- El pago queda en revisión en MercadoPago: la tienda lo dice y el resultado llega después por el webhook (CU-15).
 
 **Reglas**
 - Los datos de tarjeta nunca pasan por la tienda.
 - En la primera versión solo se habilitan medios de pago inmediatos (*Propuesto*).
 - MODO se implementa en la sub-etapa **E3b** (plan en `plan.md`, sección "MODO (E3b)"). El comprador paga desde la app de su banco o la app MODO; cada intento de pago vence a los 10 minutos, y "Pagar" en el seguimiento crea uno nuevo mientras dure la reserva (decidido en T-E3b-01).
 - Las tarjetas de crédito y débito (Visa, Mastercard y demás) se pagan por MercadoPago, que no exige cuenta (decidido en T-E3b-01).
-- En MercadoPago el pago es una sola línea, "Pedido #1001 - Pijama Party", por el total que calculó el servidor; se le envían el nombre y el email del cliente para precompletar el pago, nunca el DNI, el teléfono ni la dirección. El pago vence junto con la reserva.
-- Si MercadoPago no responde, el pedido igual queda creado con su stock reservado: el cliente va a la página de seguimiento y reintenta el pago desde ahí.
-- La página de seguimiento (`/pedido/{token}`) muestra el número y el estado del pedido, los productos, los importes, la ciudad y la provincia, el nombre de pila del cliente y el número de seguimiento del envío cuando lo hay. Nunca muestra el DNI, el email, el teléfono ni la calle, porque el enlace se puede reenviar o quedar en el historial (decidido). Mientras el pedido está pendiente de pago y la reserva vigente, muestra hasta cuándo están reservados los productos y el botón "Pagar"; si la reserva venció, lo dice.
+- **Pago con tarjeta en la tienda (decidido el 2026-10-31, reemplaza la redirección a MercadoPago):** el cliente carga la tarjeta en el formulario seguro de MercadoPago dentro de la página (Card Payment Brick). Los datos de la tarjeta van de su navegador directo a MercadoPago, que devuelve un código de un solo uso; la tienda cobra con ese código, así que los datos de la tarjeta nunca pasan por la tienda. Solo tarjetas de crédito y débito, sin cuenta de MercadoPago. Se ofrecen las cuotas que permitan MercadoPago y el banco, con el interés a cargo del cliente.
+- El monto lo pone siempre el servidor (el total del pedido), nunca el navegador. El email del pago es el del pedido. El formulario pide el DNI del titular de la tarjeta, que va a MercadoPago y no se guarda ni se registra en los logs.
+- Cada envío del formulario lleva una clave de idempotencia: un doble toque o un reintento de red no cobra dos veces.
+- El resultado se le pregunta a MercadoPago en el momento (no se toma del navegador): si está aprobado, el pedido pasa a PAGADO enseguida; el webhook (CU-15) lo confirma después sin repetir nada.
+- Si MercadoPago no responde, el pedido igual queda creado con su stock reservado: el cliente puede volver a intentar el pago en la misma página o desde el enlace de seguimiento.
+- La página de seguimiento (`/pedido/{token}`) muestra el número y el estado del pedido, los productos, los importes, la ciudad y la provincia, el nombre de pila del cliente y el número de seguimiento del envío cuando lo hay. Nunca muestra el DNI, el email, el teléfono ni la calle, porque el enlace se puede reenviar o quedar en el historial (decidido). Mientras el pedido está pendiente de pago y la reserva vigente, muestra hasta cuándo están reservados los productos y la forma de pagar: con MercadoPago, el formulario de la tarjeta; con MODO, el botón "Pagar". Si la reserva venció, lo dice.
 - En la computadora, la página del pedido va en dos columnas, como el checkout: a la izquierda el saludo, el estado, el pago y la corrección del email; a la derecha el resumen. Cada producto lleva una miniatura cuadrada con su foto actual a la izquierda del nombre (si el producto ya no tiene foto, un recuadro de color). Los errores del pago se muestran en un recuadro de alerta (fondo rojo muy claro, borde rojo oscuro y un ícono de advertencia); el checkout muestra igual los suyos (pedido rechazado, costo de envío que no se pudo leer, cupón que no se pudo quitar), y los errores de cada campo siguen debajo del campo.
 - El nombre y la ciudad se muestran con mayúscula inicial en cada palabra ("alan" → "Alan", "santa fe" → "Santa Fe"), también en la revisión del checkout. El pedido guarda lo que escribió el comprador; los emails y el panel no cambian.
 
 **Criterios de aceptación**
-- Dado un pedido confirmado, cuando se crea el pago, entonces el cliente es redirigido al proveedor con el monto exacto calculado por el servidor.
+- Dado un pedido confirmado con MercadoPago, cuando se confirma, entonces se abre la página del pedido en la tienda con el formulario de la tarjeta y el cobro es por el monto exacto calculado por el servidor.
+- Dada una tarjeta aprobada, cuando se envía el formulario, entonces el pedido queda PAGADO y la tienda lo muestra sin salir de la página.
+- Dada una tarjeta rechazada por fondos insuficientes, cuando se envía, entonces la tienda dice "Fondos insuficientes" y deja probar con otra tarjeta.
+- Dado el mismo envío del formulario repetido con la misma clave de idempotencia, cuando llega el segundo, entonces MercadoPago no cobra dos veces.
+- Dado un pedido que ya no se puede pagar (pagado o reserva vencida), cuando se envía la tarjeta, entonces no se cobra y la tienda recarga el pedido.
+- Dado un pedido con MODO, cuando se confirma, entonces el cliente es redirigido a MODO con el monto exacto calculado por el servidor.
 - Dado un cliente que vuelve sin completar el pago, cuando abre su enlace de seguimiento, entonces ve el pedido pendiente y la opción de reintentar.
 - Dado el mismo `Idempotency-Key` enviado dos veces (doble toque o reintento de red), cuando se procesa el segundo, entonces devuelve el mismo pedido sin crear otro ni reservar stock de nuevo.
 - Dado el mismo `Idempotency-Key` con un contenido distinto (datos del comprador, dirección, medio de pago o términos), cuando llega, entonces se rechaza con `422`.

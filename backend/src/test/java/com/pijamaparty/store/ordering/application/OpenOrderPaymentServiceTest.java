@@ -53,6 +53,15 @@ class OpenOrderPaymentServiceTest {
     }
 
     @Test
+    void givenAMercadoPagoOrder_whenItsPaymentIsOpened_thenTheBuyerPaysOnTheStoresPage() {
+        NewOrder order = placed(PaymentProvider.MERCADOPAGO);
+
+        var result = serviceAt(PLACED_AT.plusSeconds(1)).execute(new OpenOrderPayment.Command(order.id()));
+
+        assertThat(result).isEqualTo(new OpenOrderPayment.Result.OnSite());
+    }
+
+    @Test
     void givenTheProviderDown_whenThePaymentIsOpened_thenItIsUnavailableAndTheOrderStillAwaitsPayment() {
         NewOrder order = placed();
         payments.down(true);
@@ -93,14 +102,19 @@ class OpenOrderPaymentServiceTest {
             .isInstanceOf(OpenOrderPayment.Result.Opened.class);
     }
 
+    /** A MODO order: its payment is a checkout to redirect to. */
     private NewOrder placed() {
+        return placed(PaymentProvider.MODO);
+    }
+
+    private NewOrder placed(PaymentProvider provider) {
         var order = new NewOrder(OrderId.of(UUID.randomUUID()), orders.next(),
             new TrackingToken("token-" + UUID.randomUUID()).hash(), Optional.empty(), new BuyerDetails("Ana", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.empty(), Optional.empty(), "Santa Fe", "S3000ABC"),
             Province.SANTA_FE,
             List.of(new OrderLine(UUID.randomUUID(), "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 2)),
             OrderAmounts.of(Money.of(4_000_000), Money.zero(), Money.of(450_000)), Optional.empty(),
-            PaymentProvider.MERCADOPAGO, "2026-10", PLACED_AT, StockHold.expiryOf(PLACED_AT));
+            provider, "2026-10", PLACED_AT, StockHold.expiryOf(PLACED_AT));
         orders.insert(order);
         return order;
     }

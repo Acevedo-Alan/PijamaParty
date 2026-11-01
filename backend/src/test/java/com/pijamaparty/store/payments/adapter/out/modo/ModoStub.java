@@ -243,7 +243,7 @@ public final class ModoStub implements AutoCloseable {
     }
 
     /** Answers every next payment request creation with this status and body. */
-    void answerPaymentRequests(int status, String body) {
+    public void answerPaymentRequests(int status, String body) {
         paymentRequestStatus = status;
         paymentRequestBody = body;
     }

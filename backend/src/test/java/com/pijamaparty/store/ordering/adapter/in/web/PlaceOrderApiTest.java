@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -94,44 +93,19 @@ class PlaceOrderApiTest {
     }
 
     @Test
-    void givenAPlacedOrder_whenItsPaymentIsCreated_thenTheBuyerIsSentToMercadoPagoWithTheExactServerAmount()
-        throws Exception {
+    void givenAPlacedOrder_whenItsPaymentIsOpened_thenTheBuyerPaysOnThePageForTheExactServerAmount() throws Exception {
         String body = checkout(order()).andExpect(status().isCreated())
-            .andExpect(jsonPath("$.paymentUrl").value(startsWith(MercadoPagoStub.INIT_POINT)))
-            .andReturn().getResponse().getContentAsString();
-
-        JsonNode placed = json.readTree(body);
-        JsonNode preference = mercadoPago.lastRequest().json();
-        assertThat(preference.get("items")).hasSize(1);
-        assertThat(preference.get("items").get(0).get("unit_price").decimalValue().movePointRight(2).longValueExact())
-            .isEqualTo(placed.get("totalCents").asLong());
-        assertThat(preference.get("external_reference").asText()).isEqualTo(placed.get("number").asText());
-        assertThat(mercadoPago.lastRequest().body()).doesNotContain("12345678", "3425551234", "San Mart",
-            placed.get("trackingToken").asText());
-        var payment = owner.queryForMap("select p.* from payment p join orders o on o.id = p.order_id "
-            + "where o.number = ?", placed.get("number").asLong());
-        assertThat(payment).containsEntry("status", "PENDING").containsEntry("amount_cents", 4_450_000L)
-            .containsEntry("checkout_url", placed.get("paymentUrl").asText());
-    }
-
-    @Test
-    void givenMercadoPagoDown_whenTheBuyerConfirms_thenTheOrderIsPlacedWithoutAPaymentUrlAndItsStockStaysReserved()
-        throws Exception {
-        mercadoPago.answer(500, "{\"message\":\"internal_error\"}");
-
-        String body = checkout(order()).andExpect(status().isCreated())
-            .andExpect(jsonPath("$.status").value("AWAITING_PAYMENT"))
+            .andExpect(jsonPath("$.payOnSite").value(true))
             .andExpect(jsonPath("$.paymentUrl").value(nullValue()))
             .andReturn().getResponse().getContentAsString();
 
-        long number = json.readTree(body).get("number").asLong();
-        assertThat(owner.queryForObject("select status from orders where number = ?", String.class, number))
-            .isEqualTo("AWAITING_PAYMENT");
-        assertThat(owner.queryForObject("select reserved from stock_level where variant_id = ?", Integer.class,
-            pijama)).isEqualTo(2);
+        JsonNode placed = json.readTree(body);
         var payment = owner.queryForMap("select p.* from payment p join orders o on o.id = p.order_id "
-            + "where o.number = ?", number);
-        assertThat(payment).containsEntry("status", "PENDING").containsEntry("checkout_url", null);
+            + "where o.number = ?", placed.get("number").asLong());
+        assertThat(payment).containsEntry("provider", "MERCADOPAGO").containsEntry("status", "PENDING")
+            .containsEntry("amount_cents", placed.get("totalCents").asLong()).containsEntry("checkout_url", null);
+        // T-E3-29: nothing goes to MercadoPago until the buyer submits the card form
+        assertThat(mercadoPago.requests()).isEmpty();
     }
 
     @Test
@@ -219,26 +193,11 @@ class PlaceOrderApiTest {
         assertThat(owner.queryForObject("select count(*) from stock_movement where type = 'RESERVATION'",
             Integer.class)).isOne();
         assertThat(owner.queryForObject("select count(*) from payment", Integer.class)).isOne();
-        assertThat(mercadoPago.requests()).hasSize(1);
+        assertThat(second.get("payOnSite")).isEqualTo(first.get("payOnSite"));
         var key24h = owner.queryForMap("select * from idempotency_key");
         assertThat(key24h.get("scope")).isEqualTo("CART:" + new CartToken(cartToken).hash());
         assertThat(key24h.get("response_body").toString()).doesNotContain(first.get("trackingToken").asText(),
             "12345678", "ana@example.com");
-    }
-
-    @Test
-    void givenAPlacedOrderWhoseProviderWasDown_whenTheSameKeyArrivesAgain_thenThePaymentIsOpenedNow()
-        throws Exception {
-        String key = UUID.randomUUID().toString();
-        mercadoPago.answer(500, "{\"message\":\"internal_error\"}");
-        checkout(order(), key).andExpect(status().isCreated()).andExpect(jsonPath("$.paymentUrl").value(nullValue()));
-        mercadoPago.reset();
-
-        checkout(order(), key)
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.paymentUrl").value(startsWith(MercadoPagoStub.INIT_POINT)));
-
-        assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isOne();
     }
 
     @Test
@@ -256,7 +215,7 @@ class PlaceOrderApiTest {
 
         assertThat(owner.queryForObject("select count(*) from orders", Integer.class)).isOne();
         assertThat(owner.queryForObject("select count(*) from order_tracking_token", Integer.class)).isZero();
-        assertThat(mercadoPago.requests()).hasSize(1);
+        assertThat(owner.queryForObject("select count(*) from payment", Integer.class)).isOne();
     }
 
     @Test
@@ -365,7 +324,7 @@ class PlaceOrderApiTest {
             .containsEntry("on_hand", 1).containsEntry("reserved", 1);
         assertThat(owner.queryForObject("select count(*) from stock_movement where type = 'RESERVATION'",
             Integer.class)).isOne();
-        assertThat(mercadoPago.requests()).hasSize(1);
+        assertThat(owner.queryForObject("select count(*) from payment", Integer.class)).isOne();
     }
 
     @Test

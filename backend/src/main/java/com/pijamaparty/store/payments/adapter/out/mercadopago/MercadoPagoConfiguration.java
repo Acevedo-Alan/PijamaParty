@@ -9,21 +9,26 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * {@code store.payments.mercadopago.access-token}: the seller's access token (the Docker secret
- * {@code MERCADOPAGO_ACCESS_TOKEN}; test credentials give the sandbox). Empty: every checkout and every payment lookup
- * is unavailable, without calling. Read with {@code @Value}, so an unresolved placeholder stops the start-up (the
+ * {@code MERCADOPAGO_ACCESS_TOKEN}; test credentials give the sandbox). Empty: every card charge and every payment
+ * lookup is unavailable, without calling. Read with {@code @Value}, so an unresolved placeholder stops the start-up (the
  * production profile has no default) instead of becoming the token.
  *
- * <p>{@code store.public-url}: the storefront's origin, where MercadoPago sends the buyer back and notifies.
+ * <p>{@code store.payments.mercadopago.public-key}: the public key of the same account, for the browser's card form
+ * (T-E3-29; the Docker secret {@code MERCADOPAGO_PUBLIC_KEY}). Empty: the card form cannot open.
+ *
+ * <p>{@code store.public-url}: the storefront's origin, where MercadoPago notifies.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(MercadoPagoProperties.class)
 class MercadoPagoConfiguration {
 
+    /** T-E3-29: the cards typed on the store's page, charged with the access token. */
     @Bean
-    MercadoPagoGateway mercadoPagoGateway(MercadoPagoProperties properties,
-                                          @Value("${store.payments.mercadopago.access-token}") String accessToken,
-                                          @Value("${store.public-url}") URI publicUrl, MessageSource messages) {
-        return new MercadoPagoGateway(properties, accessToken, publicUrl, messages);
+    MercadoPagoCardCharges mercadoPagoCardCharges(
+        MercadoPagoProperties properties, @Value("${store.payments.mercadopago.access-token}") String accessToken,
+        @Value("${store.payments.mercadopago.public-key}") String publicKey,
+        @Value("${store.public-url}") URI publicUrl, MessageSource messages) {
+        return new MercadoPagoCardCharges(properties, accessToken, publicKey, publicUrl, messages);
     }
 
     /** UC-15: the payments MercadoPago notifies are asked to it with the same access token. */

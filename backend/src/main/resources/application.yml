@@ -139,11 +139,13 @@ store:
       cron: "0 * * * * *"
   payments:
     mercadopago:
-      # T-E3-06: Checkout Pro. The access token is the Docker secret MERCADOPAGO_ACCESS_TOKEN in production (test
-      # credentials give the sandbox); empty, every checkout is unavailable and the buyer retries from the tracking
-      # page. RNF-21: 3 s to connect, 10 s to read, no retries.
+      # T-E3-29: cards typed on the store's page (Card Payment Brick), charged with /v1/payments. The access token is
+      # the Docker secret MERCADOPAGO_ACCESS_TOKEN in production (test credentials give the sandbox); empty, every
+      # charge is unavailable and the buyer retries. The public key (MERCADOPAGO_PUBLIC_KEY) goes to the browser's card
+      # form; empty, the form cannot open. RNF-21: 3 s to connect, 10 s to read, no retries.
       base-url: https://api.mercadopago.com
       access-token: ${MERCADOPAGO_ACCESS_TOKEN:}
+      public-key: ${MERCADOPAGO_PUBLIC_KEY:}
       connect-timeout: 3s
       read-timeout: 10s
       # T-E3-07, RNF-29.3: the secret key that signs the Webhooks notifications (the Docker secret
@@ -311,13 +313,14 @@ store:
       # UC-14 (T-E3-08): the tracking link per IP, reading the order and retrying its payment. 128 random bits make
       # guessing a token hopeless anyway; this bounds the scraping of known ones.
       - name: order-tracking
-        paths: [/api/orders/*, /api/orders/*/retry-payment, /api/orders/*/email]
+        paths: [/api/orders/*, /api/orders/*/retry-payment, /api/orders/*/card-payment, /api/orders/*/email]
         keys: [ip]
         capacity: 30
         period: 1m
-      # T-E3-08: each retry may call the payment provider, so per order (its tracking token) and IP together
+      # T-E3-08: each retry may call the payment provider, so per order (its tracking token) and IP together; so
+      # does each card submit (T-E3-29), which also bounds trying card after card
       - name: payment-retry
-        paths: [/api/orders/*/retry-payment]
+        paths: [/api/orders/*/retry-payment, /api/orders/*/card-payment]
         methods: [POST]
         keys: [tracking, ip]
         capacity: 5
@@ -412,6 +415,7 @@ store:
   payments:
     mercadopago:
       access-token: ${MERCADOPAGO_ACCESS_TOKEN}
+      public-key: ${MERCADOPAGO_PUBLIC_KEY}
       webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET}
     modo:
       # T-E3b-02: nor with MODO enabled without its credentials and processor code

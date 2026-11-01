@@ -18,7 +18,8 @@ import org.springframework.stereotype.Service;
 /**
  * UC-14: opens the payment of an order. Deliberately not transactional: the payment and its attempt are committed
  * before the provider is called and the checkout is recorded after it answers, each in its own short transaction
- * (RNF-21). A checkout that expired or is about to (a MODO payment request, T-E3b-02) gets a new attempt.
+ * (RNF-21). A checkout that expired or is about to (a MODO payment request, T-E3b-02) gets a new attempt. A provider
+ * whose buyers pay on the store's page (MercadoPago, T-E3-29) has no checkout: only the pending payment is stored.
  */
 @Service
 class OpenCheckoutService implements PaymentCheckouts {
@@ -26,11 +27,12 @@ class OpenCheckoutService implements PaymentCheckouts {
     private final LoadPayments loadPayments;
     private final SavePayments savePayments;
     private final Map<PaymentProvider, PaymentGateway> gateways;
+    private final Map<PaymentProvider, CardCharges> cardCharges;
     private final IdGenerator ids;
     private final Clock clock;
 
     OpenCheckoutService(LoadPayments loadPayments, SavePayments savePayments, List<PaymentGateway> gateways,
-                        IdGenerator ids, Clock clock) {
+                        List<CardCharges> cardCharges, IdGenerator ids, Clock clock) {
         this.loadPayments = loadPayments;
         this.savePayments = savePayments;
         this.gateways = new EnumMap<>(PaymentProvider.class);
@@ -39,12 +41,24 @@ class OpenCheckoutService implements PaymentCheckouts {
                 throw new IllegalStateException("two payment gateways for " + gateway.provider());
             }
         }
+        this.cardCharges = new EnumMap<>(PaymentProvider.class);
+        for (CardCharges charges : cardCharges) {
+            if (this.gateways.containsKey(charges.provider())
+                || this.cardCharges.put(charges.provider(), charges) != null) {
+                throw new IllegalStateException(charges.provider() + " has two ways to pay");
+            }
+        }
         this.ids = ids;
         this.clock = clock;
     }
 
     @Override
     public CheckoutOpening open(CheckoutRequest request) {
+        if (cardCharges.containsKey(request.provider())) {
+            savePayments.insertPending(new SavePayments.NewPayment(ids.newId(), request.orderId(),
+                request.orderNumber(), request.provider(), request.amount(), clock.instant()));
+            return new CheckoutOpening.OnSite();
+        }
         PaymentGateway gateway = gateways.get(request.provider());
         if (gateway == null) {
             throw new IllegalStateException("no payment gateway for " + request.provider());

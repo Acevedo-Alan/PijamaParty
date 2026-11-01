@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.pijamaparty.store.payments.adapter.out.mercadopago.MercadoPagoStubConfiguration;
 import com.pijamaparty.store.payments.adapter.out.modo.ModoStubConfiguration;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,8 @@ class PaymentProvidersApiTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.providers.length()").value(2))
             .andExpect(jsonPath("$.providers[0]").value("MERCADOPAGO"))
-            .andExpect(jsonPath("$.providers[1]").value("MODO"));
+            .andExpect(jsonPath("$.providers[1]").value("MODO"))
+            // T-E3-29: the key of MercadoPago's card form in the browser
+            .andExpect(jsonPath("$.mercadoPagoPublicKey").value(MercadoPagoStubConfiguration.PUBLIC_KEY));
     }
 }

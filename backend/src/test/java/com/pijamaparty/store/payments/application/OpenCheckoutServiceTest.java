@@ -34,7 +34,7 @@ class OpenCheckoutServiceTest {
     private final UUID paymentId = UUID.randomUUID();
     private final MovableClock clock = new MovableClock(NOW);
     private final OpenCheckoutService service = new OpenCheckoutService(payments, payments, List.of(gateway, modo),
-        () -> paymentId, clock);
+        List.of(), () -> paymentId, clock);
     private final CheckoutRequest request = new CheckoutRequest(UUID.randomUUID(), 1001, Money.of(2_100_050),
         MERCADOPAGO, new CheckoutRequest.Payer("Ana Pérez", "ana@example.com"), NOW.plusSeconds(1800));
     private final CheckoutRequest modoRequest = new CheckoutRequest(UUID.randomUUID(), 1002, Money.of(2_100_050),
@@ -68,7 +68,7 @@ class OpenCheckoutServiceTest {
             }
         };
 
-        new OpenCheckoutService(payments, payments, List.of(observing), UUID::randomUUID, clock).open(request);
+        new OpenCheckoutService(payments, payments, List.of(observing), List.of(), UUID::randomUUID, clock).open(request);
 
         assertThat(seenByTheProvider.get()).extracting(InMemoryPaymentStore.StoredAttempt::attempt)
             .containsExactly(new CheckoutAttempt(1, "1001-1"));
@@ -128,7 +128,7 @@ class OpenCheckoutServiceTest {
                 return new Outcome.Created(new Checkout("second", URI.create("https://pay.example.com/second")));
             }
         };
-        var raced = new OpenCheckoutService(payments, payments, List.of(racing), UUID::randomUUID, clock);
+        var raced = new OpenCheckoutService(payments, payments, List.of(racing), List.of(), UUID::randomUUID, clock);
 
         assertThat(raced.open(request)).isEqualTo(new CheckoutOpening.Opened(first.url()));
         assertThat(payments.checkoutOf(request.orderId(), MERCADOPAGO)).contains(first);
@@ -189,16 +189,34 @@ class OpenCheckoutServiceTest {
     @Test
     void givenTwoGatewaysForOneProvider_whenTheServiceIsBuilt_thenItRefuses() {
         assertThatThrownBy(() -> new OpenCheckoutService(payments, payments,
-            List.of(gateway, new InMemoryPaymentGateway(MERCADOPAGO)), UUID::randomUUID, Clock.systemUTC()))
+            List.of(gateway, new InMemoryPaymentGateway(MERCADOPAGO)), List.of(), UUID::randomUUID, Clock.systemUTC()))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void givenNoGatewayForTheProvider_whenThePaymentIsOpened_thenItFailsWithoutStoringAPayment() {
-        var withoutGateways = new OpenCheckoutService(payments, payments, List.of(), UUID::randomUUID,
+        var withoutGateways = new OpenCheckoutService(payments, payments, List.of(), List.of(), UUID::randomUUID,
             Clock.fixed(NOW, ZoneOffset.UTC));
 
         assertThatThrownBy(() -> withoutGateways.open(request)).isInstanceOf(IllegalStateException.class);
         assertThat(payments.size()).isZero();
+    }
+
+    @Test
+    void givenAProviderPaidOnTheStoresPage_whenThePaymentIsOpened_thenOnlyThePendingPaymentIsStored() {
+        var onSite = new OpenCheckoutService(payments, payments, List.of(modo), List.of(new InMemoryCardCharges()),
+            UUID::randomUUID, Clock.fixed(NOW, ZoneOffset.UTC));
+
+        assertThat(onSite.open(request)).isEqualTo(new CheckoutOpening.OnSite());
+        assertThat(onSite.open(request)).isEqualTo(new CheckoutOpening.OnSite());
+        assertThat(payments.paymentOf(request.orderId(), MERCADOPAGO)).isPresent();
+        assertThat(payments.attemptsOf(request.orderId(), MERCADOPAGO)).isEmpty();
+    }
+
+    @Test
+    void givenAProviderThatBothRedirectsAndChargesCards_whenTheServiceIsBuilt_thenItRefuses() {
+        assertThatThrownBy(() -> new OpenCheckoutService(payments, payments, List.of(gateway),
+            List.of(new InMemoryCardCharges()), UUID::randomUUID, Clock.systemUTC()))
+            .isInstanceOf(IllegalStateException.class);
     }
 }

@@ -62,6 +62,13 @@ class RetryOrderPaymentServiceTest {
     }
 
     @Test
+    void givenAMercadoPagoOrder_whenRetried_thenTheBuyerPaysOnTheStoresPage() {
+        placed(PaymentProvider.MERCADOPAGO);
+
+        assertThat(retryAt(PLACED_AT.plusSeconds(60))).isEqualTo(new RetryOrderPayment.Result.OnSite());
+    }
+
+    @Test
     void givenTheProviderDown_whenRetried_thenItIsUnavailableAndTheOrderStillAwaitsPayment() {
         NewOrder order = placed();
         payments.down(true);
@@ -94,14 +101,19 @@ class RetryOrderPaymentServiceTest {
         assertThat(payments.opened()).isEmpty();
     }
 
+    /** A MODO order: its payment is a checkout to redirect to. */
     private NewOrder placed() {
+        return placed(PaymentProvider.MODO);
+    }
+
+    private NewOrder placed(PaymentProvider provider) {
         var order = new NewOrder(OrderId.of(UUID.randomUUID()), orders.next(), token.hash(), Optional.empty(),
             new BuyerDetails("Ana", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new ShippingAddress("San Martín", "1234", Optional.empty(), Optional.empty(), "Santa Fe", "S3000ABC"),
             Province.SANTA_FE,
             List.of(new OrderLine(UUID.randomUUID(), "PL-M-ROSA", "Pijama Luna", "M", "Rosa", Money.of(2_000_000), 2)),
             OrderAmounts.of(Money.of(4_000_000), Money.zero(), Money.of(450_000)), Optional.empty(),
-            PaymentProvider.MERCADOPAGO, "2026-10", PLACED_AT, StockHold.expiryOf(PLACED_AT));
+            provider, "2026-10", PLACED_AT, StockHold.expiryOf(PLACED_AT));
         orders.insert(order);
         return order;
     }

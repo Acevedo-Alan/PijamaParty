@@ -11,8 +11,7 @@ class EnabledPaymentProvidersServiceTest {
     @Test
     void givenMODOSwitchedOff_whenAskedForTheProviders_thenOnlyMercadoPagoIsEnabled() {
         var service = new EnabledPaymentProvidersService(List.of(
-            new InMemoryPaymentGateway(PaymentProvider.MERCADOPAGO),
-            new InMemoryPaymentGateway(PaymentProvider.MODO, false)));
+            new InMemoryPaymentGateway(PaymentProvider.MODO, false)), List.of(new InMemoryCardCharges()));
 
         assertThat(service.enabled()).containsExactly(PaymentProvider.MERCADOPAGO);
     }
@@ -20,9 +19,15 @@ class EnabledPaymentProvidersServiceTest {
     @Test
     void givenMODOSwitchedOn_whenAskedForTheProviders_thenBothAreEnabled() {
         var service = new EnabledPaymentProvidersService(List.of(
-            new InMemoryPaymentGateway(PaymentProvider.MERCADOPAGO),
-            new InMemoryPaymentGateway(PaymentProvider.MODO, true)));
+            new InMemoryPaymentGateway(PaymentProvider.MODO, true)), List.of(new InMemoryCardCharges()));
 
         assertThat(service.enabled()).containsExactlyInAnyOrder(PaymentProvider.MERCADOPAGO, PaymentProvider.MODO);
+    }
+
+    @Test
+    void givenMercadoPagosCardForm_whenAskedForItsKey_thenItIsThePublicKey() {
+        var service = new EnabledPaymentProvidersService(List.of(), List.of(new InMemoryCardCharges()));
+
+        assertThat(service.cardFormPublicKey()).contains("TEST-public-key");
     }
 }

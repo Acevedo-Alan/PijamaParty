@@ -24,6 +24,9 @@ public interface OpenOrderPayment {
         /** The provider's checkout, where the buyer pays. */
         record Opened(URI paymentUrl) implements Result {}
 
+        /** T-E3-29: the buyer pays on the store's page, with the card form (MercadoPago). */
+        record OnSite() implements Result {}
+
         /** The provider could not be reached: the order still awaits payment, and paying can be retried. */
         record ProviderUnavailable() implements Result {}
 

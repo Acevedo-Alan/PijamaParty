@@ -100,15 +100,18 @@ class CheckoutController {
     @ApiResponse(responseCode = "200", description = "The providers", content = @Content(
         mediaType = "application/json", schema = @Schema(implementation = PaymentProvidersResponse.class)))
     PaymentProvidersResponse paymentProviders() {
-        return new PaymentProvidersResponse(listPaymentProviders.execute().providers());
+        var listed = listPaymentProviders.execute();
+        return new PaymentProvidersResponse(listed.providers(), listed.cardFormPublicKey().orElse(null));
     }
 
     @PostMapping
     @Operation(summary = "Confirm the checkout: place the order, reserve its stock and open its payment",
         description = "Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for "
             + "30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's "
-            + "tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the "
-            + "buyer to; null when the provider could not be reached, and then the client opens the tracking page. "
+            + "tracking page; it is shown only here. With MercadoPago, payOnSite is true: the buyer pays on the store's "
+            + "page with the card form (POST /api/orders/{token}/card-payment). With MODO, paymentUrl is the "
+            + "checkout to redirect the buyer to. Both empty when the provider could not be reached, and then the "
+            + "client opens the tracking page. "
             + "The same Idempotency-Key repeated with the same content gets the same order, with a new "
             + "trackingToken, and nothing is placed or reserved again. A signed-in customer's phone becomes its "
             + "account's, and with saveAddress the address joins its address book (UC-21). Requires the CSRF token.")
@@ -144,7 +147,7 @@ class CheckoutController {
         return switch (CurrentActor.callAs(actor, () -> placeOrder.execute(command))) {
             case PlaceOrder.Result.Placed placed -> ResponseEntity.status(HttpStatus.CREATED)
                 .body(new PlacedResponse(placed.number(), trackingToken.value(), OrderStatus.AWAITING_PAYMENT,
-                    placed.total().cents(), placed.reservationExpiresAt(), paymentUrlOf(actor, placed)));
+                    placed.total().cents(), placed.reservationExpiresAt(), paymentOf(actor, placed)));
             case PlaceOrder.Result.InvalidBuyerData invalid -> {
                 var problem = problemDetail(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid buyer data",
                     "Some buyer or address data break the rules of the checkout.", "INVALID_BUYER_DATA");
@@ -192,16 +195,20 @@ class CheckoutController {
     /**
      * UC-14 (T-E3-06): once the order committed, its payment is opened outside any transaction, as the buyer that
      * holds the order's tracking token (Row Level Security lets it read only its own order). The order stands either
-     * way: without a payment URL the buyer retries from the tracking page (T-E3-08).
+     * way: without a way to pay the buyer retries from the tracking page (T-E3-08).
      */
-    private URI paymentUrlOf(Actor buyer, PlaceOrder.Result.Placed placed) {
+    private OpenedPayment paymentOf(Actor buyer, PlaceOrder.Result.Placed placed) {
         var command = new OpenOrderPayment.Command(placed.orderId());
         return switch (CurrentActor.callAs(buyer, () -> openOrderPayment.execute(command))) {
-            case OpenOrderPayment.Result.Opened opened -> opened.paymentUrl();
-            case OpenOrderPayment.Result.ProviderUnavailable unavailable -> null;
-            case OpenOrderPayment.Result.NotPayable notPayable -> null;
+            case OpenOrderPayment.Result.Opened opened -> new OpenedPayment(opened.paymentUrl(), false);
+            case OpenOrderPayment.Result.OnSite onSite -> new OpenedPayment(null, true);
+            case OpenOrderPayment.Result.ProviderUnavailable unavailable -> new OpenedPayment(null, false);
+            case OpenOrderPayment.Result.NotPayable notPayable -> new OpenedPayment(null, false);
         };
     }
+
+    /** How the buyer pays once the order is placed: a checkout to redirect to, or the card form on the page. */
+    private record OpenedPayment(URI url, boolean onSite) {}
 
     private static String fieldName(CheckoutForm.Field field) {
         return switch (field) {
@@ -255,8 +262,13 @@ class CheckoutController {
         }
     }
 
-    /** In the order to show them, MERCADOPAGO first (T-E3b-04). */
-    record PaymentProvidersResponse(List<PaymentProvider> providers) {}
+    /**
+     * In the order to show them, MERCADOPAGO first (T-E3b-04). {@code mercadoPagoPublicKey} (T-E3-29): the key of
+     * MercadoPago's card form in the browser; null when it is not configured.
+     */
+    record PaymentProvidersResponse(List<PaymentProvider> providers,
+                                    @Schema(nullable = true, requiredMode = Schema.RequiredMode.REQUIRED)
+                                    String mercadoPagoPublicKey) {}
 
     /**
      * {@code paymentProvider}: MERCADOPAGO, or MODO while it is switched on (T-E3b-02). {@code saveAddress}: a
@@ -294,10 +306,18 @@ class CheckoutController {
 
     /**
      * {@code trackingToken} is a secret of the buyer: the server keeps only its hash. Amounts in cents.
-     * {@code paymentUrl} is the provider's checkout to redirect to, or null when the provider could not be reached:
-     * then the client opens the tracking page, where the payment is retried.
+     * {@code payOnSite} (T-E3-29): the buyer pays on the store's page with the card form (MercadoPago).
+     * {@code paymentUrl}: the provider's checkout to redirect to (MODO). Neither when the provider could not be
+     * reached: then the client opens the tracking page, where the payment is retried.
      */
     record PlacedResponse(long number, String trackingToken, OrderStatus status, long totalCents,
                           Instant reservationExpiresAt,
-                          @Schema(nullable = true, requiredMode = Schema.RequiredMode.REQUIRED) URI paymentUrl) {}
+                          @Schema(nullable = true, requiredMode = Schema.RequiredMode.REQUIRED) URI paymentUrl,
+                          boolean payOnSite) {
+
+        PlacedResponse(long number, String trackingToken, OrderStatus status, long totalCents,
+                       Instant reservationExpiresAt, OpenedPayment payment) {
+            this(number, trackingToken, status, totalCents, reservationExpiresAt, payment.url(), payment.onSite());
+        }
+    }
 }

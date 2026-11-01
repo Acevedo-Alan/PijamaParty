@@ -17,6 +17,7 @@ store:
       # The MercadoPago stub of e2e/stubs (the real adapters, a fake provider)
       base-url: http://localhost:8091
       access-token: e2e-access-token # gitleaks:allow
+      public-key: TEST-e2e-public-key
       webhook-secret: e2e-webhook-secret # gitleaks:allow
   ordering:
     reservation-expiry:

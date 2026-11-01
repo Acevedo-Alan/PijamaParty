@@ -1,5 +1,6 @@
 package com.pijamaparty.store.payments.api;
 
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -10,4 +11,10 @@ import java.util.Set;
 public interface PaymentProviders {
 
     Set<PaymentProvider> enabled();
+
+    /**
+     * T-E3-29: the public key MercadoPago's card form needs in the browser to turn a card into a token; empty when it
+     * is not configured, and then the card cannot be paid on the store's page.
+     */
+    Optional<String> cardFormPublicKey();
 }

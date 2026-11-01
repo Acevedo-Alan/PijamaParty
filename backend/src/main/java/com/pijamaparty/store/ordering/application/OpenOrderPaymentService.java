@@ -30,8 +30,10 @@ class OpenOrderPaymentService implements OpenOrderPayment {
             || !OrderPayability.isPayable(order.get().status(), order.get().reservationExpiresAt(), clock.instant())) {
             return new Result.NotPayable();
         }
-        return payments.open(order.get())
-            .<Result>map(Result.Opened::new)
-            .orElseGet(Result.ProviderUnavailable::new);
+        return switch (payments.open(order.get())) {
+            case OpenPayments.Opening.Redirect redirect -> new Result.Opened(redirect.paymentUrl());
+            case OpenPayments.Opening.OnSite onSite -> new Result.OnSite();
+            case OpenPayments.Opening.Unavailable unavailable -> new Result.ProviderUnavailable();
+        };
     }
 }

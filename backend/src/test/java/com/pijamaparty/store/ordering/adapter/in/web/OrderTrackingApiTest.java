@@ -2,6 +2,7 @@ package com.pijamaparty.store.ordering.adapter.in.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -22,6 +23,7 @@ import com.pijamaparty.store.payments.adapter.out.mercadopago.MercadoPagoStub;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import jakarta.servlet.http.Cookie;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -181,43 +183,75 @@ class OrderTrackingApiTest {
     }
 
     @Test
-    void givenAnOrderWithItsCheckoutOpen_whenThePaymentIsRetried_thenTheSameCheckoutIsAnswered() throws Exception {
+    void givenAMercadoPagoOrder_whenThePaymentIsRetried_thenTheBuyerPaysOnThePage() throws Exception {
         JsonNode placed = placeOrder();
+        assertThat(placed.get("payOnSite").asBoolean()).isTrue();
 
         retry(placed.get("trackingToken").asText())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.paymentUrl").value(placed.get("paymentUrl").asText()));
+            .andExpect(jsonPath("$.payOnSite").value(true))
+            .andExpect(jsonPath("$.paymentUrl").value(nullValue()));
 
-        assertThat(mercadoPago.requests()).as("only the checkout created the preference").hasSize(1);
+        assertThat(mercadoPago.requests()).isEmpty();
     }
 
     @Test
-    void givenMercadoPagoDownAtTheCheckout_whenThePaymentIsRetriedOnceItIsBack_thenTheBuyerIsSentToANewCheckout()
-        throws Exception {
-        mercadoPago.answer(500, "{\"message\":\"internal_error\"}");
+    void givenAnApprovedCard_whenItIsSent_thenItIsChargedForTheServersTotalAndTheOrderIsPaid() throws Exception {
         JsonNode placed = placeOrder();
-        assertThat(placed.get("paymentUrl").isNull()).isTrue();
-        mercadoPago.reset();
 
-        String body = retry(placed.get("trackingToken").asText())
+        payWithCard(placed.get("trackingToken").asText(), UUID.randomUUID().toString())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.paymentUrl").value(startsWith(MercadoPagoStub.INIT_POINT)))
-            .andReturn().getResponse().getContentAsString();
+            .andExpect(jsonPath("$.status").value("APPROVED"))
+            .andExpect(jsonPath("$.rejection").value(nullValue()));
 
-        assertThat(owner.queryForObject("select p.checkout_url from payment p join orders o on o.id = p.order_id "
-            + "where o.number = ?", String.class, placed.get("number").asLong()))
-            .isEqualTo(json.readTree(body).get("paymentUrl").asText());
-        assertThat(mercadoPago.lastRequest().json().get("external_reference").asText())
-            .isEqualTo(placed.get("number").asText());
+        JsonNode charge = mercadoPago.requests().getFirst().json();
+        assertThat(charge.get("transaction_amount").decimalValue().movePointRight(2).longValueExact())
+            .isEqualTo(placed.get("totalCents").asLong());
+        assertThat(charge.get("payer").get("email").asText()).isEqualTo("ana@example.com");
+        assertThat(charge.get("external_reference").asText()).isEqualTo(placed.get("number").asText());
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(owner.queryForObject(
+            "select status from orders where number = ?", String.class, placed.get("number").asLong()))
+            .isEqualTo("PAID"));
     }
 
     @Test
-    void givenMercadoPagoDown_whenThePaymentIsRetried_thenItAnswers503WithRetryAfterAndTheOrderStillAwaitsPayment()
-        throws Exception {
-        mercadoPago.answer(500, "{\"message\":\"internal_error\"}");
+    void givenACardWithoutFunds_whenItIsSent_thenItIsRejectedAndTheOrderStillAwaitsPayment() throws Exception {
         JsonNode placed = placeOrder();
+        mercadoPago.cardsAnswer("rejected", "cc_rejected_insufficient_amount");
 
-        retry(placed.get("trackingToken").asText())
+        payWithCard(placed.get("trackingToken").asText(), UUID.randomUUID().toString())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("REJECTED"))
+            .andExpect(jsonPath("$.rejection").value("INSUFFICIENT_FUNDS"));
+
+        assertThat(owner.queryForObject("select status from orders where number = ?", String.class,
+            placed.get("number").asLong())).isEqualTo("AWAITING_PAYMENT");
+    }
+
+    @Test
+    void givenTheSameSubmitTwice_whenItIsSent_thenMercadoPagoGetsTheSameIdempotencyKeyAndChargesOnce()
+        throws Exception {
+        JsonNode placed = placeOrder();
+        // In review, the order still awaits payment: a network retry of the submit reaches MercadoPago again
+        mercadoPago.cardsAnswer("in_process", "pending_contingency");
+        String key = UUID.randomUUID().toString();
+
+        payWithCard(placed.get("trackingToken").asText(), key).andExpect(status().isOk());
+        payWithCard(placed.get("trackingToken").asText(), key).andExpect(status().isOk());
+
+        var charges = mercadoPago.requests().stream().filter(request -> request.method().equals("POST")).toList();
+        assertThat(charges).hasSize(2);
+        assertThat(charges.get(1).idempotencyKey()).isEqualTo(charges.get(0).idempotencyKey());
+        assertThat(owner.queryForObject("select count(*) from payment_event", Integer.class)).isOne();
+    }
+
+    @Test
+    void givenMercadoPagoDown_whenACardIsSent_thenItAnswers503WithRetryAfterAndTheOrderStillAwaitsPayment()
+        throws Exception {
+        JsonNode placed = placeOrder();
+        mercadoPago.answer(500, "{\"message\":\"internal_error\"}");
+
+        payWithCard(placed.get("trackingToken").asText(), UUID.randomUUID().toString())
             .andExpect(status().isServiceUnavailable())
             .andExpect(header().string("Retry-After", "30"))
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
@@ -225,6 +259,32 @@ class OrderTrackingApiTest {
 
         assertThat(owner.queryForObject("select status from orders where number = ?", String.class,
             placed.get("number").asLong())).isEqualTo("AWAITING_PAYMENT");
+    }
+
+    @Test
+    void givenACardWithoutOrWithAnInvalidIdempotencyKey_whenItIsSent_thenItIsABadRequestAndNothingIsCharged()
+        throws Exception {
+        JsonNode placed = placeOrder();
+        String token = placed.get("trackingToken").asText();
+
+        mvc.perform(post("/api/orders/{token}/card-payment", token).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(CARD))
+            .andExpect(status().isBadRequest());
+        payWithCard(token, "not-a-uuid").andExpect(status().isBadRequest());
+
+        assertThat(mercadoPago.requests()).isEmpty();
+    }
+
+    @Test
+    void givenAnExpiredOrder_whenACardIsSent_thenItIsNotPayableAndNothingIsCharged() throws Exception {
+        JsonNode placed = placeOrder();
+        owner.update("update orders set status = 'EXPIRED' where number = ?", placed.get("number").asLong());
+
+        payWithCard(placed.get("trackingToken").asText(), UUID.randomUUID().toString())
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.problem").value("NOT_PAYABLE"));
+
+        assertThat(mercadoPago.requests()).isEmpty();
     }
 
     @Test
@@ -279,6 +339,18 @@ class OrderTrackingApiTest {
     /** Without the cart cookie: the link alone opens the order. */
     private ResultActions track(String token) throws Exception {
         return mvc.perform(get("/api/orders/{token}", token));
+    }
+
+    /** What MercadoPago's card form answers for a card: a token, the brand, installments and the holder's ID. */
+    private static final String CARD = """
+        {"cardToken": "card-token-1", "paymentMethodId": "visa", "issuerId": "310", "installments": 3,
+         "identificationType": "DNI", "identificationNumber": "12345678"}
+        """;
+
+    private ResultActions payWithCard(String token, String idempotencyKey) throws Exception {
+        return mvc.perform(post("/api/orders/{token}/card-payment", token).with(csrf())
+            .header("Idempotency-Key", idempotencyKey)
+            .contentType(MediaType.APPLICATION_JSON).content(CARD));
     }
 
     private ResultActions retry(String token) throws Exception {

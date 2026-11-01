@@ -6,8 +6,6 @@ import com.pijamaparty.store.payments.api.CheckoutOpening;
 import com.pijamaparty.store.payments.api.CheckoutRequest;
 import com.pijamaparty.store.payments.api.PaymentCheckouts;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
-import java.net.URI;
-import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,13 +23,14 @@ class PaymentsModuleOpenPayments implements OpenPayments {
     }
 
     @Override
-    public Optional<URI> open(OrderToPay order) {
+    public Opening open(OrderToPay order) {
         var request = new CheckoutRequest(order.id().value(), order.number(), order.total(),
             PaymentProviderMapping.toPayments(order.provider()),
             new CheckoutRequest.Payer(order.buyerName(), order.buyerEmail()), order.reservationExpiresAt());
         return switch (CurrentActor.callAsSystem(() -> checkouts.open(request))) {
-            case CheckoutOpening.Opened opened -> Optional.of(opened.checkoutUrl());
-            case CheckoutOpening.ProviderUnavailable unavailable -> Optional.empty();
+            case CheckoutOpening.Opened opened -> new Opening.Redirect(opened.checkoutUrl());
+            case CheckoutOpening.OnSite onSite -> new Opening.OnSite();
+            case CheckoutOpening.ProviderUnavailable unavailable -> new Opening.Unavailable();
         };
     }
 }

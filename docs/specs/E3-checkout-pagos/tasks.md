@@ -28,6 +28,9 @@
 - [x] **T-E3-26** Backoffice: lista de solicitudes de arrepentimiento, marca de fuera de término y resolución (CU-29).
 - [x] **T-E3-27** Tests de los criterios de aceptación de CU-29, Row Level Security de `solicitud_arrepentimiento` y política de rate limiting (RNF-22, RNF-27).
 - [x] **T-E3-28** Activar la política de rate limiting del backoffice autenticado: 300 solicitudes por minuto por usuario en `/api/admin/**`, para cupones, envíos y lo que se sume (RNF-22).
+- [x] **T-E3-29** Pago con tarjeta en la tienda, backend (CU-14): MercadoPago deja de crear la redirección (Checkout Pro); `POST /api/orders/{token}/card-payment` cobra el código de la tarjeta con `POST /v1/payments` por el total del pedido, con clave de idempotencia, y registra el resultado preguntándolo a MercadoPago como el webhook; la clave pública en `GET /api/checkout/payment-providers`.
+- [x] **T-E3-30** Pago con tarjeta en la tienda, storefront (CU-14): Card Payment Brick en el paso de pago del checkout y en la página del pedido, con cuotas, mensajes de rechazo y de pago en revisión.
+- [ ] **T-E3-31** Pago con tarjeta en la tienda, cierre: CSP para el script, los iframes y la API de MercadoPago; stub de `/v1/payments` y del SDK en e2e; compra de prueba en el sandbox.
 - [x] **T-E3b-01** Averiguar la integración de MODO y escribir su plan antes de implementarla (plan, sección "MODO (E3b)").
 - [x] **T-E3b-02** MODO en el backend: tabla `pago_checkout` con los intentos (también los de MercadoPago), `MODO` como proveedor del checkout, `ModoGateway` con token en memoria y vencimiento de 5 a 10 minutos, y "Pagar" que crea una payment request nueva cuando la anterior venció (CU-14, RNF-20.8).
 - [x] **T-E3b-03** Webhook de MODO con verificación de la firma JWS, consulta del pago a MODO y conciliación cada minuto de los intentos sin resultado (CU-15, RNF-20.3, RNF-29.3).

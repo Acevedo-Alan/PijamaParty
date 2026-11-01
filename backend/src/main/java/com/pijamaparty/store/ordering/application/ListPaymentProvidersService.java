@@ -16,6 +16,7 @@ class ListPaymentProvidersService implements ListPaymentProviders {
     @Override
     public Result execute() {
         var enabled = providers.enabled();
-        return new Result(Arrays.stream(PaymentProvider.values()).filter(enabled::contains).toList());
+        return new Result(Arrays.stream(PaymentProvider.values()).filter(enabled::contains).toList(),
+            providers.cardFormPublicKey());
     }
 }

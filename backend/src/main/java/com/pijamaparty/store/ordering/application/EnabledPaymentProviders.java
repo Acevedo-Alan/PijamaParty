@@ -1,6 +1,7 @@
 package com.pijamaparty.store.ordering.application;
 
 import com.pijamaparty.store.ordering.domain.PaymentProvider;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -10,6 +11,11 @@ import java.util.Set;
 public interface EnabledPaymentProviders {
 
     Set<PaymentProvider> enabled();
+
+    /** T-E3-29: the key of MercadoPago's card form in the browser; empty when it is not configured. */
+    default Optional<String> cardFormPublicKey() {
+        return Optional.empty();
+    }
 
     default boolean isEnabled(PaymentProvider provider) {
         return enabled().contains(provider);

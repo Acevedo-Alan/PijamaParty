@@ -3,6 +3,7 @@ package com.pijamaparty.store.ordering.adapter.in.web;
 import com.pijamaparty.store.ordering.application.CorrectOrderEmail;
 import com.pijamaparty.store.ordering.application.GetTrackedOrder;
 import com.pijamaparty.store.ordering.application.LinePhotos;
+import com.pijamaparty.store.ordering.application.PayOrderWithCard;
 import com.pijamaparty.store.ordering.application.RetryOrderPayment;
 import com.pijamaparty.store.ordering.application.TrackedOrders.TrackedOrder;
 import com.pijamaparty.store.ordering.domain.OrderLine;
@@ -18,6 +19,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.net.URI;
@@ -37,12 +41,14 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * UC-14 (T-E3-08): the tracking link of an order, opened with its token by a guest or a customer; UC-17 (T-E3-23): the
- * buyer corrects its email there. Only translates between HTTP and the use cases.
+ * UC-14 (T-E3-08): the tracking link of an order, opened with its token by a guest or a customer, where it is paid
+ * (by card on the page since T-E3-29); UC-17 (T-E3-23): the buyer corrects its email there. Only translates between
+ * HTTP and the use cases.
  */
 @RestController
 @RequestMapping("/api/orders/{token}")
@@ -58,14 +64,20 @@ class OrderTrackingController {
     /** Bounds the body; the domain applies the rule of UC-13 and answers 422 (RNF-28). */
     private static final int MAX_TEXT = 300;
 
+    /** The canonical text of a UUID, as the frontend's crypto.randomUUID() writes it. */
+    private static final Pattern UUID_TEXT =
+        Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+
     private final GetTrackedOrder getTrackedOrder;
     private final RetryOrderPayment retryOrderPayment;
+    private final PayOrderWithCard payOrderWithCard;
     private final CorrectOrderEmail correctOrderEmail;
 
     OrderTrackingController(GetTrackedOrder getTrackedOrder, RetryOrderPayment retryOrderPayment,
-                            CorrectOrderEmail correctOrderEmail) {
+                            PayOrderWithCard payOrderWithCard, CorrectOrderEmail correctOrderEmail) {
         this.getTrackedOrder = getTrackedOrder;
         this.retryOrderPayment = retryOrderPayment;
+        this.payOrderWithCard = payOrderWithCard;
         this.correctOrderEmail = correctOrderEmail;
     }
 
@@ -95,9 +107,10 @@ class OrderTrackingController {
 
     @PostMapping("/retry-payment")
     @Operation(summary = "Pay again an order awaiting payment",
-        description = "Answers the payment provider's checkout to redirect the buyer to: the same one while it "
-            + "lasts, where another card can be tried. Requires the CSRF token.")
-    @ApiResponse(responseCode = "200", description = "The checkout to redirect to",
+        description = "With MercadoPago, payOnSite is true: the buyer pays on the page with the card form "
+            + "(T-E3-29). With MODO, paymentUrl is the checkout to redirect the buyer to: the same one while it "
+            + "lasts. Requires the CSRF token.")
+    @ApiResponse(responseCode = "200", description = "How to pay: the card form, or the checkout to redirect to",
         content = @Content(mediaType = "application/json", schema = @Schema(implementation = RetryResponse.class)))
     @ApiResponse(responseCode = "404", description = "No order has this token (problem ORDER_NOT_FOUND)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
@@ -114,17 +127,74 @@ class OrderTrackingController {
         }
         var command = new RetryOrderPayment.Command(trackingToken.get());
         return switch (CurrentActor.callAs(buyerOf(trackingToken.get()), () -> retryOrderPayment.execute(command))) {
-            case RetryOrderPayment.Result.Opened opened -> ResponseEntity.ok(new RetryResponse(opened.paymentUrl()));
+            case RetryOrderPayment.Result.Opened opened ->
+                ResponseEntity.ok(new RetryResponse(opened.paymentUrl(), false));
+            case RetryOrderPayment.Result.OnSite onSite -> ResponseEntity.ok(new RetryResponse(null, true));
             case RetryOrderPayment.Result.NotFound notFound -> orderNotFound();
             case RetryOrderPayment.Result.NotPayable notPayable -> problem(HttpStatus.CONFLICT, "Not payable",
                 "The order no longer awaits payment, or its reservation is over.", "NOT_PAYABLE");
-            case RetryOrderPayment.Result.ProviderUnavailable unavailable -> ResponseEntity
-                .status(HttpStatus.SERVICE_UNAVAILABLE)
-                .header(HttpHeaders.RETRY_AFTER, RETRY_AFTER_SECONDS)
-                .body(problemDetail(HttpStatus.SERVICE_UNAVAILABLE, "Payment provider unavailable",
-                    "The payment provider could not be reached. Try again in a moment.",
-                    "PAYMENT_PROVIDER_UNAVAILABLE"));
+            case RetryOrderPayment.Result.ProviderUnavailable unavailable -> providerUnavailable();
         };
+    }
+
+    @PostMapping("/card-payment")
+    @Operation(summary = "Pay an order with the card typed on the store's page",
+        description = "T-E3-29: MercadoPago's card form turned the card into a single-use token in the browser; this "
+            + "charges it for the order total (never an amount from the browser), with the order's email. The "
+            + "card data never reaches the store, and the cardholder's ID is neither stored nor logged. The result "
+            + "is APPROVED (the order is paid), IN_PROCESS (in review: the webhook brings the result) or REJECTED "
+            + "with a rejection code, when another card can be tried. A new Idempotency-Key per submit, repeated on "
+            + "a network retry: the same key never charges twice. Requires the CSRF token.")
+    @ApiResponse(responseCode = "200", description = "The charge's result",
+        content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardPaymentResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Missing or invalid Idempotency-Key, or a body that is not of "
+        + "this shape",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "No order has this token (problem ORDER_NOT_FOUND)",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "409", description = "No longer awaiting payment, its reservation is over, or not "
+        + "paid by card on the page (problem NOT_PAYABLE): read the order again; nothing was charged",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "503", description = "The payment provider could not be reached (problem "
+        + "PAYMENT_PROVIDER_UNAVAILABLE): nothing was charged; try again after Retry-After",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<?> payWithCard(
+        @PathVariable String token,
+        @io.swagger.v3.oas.annotations.Parameter(description = "A UUID per submit of the card form, repeated on "
+            + "retries") @RequestHeader("Idempotency-Key") String idempotencyKey,
+        @Valid @RequestBody CardPaymentRequest body) {
+        Optional<TrackingToken> trackingToken = parse(token);
+        if (trackingToken.isEmpty()) {
+            return orderNotFound();
+        }
+        if (!UUID_TEXT.matcher(idempotencyKey).matches()) {
+            return problem(HttpStatus.BAD_REQUEST, "Invalid Idempotency-Key", "The Idempotency-Key must be a UUID.",
+                "INVALID_IDEMPOTENCY_KEY");
+        }
+        var command = new PayOrderWithCard.Command(trackingToken.get(), UUID.fromString(idempotencyKey),
+            body.toCard());
+        return switch (CurrentActor.callAs(buyerOf(trackingToken.get()), () -> payOrderWithCard.execute(command))) {
+            case PayOrderWithCard.Result.Approved approved ->
+                ResponseEntity.ok(new CardPaymentResponse(CardPaymentStatus.APPROVED, null));
+            case PayOrderWithCard.Result.InProcess inProcess ->
+                ResponseEntity.ok(new CardPaymentResponse(CardPaymentStatus.IN_PROCESS, null));
+            case PayOrderWithCard.Result.Rejected rejected ->
+                ResponseEntity.ok(new CardPaymentResponse(CardPaymentStatus.REJECTED, rejected.reason()));
+            case PayOrderWithCard.Result.NotFound notFound -> orderNotFound();
+            case PayOrderWithCard.Result.NotPayable notPayable -> problem(HttpStatus.CONFLICT, "Not payable",
+                "The order no longer awaits payment, its reservation is over, or it is not paid by card here.",
+                "NOT_PAYABLE");
+            case PayOrderWithCard.Result.ProviderUnavailable unavailable -> providerUnavailable();
+        };
+    }
+
+    private static ResponseEntity<ProblemDetail> providerUnavailable() {
+        return ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .header(HttpHeaders.RETRY_AFTER, RETRY_AFTER_SECONDS)
+            .body(problemDetail(HttpStatus.SERVICE_UNAVAILABLE, "Payment provider unavailable",
+                "The payment provider could not be reached. Try again in a moment.",
+                "PAYMENT_PROVIDER_UNAVAILABLE"));
     }
 
     @PatchMapping("/email")
@@ -233,8 +303,46 @@ class OrderTrackingController {
         }
     }
 
-    /** The payment provider's checkout to redirect the buyer to. */
-    record RetryResponse(URI paymentUrl) {}
+    /**
+     * {@code payOnSite} (T-E3-29): the buyer pays on the page with the card form (MercadoPago). {@code paymentUrl}: the
+     * checkout to redirect the buyer to (MODO).
+     */
+    record RetryResponse(@Schema(nullable = true, requiredMode = Schema.RequiredMode.REQUIRED) URI paymentUrl,
+                         boolean payOnSite) {}
+
+    /**
+     * What MercadoPago's card form answered (T-E3-29): {@code cardToken} is single use; the amount is never sent, the
+     * server charges the order total. Personal data (the cardholder's ID, R-05): {@link #toString()} hides it.
+     */
+    record CardPaymentRequest(@NotBlank @Size(max = MAX_TEXT) String cardToken,
+                              @NotBlank @Size(max = 50) String paymentMethodId,
+                              @Size(max = 50) String issuerId,
+                              @Min(1) @Max(48) int installments,
+                              @NotBlank @Size(max = 20) String identificationType,
+                              @NotBlank @Size(max = 30) String identificationNumber) {
+
+        PayOrderWithCard.Card toCard() {
+            return new PayOrderWithCard.Card(cardToken, paymentMethodId,
+                issuerId == null || issuerId.isBlank() ? Optional.empty() : Optional.of(issuerId), installments,
+                identificationType, identificationNumber);
+        }
+
+        @Override
+        public String toString() {
+            return "CardPaymentRequest[***]";
+        }
+    }
+
+    enum CardPaymentStatus {
+        APPROVED,
+        IN_PROCESS,
+        REJECTED
+    }
+
+    /** {@code rejection}: why, when {@code status} is REJECTED. */
+    record CardPaymentResponse(CardPaymentStatus status,
+                               @Schema(nullable = true, requiredMode = Schema.RequiredMode.REQUIRED)
+                               PayOrderWithCard.Rejection rejection) {}
 
     /** The email as typed: personal data (R-05), so {@link #toString()} hides it. */
     record EmailCorrectionRequest(@NotNull @Size(max = MAX_TEXT) String email) {

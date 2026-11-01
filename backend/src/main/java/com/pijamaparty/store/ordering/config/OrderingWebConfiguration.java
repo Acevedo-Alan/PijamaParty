@@ -29,6 +29,7 @@ class OrderingWebConfiguration {
         return registry -> registry
             .requestMatchers(HttpMethod.GET, "/api/orders/*").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/orders/*/retry-payment").permitAll()
+            .requestMatchers(HttpMethod.POST, "/api/orders/*/card-payment").permitAll()
             .requestMatchers(HttpMethod.PATCH, "/api/orders/*/email").permitAll();
     }
 

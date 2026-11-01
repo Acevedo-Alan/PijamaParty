@@ -5,6 +5,7 @@ import com.pijamaparty.store.ordering.domain.PaymentProvider;
 import com.pijamaparty.store.payments.api.PaymentProviders;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
@@ -25,5 +26,10 @@ class PaymentsModuleEnabledProviders implements EnabledPaymentProviders {
             enabled.add(PaymentProviderMapping.fromPayments(provider));
         }
         return Collections.unmodifiableSet(enabled);
+    }
+
+    @Override
+    public Optional<String> cardFormPublicKey() {
+        return providers.cardFormPublicKey();
     }
 }

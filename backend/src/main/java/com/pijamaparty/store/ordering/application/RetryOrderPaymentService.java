@@ -27,6 +27,7 @@ class RetryOrderPaymentService implements RetryOrderPayment {
         }
         return switch (openOrderPayment.execute(new OpenOrderPayment.Command(order.get().id()))) {
             case OpenOrderPayment.Result.Opened opened -> new Result.Opened(opened.paymentUrl());
+            case OpenOrderPayment.Result.OnSite onSite -> new Result.OnSite();
             case OpenOrderPayment.Result.ProviderUnavailable unavailable -> new Result.ProviderUnavailable();
             case OpenOrderPayment.Result.NotPayable notPayable -> new Result.NotPayable();
         };

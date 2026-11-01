@@ -14,6 +14,12 @@ public sealed interface CheckoutOpening {
         }
     }
 
+    /**
+     * T-E3-29: the buyer pays on the store's page (MercadoPago's card form, {@link CardPayments}): the order's payment
+     * is created and there is no checkout to redirect to.
+     */
+    record OnSite() implements CheckoutOpening {}
+
     /** The provider could not be reached or refused the checkout; opening it again later may succeed. */
     record ProviderUnavailable() implements CheckoutOpening {}
 }
