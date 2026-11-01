@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { AdminApi, adminContext, type ProductForSale } from '../support/admin.ts';
 import { emailsTo } from '../support/backdoors.ts';
-import { MERCADOPAGO_STUB_PORT } from '../stubs/settings.ts';
+import { BACKEND_URL, MERCADOPAGO_STUB_PORT } from '../stubs/settings.ts';
 import { runK6 } from './k6.ts';
 
 /**
@@ -22,6 +22,7 @@ interface OrderSummary {
   number: number;
   status: string;
   buyerName: string;
+  totalCents: number;
 }
 
 let admin: AdminApi;
@@ -101,7 +102,12 @@ test('the same webhook delivered 5 times at once pays each order once, deducts o
     const answer = await fetch(`http://127.0.0.1:${String(MERCADOPAGO_STUB_PORT)}/__e2e/payments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ externalReference: String(order.number) }),
+      body: JSON.stringify({
+        externalReference: String(order.number),
+        amount: order.totalCents / 100,
+        // k6 delivers the notification's path and query to the store; the host is not used
+        notificationUrl: `${BACKEND_URL}/api/payments/mercadopago/webhook?source_news=webhooks`,
+      }),
     });
     expect(answer.status).toBe(201);
     notifications.push(await answer.json());

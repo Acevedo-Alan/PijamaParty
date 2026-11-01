@@ -32,6 +32,10 @@ function expectSecurityHeaders(response: APIResponse): void {
   expect(headers['content-security-policy']).toContain("default-src 'self'");
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
   expect(headers['content-security-policy']).toContain("object-src 'none'");
+  // T-E3-31: MercadoPago's card form runs inside the order's page; scripts stay without 'unsafe-inline'
+  expect(headers['content-security-policy']).toContain('https://sdk.mercadopago.com');
+  expect(headers['content-security-policy']).toContain('frame-src https://*.mercadopago.com');
+  expect(headers['content-security-policy']).not.toMatch(/script-src[^;]*'unsafe-inline'/);
   expect(headers['x-content-type-options']).toBe('nosniff');
   expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
   expect(headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()');

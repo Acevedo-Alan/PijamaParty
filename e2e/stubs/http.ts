@@ -15,20 +15,6 @@ export function sendJson(response: ServerResponse, status: number, body: unknown
   response.end(JSON.stringify(body));
 }
 
-export function sendHtml(response: ServerResponse, status: number, html: string): void {
-  response.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8' });
-  response.end(html);
-}
-
-export function escapeHtml(text: string): string {
-  return text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
 export function hasBearer(request: IncomingMessage, token: string): boolean {
   return request.headers.authorization === `Bearer ${token}`;
 }

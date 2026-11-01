@@ -30,7 +30,7 @@ test('only one of two buyers gets the last unit', async ({ browser }) => {
 
   await Promise.all(pages.map((page) => page.getByRole('button', { name: 'Confirmar y pagar' }).click()));
 
-  const atPayment = (index: number) => pages[index]!.getByRole('heading', { name: 'MercadoPago (stub)' });
+  const atPayment = (index: number) => pages[index]!.getByRole('heading', { name: 'Pagá con tarjeta de crédito o débito' });
   const refused = (index: number) =>
     pages[index]!.getByText('Algunos productos cambiaron. Revisá tu carrito antes de confirmar.');
   await expect(atPayment(0).or(refused(0))).toBeVisible();

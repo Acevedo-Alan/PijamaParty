@@ -1,47 +1,39 @@
 import { createHmac, randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { escapeHtml, hasBearer, readBody, sendHtml, sendJson } from './http.ts';
-import { MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_CHECKOUT_ORIGIN, MERCADOPAGO_WEBHOOK_SECRET } from './settings.ts';
+import { hasBearer, readBody, sendJson } from './http.ts';
+import { E2E_CARD_TOKENS, MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_WEBHOOK_SECRET } from './settings.ts';
 
 /**
- * T-E6-01: a stub of the part of MercadoPago the store uses, so the real adapters run unchanged
- * (MercadoPagoGateway, MercadoPagoPaymentVerifier, MercadoPagoSignature):
- * - POST /checkout/preferences creates the Checkout Pro preference (UC-14);
- * - GET /v1/payments/{id} shows a payment (UC-15);
- * - GET /checkout is the page where the buyer pays: approve or reject. Either sends the signed Webhooks notification
- *   to the preference's notification_url, as MercadoPago does; an approved payment then sends the buyer back to the
- *   store, and a rejected one stays on the page so the buyer can try again (T-E3-07).
+ * T-E6-01, T-E3-31: a stub of the part of MercadoPago the store uses, so the real adapters run unchanged
+ * (MercadoPagoCardCharges, MercadoPagoPaymentVerifier, MercadoPagoSignature):
+ * - POST /v1/payments charges the token of a card typed in the card form (UC-14, T-E3-29). The fake card form of the
+ *   tests (support/mercadoPagoSdk.ts) hands out a token per outcome: approved, or rejected for insufficient funds. Then,
+ *   as MercadoPago does, the signed Webhooks notification goes to the payment's notification_url (UC-15). A repeated
+ *   X-Idempotency-Key gets the payment its first request created, without charging again;
+ * - GET /v1/payments/{id} shows a payment (UC-15).
  * The tests drive it through /__e2e: repeat a notification, list the payments of an order, and (for the load test,
  * T-E6-14) pay an order without notifying, getting back the signed notification for k6 to deliver.
  */
 
-interface Preference {
-  id: string;
-  title: string;
-  amount: number;
-  externalReference: string;
-  successUrl: string;
-  notificationUrl: string;
-}
-
 interface Payment {
   id: number;
   status: 'approved' | 'rejected';
+  statusDetail: string;
   externalReference: string;
   amount: number;
-  preferenceId: string;
+  notificationUrl: string;
 }
 
-interface PreferenceBody {
-  items?: { title?: string; unit_price?: number }[];
+interface PaymentBody {
+  transaction_amount?: number;
+  token?: string;
   external_reference?: string;
-  back_urls?: { success?: string };
   notification_url?: string;
+  payer?: { email?: string; identification?: { number?: string } };
 }
 
-const preferences = new Map<string, Preference>();
-const preferencesByIdempotencyKey = new Map<string, string>();
 const payments = new Map<number, Payment>();
+const paymentsByIdempotencyKey = new Map<string, number>();
 // From the current time, so ids never repeat across restarts of the stub: a reused backend (reuseExistingServer)
 // already processed the previous run's ids and would rightly ignore their notifications (T-E3-15).
 let nextPaymentId = Date.now();
@@ -65,19 +57,10 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
 
   if (method === 'GET' && url.pathname === '/__e2e/health') {
     sendJson(response, 200, { status: 'UP' });
-  } else if (method === 'POST' && url.pathname === '/checkout/preferences') {
-    await createPreference(request, response);
+  } else if (method === 'POST' && url.pathname === '/v1/payments') {
+    await charge(request, response);
   } else if (method === 'GET' && url.pathname.startsWith('/v1/payments/')) {
     showPayment(request, response, url.pathname.slice('/v1/payments/'.length));
-  } else if (method === 'GET' && url.pathname === '/checkout') {
-    const preference = preferences.get(url.searchParams.get('pref_id') ?? '');
-    if (preference === undefined) {
-      sendHtml(response, 404, '<h1>Unknown preference</h1>');
-    } else {
-      sendHtml(response, 200, checkoutPage(preference, null));
-    }
-  } else if (method === 'POST' && url.pathname === '/checkout/pay') {
-    await pay(request, response);
   } else if (method === 'GET' && url.pathname === '/__e2e/payments') {
     const order = url.searchParams.get('externalReference');
     sendJson(response, 200, [...payments.values()].filter((payment) => payment.externalReference === order));
@@ -95,42 +78,56 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
   }
 }
 
-async function createPreference(request: IncomingMessage, response: ServerResponse): Promise<void> {
+/** The answer MercadoPago gives to a created payment: its id, status and why. */
+function chargeAnswer(payment: Payment): unknown {
+  return { id: payment.id, status: payment.status, status_detail: payment.statusDetail };
+}
+
+async function charge(request: IncomingMessage, response: ServerResponse): Promise<void> {
   if (!hasBearer(request, MERCADOPAGO_ACCESS_TOKEN)) {
     sendJson(response, 401, { message: 'invalid access token' });
     return;
   }
   const idempotencyKey = request.headers['x-idempotency-key'];
-  const body = JSON.parse(await readBody(request)) as PreferenceBody;
-  const item = body.items?.[0];
+  const body = JSON.parse(await readBody(request)) as PaymentBody;
   if (
     typeof idempotencyKey !== 'string' ||
-    item?.unit_price === undefined ||
+    body.transaction_amount === undefined ||
     body.external_reference === undefined ||
-    body.back_urls?.success === undefined ||
-    body.notification_url === undefined
+    body.notification_url === undefined ||
+    body.payer?.identification?.number === undefined
   ) {
-    sendJson(response, 400, { message: 'incomplete preference' });
+    sendJson(response, 400, { message: 'incomplete payment' });
     return;
   }
-  // RNF-20.8: the same key gets the same preference, as MercadoPago does.
-  const existing = preferencesByIdempotencyKey.get(idempotencyKey);
-  const preference: Preference = existing === undefined
-    ? {
-        id: `e2e-${randomUUID()}`,
-        title: item.title ?? '',
-        amount: item.unit_price,
-        externalReference: body.external_reference,
-        successUrl: body.back_urls.success,
-        notificationUrl: body.notification_url,
-      }
-    : (preferences.get(existing) as Preference);
-  preferences.set(preference.id, preference);
-  preferencesByIdempotencyKey.set(idempotencyKey, preference.id);
-  sendJson(response, 201, {
-    id: preference.id,
-    init_point: `${MERCADOPAGO_CHECKOUT_ORIGIN}/checkout?pref_id=${encodeURIComponent(preference.id)}`,
-  });
+  // RNF-20: the same key gets the same payment, charged once, as MercadoPago does.
+  const existing = paymentsByIdempotencyKey.get(idempotencyKey);
+  if (existing !== undefined) {
+    sendJson(response, 201, chargeAnswer(payments.get(existing) as Payment));
+    return;
+  }
+  const approved = body.token === E2E_CARD_TOKENS.approved;
+  if (!approved && body.token !== E2E_CARD_TOKENS.withoutFunds) {
+    sendJson(response, 400, { message: 'Card token not found', status: 400 });
+    return;
+  }
+  const payment: Payment = {
+    id: nextPaymentId++,
+    status: approved ? 'approved' : 'rejected',
+    statusDetail: approved ? 'accredited' : 'cc_rejected_insufficient_amount',
+    externalReference: body.external_reference,
+    amount: body.transaction_amount,
+    notificationUrl: body.notification_url,
+  };
+  payments.set(payment.id, payment);
+  paymentsByIdempotencyKey.set(idempotencyKey, payment.id);
+  sendJson(response, 201, chargeAnswer(payment));
+  // MercadoPago notifies on its own, a moment after answering.
+  setTimeout(() => {
+    notify(payment).catch((error: unknown) => {
+      console.error('MercadoPago stub could not notify:', error);
+    });
+  }, 100);
 }
 
 function showPayment(request: IncomingMessage, response: ServerResponse, id: string): void {
@@ -146,50 +143,11 @@ function showPayment(request: IncomingMessage, response: ServerResponse, id: str
   sendJson(response, 200, {
     id: payment.id,
     status: payment.status,
+    status_detail: payment.statusDetail,
     external_reference: payment.externalReference,
     transaction_amount: payment.amount,
     currency_id: 'ARS',
   });
-}
-
-async function pay(request: IncomingMessage, response: ServerResponse): Promise<void> {
-  const form = new URLSearchParams(await readBody(request));
-  const preference = preferences.get(form.get('pref_id') ?? '');
-  const outcome = form.get('outcome');
-  if (preference === undefined || (outcome !== 'approved' && outcome !== 'rejected')) {
-    sendHtml(response, 400, '<h1>Invalid payment</h1>');
-    return;
-  }
-  const payment: Payment = {
-    id: nextPaymentId++,
-    status: outcome,
-    externalReference: preference.externalReference,
-    amount: preference.amount,
-    preferenceId: preference.id,
-  };
-  payments.set(payment.id, payment);
-  await notify(payment);
-  if (outcome === 'rejected') {
-    sendHtml(response, 200, checkoutPage(preference, 'Payment rejected. Try another card.'));
-    return;
-  }
-  // MercadoPago's auto_return: back to the store with the payment's result in the query string.
-  const back = new URL(preference.successUrl);
-  back.search = new URLSearchParams({
-    collection_id: String(payment.id),
-    collection_status: 'approved',
-    payment_id: String(payment.id),
-    status: 'approved',
-    external_reference: payment.externalReference,
-    preference_id: preference.id,
-  }).toString();
-  const target = escapeHtml(back.toString());
-  sendHtml(
-    response,
-    200,
-    `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${target}">` +
-      `<title>Redirecting</title><a href="${target}">Back to the store</a>`,
-  );
 }
 
 /** A payment's Webhooks notification, signed as MercadoPago signs it. */
@@ -200,13 +158,12 @@ interface Notification {
 }
 
 function notificationOf(payment: Payment): Notification {
-  const preference = preferences.get(payment.preferenceId) as Preference;
   const dataId = String(payment.id);
   const requestId = randomUUID();
   const ts = String(Date.now());
   const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
   const v1 = createHmac('sha256', MERCADOPAGO_WEBHOOK_SECRET).update(manifest).digest('hex');
-  const url = new URL(preference.notificationUrl);
+  const url = new URL(payment.notificationUrl);
   url.searchParams.set('type', 'payment');
   url.searchParams.set('data.id', dataId);
   return {
@@ -228,24 +185,26 @@ async function notify(payment: Payment): Promise<number> {
 }
 
 /**
- * T-E6-14: approves a payment of the order's latest preference without notifying the store, and answers the signed
+ * T-E6-14: approves a payment of the order for its amount without notifying the store, and answers the signed
  * notification (path and query, headers and body), which the load test delivers several times at once.
  */
 async function payQuietly(request: IncomingMessage, response: ServerResponse): Promise<void> {
-  const { externalReference } = JSON.parse(await readBody(request)) as { externalReference?: string };
-  const preference = [...preferences.values()].findLast(
-    (candidate) => candidate.externalReference === externalReference,
-  );
-  if (preference === undefined) {
-    sendJson(response, 404, { message: 'unknown order' });
+  const { externalReference, amount, notificationUrl } = JSON.parse(await readBody(request)) as {
+    externalReference?: string;
+    amount?: number;
+    notificationUrl?: string;
+  };
+  if (externalReference === undefined || amount === undefined || notificationUrl === undefined) {
+    sendJson(response, 400, { message: 'externalReference, amount and notificationUrl are required' });
     return;
   }
   const payment: Payment = {
     id: nextPaymentId++,
     status: 'approved',
-    externalReference: preference.externalReference,
-    amount: preference.amount,
-    preferenceId: preference.id,
+    statusDetail: 'accredited',
+    externalReference,
+    amount,
+    notificationUrl,
   };
   payments.set(payment.id, payment);
   const notification = notificationOf(payment);
@@ -255,21 +214,4 @@ async function payQuietly(request: IncomingMessage, response: ServerResponse): P
     headers: notification.headers,
     body: notification.body,
   });
-}
-
-function checkoutPage(preference: Preference, message: string | null): string {
-  const amount = escapeHtml(preference.amount.toFixed(2));
-  const id = escapeHtml(preference.id);
-  const button = (outcome: string, label: string) =>
-    `<form method="post" action="/checkout/pay"><input type="hidden" name="pref_id" value="${id}">` +
-    `<input type="hidden" name="outcome" value="${outcome}"><button type="submit">${label}</button></form>`;
-  return (
-    `<!doctype html><html lang="en"><meta charset="utf-8"><title>MercadoPago (stub)</title>` +
-    `<h1>MercadoPago (stub)</h1><p>${escapeHtml(preference.title)}</p>` +
-    `<p>Amount: <output aria-label="Amount">${amount}</output></p>` +
-    (message === null ? '' : `<p role="alert">${escapeHtml(message)}</p>`) +
-    button('approved', 'Approve payment') +
-    button('rejected', 'Reject payment') +
-    `</html>`
-  );
 }

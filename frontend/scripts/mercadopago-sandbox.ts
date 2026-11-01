@@ -1,10 +1,11 @@
 /**
  * Dev only: the store with real MercadoPago sandbox payments (`npm run sandbox`). Opens a Cloudflare quick tunnel to
- * Vite, so MercadoPago can send the buyer back and deliver signed webhooks, then starts Vite (allowing the tunnel's
+ * Vite, so MercadoPago can deliver signed webhooks, then starts Vite (allowing the tunnel's
  * host) and the dev backend (throwaway PostgreSQL, demo catalog) with PUBLIC_URL set to the tunnel. Ctrl+C stops all.
  *
  * Reads the repository root's `.env.sandbox` (git-ignored):
  *   MERCADOPAGO_ACCESS_TOKEN    the test seller's production access token (APP_USR-...)
+ *   MERCADOPAGO_PUBLIC_KEY      the public key of the same credentials (APP_USR-...), for the card form (T-E3-29)
  *   MERCADOPAGO_WEBHOOK_SECRET  the secret key of the application's Webhooks ("Modo productivo", event Pagos)
  *   VIPS_BIN_DIR                optional, libvips' bin folder for the photos
  *   CLOUDFLARED                 optional, the cloudflared executable
@@ -119,10 +120,11 @@ async function waitForHealth(url: string): Promise<void> {
 
 const envFile = join(ROOT, '.env.sandbox');
 if (!existsSync(envFile)) {
-  fail(`Create ${envFile} with MERCADOPAGO_ACCESS_TOKEN and MERCADOPAGO_WEBHOOK_SECRET (see this script's header)`);
+  fail(`Create ${envFile} with MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_PUBLIC_KEY and MERCADOPAGO_WEBHOOK_SECRET (see this script's header)`);
 }
 process.loadEnvFile(envFile);
 const accessToken = required('MERCADOPAGO_ACCESS_TOKEN');
+const publicKey = required('MERCADOPAGO_PUBLIC_KEY');
 const webhookSecret = required('MERCADOPAGO_WEBHOOK_SECRET');
 const vipsBinDir = process.env.VIPS_BIN_DIR ?? '';
 const cloudflared = process.env.CLOUDFLARED ?? (existsSync(DEFAULT_CLOUDFLARED) ? DEFAULT_CLOUDFLARED : 'cloudflared');
@@ -158,6 +160,7 @@ start(
   {
     ...process.env,
     MERCADOPAGO_ACCESS_TOKEN: accessToken,
+    MERCADOPAGO_PUBLIC_KEY: publicKey,
     MERCADOPAGO_WEBHOOK_SECRET: webhookSecret,
     PUBLIC_URL: publicUrl,
     ...(vipsBinDir === '' ? {} : { VIPS_BIN_DIR: vipsBinDir, PATH: `${vipsBinDir}${delimiter}${process.env.PATH ?? ''}` }),

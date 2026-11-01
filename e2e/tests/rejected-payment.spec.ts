@@ -36,13 +36,13 @@ test('a rejected payment keeps the stock reserved until the reservation expires'
 
   await payAtMercadoPago(page, 'rejected');
 
-  // The buyer can try another card on the same checkout.
-  await expect(page.getByRole('button', { name: 'Approve payment' })).toBeVisible();
-  // Back in the store, the order awaits payment and still holds the only unit.
-  await page.goto('/checkout/result');
-  await expect(page).toHaveURL(/\/pedido\//);
+  // The card form stays for another card, on the order's page in the store.
+  await expect(page.getByRole('button', { name: 'Pay with an approved card' })).toBeVisible();
+  // Read again, the order awaits payment and still holds the only unit.
+  await page.reload();
   await expect(page.getByText('Pago pendiente', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pagar' })).toBeVisible();
+  // A reload keeps the card form open (the router state lives in the page's history entry).
+  await expect(page.getByRole('button', { name: 'Pay with an approved card' })).toBeVisible();
   const orderNumber = await trackedOrderNumber(page);
   expect((await paymentsOf(orderNumber)).map((payment) => payment.status)).toEqual(['rejected']);
   expect(await admin.availableUnits(product.slug, variant.id)).toBe(0);

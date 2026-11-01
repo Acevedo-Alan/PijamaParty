@@ -84,17 +84,21 @@ export async function fillCheckout(page: Page, buyer: Buyer): Promise<void> {
   await page.getByRole('checkbox', { name: /Acepto los términos/ }).check();
 }
 
-/** Confirms the order and waits for the MercadoPago checkout (the stub's page). */
+/** Confirms the order and waits for the card form on the order's page, without leaving the store (T-E3-29). */
 export async function confirmAndGoToPayment(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Confirmar y pagar' }).click();
-  await expect(page.getByRole('heading', { name: 'MercadoPago (stub)' })).toBeVisible();
+  await expect(page).toHaveURL(/\/pedido\//);
+  await expect(page.getByRole('heading', { name: 'Pagá con tarjeta de crédito o débito' })).toBeVisible();
 }
 
-/** Pays at the MercadoPago stub. Approved, it sends the buyer back to the order's tracking page. */
+/**
+ * Pays with the card form (the fake of support/mercadoPagoSdk.ts): a card approved, or one without funds, whose
+ * rejection the page explains while the form stays for another card.
+ */
 export async function payAtMercadoPago(page: Page, outcome: 'approved' | 'rejected'): Promise<void> {
-  await page.getByRole('button', { name: outcome === 'approved' ? 'Approve payment' : 'Reject payment' }).click();
+  await page.getByRole('button', { name: outcome === 'approved' ? 'Pay with an approved card' : 'Pay with a card without funds' }).click();
   if (outcome === 'rejected') {
-    await expect(page.getByRole('alert')).toHaveText('Payment rejected. Try another card.');
+    await expect(page.getByText('Fondos insuficientes. Probá con otra tarjeta.')).toBeVisible();
   }
 }
 

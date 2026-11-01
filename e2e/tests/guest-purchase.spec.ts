@@ -33,7 +33,6 @@ test('a guest buys with an approved card and gets one confirmation email', async
   // $ 20.000 plus $ 5.000 of shipping to Santa Fe, priced by the server.
   await expect(page.getByText('$ 25.000').first()).toBeVisible();
   await confirmAndGoToPayment(page);
-  await expect(page.getByLabel('Amount')).toHaveText('25000.00');
 
   await payAtMercadoPago(page, 'approved');
 
@@ -44,5 +43,7 @@ test('a guest buys with an approved card and gets one confirmation email', async
   const orderNumber = await trackedOrderNumber(page);
   const payments = await paymentsOf(orderNumber);
   expect(payments.map((payment) => payment.status)).toEqual(['approved']);
+  // The card was charged the server's total, never an amount from the page (R-02).
+  expect(payments.map((payment) => payment.amount)).toEqual([25000]);
   await expect.poll(async () => (await emailsTo(buyer.email)).length, { timeout: 30_000 }).toBe(1);
 });
