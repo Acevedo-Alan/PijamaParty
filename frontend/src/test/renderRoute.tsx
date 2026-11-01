@@ -21,11 +21,14 @@ const loadedRoutes = await Promise.all(routes.map(loaded));
 /**
  * Renders the app at a path with a fresh query cache that never retries, so a failed request shows at once. The
  * router is returned to check the URL the app navigates to. Without `motion` nothing animates, as before Motion's
- * features load; with it the app animates as in main.tsx.
+ * features load; with it the app animates as in main.tsx. `state` is the router state the page is opened with, as a
+ * navigate(path, { state }) of the app leaves it.
  */
-export function renderRoute(path: string, { motion = false }: { motion?: boolean } = {}) {
+export function renderRoute(path: string, { motion = false, state }: { motion?: boolean; state?: unknown } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const router = createMemoryRouter(loadedRoutes, { initialEntries: [path] });
+  const router = createMemoryRouter(loadedRoutes, {
+    initialEntries: [state === undefined ? path : { pathname: path, state }],
+  });
   const app = <RouterProvider router={router} />;
   const view = render(
     <QueryClientProvider client={client}>{motion ? <MotionProvider>{app}</MotionProvider> : app}</QueryClientProvider>,

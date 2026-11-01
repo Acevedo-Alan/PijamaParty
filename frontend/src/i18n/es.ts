@@ -600,6 +600,28 @@ export const es = {
     providerUnavailable: 'El medio de pago no respondió. Esperá un momento y probá de nuevo.',
     tooManyAttempts: 'Hiciste muchos intentos. Esperá un minuto y probá de nuevo.',
     payError: 'No pudimos abrir el pago. Probá de nuevo.',
+    /** T-E3-29: the card typed in MercadoPago's form, inside the store's page. */
+    card: {
+      title: 'Pagá con tarjeta de crédito o débito',
+      safety: 'Los datos de tu tarjeta van directo a Mercado Pago: la tienda nunca los ve.',
+      loading: 'Cargando el formulario de pago…',
+      loadError: 'No pudimos cargar el formulario de pago. Recargá la página y probá de nuevo.',
+      unavailable: 'El pago con tarjeta no está disponible en este momento. Probá de nuevo más tarde.',
+      approved: '¡Listo! Tu pago fue aprobado.',
+      inProcess: 'Tu pago quedó en revisión en Mercado Pago. Te avisamos por email cuando se confirme.',
+      rejections: {
+        INSUFFICIENT_FUNDS: 'Fondos insuficientes. Probá con otra tarjeta.',
+        BAD_SECURITY_CODE: 'El código de seguridad no es correcto. Revisalo y probá de nuevo.',
+        BAD_EXPIRY_DATE: 'La fecha de vencimiento no es correcta. Revisala y probá de nuevo.',
+        BAD_CARD_DATA: 'Algún dato de la tarjeta no es correcto. Revisalos y probá de nuevo.',
+        CALL_FOR_AUTHORIZE: 'Tu banco pide que autorices el pago. Comunicate con él y después probá de nuevo.',
+        CARD_DISABLED: 'La tarjeta está deshabilitada. Activala con tu banco o probá con otra.',
+        DUPLICATED: 'Ya hiciste un pago igual hace un momento. Revisá tu email antes de pagar de nuevo.',
+        MAX_ATTEMPTS: 'Llegaste al límite de intentos con esta tarjeta. Probá con otra.',
+        HIGH_RISK: 'El pago fue rechazado. Probá con otra tarjeta.',
+        OTHER: 'El pago fue rechazado. Probá con otra tarjeta.',
+      },
+    },
     shipment: 'Número de seguimiento del envío',
     items: 'Productos',
     /** An item's color, size and quantity, e.g. "Rosa · Talle M · 2 unidades". */

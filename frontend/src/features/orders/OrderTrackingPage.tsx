@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type SyntheticEvent } from 'react';
+import { lazy, Suspense, useEffect, useId, useState, type SyntheticEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import { AlertBox } from '../../components/AlertBox.tsx';
 import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
@@ -6,10 +6,20 @@ import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
 import { trackPurchase } from '../analytics/checkoutEvents.ts';
 import { OrderItemsAndAmounts } from './OrderItemsAndAmounts.tsx';
+import type { CardDetails, CardPaymentAnswer } from './cardPaymentApi.ts';
 import type { EmailCorrectionAnswer, OrderStatus, RetryAnswer, TrackedOrder } from './orderTrackingApi.ts';
 import { goToPayment } from './redirect.ts';
-import { useCorrectEmail, useRetryPayment, useTrackedOrder } from './useTrackedOrder.ts';
+import {
+  useCardFormKey,
+  useCorrectEmail,
+  usePayWithCard,
+  useRetryPayment,
+  useTrackedOrder,
+} from './useTrackedOrder.ts';
 import './orders.css';
+
+/** MercadoPago's card form, in a chunk of its own: only a buyer about to pay downloads it (T-E3-29). */
+const CardPaymentForm = lazy(() => import('./CardPaymentForm.tsx'));
 
 /** Why the last tap on "Pagar" did not leave the store; nothing while it works or after a redirect. */
 function payProblem(answer: RetryAnswer | undefined, failed: boolean): string | null {
@@ -25,9 +35,17 @@ function payProblem(answer: RetryAnswer | undefined, failed: boolean): string | 
   return null;
 }
 
-/** What the return from the payment provider tells the tracking page (T-E3-11), in the router state. */
+/**
+ * What the router state tells the tracking page: an approved return from the payment provider (T-E3-11), or a
+ * MercadoPago order just placed, whose card form opens at once (T-E3-29).
+ */
 export interface TrackingState {
-  paymentApproved: boolean;
+  paymentApproved?: boolean;
+  payOnSite?: boolean;
+}
+
+function payOnSiteState(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && (state as Partial<TrackingState>).payOnSite === true;
 }
 
 /** How long the page waits for the webhook after an approved return before showing "Pagar" again. */
@@ -55,18 +73,105 @@ function useConfirmingPayment(): boolean {
   return confirming;
 }
 
+/** What the last card sent tells the buyer: a problem in the alert box, or where the payment stands. */
+function cardOutcome(answer: CardPaymentAnswer | undefined, failed: boolean): { problem: string | null; note: string | null } {
+  if (failed) {
+    return { problem: es.tracking.payError, note: null };
+  }
+  switch (answer?.status) {
+    case 'approved':
+      return { problem: null, note: es.tracking.card.approved };
+    case 'inProcess':
+      return { problem: null, note: es.tracking.card.inProcess };
+    case 'rejected':
+      return { problem: es.tracking.card.rejections[answer.reason], note: null };
+    case 'providerUnavailable':
+      return { problem: es.tracking.providerUnavailable, note: null };
+    case 'tooManyAttempts':
+      return { problem: es.tracking.tooManyAttempts, note: null };
+    default:
+      return { problem: null, note: null };
+  }
+}
+
 /**
- * UC-14: an order awaiting payment can be paid again while its stock is reserved; right after an approved return it
- * says the payment is being confirmed instead.
+ * UC-14 (T-E3-29): the card typed in MercadoPago's form, without leaving the store. A rejected card leaves the form for
+ * another one; an approved one reads the order again, which then shows it paid.
+ */
+function CardPanel({ token, order }: { token: string; order: TrackedOrder }) {
+  const key = useCardFormKey(true);
+  const payment = usePayWithCard(token);
+  const [form, setForm] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const titleId = useId();
+
+  async function send(card: CardDetails) {
+    try {
+      await payment.mutateAsync(card);
+    } catch {
+      // Shown below from the mutation's state; the form only needs to stop waiting.
+    }
+  }
+
+  const { problem, note } = cardOutcome(payment.data, payment.isError);
+  const unavailable = key.isError || key.data === null;
+  return (
+    <section className="tracking-card-payment" aria-labelledby={titleId}>
+      <h2 id={titleId}>{es.tracking.card.title}</h2>
+      <p className="tracking-note">{es.tracking.card.safety}</p>
+      {unavailable ? (
+        <AlertBox message={key.isError ? es.tracking.card.loadError : es.tracking.card.unavailable} />
+      ) : (
+        <>
+          {(key.isPending || form === 'loading') && (
+            <p className="tracking-note" role="status">
+              {es.tracking.card.loading}
+            </p>
+          )}
+          {form === 'failed' && <AlertBox message={es.tracking.card.loadError} />}
+          {key.data !== undefined && key.data !== null && (
+            <Suspense fallback={null}>
+              <CardPaymentForm
+                publicKey={key.data}
+                amountCents={order.totalCents}
+                onSubmit={send}
+                onReady={() => {
+                  setForm('ready');
+                }}
+                onFailure={() => {
+                  setForm('failed');
+                }}
+              />
+            </Suspense>
+          )}
+          {note !== null && (
+            <p className="tracking-note" role="status">
+              {note}
+            </p>
+          )}
+          <AlertBox message={problem} />
+        </>
+      )}
+    </section>
+  );
+}
+
+/**
+ * UC-14: an order awaiting payment can be paid again while its stock is reserved: with MercadoPago, on this page with
+ * the card form (T-E3-29), open at once after the checkout; with MODO, at its checkout. Right after an approved return
+ * it says the payment is being confirmed instead.
  */
 function PaymentPanel({ token, order, confirming }: { token: string; order: TrackedOrder; confirming: boolean }) {
   const retry = useRetryPayment(token);
+  const location = useLocation();
+  const [onSite, setOnSite] = useState(() => payOnSiteState(location.state));
 
   function pay() {
     retry.mutate(undefined, {
       onSuccess: (answer) => {
         if (answer.status === 'opened') {
           goToPayment(answer.paymentUrl);
+        } else if (answer.status === 'onSite') {
+          setOnSite(true);
         }
       },
     });
@@ -84,6 +189,14 @@ function PaymentPanel({ token, order, confirming }: { token: string; order: Trac
   }
   if (!order.canRetryPayment) {
     return <p className="tracking-note">{es.tracking.reservationOver}</p>;
+  }
+  if (onSite) {
+    return (
+      <div className="tracking-pay">
+        <p>{es.tracking.reservedUntil(formatTime(order.reservationExpiresAt))}</p>
+        <CardPanel token={token} order={order} />
+      </div>
+    );
   }
   return (
     <div className="tracking-pay">

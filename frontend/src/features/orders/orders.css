@@ -93,6 +93,24 @@
   margin-top: 12px;
 }
 
+/* T-E3-29: MercadoPago's card form inside the payment box; its fields bring their own look */
+.tracking-card-payment {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.tracking-card-payment h2 {
+  font-size: 18px;
+}
+
+.tracking-card-payment .tracking-note {
+  font-size: 14px;
+}
+
 .tracking-shipment dd {
   margin: 0;
   font-weight: 600;

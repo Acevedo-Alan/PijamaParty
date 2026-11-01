@@ -337,9 +337,29 @@ export interface paths {
         put?: never;
         /**
          * Pay again an order awaiting payment
-         * @description Answers the payment provider's checkout to redirect the buyer to: the same one while it lasts, where another card can be tried. Requires the CSRF token.
+         * @description With MercadoPago, payOnSite is true: the buyer pays on the page with the card form (T-E3-29). With MODO, paymentUrl is the checkout to redirect the buyer to: the same one while it lasts. Requires the CSRF token.
          */
         post: operations["retryPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{token}/card-payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pay an order with the card typed on the store's page
+         * @description T-E3-29: MercadoPago's card form turned the card into a single-use token in the browser; this charges it for the order total (never an amount from the browser), with the order's email. The card data never reaches the store, and the cardholder's ID is neither stored nor logged. The result is APPROVED (the order is paid), IN_PROCESS (in review: the webhook brings the result) or REJECTED with a rejection code, when another card can be tried. A new Idempotency-Key per submit, repeated on a network retry: the same key never charges twice. Requires the CSRF token.
+         */
+        post: operations["payWithCard"];
         delete?: never;
         options?: never;
         head?: never;
@@ -377,7 +397,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm the checkout: place the order, reserve its stock and open its payment
-         * @description Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for 30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's tracking page; it is shown only here. paymentUrl is the payment provider's checkout to redirect the buyer to; null when the provider could not be reached, and then the client opens the tracking page. The same Idempotency-Key repeated with the same content gets the same order, with a new trackingToken, and nothing is placed or reserved again. A signed-in customer's phone becomes its account's, and with saveAddress the address joins its address book (UC-21). Requires the CSRF token.
+         * @description Step 3 of the checkout. The cart becomes an order awaiting payment, its stock is reserved for 30 minutes and the cart is emptied. Every amount is the server's. trackingToken opens the order's tracking page; it is shown only here. With MercadoPago, payOnSite is true: the buyer pays on the store's page with the card form (POST /api/orders/{token}/card-payment). With MODO, paymentUrl is the checkout to redirect the buyer to. Both empty when the provider could not be reached, and then the client opens the tracking page. The same Idempotency-Key repeated with the same content gets the same order, with a new trackingToken, and nothing is placed or reserved again. A signed-in customer's phone becomes its account's, and with saveAddress the address joins its address book (UC-21). Requires the CSRF token.
          */
         post: operations["placeOrder"];
         delete?: never;
@@ -2162,7 +2182,23 @@ export interface components {
         };
         RetryResponse: {
             /** Format: uri */
-            paymentUrl?: string;
+            paymentUrl: string | null;
+            payOnSite?: boolean;
+        };
+        CardPaymentRequest: {
+            cardToken: string;
+            paymentMethodId: string;
+            issuerId?: string;
+            /** Format: int32 */
+            installments?: number;
+            identificationType: string;
+            identificationNumber: string;
+        };
+        CardPaymentResponse: {
+            /** @enum {string} */
+            status?: "APPROVED" | "IN_PROCESS" | "REJECTED";
+            /** @enum {string|null} */
+            rejection: "INSUFFICIENT_FUNDS" | "BAD_SECURITY_CODE" | "BAD_EXPIRY_DATE" | "BAD_CARD_DATA" | "CALL_FOR_AUTHORIZE" | "CARD_DISABLED" | "DUPLICATED" | "MAX_ATTEMPTS" | "HIGH_RISK" | "OTHER" | null;
         };
         AddressRequest: {
             street: string;
@@ -2201,6 +2237,7 @@ export interface components {
             reservationExpiresAt?: string;
             /** Format: uri */
             paymentUrl: string | null;
+            payOnSite?: boolean;
         };
         AddItemRequest: {
             /** Format: uuid */
@@ -2472,6 +2509,7 @@ export interface components {
         };
         PaymentProvidersResponse: {
             providers?: ("MERCADOPAGO" | "MODO")[];
+            mercadoPagoPublicKey: string | null;
         };
         SuggestionResponse: {
             slug?: string;
@@ -4013,7 +4051,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The checkout to redirect to */
+            /** @description How to pay: the card form, or the checkout to redirect to */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4041,6 +4079,71 @@ export interface operations {
                 };
             };
             /** @description The payment provider could not be reached (problem PAYMENT_PROVIDER_UNAVAILABLE): try again after Retry-After */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    payWithCard: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A UUID per submit of the card form, repeated on retries */
+                "Idempotency-Key": string;
+            };
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CardPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description The charge's result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardPaymentResponse"];
+                };
+            };
+            /** @description Missing or invalid Idempotency-Key, or a body that is not of this shape */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No order has this token (problem ORDER_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No longer awaiting payment, its reservation is over, or not paid by card on the page (problem NOT_PAYABLE): read the order again; nothing was charged */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The payment provider could not be reached (problem PAYMENT_PROVIDER_UNAVAILABLE): nothing was charged; try again after Retry-After */
             503: {
                 headers: {
                     [name: string]: unknown;

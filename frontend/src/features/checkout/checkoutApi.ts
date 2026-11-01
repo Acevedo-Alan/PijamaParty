@@ -66,8 +66,10 @@ export async function fetchPaymentProviders(signal?: AbortSignal): Promise<Payme
 export interface PlacedOrder {
   number: number;
   trackingToken: string;
-  /** The provider's checkout; null when it could not be reached, and then the tracking page retries. */
+  /** The provider's checkout to redirect to (MODO); null otherwise. */
   paymentUrl: string | null;
+  /** T-E3-29: MercadoPago, paid on the order's page with the card form. Neither when the provider was unreachable. */
+  payOnSite: boolean;
 }
 
 /**
@@ -137,7 +139,10 @@ export async function placeOrder(idempotencyKey: string, body: PlaceOrderRequest
     if (number === undefined || trackingToken === undefined) {
       throw new Error('Incomplete placed order');
     }
-    return { status: 'placed', order: { number, trackingToken, paymentUrl: data.paymentUrl } };
+    return {
+      status: 'placed',
+      order: { number, trackingToken, paymentUrl: data.paymentUrl, payOnSite: data.payOnSite === true },
+    };
   }
   if (response.status === 409 || response.status === 422) {
     return toRefusal(error);

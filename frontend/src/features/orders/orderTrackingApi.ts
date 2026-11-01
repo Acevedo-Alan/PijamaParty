@@ -49,6 +49,8 @@ export type TrackedOrderAnswer = { status: 'found'; order: TrackedOrder } | { st
 /** POST /api/orders/{token}/retry-payment: where to pay, or why not now. */
 export type RetryAnswer =
   | { status: 'opened'; paymentUrl: string }
+  /** T-E3-29: MercadoPago, paid on the page with the card form. */
+  | { status: 'onSite' }
   | { status: 'notPayable' }
   | { status: 'providerUnavailable' }
   | { status: 'tooManyAttempts' }
@@ -143,7 +145,10 @@ export async function retryPayment(token: string): Promise<RetryAnswer> {
   const { data, response } = await api.POST('/api/orders/{token}/retry-payment', {
     params: { path: { token } },
   });
-  if (data?.paymentUrl !== undefined) {
+  if (data?.payOnSite === true) {
+    return { status: 'onSite' };
+  }
+  if (data?.paymentUrl !== undefined && data.paymentUrl !== null) {
     return { status: 'opened', paymentUrl: data.paymentUrl };
   }
   switch (response.status) {

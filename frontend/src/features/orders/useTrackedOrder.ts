@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchCardFormKey, payWithCard, type CardDetails } from './cardPaymentApi.ts';
 import { correctEmail, fetchTrackedOrder, retryPayment } from './orderTrackingApi.ts';
 
 export const trackedOrderKey = (token: string) => ['orders', 'tracked', token] as const;
@@ -30,6 +31,32 @@ export function useRetryPayment(token: string) {
     mutationFn: () => retryPayment(token),
     onSuccess: (answer) => {
       if (answer.status === 'notPayable' || answer.status === 'notFound') {
+        void queryClient.invalidateQueries({ queryKey: trackedOrderKey(token) });
+      }
+    },
+  });
+}
+
+/** The public key of MercadoPago's card form (T-E3-29), read once per visit. */
+export function useCardFormKey(enabled: boolean) {
+  return useQuery({
+    queryKey: ['orders', 'card-form-key'] as const,
+    queryFn: ({ signal }) => fetchCardFormKey(signal),
+    staleTime: Infinity,
+    enabled,
+  });
+}
+
+/**
+ * Charges the card typed in MercadoPago's form (T-E3-29), with a new Idempotency-Key per submit. An approved or
+ * in-review payment, or an order no longer payable, reads the order again, so the page shows where it stands.
+ */
+export function usePayWithCard(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (card: CardDetails) => payWithCard(token, crypto.randomUUID(), card),
+    onSuccess: (answer) => {
+      if (answer.status !== 'rejected' && answer.status !== 'providerUnavailable' && answer.status !== 'tooManyAttempts') {
         void queryClient.invalidateQueries({ queryKey: trackedOrderKey(token) });
       }
     },

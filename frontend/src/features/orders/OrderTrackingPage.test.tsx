@@ -10,6 +10,39 @@ import { goToPayment } from './redirect.ts';
 
 vi.mock('./redirect.ts', () => ({ goToPayment: vi.fn() }));
 
+/**
+ * MercadoPago's card form (T-E3-29) needs its SDK from the internet; here a stand-in that is ready at once and whose
+ * button submits what the real form gives for a test card.
+ */
+vi.mock('@mercadopago/sdk-react', async () => {
+  const { useEffect } = await import('react');
+  return {
+    initMercadoPago: vi.fn(),
+    CardPayment: ({ onSubmit, onReady }: { onSubmit: (form: unknown) => Promise<void>; onReady?: () => void }) => {
+      useEffect(() => {
+        onReady?.();
+      }, [onReady]);
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            void onSubmit({
+              token: 'card-token-1',
+              issuer_id: '310',
+              payment_method_id: 'visa',
+              transaction_amount: 40500,
+              installments: 3,
+              payer: { email: 'otra@example.com', identification: { type: 'DNI', number: '12345678' } },
+            })
+          }
+        >
+          Pagar con la tarjeta de prueba
+        </button>
+      );
+    },
+  };
+});
+
 type TrackedOrderResponse = components['schemas']['TrackedOrderResponse'];
 
 const TOKEN = 'a'.repeat(43);
@@ -46,6 +79,29 @@ function stubOrder(...answers: unknown[]) {
 }
 
 const pay = () => screen.getByRole('button', { name: es.tracking.pay });
+
+const PROVIDERS = '/api/checkout/payment-providers';
+
+/** The order's reads in order (the last one repeats), and the card form's public key. */
+function stubOrderAndKey(key: string | null, ...answers: unknown[]) {
+  const queue = [...answers];
+  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
+    Promise.resolve(path === PROVIDERS
+      ? answer(200, { providers: ['MERCADOPAGO'], mercadoPagoPublicKey: key })
+      : (headerRead(path) ?? (queue.length > 1 ? queue.shift() : queue[0])))));
+}
+
+/** "Pagar" on a MercadoPago order opens the card form on the page; then the given card answer. */
+function stubPayOnSite(cardAnswer: unknown) {
+  return vi.spyOn(api, 'POST').mockImplementation(((path: string) =>
+    Promise.resolve(path === '/api/orders/{token}/retry-payment'
+      ? answer(200, { paymentUrl: null, payOnSite: true })
+      : cardAnswer)) as never);
+}
+
+const sendCard = async () => {
+  await userEvent.click(await screen.findByRole('button', { name: 'Pagar con la tarjeta de prueba' }));
+};
 
 describe('tracking link (UC-14, T-E3-08)', () => {
   afterEach(() => {
@@ -89,6 +145,77 @@ describe('tracking link (UC-14, T-E3-08)', () => {
 
     expect(post).toHaveBeenCalledWith('/api/orders/{token}/retry-payment', { params: { path: { token: TOKEN } } });
     expect(goToPayment).toHaveBeenCalledWith(PAYMENT_URL);
+  });
+
+  it('given a MercadoPago order, when the buyer taps pay, then the card form opens on the page without leaving the store', async () => {
+    stubOrderAndKey('TEST-key', answer(200, trackedOrder()));
+    stubPayOnSite(answer(200, { status: 'APPROVED', rejection: null }));
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await userEvent.click(await screen.findByRole('button', { name: es.tracking.pay }));
+
+    expect(await screen.findByRole('heading', { name: es.tracking.card.title })).toBeInTheDocument();
+    expect(screen.getByText(es.tracking.card.safety)).toBeInTheDocument();
+    expect(goToPayment).not.toHaveBeenCalled();
+  });
+
+  it('given a MercadoPago order just placed, when its page opens, then the card form is open at once', async () => {
+    stubOrderAndKey('TEST-key', answer(200, trackedOrder()));
+    renderRoute(`/pedido/${TOKEN}`, { state: { payOnSite: true } });
+
+    expect(await screen.findByRole('heading', { name: es.tracking.card.title })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: es.tracking.pay })).not.toBeInTheDocument();
+  });
+
+  it('given an approved card, when it is sent, then it is charged with a key per submit, never an amount, and the paid order shows', async () => {
+    stubOrderAndKey('TEST-key', answer(200, trackedOrder()), answer(200, trackedOrder({ status: 'PAID', canRetryPayment: false })));
+    const post = stubPayOnSite(answer(200, { status: 'APPROVED', rejection: null }));
+    renderRoute(`/pedido/${TOKEN}`, { state: { payOnSite: true } });
+
+    await sendCard();
+
+    expect(await screen.findByText(es.tracking.statuses.PAID)).toBeInTheDocument();
+    const [path, options] = post.mock.calls[0] as unknown as [string, { params: { header: Record<string, string> }; body: unknown }];
+    expect(path).toBe('/api/orders/{token}/card-payment');
+    expect(options.params.header['Idempotency-Key']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(options.body).toEqual({
+      cardToken: 'card-token-1',
+      paymentMethodId: 'visa',
+      issuerId: '310',
+      installments: 3,
+      identificationType: 'DNI',
+      identificationNumber: '12345678',
+    });
+  });
+
+  it('given a card without funds, when it is sent, then the page says so and the form stays for another card', async () => {
+    stubOrderAndKey('TEST-key', answer(200, trackedOrder()));
+    stubPayOnSite(answer(200, { status: 'REJECTED', rejection: 'INSUFFICIENT_FUNDS' }));
+    renderRoute(`/pedido/${TOKEN}`, { state: { payOnSite: true } });
+
+    await sendCard();
+
+    expect(await screen.findByText(es.tracking.card.rejections.INSUFFICIENT_FUNDS)).toBeInTheDocument();
+    expect(screen.getByText(es.tracking.card.rejections.INSUFFICIENT_FUNDS).closest('.alert-box')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Pagar con la tarjeta de prueba' })).toBeInTheDocument();
+  });
+
+  it('given a card left in review, when it is sent, then the page says the payment is in review', async () => {
+    stubOrderAndKey('TEST-key', answer(200, trackedOrder()));
+    stubPayOnSite(answer(200, { status: 'IN_PROCESS', rejection: null }));
+    renderRoute(`/pedido/${TOKEN}`, { state: { payOnSite: true } });
+
+    await sendCard();
+
+    expect(await screen.findByText(es.tracking.card.inProcess)).toBeInTheDocument();
+  });
+
+  it('given a store without the card form configured, when it should open, then the page says card payment is unavailable', async () => {
+    stubOrderAndKey(null, answer(200, trackedOrder()));
+    renderRoute(`/pedido/${TOKEN}`, { state: { payOnSite: true } });
+
+    expect(await screen.findByText(es.tracking.card.unavailable)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pagar con la tarjeta de prueba' })).not.toBeInTheDocument();
   });
 
   it('given the payment provider down, when the buyer taps pay, then it is asked to try again in a moment and stays', async () => {

@@ -15,6 +15,7 @@ import { isCouponOutdone, type Cart, type CartItem } from '../cart/cartApi.ts';
 import { useCartPanel } from '../cart/CartPanelContext.tsx';
 import { useCart, useRemoveCoupon } from '../cart/useCart.ts';
 import { RETURNS_POLICY_PATH, TERMS_PATH } from '../help/FaqLink.tsx';
+import type { TrackingState } from '../orders/OrderTrackingPage.tsx';
 import { goToPayment } from '../orders/redirect.ts';
 import type { PlaceOrderAnswer } from './checkoutApi.ts';
 import {
@@ -530,10 +531,13 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
       case 'placed':
         onLeave();
         emptied();
-        if (answer.order.paymentUrl === null) {
-          void navigate(`/pedido/${answer.order.trackingToken}`, { replace: true });
-        } else {
+        if (answer.order.paymentUrl !== null) {
           goToPayment(answer.order.paymentUrl);
+        } else {
+          // T-E3-29: MercadoPago is paid on the order's page, whose card form opens at once; without a way to pay,
+          // the page offers "Pagar" again.
+          const state: TrackingState = { payOnSite: answer.order.payOnSite };
+          void navigate(`/pedido/${answer.order.trackingToken}`, { replace: true, state });
         }
         return;
       case 'invalidBuyerData': {

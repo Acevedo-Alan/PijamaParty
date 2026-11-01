@@ -55,7 +55,8 @@ function stubPost(...answers: unknown[]) {
     Promise.resolve(queue.length > 1 ? queue.shift() : queue[0])) as never);
 }
 
-const placed = (paymentUrl: string | null) =>
+/** The placed order: a checkout to redirect to (MODO), the card form on the page (MercadoPago, T-E3-29), or neither. */
+const placed = (paymentUrl: string | null, payOnSite = false) =>
   answer(201, {
     number: 1001,
     trackingToken: TOKEN,
@@ -63,6 +64,7 @@ const placed = (paymentUrl: string | null) =>
     totalCents: 2_950_000,
     reservationExpiresAt: '2026-10-13T17:30:00Z',
     paymentUrl,
+    payOnSite,
   });
 
 const field = (name: string) => screen.getByLabelText(name);
@@ -307,17 +309,19 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     expect(main.getByText(es.checkout.place('Santa Fe', 'Santa Fe', '3000'))).toBeInTheDocument();
   });
 
-  it('given a confirmed checkout, when the order is placed, then the buyer goes to the provider and the token is kept', async () => {
+  it('given a confirmed MercadoPago checkout, when the order is placed, then its page opens with the card form and the token is kept', async () => {
     stubGets();
-    const post = stubPost(placed(PAYMENT_URL));
-    renderRoute('/checkout');
+    const post = stubPost(placed(null, true));
+    const { router } = renderRoute('/checkout');
     await goToReview();
 
     await acceptAndConfirm();
 
     await waitFor(() => {
-      expect(goToPayment).toHaveBeenCalledWith(PAYMENT_URL);
+      expect(router.state.location.pathname).toBe(`/pedido/${TOKEN}`);
     });
+    expect(router.state.location.state).toEqual({ payOnSite: true });
+    expect(goToPayment).not.toHaveBeenCalled();
     expect(post).toHaveBeenCalledWith('/api/checkout', {
       params: { header: { 'Idempotency-Key': expect.stringMatching(UUID) as unknown } },
       body: {
@@ -334,7 +338,6 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
       },
     });
     expect(keptTrackingToken()).toBe(TOKEN);
-    expect(screen.getByText(es.checkout.openingPayment)).toBeInTheDocument();
   });
 
   it('given a provider that could not be reached, when the order is placed, then the tracking page opens', async () => {
