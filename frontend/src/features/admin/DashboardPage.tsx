@@ -539,7 +539,7 @@ function LowStock({ lowStock, order }: { lowStock: Dashboard['lowStock']; order:
         </div>
         {lowStock.items.length > 0 && (
           <Button asChild variant="link" size="sm">
-            <Link to={LOW_STOCK_PRODUCTS}>{messages.lowStock.seeAll(lowStock.count)}</Link>
+            <Link to={LOW_STOCK_PRODUCTS}>{messages.lowStock.seeAll}</Link>
           </Button>
         )}
       </CardHeader>

@@ -92,7 +92,8 @@ export const esAdmin = {
       none: 'Sin productos con stock bajo',
       soldOut: 'Agotado',
       available: (units: number) => (units === 1 ? '1 disponible' : `${units.toLocaleString('es-AR')} disponibles`),
-      seeAll: (count: number) => `Ver los ${count.toLocaleString('es-AR')} en productos`,
+      /** No count: the block counts variants, the product list it opens counts products (decided on 2026-11-04). */
+      seeAll: 'Ver en productos',
     },
     bestSellers: {
       title: 'Más vendidos',

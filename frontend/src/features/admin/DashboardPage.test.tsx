@@ -276,7 +276,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
 
     const lowStock = section(messages.lowStock.title);
     expect(lowStock.getAllByRole('listitem')[0]).toHaveTextContent(messages.lowStock.soldOut);
-    expect(lowStock.getByRole('link', { name: messages.lowStock.seeAll(12) })).toHaveAttribute('href', '/admin/productos?estado=PUBLISHED&stock=LOW');
+    expect(lowStock.getByRole('link', { name: messages.lowStock.seeAll })).toHaveAttribute('href', '/admin/productos?estado=PUBLISHED&stock=LOW');
   });
 
   it('given no variant at or under the threshold, when the summary shows, then low stock says so', async () => {
