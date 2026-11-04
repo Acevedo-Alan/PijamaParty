@@ -188,14 +188,34 @@ function toOrder(body: DetailResponse): AdminOrder {
   };
 }
 
-/** One page of orders, newest first, only those in {@code status} when given. */
+/**
+ * The filters of the order list (UC-18, T-E8-06), each null when not used: the status, the search (an order number or
+ * the buyer's name or email, as typed) and the store dates of creation as yyyy-mm-dd, both inclusive.
+ */
+export interface OrderListFilter {
+  status: OrderStatus | null;
+  q: string | null;
+  from: string | null;
+  to: string | null;
+}
+
+/** One page of orders, newest first, only those the filter lets through. */
 export async function fetchOrders(
-  status: OrderStatus | null,
+  filter: OrderListFilter,
   page: number,
   signal?: AbortSignal,
 ): Promise<{ items: OrderSummary[]; hasMore: boolean }> {
+  const { status, q, from, to } = filter;
   const { data, response } = await api.GET('/api/admin/orders', {
-    params: { query: status === null ? { page } : { status, page } },
+    params: {
+      query: {
+        page,
+        ...(status === null ? {} : { status }),
+        ...(q === null ? {} : { q }),
+        ...(from === null ? {} : { from }),
+        ...(to === null ? {} : { to }),
+      },
+    },
     signal: signal ?? null,
   });
   ensureSignedIn(response);

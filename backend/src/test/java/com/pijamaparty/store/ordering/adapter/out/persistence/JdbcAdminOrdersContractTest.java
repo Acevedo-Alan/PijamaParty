@@ -8,6 +8,7 @@ import com.pijamaparty.store.ordering.api.AdminOrderDetails.AdminOrder;
 import com.pijamaparty.store.ordering.application.AdminOrderViews;
 import com.pijamaparty.store.ordering.application.AdminOrdersContractTest;
 import com.pijamaparty.store.ordering.application.LatePayments;
+import com.pijamaparty.store.ordering.application.OrderFilter;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
 import com.pijamaparty.store.ordering.application.OrderPages;
 import com.pijamaparty.store.ordering.application.OrderStatusCounts;
@@ -84,7 +85,7 @@ class JdbcAdminOrdersContractTest extends AdminOrdersContractTest<JdbcAdminOrder
         var order = placed(NOW, Optional.empty());
         Actor guest = Actor.anonymous(Optional.empty(), Optional.empty());
 
-        assertThat(asActors.as(guest, () -> asActors.adapter().page(Optional.empty(), 0, 10))).isEmpty();
+        assertThat(asActors.as(guest, () -> asActors.adapter().page(OrderFilter.ALL, 0, 10))).isEmpty();
         assertThat(asActors.as(guest, () -> asActors.adapter().adminViewOf(order.id()))).isEmpty();
     }
 
@@ -169,8 +170,8 @@ class JdbcAdminOrdersContractTest extends AdminOrdersContractTest<JdbcAdminOrder
         }
 
         @Override
-        public List<OrderSummary> page(Optional<OrderStatus> status, int offset, int limit) {
-            return as(ADMIN, () -> adapter.page(status, offset, limit));
+        public List<OrderSummary> page(OrderFilter filter, int offset, int limit) {
+            return as(ADMIN, () -> adapter.page(filter, offset, limit));
         }
 
         @Override

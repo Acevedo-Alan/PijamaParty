@@ -19,6 +19,7 @@ import com.pijamaparty.store.ordering.application.ExportedOrder;
 import com.pijamaparty.store.ordering.application.GuestOrderLinks;
 import com.pijamaparty.store.ordering.application.LatePayments;
 import com.pijamaparty.store.ordering.application.OrderNumbers;
+import com.pijamaparty.store.ordering.application.OrderFilter;
 import com.pijamaparty.store.ordering.application.OrderPages;
 import com.pijamaparty.store.ordering.application.OrderStatusCounts;
 import com.pijamaparty.store.ordering.application.OrderStatuses;
@@ -36,6 +37,7 @@ import com.pijamaparty.store.ordering.application.TrackedOrders;
 import com.pijamaparty.store.ordering.domain.OrderAmounts;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderLine;
+import com.pijamaparty.store.ordering.domain.OrderSearch;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.PaymentProvider;
 import com.pijamaparty.store.ordering.domain.ShipmentTrackingNumber;
@@ -211,28 +213,31 @@ class JdbcOrderStore
         WHERE id = :id AND paid_after_closing_at IS NULL AND status IN ('EXPIRED', 'CANCELLED')
         """;
 
-    // UC-18: newest first, over orders_created_idx (V20); the number breaks ties between orders of the same instant.
-    private static final String PAGE_ALL = """
+    // UC-18 (T-E8-06): newest first, over orders_created_idx (V20); the number breaks ties between orders of the same
+    // instant. One constant text whose conditions each switch off with a null parameter, never built by concatenation
+    // (RNF-28). The status comes from the OrderStatus enum; the pattern is the search text with %, _ and \ escaped,
+    // between two % (likePattern), folded like the columns. Under 10,000 orders a year, the plan need not be specific.
+    private static final String PAGE = """
         SELECT id, number, created_at, status, customer_first_name || ' ' || customer_last_name AS customer_full_name,
                city, province, total_cents
         FROM orders
+        WHERE (CAST(:status AS text) IS NULL OR status = CAST(:status AS text))
+          AND (CAST(:number AS bigint) IS NULL OR number = CAST(:number AS bigint))
+          AND (CAST(:pattern AS text) IS NULL
+               OR lower(unaccent(customer_first_name)) LIKE lower(unaccent(CAST(:pattern AS text))) ESCAPE '\\'
+               OR lower(unaccent(customer_last_name)) LIKE lower(unaccent(CAST(:pattern AS text))) ESCAPE '\\'
+               OR lower(unaccent(customer_first_name || ' ' || customer_last_name))
+                  LIKE lower(unaccent(CAST(:pattern AS text))) ESCAPE '\\'
+               OR lower(unaccent(customer_email)) LIKE lower(unaccent(CAST(:pattern AS text))) ESCAPE '\\')
+          AND (CAST(:createdFrom AS timestamptz) IS NULL OR created_at >= CAST(:createdFrom AS timestamptz))
+          AND (CAST(:createdBefore AS timestamptz) IS NULL OR created_at < CAST(:createdBefore AS timestamptz))
         ORDER BY created_at DESC, number DESC
         LIMIT :limit OFFSET :offset
         """;
 
-    // UC-18: by status, over orders_status_created_idx (V14).
     // T-E8-05: the "Pedidos" badge of the back-office menu; the status comes from the OrderStatus enum (RNF-28).
     private static final String COUNT_BY_STATUS = """
         SELECT count(*) FROM orders WHERE status = :status
-        """;
-
-    private static final String PAGE_BY_STATUS = """
-        SELECT id, number, created_at, status, customer_first_name || ' ' || customer_last_name AS customer_full_name,
-               city, province, total_cents
-        FROM orders
-        WHERE status = :status
-        ORDER BY created_at DESC, number DESC
-        LIMIT :limit OFFSET :offset
         """;
 
     private static final String SELECT_ADMIN_VIEW = """
@@ -493,12 +498,25 @@ class JdbcOrderStore
     }
 
     @Override
-    public List<OrderSummary> page(Optional<OrderStatus> status, int offset, int limit) {
-        var params = new MapSqlParameterSource("offset", offset).addValue("limit", limit);
-        status.ifPresent(wanted -> params.addValue("status", wanted.name()));
-        return status.isPresent()
-            ? jdbc.query(PAGE_BY_STATUS, params, JdbcOrderStore::summary)
-            : jdbc.query(PAGE_ALL, params, JdbcOrderStore::summary);
+    public List<OrderSummary> page(OrderFilter filter, int offset, int limit) {
+        Optional<Long> number = filter.search()
+            .filter(OrderSearch.ByNumber.class::isInstance).map(search -> ((OrderSearch.ByNumber) search).number());
+        Optional<String> pattern = filter.search()
+            .filter(OrderSearch.ByBuyer.class::isInstance).map(search -> likePattern(((OrderSearch.ByBuyer) search).text()));
+        var params = new MapSqlParameterSource("offset", offset).addValue("limit", limit)
+            .addValue("status", filter.status().map(Enum::name).orElse(null), Types.VARCHAR)
+            .addValue("number", number.orElse(null), Types.BIGINT)
+            .addValue("pattern", pattern.orElse(null), Types.VARCHAR)
+            .addValue("createdFrom", filter.createdFrom().map(at -> at.atOffset(ZoneOffset.UTC)).orElse(null),
+                Types.TIMESTAMP_WITH_TIMEZONE)
+            .addValue("createdBefore", filter.createdBefore().map(at -> at.atOffset(ZoneOffset.UTC)).orElse(null),
+                Types.TIMESTAMP_WITH_TIMEZONE);
+        return jdbc.query(PAGE, params, JdbcOrderStore::summary);
+    }
+
+    /** "contains {@code text}", every character of it literal: {@code \}, {@code %} and {@code _} escaped. */
+    static String likePattern(String text) {
+        return "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
     }
 
     @Override

@@ -15,6 +15,7 @@ import com.pijamaparty.store.ordering.domain.BuyerDetails;
 import com.pijamaparty.store.ordering.domain.OrderAmounts;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderLine;
+import com.pijamaparty.store.ordering.domain.OrderSearch;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.PaymentProvider;
 import com.pijamaparty.store.ordering.domain.ShipmentTrackingNumber;
@@ -86,13 +87,13 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
         subject.transition(paid.id(), OrderStatus.AWAITING_PAYMENT, OrderStatus.PAID, NOW.plusSeconds(3));
         persistAndForget();
 
-        assertThat(subject.page(Optional.empty(), 0, 10)).extracting(OrderSummary::id)
+        assertThat(subject.page(OrderFilter.ALL, 0, 10)).extracting(OrderSummary::id)
             .containsExactly(newest.id(), paid.id(), oldest.id());
-        assertThat(subject.page(Optional.empty(), 1, 1)).extracting(OrderSummary::id).containsExactly(paid.id());
-        assertThat(subject.page(Optional.of(OrderStatus.PAID), 0, 10)).singleElement().isEqualTo(new OrderSummary(
+        assertThat(subject.page(OrderFilter.ALL, 1, 1)).extracting(OrderSummary::id).containsExactly(paid.id());
+        assertThat(subject.page(OrderFilter.inStatus(OrderStatus.PAID), 0, 10)).singleElement().isEqualTo(new OrderSummary(
             paid.id(), paid.number(), NOW.plusSeconds(1), OrderStatus.PAID, "Ana María Pérez", "Santa Fe",
             Province.SANTA_FE, Money.of(5_300_000)));
-        assertThat(subject.page(Optional.of(OrderStatus.SHIPPED), 0, 10)).isEmpty();
+        assertThat(subject.page(OrderFilter.inStatus(OrderStatus.SHIPPED), 0, 10)).isEmpty();
     }
 
     @Test
@@ -221,15 +222,89 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
         return new StatusChange(from, to, number, StockEffect.NONE);
     }
 
+    private static OrderFilter searching(OrderSearch search) {
+        return new OrderFilter(Optional.empty(), Optional.of(search), Optional.empty(), Optional.empty());
+    }
+
+    private List<OrderId> idsOf(OrderFilter filter) {
+        return subject.page(filter, 0, 10).stream().map(OrderSummary::id).toList();
+    }
+
+    @Test
+    void givenTwoOrders_whenSearchedByNumber_thenOnlyThatOneIsListed() {
+        NewOrder first = placed(NOW, Optional.empty());
+        NewOrder second = placed(NOW.plusSeconds(1), Optional.empty());
+
+        assertThat(idsOf(searching(new OrderSearch.ByNumber(second.number())))).containsExactly(second.id());
+        assertThat(idsOf(searching(new OrderSearch.ByNumber(first.number() + 1_000)))).isEmpty();
+    }
+
+    @Test
+    void givenABuyerWithAccents_whenSearchedByAnyPartOfTheNameOrEmail_thenCaseAndAccentsDoNotMatter() {
+        NewOrder maria = placed(NOW, Optional.empty(), new BuyerDetails("María José", "Pérez",
+            "majo.perez@example.com", "3425551234", "12345678"));
+        placed(NOW.plusSeconds(1), Optional.empty(), new BuyerDetails("Juan", "Gómez", "juan@example.com",
+            "3425559999", "87654321"));
+
+        for (String text : List.of("pérez", "PEREZ", "maria jose", "maria jose perez", "MAJO.PEREZ@", "josé")) {
+            assertThat(idsOf(searching(new OrderSearch.ByBuyer(text)))).as(text).containsExactly(maria.id());
+        }
+        assertThat(idsOf(searching(new OrderSearch.ByBuyer("lópez")))).isEmpty();
+    }
+
+    @Test
+    void givenWildcardCharacters_whenSearched_thenTheyAreLiteral() {
+        placed(NOW, Optional.empty(), new BuyerDetails("Ana", "Pérez", "ana@example.com", "3425551234",
+            "12345678"));
+
+        assertThat(idsOf(searching(new OrderSearch.ByBuyer("a%")))).isEmpty();
+        assertThat(idsOf(searching(new OrderSearch.ByBuyer("an_")))).isEmpty();
+        assertThat(idsOf(searching(new OrderSearch.ByBuyer("a\\")))).isEmpty();
+    }
+
+    @Test
+    void givenOrdersAroundAPeriod_whenFiltered_thenTheStartIsInsideAndTheEndIsOutside() {
+        Instant start = NOW;
+        Instant end = NOW.plusSeconds(3600);
+        NewOrder before = placed(start.minusNanos(1_000), Optional.empty());
+        NewOrder atStart = placed(start, Optional.empty());
+        NewOrder lastInside = placed(end.minusNanos(1_000), Optional.empty());
+        NewOrder atEnd = placed(end, Optional.empty());
+
+        assertThat(idsOf(new OrderFilter(Optional.empty(), Optional.empty(), Optional.of(start), Optional.of(end))))
+            .containsExactly(lastInside.id(), atStart.id());
+        assertThat(idsOf(new OrderFilter(Optional.empty(), Optional.empty(), Optional.of(end), Optional.empty())))
+            .containsExactly(atEnd.id());
+        assertThat(idsOf(new OrderFilter(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(start))))
+            .containsExactly(before.id());
+    }
+
+    @Test
+    void givenASearchAndAStatus_whenCombined_thenOnlyOrdersMatchingBothAreListed() {
+        NewOrder paid = placed(NOW, Optional.empty());
+        placed(NOW.plusSeconds(1), Optional.empty());
+        subject.transition(paid.id(), OrderStatus.AWAITING_PAYMENT, OrderStatus.PAID, NOW.plusSeconds(2));
+        persistAndForget();
+
+        assertThat(idsOf(new OrderFilter(Optional.of(OrderStatus.PAID), Optional.of(new OrderSearch.ByBuyer("pérez")),
+            Optional.empty(), Optional.empty()))).containsExactly(paid.id());
+    }
+
     /** A guest's order placed at {@code createdAt}: ARS 50,000 of lines, ARS 3,000 of shipping. */
     protected NewOrder placed(Instant createdAt, Optional<AppliedCoupon> coupon) {
+        return placed(createdAt, coupon, new BuyerDetails("Ana María", "Pérez", "ana@example.com", "3425551234",
+            "12345678"));
+    }
+
+    /** The same order for {@code buyer}. */
+    protected NewOrder placed(Instant createdAt, Optional<AppliedCoupon> coupon, BuyerDetails buyer) {
         byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
         var token = new TrackingToken(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes));
         tokenIssued(token);
         Money discount = coupon.isPresent() ? Money.of(500_000) : Money.zero();
         NewOrder order = new NewOrder(OrderId.of(UUID.randomUUID()), subject.next(), token.hash(), Optional.empty(),
-            new BuyerDetails("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"),
+            buyer,
             new ShippingAddress("San Martín", "1234", Optional.of("3"), Optional.of("B"), "Santa Fe", "S3000ABC"),
             Province.SANTA_FE, LINES, OrderAmounts.of(Money.of(5_000_000), discount, Money.of(300_000)), coupon,
             PaymentProvider.MERCADOPAGO, "2026-10", createdAt, StockHold.expiryOf(createdAt));

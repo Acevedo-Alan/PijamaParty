@@ -608,9 +608,6 @@
 }
 
 /* UC-18: the orders */
-.order-filter {
-  max-width: 320px;
-}
 
 .order-total {
   margin-left: auto;

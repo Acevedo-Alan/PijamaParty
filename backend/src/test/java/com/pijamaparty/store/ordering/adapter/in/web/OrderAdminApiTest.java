@@ -24,6 +24,8 @@ import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -38,6 +40,9 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -111,6 +116,44 @@ class OrderAdminApiTest {
         mvc.perform(get(ORDERS).with(ADMIN))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items[*].number", contains((int) waiting.number(), (int) paid.number())));
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void givenTwoOrders_whenSearchedByNumberNameOrToday_thenTheMatchesComeAndTheSearchIsNeverLogged(
+        CapturedOutput logs) throws Exception {
+        Placed first = placeOrder();
+        pay(first);
+        Placed second = placeOrder();
+        String today = LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires")).toString();
+
+        mvc.perform(get(ORDERS).param("q", "#" + second.number()).with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[*].number", contains((int) second.number())));
+        mvc.perform(get(ORDERS).param("q", String.valueOf(first.number())).with(ADMIN))
+            .andExpect(jsonPath("$.items[*].number", contains((int) first.number())));
+        mvc.perform(get(ORDERS).param("q", "PEREZ").param("status", "PAID").param("from", today)
+                .param("to", today).with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[*].number", contains((int) first.number())));
+        mvc.perform(get(ORDERS).param("q", "100%_buscado").with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items").isEmpty());
+        mvc.perform(get(ORDERS).param("q", "x").with(ADMIN))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.problem").value("INVALID_SEARCH"));
+
+        assertThat(logs.getAll()).doesNotContain("PEREZ", "100%_buscado");
+    }
+
+    @Test
+    void givenDatesOutOfShape_whenListing_thenTheyAreBadRequests() throws Exception {
+        mvc.perform(get(ORDERS).param("from", "2026-10-11").param("to", "2026-10-10").with(ADMIN))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.problem").value("INVALID_PERIOD"));
+        mvc.perform(get(ORDERS).param("from", "11/10/2026").with(ADMIN)).andExpect(status().isBadRequest());
+        mvc.perform(get(ORDERS).param("q", "a".repeat(101)).with(ADMIN)).andExpect(status().isBadRequest());
     }
 
     @Test

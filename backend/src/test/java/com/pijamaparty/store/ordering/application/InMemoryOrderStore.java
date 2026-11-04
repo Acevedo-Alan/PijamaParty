@@ -8,20 +8,24 @@ import com.pijamaparty.store.ordering.api.PaidOrders.Line;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
 import com.pijamaparty.store.ordering.application.OrderStatuses.LockedOrder;
 import com.pijamaparty.store.ordering.domain.OrderId;
+import com.pijamaparty.store.ordering.domain.OrderSearch;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
 import com.pijamaparty.store.ordering.domain.ShipmentTrackingNumber;
 import com.pijamaparty.store.ordering.domain.StatusChange;
 import com.pijamaparty.store.platform.domain.AccessToken.TrackingToken;
 import com.pijamaparty.store.platform.domain.UserId;
+import java.text.Normalizer;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * Fake of {@link OverdueOrders}, {@link OrderTransitions}, {@link SaveOrders}, {@link OrderNumbers},
@@ -198,9 +202,12 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
 
     /** Only the orders the checkout placed carry what the list shows. */
     @Override
-    public synchronized List<OrderSummary> page(Optional<OrderStatus> status, int offset, int limit) {
+    public synchronized List<OrderSummary> page(OrderFilter filter, int offset, int limit) {
         return placed.values().stream()
-            .filter(order -> status.isEmpty() || orders.get(order.id()).status() == status.get())
+            .filter(order -> filter.status().isEmpty() || orders.get(order.id()).status() == filter.status().get())
+            .filter(order -> filter.search().isEmpty() || matches(order, filter.search().get()))
+            .filter(order -> filter.createdFrom().filter(from -> order.createdAt().isBefore(from)).isEmpty())
+            .filter(order -> filter.createdBefore().filter(before -> !order.createdAt().isBefore(before)).isEmpty())
             .sorted(Comparator.comparing(NewOrder::createdAt).thenComparing(NewOrder::number).reversed())
             .skip(offset)
             .limit(limit)
@@ -208,6 +215,22 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
                 orders.get(order.id()).status(), fullNameOf(order), order.address().city(), order.province(),
                 order.amounts().total()))
             .toList();
+    }
+
+    /** As PostgreSQL's lower(unaccent(...)) LIKE '%text%': every character literal. */
+    private boolean matches(NewOrder order, OrderSearch search) {
+        return switch (search) {
+            case OrderSearch.ByNumber byNumber -> order.number() == byNumber.number();
+            case OrderSearch.ByBuyer byBuyer -> {
+                String text = folded(byBuyer.text());
+                yield Stream.of(order.buyer().firstName(), order.buyer().lastName(), fullNameOf(order),
+                    buyerEmailOf(order)).anyMatch(value -> folded(value).contains(text));
+            }
+        };
+    }
+
+    private static String folded(String text) {
+        return Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
     }
 
     @Override

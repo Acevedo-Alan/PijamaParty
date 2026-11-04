@@ -115,7 +115,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - The low-stock threshold comes from the `LowStockThreshold` port through an adapter that answers the default of D-E8-03, 3 units, until T-E8-04 backs it with `settings.api.StoreSettings`.
   - `catalog.api.LowStockVariants` is written here; T-E8-09 reuses it for the Stock screen. Until that screen exists, the low-stock link and the sold-out count of "Para hacer hoy" lead to the product list.
   - The totals show the published products only; the registered customers join them with T-E8-10, which brings the RLS change `CustomerCounts` needs.
-  - No migration of its own: the `orders (created_at DESC)` index of T-E8-06 also serves the period sums (a btree reads both ways), and V42 and V43 stay with T-E8-04 and T-E8-10. Until T-E8-06, the sums scan under 10,000 rows a year.
+  - No migration of its own: the `orders (created_at DESC)` index (`orders_created_idx`, which T-E8-06 found already there since V20) also serves the period sums (a btree reads both ways), and V42 and V43 stay with T-E8-04 and T-E8-10.
 - **Module graph:** `backoffice` adds `accounts`, `reviews` and `settings` to its dependencies (`reviews` now; `accounts` with T-E8-10 and `settings` with T-E8-04). Nobody depends on `backoffice`, so no cycle.
 - **Endpoint:** `GET /api/admin/dashboard?chart=DAYS|MONTHS&period=TODAY|LAST_7_DAYS|MONTH|CUSTOM&from=&to=` (default `MONTH`; `from` and `to` only with `CUSTOM`, both required then) → `200` with the blocks (amounts in cents; the sales block carries its period, its dates and the average ticket); `400` problem for another `chart` or `period`, or an invalid custom period. OpenAPI is updated.
 - **Recent activity** reads `GET /api/admin/activity` (UC-37), the first page, newest first, and shows 5: no new port, and `backoffice` does not depend on `activity`.
@@ -329,7 +329,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 ## Changes to UC-18 (orders: search and packing slip)
 
 **Business rules (new)**
-- **Search** (`q`): when it is an order number (`1001` or `#1001`, the `OrderNumberText` rule of UC-29), it finds that order. Otherwise, 2 to 100 characters, it matches orders whose buyer first name, last name or email contains it, ignoring case and accents, with `%`, `_` and `\` literal.
+- **Search** (`q`): when it is an order number (`1001` or `#1001`, the `OrderNumberText` rule of UC-29), it finds that order. Otherwise, 2 to 100 characters after trimming, it matches orders whose buyer first name, last name, full name (first name, a space, last name: "María José Pérez"; decided on 2026-11-04) or email contains it, ignoring case and accents, with `%`, `_` and `\` literal. Any other text (1 character, over 100) is a `400`.
 - **Date filter:** `from` and `to`, optional Argentina dates on `created_at`, both inclusive.
 - Search, dates and status combine. The list keeps its order (newest first) and its 50 per page, and all three are kept in the URL.
 - **Packing slip** (D-E8-10): "Imprimir remito" on the order detail, for orders in `PAID`, `PREPARING`, `SHIPPED` or `DELIVERED`. It opens a print page with the store name, order number and date, the lines (product, size, color, quantity, SKU), the buyer's name and phone, the shipping address, and the tracking number when there is one. It has no prices, so it can go inside the parcel. The print dialog opens on load, and the page has a "Volver al pedido" link.
@@ -337,6 +337,8 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 **Acceptance criteria**
 - Given orders #1001 and #1002, when searching `#1002` or `1002`, then only #1002 shows.
 - Given a buyer "María José" "Pérez", when searching `pérez`, then her orders show.
+- Given the same buyer, when searching `maria jose perez`, then her orders show; searching `100%` matches only a literal `100%`.
+- Given a search of 1 character or over 100, when sent, then it is `400`.
 - Given a date filter from 2026-10-10 to 2026-10-10 and an order at 23:59 Argentina time that day, when applied, then it shows; one at 00:00 on the 11th does not.
 - Given a search and the `PAID` filter, when both are applied, then only paid orders matching the search show.
 - Given a `PREPARING` order, when "Imprimir remito" opens, then the page shows the lines, name, phone and address, and no amount.
@@ -344,7 +346,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given a search, when the request is logged, then the log line has no `q` value.
 
 **Design notes**
-- `ListOrders.Query` gains `q`, `from` and `to`. `OrderPages` builds one constant SQL text with optional conditions (`(:number IS NULL OR number = :number)`, `(:pattern IS NULL OR lower(unaccent(customer_first_name)) LIKE :pattern ESCAPE '\' OR ...)`), never by concatenation (RNF-28, the Semgrep gate). A new index on `orders (created_at DESC)` is shared with UC-33.
+- `ListOrders.Query` gains `q`, `from` and `to`. `OrderPages` builds one constant SQL text with optional conditions (`(:number IS NULL OR number = :number)`, `(:pattern IS NULL OR lower(unaccent(customer_first_name)) LIKE :pattern ESCAPE '\' OR ...)`), never by concatenation (RNF-28, the Semgrep gate). The index on `orders (created_at DESC)` already exists (`orders_created_idx`, V20) and serves both the list and UC-33, so T-E8-06 has no migration. The dates become instants with the store zone of the `Clock` (as UC-37's `ActivityPeriod`): from 00:00 of `from` to 00:00 of the day after `to`, exclusive.
 - `GET /api/admin/orders?status=&q=&from=&to=&page=` → `200`; `400` for an invalid `q`, a bad date or `from` after `to`.
 - The packing slip needs no endpoint: `/admin/pedidos/:orderId/remito` reads the existing `GET /api/admin/orders/{id}` and uses print CSS (`@media print`: no admin menu, black on white, A4 and a 10 cm label width). It is not recorded as activity, because it changes nothing.
 

@@ -1675,8 +1675,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * The orders, newest first, optionally only those in a status
-         * @description 50 per page, from page 0.
+         * The orders, newest first, filtered by status, search and dates, each optional
+         * @description 50 per page, from page 0. `q` is an order number (1001 or #1001) or 2 to 100 characters that the buyer's first name, last name, full name or email contains, ignoring case and accents, every character literal. `from` and `to` are store dates (America/Argentina/Buenos_Aires) of the order's creation, both inclusive. The search is personal data: it is never logged.
          */
         get: operations["list_5"];
         put?: never;
@@ -7472,6 +7472,9 @@ export interface operations {
         parameters: {
             query?: {
                 status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+                q?: string;
+                from?: string;
+                to?: string;
                 page?: number;
             };
             header?: never;
@@ -7489,7 +7492,7 @@ export interface operations {
                     "application/json": components["schemas"]["OrderPageResponse"];
                 };
             };
-            /** @description Unknown status or page out of range */
+            /** @description Unknown status, page out of range, INVALID_SEARCH (1 character or over 100 and not an order number), a date that is not yyyy-MM-dd, or INVALID_PERIOD (from after to) */
             400: {
                 headers: {
                     [name: string]: unknown;

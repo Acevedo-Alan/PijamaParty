@@ -20,9 +20,11 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -60,17 +62,29 @@ class OrderAdminController {
     }
 
     @GetMapping
-    @Operation(summary = "The orders, newest first, optionally only those in a status",
-        description = "50 per page, from page 0.")
+    @Operation(summary = "The orders, newest first, filtered by status, search and dates, each optional",
+        description = "50 per page, from page 0. `q` is an order number (1001 or #1001) or 2 to 100 characters that "
+            + "the buyer's first name, last name, full name or email contains, ignoring case and accents, every "
+            + "character literal. `from` and `to` are store dates (America/Argentina/Buenos_Aires) of the order's "
+            + "creation, both inclusive. The search is personal data: it is never logged.")
     @ApiResponse(responseCode = "200", description = "One page of orders", content = @Content(
         mediaType = "application/json", schema = @Schema(implementation = OrderPageResponse.class)))
-    @ApiResponse(responseCode = "400", description = "Unknown status or page out of range",
+    @ApiResponse(responseCode = "400", description = "Unknown status, page out of range, INVALID_SEARCH (1 character "
+        + "or over 100 and not an order number), a date that is not yyyy-MM-dd, or INVALID_PERIOD (from after to)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> list(@RequestParam(required = false) OrderStatus status,
+                           @RequestParam(required = false) String q,
+                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Optional<LocalDate> from,
+                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Optional<LocalDate> to,
                            @RequestParam(defaultValue = "0") @Min(0) @Max(MAX_PAGE) int page) {
-        return switch (listOrders.execute(new ListOrders.Query(actor(), Optional.ofNullable(status), page))) {
+        var query = new ListOrders.Query(actor(), Optional.ofNullable(status), Optional.ofNullable(q), from, to, page);
+        return switch (listOrders.execute(query)) {
             case ListOrders.Result.Listed listed -> ResponseEntity.ok(new OrderPageResponse(
                 listed.orders().stream().map(OrderSummaryResponse::of).toList(), listed.hasMore()));
+            case ListOrders.Result.InvalidSearch invalid -> problem(HttpStatus.BAD_REQUEST, "Invalid search",
+                "An order number, or 2 to 100 characters of the buyer's name or email.", "INVALID_SEARCH");
+            case ListOrders.Result.InvalidPeriod invalid -> problem(HttpStatus.BAD_REQUEST, "Invalid period",
+                "`from` must not be after `to`.", "INVALID_PERIOD");
             case ListOrders.Result.Forbidden forbidden -> forbidden();
         };
     }

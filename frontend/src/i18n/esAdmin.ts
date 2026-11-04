@@ -419,6 +419,16 @@ export const esAdmin = {
     all: 'Todos',
     empty: 'No hay pedidos.',
     emptyInStatus: 'No hay pedidos en este estado.',
+    emptyFiltered: 'No hay pedidos con estos filtros.',
+    /** T-E8-06: the search and the dates. */
+    filters: 'Buscar pedidos',
+    search: 'Buscar',
+    searchHint: 'Número de pedido, o nombre, apellido o email del comprador.',
+    searchInvalid: 'Escribí un número de pedido o al menos 2 letras.',
+    from: 'Desde',
+    to: 'Hasta',
+    invalidPeriod: 'La fecha "Desde" no puede ser posterior a "Hasta".',
+    apply: 'Buscar',
     /** The order number, e.g. "#1001". */
     number: (number: number) => `#${String(number)}`,
     /** Who and where, e.g. "Ana Pérez · Santa Fe, Santa Fe". */

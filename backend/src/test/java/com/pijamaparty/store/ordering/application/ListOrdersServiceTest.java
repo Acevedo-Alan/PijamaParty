@@ -17,7 +17,10 @@ import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.domain.Money;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.shipping.api.Province;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,10 +30,11 @@ import org.junit.jupiter.api.Test;
 class ListOrdersServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-13T18:00:00Z");
+    private static final ZoneId STORE_ZONE = ZoneId.of("America/Argentina/Buenos_Aires");
     private static final Actor ADMIN = Actor.admin(UserId.of(UUID.randomUUID()));
 
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
-    private final ListOrdersService service = new ListOrdersService(orders);
+    private final ListOrdersService service = new ListOrdersService(orders, Clock.fixed(NOW, STORE_ZONE));
 
     @Test
     void givenTheListOfOrders_whenFilteredByPaid_thenOnlyPaidOrdersAppear() {
@@ -62,14 +66,96 @@ class ListOrdersServiceTest {
         });
     }
 
+    private List<OrderId> listed(Query query) {
+        Result result = service.execute(query);
+        assertThat(result).isInstanceOf(Result.Listed.class);
+        return ((Result.Listed) result).orders().stream().map(OrderSummary::id).toList();
+    }
+
+    private static Query searching(String q) {
+        return new Query(ADMIN, Optional.empty(), Optional.of(q), Optional.empty(), Optional.empty(), 0);
+    }
+
+    @Test
+    void givenOrdersOneAndTwo_whenSearchingTheNumberWithOrWithoutTheHash_thenOnlyThatOneIsListed() {
+        OrderId first = placed(0);
+        OrderId second = placed(1);
+        long secondNumber = numberOf(second);
+
+        assertThat(listed(searching("#" + secondNumber))).containsExactly(second);
+        assertThat(listed(searching(" " + secondNumber + " "))).containsExactly(second);
+        assertThat(listed(searching(String.valueOf(numberOf(first))))).containsExactly(first);
+    }
+
+    @Test
+    void givenABuyer_whenSearchingHerLastNameWithoutAccents_thenHerOrdersAreListed() {
+        OrderId order = placed(0);
+
+        assertThat(listed(searching("perez"))).containsExactly(order);
+        assertThat(listed(searching("  ana maría  "))).containsExactly(order);
+        assertThat(listed(searching("gómez"))).isEmpty();
+    }
+
+    @Test
+    void givenASearchOf1CharacterOrOver100_whenListing_thenItIsInvalid() {
+        assertThat(service.execute(searching("a"))).isEqualTo(new Result.InvalidSearch());
+        assertThat(service.execute(searching("a".repeat(101)))).isEqualTo(new Result.InvalidSearch());
+        assertThat(service.execute(searching("a".repeat(100)))).isInstanceOf(Result.Listed.class);
+        assertThat(service.execute(searching("   "))).isInstanceOf(Result.Listed.class);
+    }
+
+    @Test
+    void givenADayInArgentina_whenFiltered_thenAnOrderAt2359IsInsideAndOneAtMidnightOfTheNextDayIsNot() {
+        // 2026-10-10 23:59 and 2026-10-11 00:00 in Argentina (UTC-3).
+        OrderId lastMinute = placedAt(Instant.parse("2026-10-11T02:59:00Z"));
+        placedAt(Instant.parse("2026-10-11T03:00:00Z"));
+        OrderId firstMinute = placedAt(Instant.parse("2026-10-10T03:00:00Z"));
+        placedAt(Instant.parse("2026-10-10T02:59:59Z"));
+        LocalDate day = LocalDate.of(2026, 10, 10);
+
+        assertThat(listed(new Query(ADMIN, Optional.empty(), Optional.empty(), Optional.of(day), Optional.of(day), 0)))
+            .containsExactly(lastMinute, firstMinute);
+    }
+
+    @Test
+    void givenFromAfterTo_whenListing_thenThePeriodIsInvalid() {
+        var query = new Query(ADMIN, Optional.empty(), Optional.empty(), Optional.of(LocalDate.of(2026, 10, 11)),
+            Optional.of(LocalDate.of(2026, 10, 10)), 0);
+
+        assertThat(service.execute(query)).isEqualTo(new Result.InvalidPeriod());
+    }
+
+    @Test
+    void givenASearchAndTheStatusPaid_whenBothApply_thenOnlyPaidOrdersMatchingTheSearchAreListed() {
+        OrderId paid = placed(0);
+        placed(1);
+        orders.transition(paid, OrderStatus.AWAITING_PAYMENT, OrderStatus.PAID, NOW);
+
+        assertThat(listed(new Query(ADMIN, Optional.of(OrderStatus.PAID), Optional.of("pérez"), Optional.empty(),
+            Optional.empty(), 0))).containsExactly(paid);
+    }
+
+    @Test
+    void givenASearch_whenTheQueryIsPrinted_thenItDoesNotCarryTheText() {
+        assertThat(searching("ana@example.com").toString()).doesNotContain("ana@example.com");
+    }
+
     @Test
     void givenSomeoneButTheAdministrator_whenListing_thenItIsForbidden() {
         assertThat(service.execute(new Query(Actor.system(), Optional.empty(), 0))).isEqualTo(new Result.Forbidden());
     }
 
     /** An order placed {@code minutes} after NOW. */
+    private long numberOf(OrderId order) {
+        return orders.page(OrderFilter.ALL, 0, 100).stream().filter(row -> row.id().equals(order)).findFirst()
+            .orElseThrow().number();
+    }
+
     private OrderId placed(int minutes) {
-        Instant at = NOW.plusSeconds(60L * minutes);
+        return placedAt(NOW.plusSeconds(60L * minutes));
+    }
+
+    private OrderId placedAt(Instant at) {
         OrderId id = OrderId.of(UUID.randomUUID());
         orders.insert(new NewOrder(id, orders.next(), hashLike(), Optional.empty(),
             new BuyerDetails("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"),

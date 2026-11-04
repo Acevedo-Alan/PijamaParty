@@ -87,3 +87,8 @@ export function FieldInput({ className, ...props }: Omit<ComponentProps<'input'>
   const control = useFieldControl('FieldInput');
   return <input className={cn(FIELD_CONTROL, className)} {...control} {...props} />;
 }
+
+export function FieldSelect({ className, ...props }: Omit<ComponentProps<'select'>, 'id'>) {
+  const control = useFieldControl('FieldSelect');
+  return <select className={cn(FIELD_CONTROL, 'pr-8', className)} {...control} {...props} />;
+}
