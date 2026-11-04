@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { memo, useId, useMemo, useRef, useState, type SubmitEvent } from 'react';
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type SubmitEvent } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
@@ -19,6 +19,7 @@ import {
   type StockRow,
 } from './stockApi.ts';
 import { useCategories } from './useCategories.ts';
+import { useUnsavedWarning } from './useUnsavedWarning.ts';
 
 const messages = esAdmin.stockOverview;
 const FILTER_PARAM = 'filtro';
@@ -60,18 +61,32 @@ function refusal(answer: Exclude<AdjustAnswer, { status: 'adjusted' }>): Notice 
   }
 }
 
-/** One attempt of a quick adjustment: its key goes again only with the same sign, quantity and note. */
+/** The buttons of a row that save: subtract, add, and undo a saved subtraction. */
+type Action = -1 | 1 | 'undo';
+
+/**
+ * One attempt of a quick adjustment: its key goes again only from the same button with the same quantity and note,
+ * after a lost connection.
+ */
 interface Attempt {
   key: string;
+  action: Action;
   quantity: number;
   note: string;
 }
 
+interface StockRowProps {
+  row: StockRow;
+  opened: ListReturn;
+  /** Tells the screen whether the row has a quantity or note not saved yet. Stable across renders. */
+  onUnsaved: (variantId: string, unsaved: boolean) => void;
+}
+
 /**
  * A row of the Stock screen with its quick adjustment (UC-07). After a saved adjustment the row shows the units of the
- * answer until the list is read again, and keeps its place.
+ * answer until the list is read again, and keeps its place; a saved subtraction can be undone.
  */
-const StockRowItem = memo(function StockRowItem({ row, opened }: { row: StockRow; opened: ListReturn }) {
+const StockRowItem = memo(function StockRowItem({ row, opened, onUnsaved }: StockRowProps) {
   const queryClient = useQueryClient();
   const quantityId = useId();
   const quantityErrorId = useId();
@@ -83,7 +98,9 @@ const StockRowItem = memo(function StockRowItem({ row, opened }: { row: StockRow
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   // The button pressed while its adjustment is on its way.
-  const [saving, setSaving] = useState<1 | -1 | null>(null);
+  const [saving, setSaving] = useState<Action | null>(null);
+  // The units of the last saved subtraction, which "Deshacer" adds back.
+  const [undoable, setUndoable] = useState<number | null>(null);
   // The units saved from this row, for the row as the list read it; a new reading of the list replaces them.
   const [saved, setSaved] = useState<{ from: StockRow; onHand: number } | null>(null);
   const savedHere = saved !== null && saved.from === row ? saved : null;
@@ -91,6 +108,59 @@ const StockRowItem = memo(function StockRowItem({ row, opened }: { row: StockRow
   const onHand = savedHere === null ? row.onHand : savedHere.onHand;
   const available = savedHere === null ? row.available : savedHere.onHand - row.reserved;
   const variant = messages.variant(row.size, row.color);
+
+  // A row leaving the list (other filters, a new reading) takes its unsaved changes with it.
+  useEffect(
+    () => () => {
+      onUnsaved(row.variantId, false);
+    },
+    [onUnsaved, row.variantId],
+  );
+
+  /** Sets the quantity and the note, and tells the screen at once whether they are unsaved (not 1, or a note). */
+  function edit(next: { quantity?: string; note?: string }) {
+    const nextQuantity = next.quantity ?? quantity;
+    const nextNote = next.note ?? note;
+    setQuantity(nextQuantity);
+    setNote(nextNote);
+    onUnsaved(row.variantId, nextQuantity !== '1' || nextNote !== '');
+  }
+
+  async function send(action: Action, signed: number, trimmed: string) {
+    const current =
+      attempt?.action === action && attempt.quantity === signed && attempt.note === trimmed
+        ? attempt
+        : { key: newIdempotencyKey(), action, quantity: signed, note: trimmed };
+    setAttempt(current);
+    setSaving(action);
+    setNotice(null);
+    try {
+      const answer = await adjustStock(row.variantId, signed, trimmed, current.key);
+      // Answered: the next press is another adjustment, with its own key.
+      setAttempt(null);
+      if (answer.status === 'adjusted') {
+        setSaved({ from: row, onHand: answer.onHand });
+        // A saved adjustment is the row's next one: only a subtraction can be undone, and only the last.
+        setUndoable(action === -1 ? -signed : null);
+        if (action === 'undo') {
+          // "Deshacer" goes away with the focus on it: the focus moves to the row's quantity.
+          quantityField.current?.focus();
+        } else {
+          edit({ quantity: '1', note: '' });
+        }
+        setNotice({ kind: 'ok', text: esAdmin.stock.adjusted(answer.onHand) });
+        void queryClient.invalidateQueries({ queryKey: ['admin', 'stock', row.variantId] });
+      } else {
+        // A refused attempt saves nothing, so a subtraction saved before can still be undone.
+        setNotice(refusal(answer));
+      }
+    } catch {
+      // The same key goes again with the next press of the same button; an undo stays possible.
+      setNotice({ kind: 'error', text: messages.connectionLost });
+    } finally {
+      setSaving(null);
+    }
+  }
 
   async function save(sign: 1 | -1) {
     const units = parseQuantity(quantity);
@@ -101,32 +171,12 @@ const StockRowItem = memo(function StockRowItem({ row, opened }: { row: StockRow
       return;
     }
     setQuantityInvalid(false);
-    const signed = sign * units;
-    const trimmed = note.trim();
-    const current =
-      attempt !== null && attempt.quantity === signed && attempt.note === trimmed
-        ? attempt
-        : { key: newIdempotencyKey(), quantity: signed, note: trimmed };
-    setAttempt(current);
-    setSaving(sign);
-    setNotice(null);
-    try {
-      const answer = await adjustStock(row.variantId, signed, trimmed, current.key);
-      // Answered: the next press is another adjustment, with its own key.
-      setAttempt(null);
-      if (answer.status === 'adjusted') {
-        setSaved({ from: row, onHand: answer.onHand });
-        setNote('');
-        setNotice({ kind: 'ok', text: esAdmin.stock.adjusted(answer.onHand) });
-        void queryClient.invalidateQueries({ queryKey: ['admin', 'stock', row.variantId] });
-      } else {
-        setNotice(refusal(answer));
-      }
-    } catch {
-      // The same key goes again with the next press of the same button.
-      setNotice({ kind: 'error', text: messages.connectionLost });
-    } finally {
-      setSaving(null);
+    await send(sign, sign * units, note.trim());
+  }
+
+  async function undo() {
+    if (undoable !== null) {
+      await send('undo', undoable, '');
     }
   }
 
@@ -177,7 +227,7 @@ const StockRowItem = memo(function StockRowItem({ row, opened }: { row: StockRow
             aria-invalid={quantityInvalid || undefined}
             aria-describedby={quantityInvalid ? quantityErrorId : undefined}
             onChange={(event) => {
-              setQuantity(event.target.value);
+              edit({ quantity: event.target.value });
             }}
           />
           {quantityInvalid && (
@@ -195,7 +245,7 @@ const StockRowItem = memo(function StockRowItem({ row, opened }: { row: StockRow
             value={note}
             maxLength={200}
             onChange={(event) => {
-              setNote(event.target.value);
+              edit({ note: event.target.value });
             }}
           />
         </div>
@@ -213,6 +263,16 @@ const StockRowItem = memo(function StockRowItem({ row, opened }: { row: StockRow
           </button>
         </div>
         <Feedback notice={notice} />
+        {undoable !== null && (
+          <button
+            type="button"
+            className="btn btn-secondary stock-undo"
+            disabled={saving !== null}
+            onClick={() => void undo()}
+          >
+            {saving === 'undo' ? esAdmin.stock.submitting : messages.undo(undoable)}
+          </button>
+        )}
       </form>
       <Link to={`/admin/productos/${row.productId}/variantes/${row.variantId}/stock`} state={opened}>
         {messages.history}
@@ -231,6 +291,23 @@ export function StockOverviewPage() {
   // The variant's history returns here with the same filters.
   const { search: listSearch } = useLocation();
   const opened = useMemo(() => listReturn(listSearch, STOCK_LIST), [listSearch]);
+  // The rows with a quantity or note not saved yet: leaving, changing the filters or reloading asks first.
+  const [unsavedRows, setUnsavedRows] = useState<ReadonlySet<string>>(() => new Set());
+  const reportUnsaved = useCallback((variantId: string, unsaved: boolean) => {
+    setUnsavedRows((rows) => {
+      if (rows.has(variantId) === unsaved) {
+        return rows;
+      }
+      const next = new Set(rows);
+      if (unsaved) {
+        next.add(variantId);
+      } else {
+        next.delete(variantId);
+      }
+      return next;
+    });
+  }, []);
+  useUnsavedWarning(unsavedRows.size > 0, messages.unsavedChanges);
   const filter = filterOf(params);
   const [search, setSearch] = useState(filter.q ?? '');
   const [searchInvalid, setSearchInvalid] = useState(false);
@@ -350,7 +427,7 @@ export function StockOverviewPage() {
       {items.length > 0 && (
         <ul className="admin-list stock-rows">
           {items.map((row) => (
-            <StockRowItem key={row.variantId} row={row} opened={opened} />
+            <StockRowItem key={row.variantId} row={row} opened={opened} onUnsaved={reportUnsaved} />
           ))}
         </ul>
       )}

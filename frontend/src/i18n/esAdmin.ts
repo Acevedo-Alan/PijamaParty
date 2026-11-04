@@ -914,5 +914,9 @@ export const esAdmin = {
     connectionLost: 'Se cortó la conexión. Volvé a tocar el mismo botón: el ajuste no se va a duplicar.',
     history: 'Ver movimientos',
     backToStock: 'Volver a Stock',
+    /** Leaving the screen, or changing its filters, with a row not saved yet. */
+    unsavedChanges: 'Hay cambios sin guardar en el stock. ¿Salir igual?',
+    /** UC-07: adds back the units of the last saved subtraction. */
+    undo: (units: number) => `Deshacer (sumar ${units.toLocaleString('es-AR')})`,
   },
 } as const;

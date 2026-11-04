@@ -307,4 +307,138 @@ describe('Stock screen (UC-07, T-E8-09)', () => {
       '/admin/productos/p-1',
     );
   });
+
+  it('given −2 saved on 5 on hand, when "Deshacer" is pressed, then +2 is saved with a new key and the row shows 5 again', async () => {
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      [STOCK]: answer(200, { items: [row('M', 5, 0)], hasMore: false }),
+      [ADJUST]: [answer(201, { variantId: 'v-M', onHand: 3 }), answer(201, { variantId: 'v-M', onHand: 5 })],
+    });
+    renderRoute('/admin/stock');
+    await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
+
+    await press('M', `− ${messages.subtract}`, '2', 'Error de carga');
+    expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(3));
+    expect(rowOf('M').getByLabelText(messages.quantity)).toHaveValue(1);
+    expect(rowOf('M').getByLabelText(messages.note)).toHaveValue('');
+    await userEvent.click(rowOf('M').getByRole('button', { name: messages.undo(2) }));
+
+    expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(5));
+    expect(figure(rowOf('M'), messages.onHand)).toHaveTextContent('5');
+    expect(rowOf('M').queryByRole('button', { name: messages.undo(2) })).not.toBeInTheDocument();
+    const calls = api.callsTo(ADJUST);
+    expect(calls.map((call) => call.options.body)).toEqual([
+      { variantId: 'v-M', quantity: -2, note: 'Error de carga' },
+      { variantId: 'v-M', quantity: 2 },
+    ]);
+    expect(calls[1]?.options.params?.header?.['Idempotency-Key']).not.toBe(
+      calls[0]?.options.params?.header?.['Idempotency-Key'],
+    );
+  });
+
+  it('given an addition saved, when the row shows, then there is nothing to undo', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      [STOCK]: answer(200, { items: [row('M', 5, 0)], hasMore: false }),
+      [ADJUST]: answer(201, { variantId: 'v-M', onHand: 6 }),
+    });
+    renderRoute('/admin/stock');
+    await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
+
+    await press('M', `+ ${messages.add}`, '1');
+
+    expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(6));
+    expect(rowOf('M').queryByRole('button', { name: /Deshacer/ })).not.toBeInTheDocument();
+  });
+
+  it('given a note typed and not saved, when the screen is left, then it asks first and staying keeps the note', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      'GET /api/admin/catalog/products/{id}': answer(404, {}),
+      'GET /api/admin/variants/{id}/stock-movements': answer(200, { variantId: 'v-M', onHand: 5, items: [], hasMore: false }),
+      [STOCK]: answer(200, { items: [row('M', 5, 0)], hasMore: false }),
+    });
+    const { router } = renderRoute('/admin/stock');
+    await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
+    await userEvent.type(rowOf('M').getByLabelText(messages.note), 'Falta contar');
+    const history = rowOf('M').getByRole('link', { name: messages.history });
+
+    await userEvent.click(history);
+
+    expect(confirm).toHaveBeenCalledWith(esAdmin.stockOverview.unsavedChanges);
+    expect(router.state.location.pathname).toBe('/admin/stock');
+    expect(rowOf('M').getByLabelText(messages.note)).toHaveValue('Falta contar');
+
+    await userEvent.click(history);
+
+    await vi.waitFor(() => {
+      expect(router.state.location.pathname).toBe('/admin/productos/p-1/variantes/v-M/stock');
+    });
+  });
+
+  it('given nothing typed, when the filter changes, then it does not ask', async () => {
+    const confirm = vi.spyOn(window, 'confirm');
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      [STOCK]: answer(200, { items: [row('M', 5, 0)], hasMore: false }),
+    });
+    const { router } = renderRoute('/admin/stock');
+    await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
+
+    await userEvent.selectOptions(screen.getByLabelText(messages.filter), messages.filterNames.LOW);
+
+    expect(router.state.location.search).toBe('?filtro=LOW');
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('given a saved subtraction, when a later attempt is refused, then "Deshacer" stays; after an undo the focus is on the quantity', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      [STOCK]: answer(200, { items: [row('M', 5, 0)], hasMore: false }),
+      [ADJUST]: [
+        answer(201, { variantId: 'v-M', onHand: 3 }),
+        problem(409, { problem: 'WOULD_GO_NEGATIVE', onHand: 3 }),
+        answer(201, { variantId: 'v-M', onHand: 5 }),
+      ],
+    });
+    renderRoute('/admin/stock');
+    await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
+
+    await press('M', `− ${messages.subtract}`, '2');
+    expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(3));
+    await press('M', `− ${messages.subtract}`, '9');
+    expect(await rowOf('M').findByRole('alert')).toHaveTextContent(esAdmin.stock.wouldGoNegative(3));
+    await userEvent.click(rowOf('M').getByRole('button', { name: messages.undo(2) }));
+
+    expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(5));
+    expect(rowOf('M').getByLabelText(messages.quantity)).toHaveFocus();
+  });
+
+  it('given a quantity typed and not saved, when the filter changes, then it asks first and staying keeps the filter', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      [STOCK]: answer(200, { items: [row('M', 5, 0)], hasMore: false }),
+    });
+    const { router } = renderRoute('/admin/stock');
+    await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
+    const field = rowOf('M').getByLabelText(messages.quantity);
+    await userEvent.clear(field);
+    await userEvent.type(field, '4');
+
+    await userEvent.selectOptions(screen.getByLabelText(messages.filter), messages.filterNames.OUT);
+
+    expect(confirm).toHaveBeenCalledWith(esAdmin.stockOverview.unsavedChanges);
+    expect(router.state.location.search).toBe('');
+    expect(screen.getByLabelText(messages.filter)).toHaveValue('');
+    expect(rowOf('M').getByLabelText(messages.quantity)).toHaveValue(4);
+    expect(api.callsTo(STOCK)).toHaveLength(1);
+  });
 });

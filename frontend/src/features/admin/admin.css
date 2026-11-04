@@ -532,8 +532,13 @@
   }
 
   .stock-quick-adjust [role='status'],
-  .stock-quick-adjust [role='alert'] {
+  .stock-quick-adjust [role='alert'],
+  .stock-quick-adjust .stock-undo {
     grid-column: 1 / -1;
+  }
+
+  .stock-quick-adjust .stock-undo {
+    justify-self: start;
   }
 }
 
