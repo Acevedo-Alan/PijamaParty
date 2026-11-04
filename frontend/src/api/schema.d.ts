@@ -1738,6 +1738,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/catalog/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The active variants of every product with their stock, fewest available first
+         * @description 50 per page, from page 0, then by product name, size and color in display order. `filter` is ALL (the default), LOW (available above 0 and at or under the low-stock threshold of the store's settings) or OUT (none available); available is on hand minus reserved. `q` is 2 to 100 characters that the product's name contains, ignoring case and accents, every character literal, or the variant's whole SKU, ignoring case. Adjust with POST /api/admin/stock-adjustments.
+         */
+        get: operations["list_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/me": {
         parameters: {
             query?: never;
@@ -1766,7 +1786,7 @@ export interface paths {
          * The back-office changes, newest first
          * @description 50 per page, from page 0. Every area when `area` is absent; `from` and `to` are store dates (America/Argentina/Buenos_Aires), both inclusive and optional.
          */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1786,7 +1806,7 @@ export interface paths {
          * The customer's orders, newest first
          * @description 20 per page, from page 0. Not cached.
          */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2937,6 +2957,27 @@ export interface components {
         WorkloadCountsResponse: {
             /** Format: int64 */
             paidOrders?: number;
+        };
+        StockPageResponse: {
+            items?: components["schemas"]["StockRowResponse"][];
+            hasMore?: boolean;
+        };
+        StockRowResponse: {
+            /** Format: uuid */
+            variantId?: string;
+            /** Format: uuid */
+            productId?: string;
+            productName?: string;
+            size?: string;
+            color?: string;
+            sku?: string;
+            published?: boolean;
+            /** Format: int32 */
+            onHand?: number;
+            /** Format: int32 */
+            reserved?: number;
+            /** Format: int32 */
+            available?: number;
         };
         ProductPageResponse: {
             items?: components["schemas"]["ProductSummaryResponse"][];
@@ -7642,6 +7683,49 @@ export interface operations {
             };
         };
     };
+    list_6: {
+        parameters: {
+            query?: {
+                filter?: "ALL" | "LOW" | "OUT";
+                q?: string;
+                category?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of variants */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockPageResponse"];
+                };
+            };
+            /** @description Unknown filter, a category that is not a UUID, page out of range, or INVALID_SEARCH (1 character or over 100) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -7680,7 +7764,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: {
                 area?: "CATALOG" | "STOCK" | "ORDERS" | "PROMOTIONS" | "REVIEWS" | "SHIPPING" | "CONTENT" | "SETTINGS" | "CUSTOMERS" | "ACCOUNT";
@@ -7723,7 +7807,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: {
                 page?: number;

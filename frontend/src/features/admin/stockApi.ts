@@ -1,5 +1,5 @@
 import { api } from '../../api/client.ts';
-import type { components } from '../../api/schema.d.ts';
+import type { components, paths } from '../../api/schema.d.ts';
 import { ensureSignedIn, problemProperty } from './adminSession.ts';
 
 type MovementResponse = components['schemas']['MovementResponse'];
@@ -106,4 +106,81 @@ export async function adjustStock(
     throw failed('Stock adjustment', response);
   }
   return { status: 'adjusted', onHand: data.onHand };
+}
+
+type StockRowResponse = components['schemas']['StockRowResponse'];
+type StockListQuery = NonNullable<paths['/api/admin/catalog/stock']['get']['parameters']['query']>;
+export type StockFilter = NonNullable<StockListQuery['filter']>;
+
+/** UC-07 (T-E8-09): the stock levels the Stock screen filters by, besides every variant. */
+export const STOCK_FILTERS = ['LOW', 'OUT'] as const satisfies readonly StockFilter[];
+
+/** One row of the Stock screen: an active variant and its units (available is on hand minus reserved). */
+export interface StockRow {
+  variantId: string;
+  productId: string;
+  productName: string;
+  size: string;
+  color: string;
+  sku: string;
+  published: boolean;
+  onHand: number;
+  reserved: number;
+  available: number;
+}
+
+export interface StockListFilter {
+  filter: StockFilter;
+  q: string | null;
+  categoryId: string | null;
+}
+
+function toStockRow(row: StockRowResponse): StockRow {
+  const { variantId, productId, productName, size, color, sku } = row;
+  if (
+    variantId === undefined ||
+    productId === undefined ||
+    productName === undefined ||
+    size === undefined ||
+    color === undefined ||
+    sku === undefined
+  ) {
+    throw new Error('Incomplete stock row');
+  }
+  return {
+    variantId,
+    productId,
+    productName,
+    size,
+    color,
+    sku,
+    published: row.published === true,
+    onHand: row.onHand ?? 0,
+    reserved: row.reserved ?? 0,
+    available: row.available ?? 0,
+  };
+}
+
+/** One page of the active variants the filter lets through, fewest available first, 50 per page from 0. */
+export async function fetchStockOverview(
+  { filter, q, categoryId }: StockListFilter,
+  page: number,
+  signal?: AbortSignal,
+): Promise<{ items: StockRow[]; hasMore: boolean }> {
+  const { data, response } = await api.GET('/api/admin/catalog/stock', {
+    params: {
+      query: {
+        page,
+        ...(filter === 'ALL' ? {} : { filter }),
+        ...(q === null ? {} : { q }),
+        ...(categoryId === null ? {} : { category: categoryId }),
+      },
+    },
+    signal: signal ?? null,
+  });
+  ensureSignedIn(response);
+  if (data === undefined) {
+    throw failed('Stock overview', response);
+  }
+  return { items: (data.items ?? []).map(toStockRow), hasMore: data.hasMore === true };
 }

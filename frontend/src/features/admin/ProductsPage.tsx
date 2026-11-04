@@ -7,6 +7,7 @@ import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { fetchProductSummaries, PRODUCT_STATES, PRODUCT_STOCKS, type ProductListFilter } from './productsApi.ts';
 import { listReturn } from './listReturn.ts';
+import { isUuid, MAX_PRODUCT_SEARCH as MAX_SEARCH, validProductSearch as validSearch } from './productSearch.ts';
 import { useCategories } from './useCategories.ts';
 
 const messages = esAdmin.productList;
@@ -14,8 +15,6 @@ const SEARCH_PARAM = 'buscar';
 const CATEGORY_PARAM = 'categoria';
 const STATE_PARAM = 'estado';
 const STOCK_PARAM = 'stock';
-const MAX_SEARCH = 100;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * The filters in the address, so they survive opening a product and coming back. A search or category the server would
@@ -28,17 +27,10 @@ function filterOf(params: URLSearchParams): ProductListFilter {
   const categoryId = params.get(CATEGORY_PARAM) ?? '';
   return {
     q: q === '' || !validSearch(q) ? null : q,
-    categoryId: UUID.test(categoryId) ? categoryId : null,
+    categoryId: isUuid(categoryId) ? categoryId : null,
     state: PRODUCT_STATES.find((value) => value === state) ?? null,
     stock: PRODUCT_STOCKS.find((value) => value === stock) ?? null,
   };
-}
-
-/** UC-06: 2 to 100 characters of the name, or a SKU; blank is no search. */
-function validSearch(typed: string): boolean {
-  // Code points, as the server counts them.
-  const length = Array.from(typed.trim()).length;
-  return length === 0 || (length >= 2 && length <= MAX_SEARCH);
 }
 
 /**

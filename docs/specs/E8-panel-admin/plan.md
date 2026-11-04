@@ -27,10 +27,11 @@ El grafo sigue sin ciclos: `activity` y `settings` no dependen de nadie, y nadie
 |---|---|
 | V41 | `activity_entry` con RLS: `ADMIN` inserta y lee; `SYSTEM` inserta solo entradas de `ACCOUNT` y borra las de más de 2 años; nadie actualiza. Índices por fecha y por área. |
 | V42 | `store_settings`: una fila con contacto, redes, anuncio, umbral (3) y `version`, con checks. Sin RLS (no hay datos personales). |
-| V43 | `app_user_admin_customer_select` (el administrador lee los usuarios `CUSTOMER`) y la lectura de `external_identity` para `ADMIN`. |
-| Siguiente libre | Índice `orders (created_at DESC)` (T-E8-06; el número depende del orden en que se hagan las tareas). |
+| V43 | `v_variant_availability` suma `on_hand` y `reserved` para la pantalla "Stock" (T-E8-09), que los lee por la vista que publica `inventory`. |
+| V44 | `app_user_admin_customer_select` (el administrador lee los usuarios `CUSTOMER`) y la lectura de `external_identity` para `ADMIN` (T-E8-10; era V43 antes de T-E8-09). |
+| Índice `orders (created_at DESC)` | No hizo falta: ya existía (`orders_created_idx`, V20; T-E8-06). |
 
-V43 amplía lo que ve el administrador, así que pasa por el agente `security-reviewer` antes del commit.
+V44 amplía lo que ve el administrador, así que pasa por el agente `security-reviewer` antes del commit.
 
 ## API
 
@@ -68,7 +69,7 @@ Se actualizan OpenAPI y el cliente tipado (`npm run api:generate`) en cada tarea
 
 ## Riesgos
 
-- **Ampliar lo que ve el administrador (V43):** hoy no puede leer otros usuarios. Se limita a los `CUSTOMER`, solo lectura, y pasa por la revisión de seguridad.
+- **Ampliar lo que ve el administrador (V44):** hoy no puede leer otros usuarios. Se limita a los `CUSTOMER`, solo lectura, y pasa por la revisión de seguridad.
 - **Olvidar registrar algún cambio:** la tarea de cierre recorre todos los endpoints de escritura de `/api/admin` y verifica que cada uno tenga su test de actividad.
 - **Datos personales que se filtran a la actividad:** se cubre con el test de datos conocidos y con la regla de no guardar notas ni textos libres.
 - **El volumen de T-E8-02 y T-E8-03:** son muchos casos de uso chicos. Se reparten en dos tareas por módulo para que cada commit sea revisable.

@@ -1,11 +1,12 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { parseQuantity } from './adminInput.ts';
 import { newIdempotencyKey } from './adminSession.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
+import { listPathOf, listSearchOf, STOCK_LIST } from './listReturn.ts';
 import { adjustStock, fetchMovements, type AdjustAnswer, type StockMovement } from './stockApi.ts';
 import { useAdminProduct } from './useAdminProduct.ts';
 
@@ -167,6 +168,12 @@ function MovementItem({ movement }: { movement: StockMovement }) {
 /** UC-07 at /admin/productos/:productId/variantes/:variantId/stock: stock, adjustment and history of one variant. */
 export function StockPage() {
   const { productId = '', variantId = '' } = useParams();
+  // T-E8-09: opened from the Stock screen, it goes back there with the same filters; otherwise to the product.
+  const state: unknown = useLocation().state;
+  const back =
+    listPathOf(state) === STOCK_LIST
+      ? { to: `${STOCK_LIST}${listSearchOf(state)}`, label: esAdmin.stockOverview.backToStock }
+      : { to: `/admin/productos/${productId}`, label: messages.backToProduct };
   const product = useAdminProduct(productId);
   const queryClient = useQueryClient();
   const historyId = useId();
@@ -188,8 +195,8 @@ export function StockPage() {
 
   return (
     <>
-      <Link to={`/admin/productos/${productId}`} className="back-link">
-        {messages.backToProduct}
+      <Link to={back.to} className="back-link">
+        {back.label}
       </Link>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <h1>{messages.title}</h1>

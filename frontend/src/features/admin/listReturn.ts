@@ -1,16 +1,22 @@
 import { useLocation } from 'react-router';
 
+/** T-E8-09: the lists a page can be opened from other than its own, which its back link then returns to. */
+export const STOCK_LIST = '/admin/stock';
+type OtherList = typeof STOCK_LIST;
+
 /**
- * UC-06 and UC-18 (decided on 2026-11-04): a back-office list hands its filters (its query string) to the pages it
- * opens, in the navigation state, so their "back to the list" link returns to the same filtered list.
+ * UC-06, UC-07 and UC-18 (decided on 2026-11-04): a back-office list hands its filters (its query string) to the
+ * pages it opens, in the navigation state, so their "back to the list" link returns to the same filtered list.
+ * `listPath` names the list when it is not the page's own (the Stock screen opening a variant's history).
  */
 export interface ListReturn {
   listSearch: string;
+  listPath?: OtherList;
 }
 
 /** The navigation state of a link a list opens: `search` is the list's own query string, `?…` or empty. */
-export function listReturn(search: string): ListReturn {
-  return { listSearch: search };
+export function listReturn(search: string, listPath?: OtherList): ListReturn {
+  return listPath === undefined ? { listSearch: search } : { listSearch: search, listPath };
 }
 
 /** The list's filters from a navigation state, if it carries them; anything else is no filters. */
@@ -24,10 +30,18 @@ export function listSearchOf(state: unknown): string {
   return '';
 }
 
+/** The other list a navigation state names, if it is one of those a page can come from. */
+export function listPathOf(state: unknown): OtherList | null {
+  if (typeof state === 'object' && state !== null && 'listPath' in state && state.listPath === STOCK_LIST) {
+    return STOCK_LIST;
+  }
+  return null;
+}
+
 /**
  * Where the "back to the list" link of a detail page goes: `listPath` with the filters the page was opened from, or
  * the unfiltered list when it was opened another way. Not history.back(), which would leave the back office when the
- * page was the first one opened.
+ * page was the first one opened. `state` carries the filters on to the pages this one opens.
  */
 export function useBackToList(listPath: string): { to: string; state: ListReturn } {
   const listSearch = listSearchOf(useLocation().state);

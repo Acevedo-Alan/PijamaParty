@@ -92,8 +92,8 @@ export const esAdmin = {
       none: 'Sin productos con stock bajo',
       soldOut: 'Agotado',
       available: (units: number) => (units === 1 ? '1 disponible' : `${units.toLocaleString('es-AR')} disponibles`),
-      /** No count: the block counts variants, the product list it opens counts products (decided on 2026-11-04). */
-      seeAll: 'Ver en productos',
+      /** No count: the block counts variants of published products, sold-out ones included (decided on 2026-11-04). */
+      seeAll: 'Ver en Stock',
     },
     bestSellers: {
       title: 'Más vendidos',
@@ -878,5 +878,41 @@ export const esAdmin = {
     },
     /** A signed quantity, e.g. "+3" or "−2". */
     signedQuantity: (quantity: number) => (quantity > 0 ? `+${String(quantity)}` : `−${String(-quantity)}`),
+  },
+  /** T-E8-09, UC-07: the Stock screen, every active variant with its units and a quick adjustment. */
+  stockOverview: {
+    title: 'Stock',
+    lead: 'Las variantes activas de todos los productos, de menos a más disponibles.',
+    filters: 'Buscar en el stock',
+    search: 'Buscar',
+    searchHint: 'Nombre del producto o SKU de la variante.',
+    searchInvalid: 'Escribí al menos 2 caracteres.',
+    category: 'Categoría',
+    allCategories: 'Todas',
+    unknownCategory: 'Categoría que ya no existe',
+    filter: 'Stock',
+    all: 'Todas',
+    filterNames: { LOW: 'Stock bajo', OUT: 'Agotadas' },
+    apply: 'Buscar',
+    empty: 'Todavía no hay variantes activas.',
+    emptyFiltered: 'No hay variantes con estos filtros.',
+    /** The variant of a row, e.g. "M · Rosa". */
+    variant: (size: string, color: string) => `${size} · ${color}`,
+    sku: 'SKU',
+    published: 'Publicado',
+    hidden: 'Oculto',
+    onHand: 'En mano',
+    reserved: 'Reservadas',
+    available: 'Disponibles',
+    /** The quick adjustment of a row, named for screen readers, e.g. "Ajustar Pijama Luna, M · Rosa". */
+    adjust: (product: string, variant: string) => `Ajustar ${product}, ${variant}`,
+    quantity: 'Cantidad',
+    note: 'Motivo (opcional)',
+    add: 'Sumar',
+    subtract: 'Restar',
+    quantityInvalid: 'Ingresá una cantidad entera mayor que 0.',
+    connectionLost: 'Se cortó la conexión. Volvé a tocar el mismo botón: el ajuste no se va a duplicar.',
+    history: 'Ver movimientos',
+    backToStock: 'Volver a Stock',
   },
 } as const;

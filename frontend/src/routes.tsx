@@ -90,6 +90,7 @@ export const routes: RouteObject[] = [
         path: 'productos/:productId/variantes/:variantId/stock',
         lazy: async () => ({ Component: (await admin()).StockPage }),
       },
+      { path: 'stock', lazy: async () => ({ Component: (await admin()).StockOverviewPage }) },
       { path: 'categorias', lazy: async () => ({ Component: (await admin()).CategoriesPage }) },
       {
         path: 'categorias/:categoryId/guia-de-talles',

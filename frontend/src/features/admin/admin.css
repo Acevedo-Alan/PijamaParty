@@ -483,6 +483,60 @@
   text-align: right;
 }
 
+/* T-E8-09: a row of the Stock screen, a card at 360 px with its figures and its quick adjustment. The list grows by 50
+   with each "Ver más", so cards off screen skip their layout until they scroll in. */
+.stock-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 340px;
+}
+
+.stock-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.stock-figures dt {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.stock-figures dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-quick-adjust {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.stock-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stock-quick-actions .btn {
+  min-height: 44px;
+}
+
+@media (min-width: 640px) {
+  .stock-quick-adjust {
+    grid-template-columns: 120px minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .stock-quick-adjust [role='status'],
+  .stock-quick-adjust [role='alert'] {
+    grid-column: 1 / -1;
+  }
+}
+
 .show-more-btn {
   align-self: center;
 }

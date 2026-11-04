@@ -113,9 +113,9 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - `LowStockThreshold`, backed by `settings.api.StoreSettings` (UC-36).
 - **Built before T-E8-04, T-E8-09 and T-E8-10 (decided 2026-10-31, the owner wanted the summary first):**
   - The low-stock threshold comes from the `LowStockThreshold` port through an adapter that answers the default of D-E8-03, 3 units, until T-E8-04 backs it with `settings.api.StoreSettings`.
-  - `catalog.api.LowStockVariants` is written here; T-E8-09 reuses it for the Stock screen. Until that screen exists, the sold-out count of "Para hacer hoy" leads to the product list filtered by published and `OUT`, and the low-stock count and the low-stock block's link to the list filtered by published and `LOW` (UC-06, decided on 2026-11-04). The list counts products, not variants, so three sold-out variants of one product are one row; for that reason the block's link reads "Ver en productos", without the count. A product whose active variants are all sold out is `OUT`, so it shows under the sold-out link and not the low-stock one, although the low-stock count includes its variants (both decided on 2026-11-04).
+  - `catalog.api.LowStockVariants` is written here; T-E8-09 reuses its reading for the Stock screen. Since T-E8-09, the sold-out count of "Para hacer hoy" opens the Stock screen filtered by `OUT`, and the low-stock count and the low-stock block's link ("Ver en Stock", without a count) open it filtered by `LOW` (decided on 2026-11-04). The figures can differ: the summary counts variants of published products only, and its low stock includes the sold-out ones, which the Stock screen lists under `OUT`. (Before T-E8-09, the links led to the product list filtered by published and `OUT` or `LOW`.)
   - The totals show the published products only; the registered customers join them with T-E8-10, which brings the RLS change `CustomerCounts` needs.
-  - No migration of its own: the `orders (created_at DESC)` index (`orders_created_idx`, which T-E8-06 found already there since V20) also serves the period sums (a btree reads both ways), and V42 and V43 stay with T-E8-04 and T-E8-10.
+  - No migration of its own: the `orders (created_at DESC)` index (`orders_created_idx`, which T-E8-06 found already there since V20) also serves the period sums (a btree reads both ways), and V42 and V44 stay with T-E8-04 and T-E8-10 (V43 is T-E8-09's view).
 - **Module graph:** `backoffice` adds `accounts`, `reviews` and `settings` to its dependencies (`reviews` now; `accounts` with T-E8-10 and `settings` with T-E8-04). Nobody depends on `backoffice`, so no cycle.
 - **Endpoint:** `GET /api/admin/dashboard?chart=DAYS|MONTHS&period=TODAY|LAST_7_DAYS|MONTH|CUSTOM&from=&to=` (default `MONTH`; `from` and `to` only with `CUSTOM`, both required then) → `200` with the blocks (amounts in cents; the sales block carries its period, its dates and the average ticket); `400` problem for another `chart` or `period`, or an invalid custom period. OpenAPI is updated.
 - **Recent activity** reads `GET /api/admin/activity` (UC-37), the first page, newest first, and shows 5: no new port, and `backoffice` does not depend on `activity`.
@@ -382,10 +382,11 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 ## Changes to UC-07 (stock: the Stock screen)
 
 **Business rules (new)**
-- A "Stock" screen lists every active variant of every product: product, size, color, SKU, on hand, reserved, available, and whether the product is published. It is ordered by available stock, then product name, size and color in display order.
-- Filters: `LOW` (available at or under the threshold, above 0), `OUT` (available 0) or all; product name or SKU search as in UC-06; category.
-- **Quick adjustment:** each row has "+" and "−" and a quantity field with an optional note. It saves through the same stock adjustment of UC-07, with its own `Idempotency-Key` per attempt, its rules (stock never under the reserved units) and its history. The row then shows the new values.
-- The link of each row opens the variant's stock history (UC-07).
+- A "Stock" screen lists every active variant of every product: product, size, color, SKU, on hand, reserved, available, and whether the product is published. It is ordered by available stock, then product name, size and color in display order, 50 per page with "Ver más". A variant without a stock row has none.
+- Filters: `LOW` (available at or under the threshold, above 0), `OUT` (available 0) or all; product name or SKU search as in UC-06, where a SKU finds its own variant only; category. They combine and are kept in the URL (`filtro`, `buscar`, `categoria`), as in UC-06.
+- **Quick adjustment:** each row has "+" and "−" and a quantity field (whole units, 1 by default) with an optional note: "+" adds the quantity and "−" subtracts it. It saves through the same stock adjustment of UC-07, with its own `Idempotency-Key` per attempt, its rules (stock never under the reserved units) and its history. The key belongs to one sign, quantity and note: pressing the same button again after a lost connection sends it again, and any edit gets a new one. The row then shows the new values: on hand from the answer, and available as that minus the reserved units the row shows. The rows keep their order until the list is read again, so a saved row does not jump away.
+- The link of each row opens the variant's stock history (UC-07), and returns to the Stock screen with its filters (as in UC-06).
+- The "Stock" screen is in the menu under Catálogo. The summary's sold-out entry opens it filtered by `OUT`, and the low-stock entry and the low-stock block's link ("Ver en Stock", without a count) filtered by `LOW` (decided on 2026-11-04). The figures can differ: the summary counts variants of published products only, and its low stock includes the sold-out ones.
 
 **Acceptance criteria**
 - Given the filter `LOW`, a threshold of 3 and variants with 0, 2 and 5 available, when applied, then only the one with 2 shows; with `OUT`, only the one with 0.
@@ -394,7 +395,8 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given a saved adjustment, when the variant's history opens, then the movement is there with its note.
 
 **Design notes**
-- Read side in `catalog`: `ListStockOverview` (`Query(actor, filter, q?, categoryId?, page)`), read port `StockOverviewPages`, joining the catalog tables with `inventory.v_variant_availability`, the same reading as `catalog.api.LowStockVariants` (UC-33). It is a constant SQL text with an enum for the filter.
+- Read side in `catalog`: `ListStockOverview` (`Query(actor, filter, q?, categoryId?, page)`), read port `StockOverviewPages`, joining the catalog tables with `inventory.v_variant_availability`, the same reading as `catalog.api.LowStockVariants` (UC-33). It is a constant SQL text with an enum for the filter. The threshold comes from the `LowStockThreshold` port of UC-06.
+- Migration V43 (inventory): `v_variant_availability` gains `on_hand` and `reserved` after `available`, so the screen reads the three through the view the inventory publishes (ARCHITECTURE.md section 3, rule 4), never `stock_level` itself. Replacing the view keeps its read-only privileges (V9). The planned V43 of T-E8-10 becomes V44.
 - `GET /api/admin/catalog/stock?filter=ALL|LOW|OUT&q=&category=&page=` → `200`. The writes keep using `POST /api/admin/stock-adjustments`.
 - Page: `/admin/stock`, rows as cards at 360 px with the 44 px buttons of RNF-26.
 

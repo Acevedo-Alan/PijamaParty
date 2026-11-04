@@ -118,7 +118,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
       .toBeInTheDocument();
     expect(within(todo.getByRole('list', { name: messages.todo.levels.inventory }))
       .getByRole('link', { name: new RegExp(messages.todo.soldOutVariants) }))
-      .toHaveAttribute('href', '/admin/productos?estado=PUBLISHED&stock=OUT');
+      .toHaveAttribute('href', '/admin/stock?filtro=OUT');
   });
 
   it('given the summary read, when it shows, then it says when it was read', async () => {
@@ -208,7 +208,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
 
     const inventory = within(section(messages.todo.title).getByRole('list', { name: messages.todo.levels.inventory }));
     expect(inventory.getByRole('link', { name: `12 ${messages.todo.lowStock(3)}` }))
-      .toHaveAttribute('href', '/admin/productos?estado=PUBLISHED&stock=LOW');
+      .toHaveAttribute('href', '/admin/stock?filtro=LOW');
   });
 
   it('given 7 activity entries, when the summary shows, then "Actividad reciente" lists the 5 newest', async () => {
@@ -276,7 +276,7 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
 
     const lowStock = section(messages.lowStock.title);
     expect(lowStock.getAllByRole('listitem')[0]).toHaveTextContent(messages.lowStock.soldOut);
-    expect(lowStock.getByRole('link', { name: messages.lowStock.seeAll })).toHaveAttribute('href', '/admin/productos?estado=PUBLISHED&stock=LOW');
+    expect(lowStock.getByRole('link', { name: messages.lowStock.seeAll })).toHaveAttribute('href', '/admin/stock?filtro=LOW');
   });
 
   it('given no variant at or under the threshold, when the summary shows, then low stock says so', async () => {

@@ -66,16 +66,16 @@ function todo(key: keyof Dashboard['todo'], to: string): TodoEntry {
 }
 
 /**
- * UC-33 (decided on 2026-11-04): until the Stock screen exists (T-E8-09), the sold-out and low-stock variants lead to
- * the product list filtered the same way (UC-06). Published only, as the summary counts; the list counts products,
- * not variants.
+ * UC-33 (decided on 2026-11-04): the sold-out and low-stock variants lead to the Stock screen filtered the same way
+ * (UC-07, T-E8-09). Its figures can differ from the summary's: the summary counts variants of published products only,
+ * and its low stock includes the sold-out ones, which the Stock screen lists under OUT.
  */
-const SOLD_OUT_PRODUCTS = '/admin/productos?estado=PUBLISHED&stock=OUT';
-const LOW_STOCK_PRODUCTS = '/admin/productos?estado=PUBLISHED&stock=LOW';
+const SOLD_OUT_VARIANTS = '/admin/stock?filtro=OUT';
+const LOW_STOCK_VARIANTS = '/admin/stock?filtro=LOW';
 
 /**
  * "Para hacer hoy" in its three levels (D-E8-12), most urgent first. The email alerts lead to the order list (it has
- * no filter for them yet); the sold-out and low-stock variants to the filtered products. The low-stock count is the
+ * no filter for them yet); the sold-out and low-stock variants to the Stock screen. The low-stock count is the
  * low-stock block's (T-E8-20).
  */
 const LEVELS: readonly { level: Level; icon: LucideIcon; entries: readonly TodoEntry[] }[] = [
@@ -100,10 +100,10 @@ const LEVELS: readonly { level: Level; icon: LucideIcon; entries: readonly TodoE
     level: 'inventory',
     icon: PackageX,
     entries: [
-      todo('soldOutVariants', SOLD_OUT_PRODUCTS),
+      todo('soldOutVariants', SOLD_OUT_VARIANTS),
       {
         id: 'lowStock',
-        to: LOW_STOCK_PRODUCTS,
+        to: LOW_STOCK_VARIANTS,
         count: (dashboard) => dashboard.lowStock.count,
         label: (dashboard) => messages.todo.lowStock(dashboard.lowStock.threshold),
       },
@@ -539,7 +539,7 @@ function LowStock({ lowStock, order }: { lowStock: Dashboard['lowStock']; order:
         </div>
         {lowStock.items.length > 0 && (
           <Button asChild variant="link" size="sm">
-            <Link to={LOW_STOCK_PRODUCTS}>{messages.lowStock.seeAll}</Link>
+            <Link to={LOW_STOCK_VARIANTS}>{messages.lowStock.seeAll}</Link>
           </Button>
         )}
       </CardHeader>

@@ -1,5 +1,6 @@
 import {
   Activity,
+  Boxes,
   ExternalLink,
   House,
   Image,
@@ -56,6 +57,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     entries: [
       { to: '/admin/productos', label: esAdmin.products, icon: Package },
       { to: '/admin/categorias', label: esAdmin.categories, icon: LayoutGrid },
+      { to: '/admin/stock', label: esAdmin.stockOverview.title, icon: Boxes },
     ],
   },
   {
