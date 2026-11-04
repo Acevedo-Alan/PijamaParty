@@ -49,7 +49,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * whose addresses, tokens, external accounts and waiting link go with it; nobody else deletes a user. T-E4-13 adds
  * {@code external_identity} (V34): a customer reads and unlinks its own external accounts, and only the system reads
  * all of them and links them. T-E4-14 adds {@code pending_link} (V35), which only the system reaches, and only for
- * customers. Customer B also reaches for customer A's orders and addresses by their ids, as a query that forgot to filter by customer would. Which columns
+ * customers. T-E8-10 lets the administrator read every customer's user and external accounts (V44), never write
+ * them. Customer B also reaches for customer A's orders and addresses by their ids, as a query that forgot to filter
+ * by customer would. Which columns
  * each actor may change is {@link AccountSchemaTest} and {@link UserSchemaTest}. Every transaction is committed by
  * the application role.
  */
@@ -150,8 +152,8 @@ class AccountRowLevelSecurityTest {
                 EnumSet.of(Account.CUSTOMER_B), EnumSet.of(Account.CUSTOMER_B), EnumSet.of(Account.CUSTOMER_B), false,
                 EnumSet.of(Account.CUSTOMER_B), EnumSet.of(Account.CUSTOMER_B), false),
             new Caller("guest", Optional.of(GUEST), NONE, NONE, NONE, NONE, false, NONE, NONE, false),
-            new Caller("administrator", Optional.of(ADMIN), EnumSet.of(Account.ADMIN), NONE, CUSTOMERS, NONE, false,
-                NONE, NONE, false),
+            new Caller("administrator", Optional.of(ADMIN), ALL, NONE, CUSTOMERS, NONE, false,
+                CUSTOMERS, NONE, false),
             new Caller("system", Optional.of(SYSTEM), ALL, ALL, NONE, NONE, true, CUSTOMERS, NONE, true),
             new Caller("no context", Optional.empty(), NONE, NONE, NONE, NONE, false, NONE, NONE, false));
     }

@@ -84,8 +84,10 @@ class UserSchemaTest {
     }
 
     @Test
-    void givenTheAdministrator_whenReadingUsers_thenItSeesOnlyItself() {
-        assertThat(rls.as(ADMIN, this::ids)).containsExactly(ADMIN_ID.value());
+    void givenTheAdministrator_whenReadingUsers_thenItSeesItselfAndTheCustomers() {
+        // T-E8-10: since V44 the administrator reads the customers too ("Clientes", UC-34).
+        assertThat(rls.as(ADMIN, this::ids))
+            .containsExactlyInAnyOrder(ADMIN_ID.value(), CUSTOMER_A_ID.value(), CUSTOMER_B_ID.value());
     }
 
     @Test

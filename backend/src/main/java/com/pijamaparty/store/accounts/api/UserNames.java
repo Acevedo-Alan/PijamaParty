@@ -6,7 +6,8 @@ import java.util.Map;
 
 /**
  * The names of users, for screens that show who did something (the stock history of UC-07). Joins the caller's
- * transaction, so its security context decides which users are visible (RNF-27): the administrator sees its own.
+ * transaction, so its security context decides which users are visible (RNF-27): the administrator sees its own and,
+ * since V44 (UC-34), the customers.
  */
 public interface UserNames {
 

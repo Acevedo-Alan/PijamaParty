@@ -1738,6 +1738,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The registered customers, newest first, with their number of orders
+         * @description 50 per page, from page 0. `q` is 2 to 100 characters that the customer's name or email contains, ignoring case and accents, every character literal. `from` and `to` are store dates (America/Argentina/Buenos_Aires) of the registration, both inclusive. Only the orders linked to the account count. The search is personal data: it is never logged.
+         */
+        get: operations["list_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/stock": {
         parameters: {
             query?: never;
@@ -1749,7 +1769,7 @@ export interface paths {
          * The active variants of every product with their stock, fewest available first
          * @description 50 per page, from page 0, then by product name, size and color in display order. `filter` is ALL (the default), LOW (available above 0 and at or under the low-stock threshold of the store's settings) or OUT (none available); available is on hand minus reserved. `q` is 2 to 100 characters that the product's name contains, ignoring case and accents, every character literal, or the variant's whole SKU, ignoring case. Adjust with POST /api/admin/stock-adjustments.
          */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1786,7 +1806,7 @@ export interface paths {
          * The back-office changes, newest first
          * @description 50 per page, from page 0. Every area when `area` is absent; `from` and `to` are store dates (America/Argentina/Buenos_Aires), both inclusive and optional.
          */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1806,7 +1826,7 @@ export interface paths {
          * The customer's orders, newest first
          * @description 20 per page, from page 0. Not cached.
          */
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2957,6 +2977,20 @@ export interface components {
         WorkloadCountsResponse: {
             /** Format: int64 */
             paidOrders?: number;
+        };
+        CustomerPageResponse: {
+            items?: components["schemas"]["CustomerRowResponse"][];
+            hasMore?: boolean;
+        };
+        CustomerRowResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            email?: string;
+            /** Format: date-time */
+            registeredAt?: string;
+            /** Format: int64 */
+            orders?: number;
         };
         StockPageResponse: {
             items?: components["schemas"]["StockRowResponse"][];
@@ -7686,6 +7720,49 @@ export interface operations {
     list_6: {
         parameters: {
             query?: {
+                q?: string;
+                from?: string;
+                to?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of customers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPageResponse"];
+                };
+            };
+            /** @description Page out of range, INVALID_SEARCH (1 character or over 100), a date that is not yyyy-MM-dd, or INVALID_PERIOD (from after to) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_7: {
+        parameters: {
+            query?: {
                 filter?: "ALL" | "LOW" | "OUT";
                 q?: string;
                 category?: string;
@@ -7764,7 +7841,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: {
                 area?: "CATALOG" | "STOCK" | "ORDERS" | "PROMOTIONS" | "REVIEWS" | "SHIPPING" | "CONTENT" | "SETTINGS" | "CUSTOMERS" | "ACCOUNT";
@@ -7807,7 +7884,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: {
                 page?: number;

@@ -122,6 +122,7 @@ export const esAdmin = {
     count === 1 ? '1 pedido pagado por preparar' : `${String(count)} pedidos pagados por preparar`,
   orders: 'Pedidos',
   withdrawals: 'Arrepentimientos',
+  customers: 'Clientes',
   products: 'Productos',
   categories: 'Categorías',
   coupons: 'Cupones',
@@ -428,12 +429,29 @@ export const esAdmin = {
     searchInvalid: 'Escribí un número de pedido o al menos 2 letras.',
     from: 'Desde',
     to: 'Hasta',
-    invalidPeriod: 'La fecha "Desde" no puede ser posterior a "Hasta".',
+    invalidPeriod: 'La fecha “Desde” no puede ser posterior a “Hasta”.',
     apply: 'Buscar',
     /** The order number, e.g. "#1001". */
     number: (number: number) => `#${String(number)}`,
     /** Who and where, e.g. "Ana Pérez · Santa Fe, Santa Fe". */
     buyer: (name: string, city: string, province: string) => `${name} · ${city}, ${province}`,
+  },
+  /** T-E8-10, UC-34: "Clientes", the registered customers. */
+  customerList: {
+    title: 'Clientes',
+    filters: 'Buscar clientes',
+    search: 'Buscar',
+    searchHint: 'Nombre o email del cliente.',
+    searchInvalid: 'Escribí al menos 2 caracteres.',
+    from: 'Registrados desde',
+    to: 'Hasta',
+    invalidPeriod: 'La fecha “Registrados desde” no puede ser posterior a “Hasta”.',
+    apply: 'Buscar',
+    empty: 'Todavía no hay clientes registrados.',
+    emptyFiltered: 'No encontramos clientes con esa búsqueda.',
+    /** The registration date, as formatDate writes it. */
+    registered: (date: string) => `Registrado el ${date}`,
+    orders: (count: number) => (count === 1 ? '1 pedido' : `${count.toLocaleString('es-AR')} pedidos`),
   },
   withdrawalList: {
     title: 'Arrepentimientos',
@@ -461,7 +479,7 @@ export const esAdmin = {
     all: 'Todas',
     from: 'Desde',
     to: 'Hasta',
-    invalidPeriod: 'La fecha "Desde" no puede ser posterior a "Hasta".',
+    invalidPeriod: 'La fecha “Desde” no puede ser posterior a “Hasta”.',
     empty: 'Todavía no hay cambios registrados.',
     emptyFiltered: 'No hay cambios con estos filtros.',
     areas: {

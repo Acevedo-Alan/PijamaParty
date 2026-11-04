@@ -13,6 +13,7 @@ import {
   Ticket,
   Truck,
   Undo2,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { useId } from 'react';
@@ -41,7 +42,7 @@ interface NavGroup {
 
 /**
  * The back office's sections, grouped (E8a navigation). A data list, so a phase adds its screens here without
- * touching the menu's logic: Clientes, Stock and Datos de la tienda join when their tasks arrive.
+ * touching the menu's logic, as Clientes (T-E8-10), Stock (T-E8-09) and Datos de la tienda (T-E8-04) did.
  */
 export const NAV_GROUPS: readonly NavGroup[] = [
   { title: null, entries: [{ to: '/admin', label: esAdmin.summary, icon: House, end: true }] },
@@ -50,6 +51,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     entries: [
       { to: '/admin/pedidos', label: esAdmin.orders, icon: ShoppingBag, badge: 'paidOrders' },
       { to: '/admin/arrepentimientos', label: esAdmin.withdrawals, icon: Undo2 },
+      { to: '/admin/clientes', label: esAdmin.customers, icon: Users },
     ],
   },
   {

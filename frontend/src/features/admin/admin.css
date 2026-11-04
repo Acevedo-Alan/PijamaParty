@@ -573,7 +573,7 @@
   align-self: flex-start;
 }
 
-/* From 860 px the product list and the stock history read as rows with aligned columns. */
+/* From 860 px the product and customer lists and the stock history read as rows with aligned columns. */
 @media (min-width: 860px) {
   .product-rows .admin-card-head {
     display: grid;
@@ -583,6 +583,18 @@
 
   .product-rows .admin-badge {
     justify-self: start;
+  }
+
+  /* UC-34: name, email and registration, then the orders, whose counts line up from row to row. */
+  .customer-rows .admin-card-head {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 120px;
+    align-items: center;
+  }
+
+  .customer-rows .admin-badge {
+    justify-self: start;
+    font-variant-numeric: tabular-nums;
   }
 
   .movement-rows .movement {

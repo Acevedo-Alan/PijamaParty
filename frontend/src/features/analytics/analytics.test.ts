@@ -84,6 +84,7 @@ describe('analytics loader (RNF-25, T-E1-23)', () => {
     const commands = (window.dataLayer ?? []).map((entry) => [...(entry as IArguments)] as unknown[]);
     expect(commands[1]).toEqual(['config', 'G-ABC123', { send_page_view: false }]);
     expect(window.fbq?.queue).toEqual([['init', '1234567890']]);
+    expect(window.fbq?.disablePushState).toBe(true);
   });
 
   it('given a page view, when sent, then the address has no query string', () => {

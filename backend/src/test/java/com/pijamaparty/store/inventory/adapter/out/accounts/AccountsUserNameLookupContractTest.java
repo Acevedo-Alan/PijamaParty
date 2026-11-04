@@ -51,7 +51,7 @@ class AccountsUserNameLookupContractTest
         return asAdministrator;
     }
 
-    /** The administrator sees only its own user. */
+    /** The administrator sees its own user (and, since V44, the customers). */
     @Override
     protected UserId givenVisibleUser(String name) {
         owner.update(INSERT_USER, ADMIN.value(), "owner@example.com", name, "ADMIN");
@@ -64,12 +64,15 @@ class AccountsUserNameLookupContractTest
     }
 
     @Test
-    void givenACustomer_whenTheAdministratorLooksUpItsName_thenRowLevelSecurityHidesIt() {
+    void givenACustomerAndAnUnknownUser_whenTheAdministratorLooksUpTheirNames_thenOnlyTheUnknownOneIsLeftOut() {
+        // T-E8-10: since V44 Row Level Security lets the administrator read the customers ("Clientes", UC-34).
         UserId admin = givenVisibleUser("Dueña");
         UserId customer = UserId.of(UUID.randomUUID());
         owner.update(INSERT_USER, customer.value(), "ana@example.com", "Ana", "CUSTOMER");
+        UserId unknown = UserId.of(UUID.randomUUID());
 
-        assertThat(subject.namesOf(Set.of(admin, customer))).isEqualTo(Map.of(admin, "Dueña"));
+        assertThat(subject.namesOf(Set.of(admin, customer, unknown)))
+            .isEqualTo(Map.of(admin, "Dueña", customer, "Ana"));
     }
 
     record AsAdministrator(AccountsUserNameLookup adapter, TransactionTemplate transactions) implements UserNameLookup {

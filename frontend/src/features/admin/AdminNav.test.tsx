@@ -58,6 +58,7 @@ describe('back-office navigation (E8a, T-E8-05)', () => {
       esAdmin.summary,
       esAdmin.orders,
       esAdmin.withdrawals,
+      esAdmin.customers,
       esAdmin.products,
       esAdmin.categories,
       esAdmin.stockOverview.title,

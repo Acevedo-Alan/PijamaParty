@@ -11,6 +11,8 @@ interface PixelQueue extends Command {
   push: PixelQueue;
   loaded: boolean;
   version: string;
+  /** Read by fbevents.js: true stops its own page views on every history change, which would send the full address. */
+  disablePushState?: boolean;
 }
 
 declare global {
@@ -82,6 +84,9 @@ function loadPixel(id: string) {
   fbq.push = fbq;
   window.fbq = fbq;
   window._fbq = fbq;
+  // The app sends each page view itself, without query string (see trackPageView): the address of an admin search can
+  // hold a customer's name or email (R-05).
+  fbq.disablePushState = true;
   fbq('init', id);
   addScript('https://connect.facebook.net/en_US/fbevents.js');
 }
