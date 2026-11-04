@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
+import { useBackToList } from './listReturn.ts';
 import { PhotosSection } from './PhotosSection.tsx';
 import { ProductForm } from './ProductForm.tsx';
 import { setPublished, updateProduct, type AdminProduct, type ProductDetails } from './productsApi.ts';
@@ -89,11 +90,12 @@ function StateSection({ product }: { product: AdminProduct }) {
 /** UC-06 at /admin/productos/:productId: details, state, variants and photos of one product. */
 export function ProductEditPage() {
   const { productId = '' } = useParams();
+  const back = useBackToList('/admin/productos');
   const product = useAdminProduct(productId);
 
   return (
     <>
-      <Link to="/admin/productos" className="back-link">
+      <Link to={back.to} className="back-link">
         {messages.backToList}
       </Link>
       {product.isPending && <p role="status">{esAdmin.loading}</p>}

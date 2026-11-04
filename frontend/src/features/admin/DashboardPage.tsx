@@ -66,9 +66,17 @@ function todo(key: keyof Dashboard['todo'], to: string): TodoEntry {
 }
 
 /**
+ * UC-33 (decided on 2026-11-04): until the Stock screen exists (T-E8-09), the sold-out and low-stock variants lead to
+ * the product list filtered the same way (UC-06). Published only, as the summary counts; the list counts products,
+ * not variants.
+ */
+const SOLD_OUT_PRODUCTS = '/admin/productos?estado=PUBLISHED&stock=OUT';
+const LOW_STOCK_PRODUCTS = '/admin/productos?estado=PUBLISHED&stock=LOW';
+
+/**
  * "Para hacer hoy" in its three levels (D-E8-12), most urgent first. The email alerts lead to the order list (it has
- * no filter for them yet); the sold-out and low-stock variants to the products until the Stock screen exists
- * (T-E8-09). The low-stock count is the low-stock block's (T-E8-20).
+ * no filter for them yet); the sold-out and low-stock variants to the filtered products. The low-stock count is the
+ * low-stock block's (T-E8-20).
  */
 const LEVELS: readonly { level: Level; icon: LucideIcon; entries: readonly TodoEntry[] }[] = [
   {
@@ -92,10 +100,10 @@ const LEVELS: readonly { level: Level; icon: LucideIcon; entries: readonly TodoE
     level: 'inventory',
     icon: PackageX,
     entries: [
-      todo('soldOutVariants', '/admin/productos'),
+      todo('soldOutVariants', SOLD_OUT_PRODUCTS),
       {
         id: 'lowStock',
-        to: '/admin/productos',
+        to: LOW_STOCK_PRODUCTS,
         count: (dashboard) => dashboard.lowStock.count,
         label: (dashboard) => messages.todo.lowStock(dashboard.lowStock.threshold),
       },
@@ -531,7 +539,7 @@ function LowStock({ lowStock, order }: { lowStock: Dashboard['lowStock']; order:
         </div>
         {lowStock.items.length > 0 && (
           <Button asChild variant="link" size="sm">
-            <Link to="/admin/productos">{messages.lowStock.seeAll(lowStock.count)}</Link>
+            <Link to={LOW_STOCK_PRODUCTS}>{messages.lowStock.seeAll(lowStock.count)}</Link>
           </Button>
         )}
       </CardHeader>

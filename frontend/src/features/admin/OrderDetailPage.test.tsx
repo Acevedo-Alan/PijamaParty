@@ -228,4 +228,29 @@ describe('order detail (UC-18)', () => {
 
     expect(await screen.findByText(messages.notFound)).toBeInTheDocument();
   });
+
+  it('given an order opened from a filtered list, when its slip opens and comes back, then the back link keeps the filters', async () => {
+    vi.stubGlobal('print', vi.fn());
+    stubApi({ 'GET /api/admin/auth/me': signedIn, [DETAIL]: answer(200, order()) });
+    renderRoute('/admin/pedidos/o-1', { state: { listSearch: '?estado=PAID&buscar=perez' } });
+
+    const back = await screen.findByRole('link', { name: messages.backToList });
+    expect(back).toHaveAttribute('href', '/admin/pedidos?estado=PAID&buscar=perez');
+    await userEvent.click(await screen.findByRole('link', { name: esAdmin.packingSlip.print }));
+    await userEvent.click(await screen.findByRole('link', { name: esAdmin.packingSlip.backToOrder }));
+
+    expect(await screen.findByRole('link', { name: messages.backToList })).toHaveAttribute(
+      'href',
+      '/admin/pedidos?estado=PAID&buscar=perez',
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it('given an order opened from its address, when shown, then the back link goes to the whole list', async () => {
+    stubApi({ 'GET /api/admin/auth/me': signedIn, [DETAIL]: answer(200, order()) });
+
+    await openOrder();
+
+    expect(screen.getByRole('link', { name: messages.backToList })).toHaveAttribute('href', '/admin/pedidos');
+  });
 });

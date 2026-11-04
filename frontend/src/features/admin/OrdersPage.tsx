@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type SubmitEvent } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
@@ -9,6 +9,7 @@ import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { WORKLOAD_COUNTS_KEY } from './dashboardApi.ts';
+import { listReturn } from './listReturn.ts';
 import { fetchOrders, ORDER_STATUSES, type OrderListFilter } from './ordersApi.ts';
 
 const messages = esAdmin.orderList;
@@ -51,6 +52,8 @@ function validSearch(typed: string): boolean {
  */
 export function OrdersPage() {
   const [params, setParams] = useSearchParams();
+  // The pages this list opens return to it with the same filters.
+  const opened = listReturn(useLocation().search);
   const filter = filterOf(params);
   const [search, setSearch] = useState(filter.q ?? '');
   const [searchInvalid, setSearchInvalid] = useState(false);
@@ -176,7 +179,7 @@ export function OrdersPage() {
           {items.map((order) => (
             <li key={order.id} className="admin-card">
               <div className="admin-card-head">
-                <Link to={`/admin/pedidos/${order.id}`} className="admin-card-title">
+                <Link to={`/admin/pedidos/${order.id}`} state={opened} className="admin-card-title">
                   {messages.number(order.number)}
                 </Link>
                 <span className="admin-badge">{es.tracking.statuses[order.status]}</span>

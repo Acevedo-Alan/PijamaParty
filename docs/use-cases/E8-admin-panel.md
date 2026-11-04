@@ -113,7 +113,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - `LowStockThreshold`, backed by `settings.api.StoreSettings` (UC-36).
 - **Built before T-E8-04, T-E8-09 and T-E8-10 (decided 2026-10-31, the owner wanted the summary first):**
   - The low-stock threshold comes from the `LowStockThreshold` port through an adapter that answers the default of D-E8-03, 3 units, until T-E8-04 backs it with `settings.api.StoreSettings`.
-  - `catalog.api.LowStockVariants` is written here; T-E8-09 reuses it for the Stock screen. Until that screen exists, the low-stock link and the sold-out count of "Para hacer hoy" lead to the product list.
+  - `catalog.api.LowStockVariants` is written here; T-E8-09 reuses it for the Stock screen. Until that screen exists, the sold-out count of "Para hacer hoy" leads to the product list filtered by published and `OUT`, and the low-stock count and the low-stock block's link to the list filtered by published and `LOW` (UC-06, decided on 2026-11-04). The list counts products, not variants, so three sold-out variants of one product are one row.
   - The totals show the published products only; the registered customers join them with T-E8-10, which brings the RLS change `CustomerCounts` needs.
   - No migration of its own: the `orders (created_at DESC)` index (`orders_created_idx`, which T-E8-06 found already there since V20) also serves the period sums (a btree reads both ways), and V42 and V43 stay with T-E8-04 and T-E8-10.
 - **Module graph:** `backoffice` adds `accounts`, `reviews` and `settings` to its dependencies (`reviews` now; `accounts` with T-E8-10 and `settings` with T-E8-04). Nobody depends on `backoffice`, so no cycle.
@@ -361,6 +361,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - state: published or hidden;
   - stock, one of three that never overlap: `OUT` (no active variant has available units, which includes a product without active variants; decided on 2026-11-04), `LOW` (not `OUT`, and some active variant is at or under the threshold, sold-out ones included) or `IN_STOCK` (not `OUT`, and every active variant is above the threshold).
 - The filters combine, are kept in the URL, and the list keeps its order and 50 per page.
+- **Back to the list** (decided on 2026-11-04): the "back to the list" link of a product, and of "Nuevo producto", returns to the list with the filters it was opened from. Opened another way (the summary, a saved or pasted address), it returns to the unfiltered list. The order list (UC-18) and its order detail do the same, and so does the order's packing slip on its way back to the order.
 
 **Acceptance criteria**
 - Given a product "Pijama Corazón" and a search `corazon`, when applied, then it shows.
@@ -369,8 +370,10 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given a hidden product and the published filter, when applied, then it does not show.
 - Given a product without active variants, when the filter `OUT` is applied, then it shows; with `LOW` or `IN_STOCK`, it does not.
 - Given a search of 1 character or over 100, or an unknown state or stock, when sent, then it is `400`.
+- Given the list filtered by `LOW`, when a product opens and its "back to the list" link is followed, then the list shows filtered by `LOW`; a product opened from its address returns to the unfiltered list.
 
 **Design notes**
+- Back to the list: the list passes its query string in the navigation state of the links it opens (`ListReturn`), and the detail page's link appends it to the list's path. Not `history.back()`, which would leave the back office when the detail was the first page opened.
 - `ListAllProducts.Query` gains `q`, `categoryId`, `state` and `stock` (enums). `ProductSummaries` uses one constant SQL text with optional conditions, the name compared with `lower(unaccent(...))` (the extension of UC-26, V10), and `inventory.v_variant_availability` for stock. The threshold comes from `settings.api.StoreSettings`, so `catalog` gains a dependency on `settings` (it has none of its own, so no cycle).
 - `GET /api/admin/catalog/products?q=&category=&state=PUBLISHED|HIDDEN&stock=IN_STOCK|LOW|OUT&page=`; `400` for unknown enum values or a category that is not a UUID, and `INVALID_SEARCH` for a search of 1 character or over 100. The search is the catalog's, not personal data.
 

@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button.tsx';
 import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDate } from '../../i18n/formatDate.ts';
+import { useBackToList } from './listReturn.ts';
 import { fetchOrder, hasPackingSlip, type AdminOrder } from './ordersApi.ts';
 import './packingSlip.css';
 
@@ -80,6 +81,7 @@ function Slip({ order }: { order: AdminOrder }) {
  */
 export function PackingSlipPage() {
   const { orderId = '' } = useParams();
+  const { state: listState } = useBackToList('/admin/pedidos');
   const order = useQuery({
     queryKey: ['admin', 'orders', 'detail', orderId],
     queryFn: ({ signal }) => fetchOrder(orderId, signal),
@@ -99,7 +101,7 @@ export function PackingSlipPage() {
     <>
       {found !== null && <title>{`${messages.title(found.number)} | ${esAdmin.title}`}</title>}
       <div className="packing-slip-actions">
-        <Link to={`/admin/pedidos/${orderId}`} className="back-link">
+        <Link to={`/admin/pedidos/${orderId}`} state={listState} className="back-link">
           {messages.backToOrder}
         </Link>
         {printable && (

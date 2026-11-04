@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { useBackToList } from './listReturn.ts';
 import { ProductForm } from './ProductForm.tsx';
 import { createProduct, type ProductDetails } from './productsApi.ts';
 import { useStoreProduct } from './useAdminProduct.ts';
@@ -12,12 +13,13 @@ export function NewProductPage() {
   const categories = useCategories();
   const store = useStoreProduct();
   const navigate = useNavigate();
+  const back = useBackToList('/admin/productos');
 
   async function create(details: ProductDetails) {
     const answer = await createProduct(details);
     if (answer.status === 'saved') {
       store(answer.product);
-      void navigate(`/admin/productos/${answer.product.id}`, { replace: true });
+      void navigate(`/admin/productos/${answer.product.id}`, { replace: true, state: back.state });
     }
     return answer;
   }
@@ -25,7 +27,7 @@ export function NewProductPage() {
   return (
     <>
       <title>{`${messages.newTitle} | ${esAdmin.title}`}</title>
-      <Link to="/admin/productos" className="back-link">
+      <Link to={back.to} className="back-link">
         {esAdmin.productEdit.backToList}
       </Link>
       <h1>{messages.newTitle}</h1>

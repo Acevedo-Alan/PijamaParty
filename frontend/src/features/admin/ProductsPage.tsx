@@ -1,11 +1,12 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRef, useState, type SubmitEvent } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { fetchProductSummaries, PRODUCT_STATES, PRODUCT_STOCKS, type ProductListFilter } from './productsApi.ts';
+import { listReturn } from './listReturn.ts';
 import { useCategories } from './useCategories.ts';
 
 const messages = esAdmin.productList;
@@ -46,6 +47,8 @@ function validSearch(typed: string): boolean {
  */
 export function ProductsPage() {
   const [params, setParams] = useSearchParams();
+  // The pages this list opens return to it with the same filters.
+  const opened = listReturn(useLocation().search);
   const filter = filterOf(params);
   const [search, setSearch] = useState(filter.q ?? '');
   const [searchInvalid, setSearchInvalid] = useState(false);
@@ -90,7 +93,7 @@ export function ProductsPage() {
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
         <h1>{messages.title}</h1>
-        <Link to="/admin/productos/nuevo" className="btn">
+        <Link to="/admin/productos/nuevo" state={opened} className="btn">
           {messages.create}
         </Link>
       </div>
@@ -187,7 +190,7 @@ export function ProductsPage() {
           {items.map((product) => (
             <li key={product.id} className="admin-card">
               <div className="admin-card-head">
-                <Link to={`/admin/productos/${product.id}`} className="admin-card-title">
+                <Link to={`/admin/productos/${product.id}`} state={opened} className="admin-card-title">
                   {product.name}
                 </Link>
                 <p className="admin-card-meta">

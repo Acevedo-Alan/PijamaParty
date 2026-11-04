@@ -163,4 +163,20 @@ describe('order list (UC-18)', () => {
       '2026-10-11',
     );
   });
+
+  it('given a filtered list, when an order opens, then its back link returns to the same filters', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/orders': answer(200, { items: [row(1002, 'PAID')], hasMore: false }),
+      'GET /api/admin/orders/{id}': answer(404, {}),
+    });
+    renderRoute('/admin/pedidos?estado=PAID');
+
+    await userEvent.click(await screen.findByRole('link', { name: '#1002' }));
+
+    expect(await screen.findByRole('link', { name: esAdmin.orderDetail.backToList })).toHaveAttribute(
+      'href',
+      '/admin/pedidos?estado=PAID',
+    );
+  });
 });

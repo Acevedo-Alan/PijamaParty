@@ -18,8 +18,10 @@ import {
   type OrderStatus,
   type StatusChange,
 } from './ordersApi.ts';
+import { useBackToList } from './listReturn.ts';
 
 const messages = esAdmin.orderDetail;
+const ORDER_LIST = '/admin/pedidos';
 
 type SettableStatus = keyof typeof messages.actions;
 
@@ -280,6 +282,8 @@ function alertText(alert: OrderAlert, order: AdminOrder): string {
 function OrderView({ order, onChanged }: Props) {
   const { buyer, address } = order;
   const floorAndApartment = messages.floorAndApartment(address.floor, address.apartment);
+  // The packing slip carries the list's filters along, so its way back to the order still returns to them.
+  const { state: listState } = useBackToList(ORDER_LIST);
   return (
     <>
       <title>{`${messages.title(order.number)} | ${esAdmin.title}`}</title>
@@ -288,7 +292,7 @@ function OrderView({ order, onChanged }: Props) {
         <span className="admin-badge">{es.tracking.statuses[order.status]}</span>
         {hasPackingSlip(order.status) && (
           <Button asChild variant="secondary">
-            <Link to={`/admin/pedidos/${order.id}/remito`}>
+            <Link to={`/admin/pedidos/${order.id}/remito`} state={listState}>
               <Printer aria-hidden="true" />
               {esAdmin.packingSlip.print}
             </Link>
@@ -376,6 +380,7 @@ function OrderView({ order, onChanged }: Props) {
 /** UC-18 at /admin/pedidos/:orderId: the order, its alerts first, and what it may move to. */
 export function OrderDetailPage() {
   const { orderId = '' } = useParams();
+  const back = useBackToList(ORDER_LIST);
   const queryClient = useQueryClient();
   const order = useQuery({
     queryKey: ['admin', 'orders', 'detail', orderId],
@@ -388,7 +393,7 @@ export function OrderDetailPage() {
 
   return (
     <>
-      <Link to="/admin/pedidos" className="back-link">
+      <Link to={back.to} className="back-link">
         {messages.backToList}
       </Link>
       {order.isPending && <p role="status">{esAdmin.loading}</p>}

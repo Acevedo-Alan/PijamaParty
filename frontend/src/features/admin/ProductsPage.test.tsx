@@ -130,6 +130,62 @@ describe('product list and creation (UC-06)', () => {
     expect(filters.getByLabelText(messages.search)).toHaveAccessibleDescription(messages.searchHint);
   });
 
+  it('given the list filtered by low stock, when a product opens and its back link is followed, then the list is still filtered', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      'GET /api/admin/catalog/products': answer(200, { items: [summary('p-1', 'Pijama Luna', true, 2)], hasMore: false }),
+      'GET /api/admin/catalog/products/{id}': answer(200, adminProduct()),
+    });
+    const { router } = renderRoute('/admin/productos?estado=PUBLISHED&stock=LOW');
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Pijama Luna' }));
+    const back = await screen.findByRole('link', { name: esAdmin.productEdit.backToList });
+    expect(back).toHaveAttribute('href', '/admin/productos?estado=PUBLISHED&stock=LOW');
+    await userEvent.click(back);
+
+    expect(router.state.location.search).toBe('?estado=PUBLISHED&stock=LOW');
+    expect(await screen.findByLabelText(messages.stock)).toHaveValue('LOW');
+  });
+
+  it('given a product or the new product page opened from its address, when shown, then the back link goes to the whole list', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      'GET /api/admin/catalog/products/{id}': answer(200, adminProduct()),
+    });
+    renderRoute('/admin/productos/p-1');
+
+    expect(await screen.findByRole('link', { name: esAdmin.productEdit.backToList })).toHaveAttribute(
+      'href',
+      '/admin/productos',
+    );
+  });
+
+  it('given "Nuevo producto" opened from a filtered list, when the product is created, then its back link keeps the filters', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      'GET /api/admin/catalog/products': answer(200, { items: [], hasMore: false }),
+      'POST /api/admin/catalog/products': answer(201, adminProduct({ categoryId: 'c-2', season: 'SUMMER', audience: 'KIDS' })),
+    });
+    renderRoute('/admin/productos?stock=OUT');
+
+    await userEvent.click(await screen.findByRole('link', { name: messages.create }));
+    expect(await screen.findByRole('link', { name: esAdmin.productEdit.backToList })).toHaveAttribute(
+      'href',
+      '/admin/productos?stock=OUT',
+    );
+    await fillNewProduct();
+    await userEvent.click(screen.getByRole('button', { name: form.create }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: esAdmin.productEdit.backToList })).toHaveAttribute(
+      'href',
+      '/admin/productos?stock=OUT',
+    );
+  });
+
   it('given a search of one letter, when submitted, then the field says why and nothing is asked for', async () => {
     const api = stubApi({
       'GET /api/admin/auth/me': signedIn,
