@@ -9,6 +9,7 @@ export { ShippingPage } from './ShippingPage.tsx';
 export { NewProductPage } from './NewProductPage.tsx';
 export { OrderDetailPage } from './OrderDetailPage.tsx';
 export { OrdersPage } from './OrdersPage.tsx';
+export { PackingSlipPage } from './PackingSlipPage.tsx';
 export { ProductEditPage } from './ProductEditPage.tsx';
 export { ProductsPage } from './ProductsPage.tsx';
 export { ReviewsPage } from './ReviewsPage.tsx';

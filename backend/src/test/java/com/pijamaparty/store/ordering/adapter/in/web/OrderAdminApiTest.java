@@ -362,6 +362,7 @@ class OrderAdminApiTest {
             .andExpect(jsonPath("$.buyer.nationalId").value("12345678"))
             .andExpect(jsonPath("$.address.city").value("Santa Fe"))
             .andExpect(jsonPath("$.lines[0].productName").value("Pijama"))
+            .andExpect(jsonPath("$.lines[0].sku").value("PP-" + pijama.toString().substring(0, 8)))
             .andExpect(jsonPath("$.lines[0].quantity").value(2))
             .andExpect(jsonPath("$.totalCents").value(4_450_000))
             .andExpect(jsonPath("$.paymentProvider").value("MERCADOPAGO"));

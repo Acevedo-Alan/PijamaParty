@@ -1,0 +1,102 @@
+/* UC-18 (T-E8-07, D-E8-10): the packing slip. On screen, a card in the back office; printed, black on white on A4, the
+   slip 10 cm wide so it also fits a label, without the back office's menu, header or buttons. */
+
+.packing-slip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.packing-slip {
+  max-width: 10cm;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.packing-slip h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.packing-slip h2 {
+  margin: 16px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.packing-slip p {
+  margin: 0;
+}
+
+.packing-slip-store {
+  font-weight: 700;
+}
+
+.packing-slip-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.packing-slip-lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.packing-slip-lines th,
+.packing-slip-lines td {
+  padding: 4px 4px 4px 0;
+  border-bottom: 1px solid #000;
+  text-align: left;
+  vertical-align: top;
+}
+
+.packing-slip-lines th.packing-slip-quantity,
+.packing-slip-lines td.packing-slip-quantity {
+  text-align: right;
+  padding-right: 8px;
+}
+
+.packing-slip-sku {
+  font-family: ui-monospace, monospace;
+  word-break: break-all;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  /* Only the slip: the back office's skip link, header, menu and the page's own buttons stay on screen. */
+  .admin-skip-link,
+  .admin-header,
+  .admin-side,
+  .packing-slip-actions {
+    display: none !important;
+  }
+
+  body,
+  .admin-shell,
+  .admin-main {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .packing-slip {
+    border: 1px solid #000;
+    border-radius: 0;
+    break-inside: avoid;
+  }
+}

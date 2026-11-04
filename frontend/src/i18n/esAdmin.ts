@@ -609,6 +609,25 @@ export const esAdmin = {
     deleted: (authorName: string) => `Reseña de ${authorName} eliminada.`,
     notFound: 'No encontramos esa reseña. Actualizamos la lista.',
   },
+  /** UC-18 (T-E8-07, D-E8-10): the packing slip, without prices, to go inside the parcel. */
+  packingSlip: {
+    print: 'Imprimir remito',
+    /** The tab title, e.g. "Remito del pedido #1001". */
+    title: (number: number) => `Remito del pedido #${String(number)}`,
+    backToOrder: 'Volver al pedido',
+    printAgain: 'Imprimir',
+    notPrintable: 'Este pedido todavía no se pagó o ya se cerró: no tiene remito.',
+    /** When it was placed, already formatted, e.g. "Pedido del 13/10/26". */
+    placedOn: (date: string) => `Pedido del ${date}`,
+    recipient: 'Destinatario',
+    items: 'Productos',
+    product: 'Producto',
+    size: 'Talle',
+    color: 'Color',
+    quantity: 'Cantidad',
+    sku: 'SKU',
+    shipment: 'Número de seguimiento',
+  },
   orderDetail: {
     backToList: 'Volver a pedidos',
     notFound: 'No encontramos este pedido.',

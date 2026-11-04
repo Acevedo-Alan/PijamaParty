@@ -44,10 +44,13 @@ public interface PaidOrders {
         }
     }
 
-    record Line(String productName, String size, String color, int quantity, Money unitPrice, Money amount) {
+    /** @param sku the variant's SKU when the order was placed (T-E8-07: the packing slip) */
+    record Line(String productName, String sku, String size, String color, int quantity, Money unitPrice,
+                Money amount) {
 
         public Line {
             Objects.requireNonNull(productName, "productName");
+            Objects.requireNonNull(sku, "sku");
             Objects.requireNonNull(size, "size");
             Objects.requireNonNull(color, "color");
             Objects.requireNonNull(unitPrice, "unitPrice");

@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Printer } from 'lucide-react';
 import { useId, useState, type SubmitEvent } from 'react';
 import { Link, useParams } from 'react-router';
+import { Button } from '../../components/ui/Button.tsx';
 import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
@@ -10,6 +12,7 @@ import {
   changeOrderStatus,
   correctTrackingNumber,
   fetchOrder,
+  hasPackingSlip,
   type AdminOrder,
   type OrderAlert,
   type OrderStatus,
@@ -283,6 +286,14 @@ function OrderView({ order, onChanged }: Props) {
       <div className="admin-title-row">
         <h1>{messages.title(order.number)}</h1>
         <span className="admin-badge">{es.tracking.statuses[order.status]}</span>
+        {hasPackingSlip(order.status) && (
+          <Button asChild variant="secondary">
+            <Link to={`/admin/pedidos/${order.id}/remito`}>
+              <Printer aria-hidden="true" />
+              {esAdmin.packingSlip.print}
+            </Link>
+          </Button>
+        )}
       </div>
       <p className="admin-card-meta">
         {messages.placedAt(formatDateTime(order.createdAt))}

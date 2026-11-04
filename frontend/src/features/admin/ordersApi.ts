@@ -20,6 +20,11 @@ export const ORDER_STATUSES: readonly OrderStatus[] = [
   'EXPIRED',
 ];
 
+/** D-E8-10: the orders a packing slip is printed for: paid, and not cancelled or expired. */
+export function hasPackingSlip(status: OrderStatus): boolean {
+  return status === 'PAID' || status === 'PREPARING' || status === 'SHIPPED' || status === 'DELIVERED';
+}
+
 /** A row of the back-office list (UC-18). */
 export interface OrderSummary {
   id: string;
@@ -33,6 +38,7 @@ export interface OrderSummary {
 }
 
 export interface AdminOrderLine {
+  sku: string;
   productName: string;
   size: string;
   color: string;
@@ -170,6 +176,7 @@ function toOrder(body: DetailResponse): AdminOrder {
     },
     lines: (body.lines ?? []).map((line) => ({
       productName: line.productName ?? '',
+      sku: line.sku ?? '',
       size: line.size ?? '',
       color: line.color ?? '',
       quantity: line.quantity ?? 0,

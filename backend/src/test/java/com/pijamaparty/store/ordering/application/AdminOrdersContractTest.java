@@ -65,8 +65,8 @@ public abstract class AdminOrdersContractTest<T extends SaveOrders & OrderNumber
             Status.AWAITING_PAYMENT, List.of(), NOW, NOW, Optional.empty(),
             new Buyer("Ana María", "Pérez", "ana@example.com", "3425551234", "12345678"),
             new Address("San Martín", "1234", Optional.of("3"), Optional.of("B"), "Santa Fe", "SANTA_FE", "S3000ABC"),
-            List.of(new Line("Pijama Luna", "M", "Rosa", 2, Money.of(2_000_000), Money.of(4_000_000)),
-                new Line("Camisón Sol", "S", "Gris", 1, Money.of(1_000_000), Money.of(1_000_000))),
+            List.of(new Line("Pijama Luna", "PL-M-ROSA", "M", "Rosa", 2, Money.of(2_000_000), Money.of(4_000_000)),
+                new Line("Camisón Sol", "CS-S-GRIS", "S", "Gris", 1, Money.of(1_000_000), Money.of(1_000_000))),
             Money.of(5_000_000), Money.of(500_000), Optional.of("VERANO10"), Money.of(300_000), Money.of(4_800_000),
             "MERCADOPAGO", Optional.empty(), false));
     }

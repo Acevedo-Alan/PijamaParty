@@ -348,7 +348,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 **Design notes**
 - `ListOrders.Query` gains `q`, `from` and `to`. `OrderPages` builds one constant SQL text with optional conditions (`(:number IS NULL OR number = :number)`, `(:pattern IS NULL OR lower(unaccent(customer_first_name)) LIKE :pattern ESCAPE '\' OR ...)`), never by concatenation (RNF-28, the Semgrep gate). The index on `orders (created_at DESC)` already exists (`orders_created_idx`, V20) and serves both the list and UC-33, so T-E8-06 has no migration. The dates become instants with the store zone of the `Clock` (as UC-37's `ActivityPeriod`): from 00:00 of `from` to 00:00 of the day after `to`, exclusive.
 - `GET /api/admin/orders?status=&q=&from=&to=&page=` → `200`; `400` for an invalid `q`, a bad date or `from` after `to`.
-- The packing slip needs no endpoint: `/admin/pedidos/:orderId/remito` reads the existing `GET /api/admin/orders/{id}` and uses print CSS (`@media print`: no admin menu, black on white, A4 and a 10 cm label width). It is not recorded as activity, because it changes nothing.
+- The packing slip needs no endpoint: `/admin/pedidos/:orderId/remito` reads the existing `GET /api/admin/orders/{id}`, whose lines gain their `sku` for it (T-E8-07; `order_item` already stores it), and uses print CSS (`@media print`: no admin menu, black on white, A4 and a 10 cm label width). It is not recorded as activity, because it changes nothing.
 
 ---
 

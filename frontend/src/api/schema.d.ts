@@ -2791,6 +2791,7 @@ export interface components {
         };
         AdminOrderLineResponse: {
             productName?: string;
+            sku?: string;
             size?: string;
             color?: string;
             /** Format: int32 */

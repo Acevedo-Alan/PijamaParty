@@ -31,8 +31,8 @@ class InMemoryPaidOrders implements PaidOrders, TrackingLinks {
     PaidOrder paid(Money shipping, Optional<String> couponCode, Money discount) {
         Money subtotal = Money.of(5_000_000);
         var order = new PaidOrder(UUID.randomUUID(), 1001, "María José", "Pérez", "ana@example.com",
-            List.of(new Line("Pijama Luna", "M", "Rosa", 2, Money.of(2_000_000), Money.of(4_000_000)),
-                new Line("Camisón <Sol>", "S", "Gris", 1, Money.of(1_000_000), Money.of(1_000_000))),
+            List.of(new Line("Pijama Luna", "PL-M-ROSA", "M", "Rosa", 2, Money.of(2_000_000), Money.of(4_000_000)),
+                new Line("Camisón <Sol>", "CS-S-GRIS", "S", "Gris", 1, Money.of(1_000_000), Money.of(1_000_000))),
             subtotal, discount, couponCode, shipping, subtotal.minus(discount).plus(shipping),
             new Address("San Martín", "1234", Optional.of("3"), Optional.of("B"), "Santa Fe", "SANTA_FE",
                 "S3000ABC"));

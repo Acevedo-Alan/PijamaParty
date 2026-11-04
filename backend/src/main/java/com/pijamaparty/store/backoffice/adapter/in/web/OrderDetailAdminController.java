@@ -130,11 +130,11 @@ class OrderDetailAdminController {
         }
     }
 
-    record AdminOrderLineResponse(String productName, String size, String color, int quantity, long unitPriceCents,
-                                  long amountCents) {
+    record AdminOrderLineResponse(String productName, String sku, String size, String color, int quantity,
+                                  long unitPriceCents, long amountCents) {
 
         static AdminOrderLineResponse of(Line line) {
-            return new AdminOrderLineResponse(line.productName(), line.size(), line.color(), line.quantity(),
+            return new AdminOrderLineResponse(line.productName(), line.sku(), line.size(), line.color(), line.quantity(),
                 line.unitPrice().cents(), line.amount().cents());
         }
     }

@@ -415,7 +415,7 @@ class JdbcOrderStore
         return jdbc.query(SELECT_PAID, new MapSqlParameterSource("id", order.value()), (row, n) -> {
                 OrderId id = OrderId.of(row.getObject("id", UUID.class));
                 List<Line> lines = linesOf(id).stream()
-                    .map(line -> new Line(line.productName(), line.size(), line.color(), line.quantity(),
+                    .map(line -> new Line(line.productName(), line.sku(), line.size(), line.color(), line.quantity(),
                         line.unitPrice(), line.amount()))
                     .toList();
                 return new PaidOrder(id.value(), row.getLong("number"), row.getString("customer_first_name"),
@@ -541,7 +541,7 @@ class JdbcOrderStore
         return jdbc.query(SELECT_ADMIN_VIEW, new MapSqlParameterSource("id", order.value()), (row, n) -> {
                 OrderId id = OrderId.of(row.getObject("id", UUID.class));
                 List<Line> lines = linesOf(id).stream()
-                    .map(line -> new Line(line.productName(), line.size(), line.color(), line.quantity(),
+                    .map(line -> new Line(line.productName(), line.sku(), line.size(), line.color(), line.quantity(),
                         line.unitPrice(), line.amount()))
                     .toList();
                 return new AdminOrder(id.value(), row.getLong("number"), Status.valueOf(row.getString("status")),

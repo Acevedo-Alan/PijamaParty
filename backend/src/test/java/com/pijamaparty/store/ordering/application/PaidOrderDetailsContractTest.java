@@ -60,8 +60,8 @@ public abstract class PaidOrderDetailsContractTest<
 
         assertThat(subject.detailsOf(order.id())).contains(new PaidOrder(order.id().value(), order.number(),
             "Ana María", "Pérez", "ana@example.com",
-            List.of(new Line("Pijama Luna", "M", "Rosa", 2, Money.of(2_000_000), Money.of(4_000_000)),
-                new Line("Camisón Sol", "S", "Gris", 1, Money.of(1_000_000), Money.of(1_000_000))),
+            List.of(new Line("Pijama Luna", "PL-M-ROSA", "M", "Rosa", 2, Money.of(2_000_000), Money.of(4_000_000)),
+                new Line("Camisón Sol", "CS-S-GRIS", "S", "Gris", 1, Money.of(1_000_000), Money.of(1_000_000))),
             Money.of(5_000_000), Money.of(500_000), Optional.of("VERANO10"), Money.of(300_000), Money.of(4_800_000),
             new Address("San Martín", "1234", Optional.of("3"), Optional.of("B"), "Santa Fe", "SANTA_FE",
                 "S3000ABC")));
