@@ -15,4 +15,5 @@ export { ReviewsPage } from './ReviewsPage.tsx';
 export { SignInPage } from './SignInPage.tsx';
 export { SizeGuidePage } from './SizeGuidePage.tsx';
 export { StockPage } from './StockPage.tsx';
+export { StoreSettingsPage } from './StoreSettingsPage.tsx';
 export { WithdrawalsPage } from './WithdrawalsPage.tsx';

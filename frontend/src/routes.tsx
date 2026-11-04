@@ -94,6 +94,7 @@ export const routes: RouteObject[] = [
       { path: 'cupones', lazy: async () => ({ Component: (await admin()).CouponsPage }) },
       { path: 'resenas', lazy: async () => ({ Component: (await admin()).ReviewsPage }) },
       { path: 'envios', lazy: async () => ({ Component: (await admin()).ShippingPage }) },
+      { path: 'datos-de-la-tienda', lazy: async () => ({ Component: (await admin()).StoreSettingsPage }) },
       { path: 'portada', lazy: async () => ({ Component: (await admin()).HomeBannerPage }) },
       { path: 'actividad', lazy: async () => ({ Component: (await admin()).ActivityPage }) },
       { path: '*', element: <NotFoundPage /> },

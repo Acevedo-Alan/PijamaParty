@@ -25,6 +25,8 @@ export function subjectPath({ type, id }: ActivityEntry['subject']): string | nu
       return '/admin/envios';
     case 'HOME_BANNER':
       return '/admin/portada';
+    case 'STORE_SETTINGS':
+      return '/admin/datos-de-la-tienda';
     default:
       return null;
   }

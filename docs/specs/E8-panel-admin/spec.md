@@ -62,8 +62,8 @@ Página inicial de `/admin`; reemplaza la redirección a "Productos".
 
 Lo que hoy está fijo en `storeContact.ts` (D-15 de E7) pasa a editarse desde el backoffice, más algunos ajustes de operación:
 
-- Contacto: email, WhatsApp, Instagram, Facebook y TikTok. La tienda los lee del servidor; un dato vacío no se muestra, como hoy. Los datos del vendedor del pie (RNF-30.2) no cambian.
-- Franja de anuncios del encabezado: texto opcional de hasta 80 caracteres (por ejemplo "Envío gratis a todo Santa Fe"); vacía, se muestra la franja de envío gratis de hoy.
+- Contacto: email, WhatsApp, horario de atención, dirección, Instagram, Facebook y TikTok. La tienda los lee del servidor; un dato vacío no se muestra, como hoy. Los datos del vendedor del pie (RNF-30.2) no cambian. Decidido el 2026-11-04: el horario y la dirección del pie (T-E7-26) también se editan acá, y la tienda arranca con el WhatsApp y el Instagram que el negocio ya pasó.
+- Franja de anuncios del encabezado: texto opcional de hasta 80 caracteres (por ejemplo "Envío gratis a todo Santa Fe"); vacía, se muestra la franja de envío gratis de hoy. El anuncio ocupa el lugar de "Envío gratis desde $X" en la franja; Correo Argentino y los medios de pago siguen.
 - Umbral de stock bajo: uno para toda la tienda, 3 unidades por defecto.
 
 ### CU-37 Registro de actividad

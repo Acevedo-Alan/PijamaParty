@@ -39,6 +39,9 @@ public abstract class CatalogFiguresContractTest<T extends CatalogFigures> exten
         assertThat(subject.lowStockCount(3)).isEqualTo(3);
         assertThat(subject.lowStockCount(0)).isEqualTo(1);
         assertThat(subject.lowStock(3, 2)).hasSize(2);
+        // UC-36: a threshold of 0 lists only the sold-out variants.
+        assertThat(subject.lowStock(0, 10)).extracting(LowStockVariant::productName, LowStockVariant::size)
+            .containsExactly(tuple("Sol", "M"));
     }
 
     @Test

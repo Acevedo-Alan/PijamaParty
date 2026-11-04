@@ -65,6 +65,9 @@ import com.pijamaparty.store.reviews.application.ApproveReview;
 import com.pijamaparty.store.reviews.application.DeleteReview;
 import com.pijamaparty.store.reviews.application.RejectReview;
 import com.pijamaparty.store.reviews.domain.ReviewId;
+import com.pijamaparty.store.settings.adapter.out.persistence.StoreSettingsRow;
+import com.pijamaparty.store.settings.application.UpdateStoreSettings;
+import com.pijamaparty.store.settings.domain.StoreSettings;
 import com.pijamaparty.store.shipping.application.ReplaceShippingZoneRates;
 import com.pijamaparty.store.shipping.application.SetFreeShippingThreshold;
 import com.pijamaparty.store.shipping.domain.Province;
@@ -113,7 +116,7 @@ class ActivityPersonalDataTest {
 
     /** Recorded by tasks still to come; each removes its actions as it records them. */
     private static final Set<ActivityAction> NOT_RECORDED_YET = EnumSet.of(
-        ActivityAction.STORE_SETTINGS_CHANGED, ActivityAction.CUSTOMER_VIEWED);
+        ActivityAction.CUSTOMER_VIEWED);
 
     private static final Actor ADMIN = RlsPolicyTester.ADMIN;
     private static final byte[] PHOTO = TestImages.png(1600, 1200);
@@ -147,6 +150,7 @@ class ActivityPersonalDataTest {
                      coupon_scope, coupon, review, shipping_zone_rate
             """);
         owner.update("update shop_setting set free_shipping_threshold_cents = null");
+        StoreSettingsRow.reset(owner);
         owner.update("""
             update home_banner
             set title = null, body = null, link_text = null, link_path = null, image_storage_key = null,
@@ -176,6 +180,7 @@ class ActivityPersonalDataTest {
         as(this::runCouponActions);
         as(this::runReviewActions);
         as(this::runShippingActions);
+        as(this::runSettingsActions);
         runSignInActions();
 
         List<String> forbidden = new ArrayList<>(PERSONAL_DATA);
@@ -298,6 +303,14 @@ class ActivityPersonalDataTest {
         backOffice.setThreshold.execute(new SetFreeShippingThreshold.Command(ADMIN, Optional.of(5_000_000L)));
     }
 
+    /** UC-36: the store's own contact data, which is business data, not the buyer's. */
+    private void runSettingsActions() {
+        backOffice.updateSettings.execute(new UpdateStoreSettings.Command(ADMIN, 0, new StoreSettings.Typed(
+            "hola@pijamaparty.com.ar", "5493424000000", "Lunes a viernes de 9 a 18 h", "Bv. Gálvez 1500, Santa Fe",
+            "https://www.instagram.com/pijamaparty.zzz/", "https://www.facebook.com/pijamaparty",
+            "https://www.tiktok.com/@pijamaparty", "Envío gratis a todo Santa Fe", 5L)));
+    }
+
     /**
      * UC-04: the administrator enrolls its authenticator app, which signs it in, then signs in with a recovery code;
      * as the sign-in API does, before there is an administrator actor.
@@ -388,7 +401,8 @@ class ActivityPersonalDataTest {
                       CreateCoupon createCoupon, UpdateCoupon updateCoupon, ActivateCoupon activateCoupon,
                       DeactivateCoupon deactivateCoupon, DeleteCoupon deleteCoupon, ApproveReview approveReview,
                       RejectReview rejectReview, DeleteReview deleteReview, ReplaceShippingZoneRates replaceZones,
-                      SetFreeShippingThreshold setThreshold, StartSecondFactorEnrollment startEnrollment,
+                      SetFreeShippingThreshold setThreshold, UpdateStoreSettings updateSettings,
+                      StartSecondFactorEnrollment startEnrollment,
                       ConfirmSecondFactorEnrollment confirmEnrollment, VerifySecondFactor verifySecondFactor) {
     }
 
@@ -425,12 +439,14 @@ class ActivityPersonalDataTest {
                               DeactivateCoupon deactivateCoupon, DeleteCoupon deleteCoupon,
                               ApproveReview approveReview, RejectReview rejectReview, DeleteReview deleteReview,
                               ReplaceShippingZoneRates replaceZones, SetFreeShippingThreshold setThreshold,
+                              UpdateStoreSettings updateSettings,
                               StartSecondFactorEnrollment startEnrollment,
                               ConfirmSecondFactorEnrollment confirmEnrollment,
                               VerifySecondFactor verifySecondFactor) {
             return new BackOffice(adjustStock, changeStatus, correctTrackingNumber, resolveWithdrawal, createCoupon,
                 updateCoupon, activateCoupon, deactivateCoupon, deleteCoupon, approveReview, rejectReview,
-                deleteReview, replaceZones, setThreshold, startEnrollment, confirmEnrollment, verifySecondFactor);
+                deleteReview, replaceZones, setThreshold, updateSettings, startEnrollment, confirmEnrollment,
+                verifySecondFactor);
         }
     }
 }

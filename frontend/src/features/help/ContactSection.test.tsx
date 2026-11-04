@@ -22,7 +22,7 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
     renderRoute('/');
 
     await screen.findByRole('link', { name: /Pijama rosa/ });
-    const section = contact() as HTMLElement;
+    const section = await screen.findByRole('region', { name: messages.title });
     expect(within(section).getByRole('link', { name: 'hola@example.com' })).toHaveAttribute('href', 'mailto:hola@example.com');
     const whatsApp = within(section).getByRole('link', { name: messages.whatsApp });
     expect(whatsApp).toHaveAttribute('href', 'https://wa.me/5493424000000');
@@ -40,7 +40,7 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
     renderRoute('/');
 
     await screen.findByRole('link', { name: /Pijama rosa/ });
-    expect(within(contact() as HTMLElement).getByRole('link', { name: 'hola@example.com' })).toBeInTheDocument();
+    expect(within(await screen.findByRole('region', { name: messages.title })).getByRole('link', { name: 'hola@example.com' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: messages.whatsApp })).not.toBeInTheDocument();
   });
 

@@ -8,6 +8,7 @@ import {
   Package,
   ShoppingBag,
   Star,
+  Store,
   Ticket,
   Truck,
   Undo2,
@@ -69,6 +70,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     title: esAdmin.navGroups.store,
     entries: [
       { to: '/admin/envios', label: esAdmin.shipping, icon: Truck },
+      { to: '/admin/datos-de-la-tienda', label: esAdmin.storeSettings, icon: Store },
       { to: '/admin/actividad', label: esAdmin.activity, icon: Activity },
     ],
   },

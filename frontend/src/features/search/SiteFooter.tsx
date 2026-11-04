@@ -5,7 +5,8 @@ import { ConsentFooterLink } from '../analytics/ConsentBanner.tsx';
 import type { PaymentProvider } from '../checkout/checkoutForm.ts';
 import { usePaymentProviders } from '../checkout/useCheckout.ts';
 import { FaqLink, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, SIZE_GUIDES_PATH, TERMS_PATH } from '../help/FaqLink.tsx';
-import { mapsUrl, STORE_CONTACT, whatsAppUrl } from '../help/storeContact.ts';
+import { mapsUrl, whatsAppUrl } from '../help/storeContact.ts';
+import { useStoreContact } from '../help/useStoreContact.ts';
 import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
 import { StoreNavigation } from './StoreNavigation.tsx';
 import './footer.css';
@@ -49,6 +50,13 @@ const instagramIcon = (
   </svg>
 );
 
+const facebookIcon = (
+  <svg className="footer-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M13 20.5V12h2.5M13 12V9.8c0-1 .6-1.6 1.6-1.6h1.4M10.5 12H13" />
+  </svg>
+);
+
 const tiktokIcon = (
   <svg className="footer-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M13 3.5v11.5a3.5 3.5 0 1 1-3.5-3.5" />
@@ -86,11 +94,11 @@ function displayWhatsApp(number: string): string {
 }
 
 /**
- * The WhatsApp number, the email, the opening hours and the address, as the business sends them (D-15, T-E7-24,
+ * The WhatsApp number, the email, the opening hours and the address, as set in "Datos de la tienda" (UC-36, T-E7-24,
  * T-E7-26); without any of them, no column.
  */
 function ContactColumn() {
-  const { email, whatsAppNumber, openingHours, address } = STORE_CONTACT;
+  const { email, whatsAppNumber, openingHours, address } = useStoreContact();
   if (email === undefined && whatsAppNumber === undefined && openingHours === undefined && address === undefined) {
     return null;
   }
@@ -140,12 +148,15 @@ interface SocialNetwork {
 }
 
 /**
- * Instagram and TikTok, only those whose link the business sent (D-15, T-E7-40); the network's name is the link's.
+ * Instagram, Facebook and TikTok, only those with a link in "Datos de la tienda" (UC-36, T-E7-40); the network's name
+ * is the link's.
  */
-function linkedNetworks(): (SocialNetwork & { url: string })[] {
+function useLinkedNetworks(): (SocialNetwork & { url: string })[] {
+  const { instagramUrl, facebookUrl, tiktokUrl } = useStoreContact();
   return [
-    { name: messages.instagram, url: STORE_CONTACT.instagramUrl, icon: instagramIcon },
-    { name: messages.tiktok, url: STORE_CONTACT.tiktokUrl, icon: tiktokIcon },
+    { name: messages.instagram, url: instagramUrl, icon: instagramIcon },
+    { name: messages.facebook, url: facebookUrl, icon: facebookIcon },
+    { name: messages.tiktok, url: tiktokUrl, icon: tiktokIcon },
   ].flatMap((network) => (network.url === undefined ? [] : [{ ...network, url: network.url }]));
 }
 
@@ -154,7 +165,7 @@ function linkedNetworks(): (SocialNetwork & { url: string })[] {
  * or keyboard focus a pink circle blooms from the center behind the icon (`social-link`, T-E7-40).
  */
 export function SocialIconLinks({ className }: { className: string }) {
-  const links = linkedNetworks();
+  const links = useLinkedNetworks();
   if (links.length === 0) {
     return null;
   }
@@ -180,7 +191,7 @@ export function SocialIconLinks({ className }: { className: string }) {
 
 /** The linked networks as round icon buttons under their title (T-E7-24); without any, no block (T-E7-40). */
 function SocialLinks() {
-  if (linkedNetworks().length === 0) {
+  if (useLinkedNetworks().length === 0) {
     return null;
   }
   return (

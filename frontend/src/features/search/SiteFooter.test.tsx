@@ -163,4 +163,21 @@ describe('store footer (UC-31)', () => {
     });
     expect(screen.queryByRole('region', { name: messages.contact })).not.toBeInTheDocument();
   });
+
+  it('given a Facebook link and no TikTok link in "Datos de la tienda", when the footer is checked, then Redes sociales links Facebook next to Instagram and has no TikTok (UC-36)', async () => {
+    setStoreContact({
+      instagramUrl: 'https://www.instagram.com/pijamaparty.zzz/',
+      facebookUrl: 'https://www.facebook.com/pijamaparty',
+    });
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+
+    renderRoute('/');
+
+    const social = within(await screen.findByRole('region', { name: messages.social }));
+    expect(social.getAllByRole('link').map((link) => [link.getAttribute('aria-label'), link.getAttribute('href')])).toEqual([
+      [messages.instagram, 'https://www.instagram.com/pijamaparty.zzz/'],
+      [messages.facebook, 'https://www.facebook.com/pijamaparty'],
+    ]);
+    expect(social.queryByRole('link', { name: messages.tiktok })).not.toBeInTheDocument();
+  });
 });

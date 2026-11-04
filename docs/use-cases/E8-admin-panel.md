@@ -180,7 +180,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 
 **Main flow**
 1. The administrator opens "Datos de la tienda".
-2. Edits the contact email, the WhatsApp number, the Instagram, Facebook and TikTok links, the announcement text and the low-stock threshold.
+2. Edits the contact email, the WhatsApp number, the opening hours, the address, the Instagram, Facebook and TikTok links, the announcement text and the low-stock threshold.
 3. Saves. The storefront shows the new data on its next load.
 
 **Alternative flows**
@@ -188,9 +188,10 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Another save got in first: `409`, and the page reloads the settings and says they changed.
 
 **Business rules**
-- There is one row, created by the migration with everything empty and a threshold of 3.
+- There is one row, created by the migration with a threshold of 3 and everything else empty, except the WhatsApp number and the Instagram link the business already sent (D-15 of E7: `5493425304507` and `https://www.instagram.com/pijamaparty.zzz/`), so the store keeps showing them (decided on 2026-11-04).
 - **Contact email:** optional, at most 254 characters, the format of UC-13's buyer email, stored in lowercase.
 - **WhatsApp:** optional, digits only, 10 to 15, in international format as `wa.me` takes it (e.g. `5493424000000`). Spaces, `+` and dashes are removed before checking.
+- **Opening hours and address** (T-E7-26; they joined UC-36 on 2026-11-04): optional plain text as it should read ("Lunes a viernes de 9 a 18 h", "San Martín 2000, Santa Fe"), trimmed, without line breaks or control characters, at most 80 characters for the hours and 120 for the address. The footer shows them in Contacto, and the address opens Google Maps (UC-31). They are the store's business data, not personal data.
 - **Social links:** optional, at most 200 characters. Each must be `https://` and its host must be its network: `instagram.com` or `www.instagram.com`; `facebook.com`, `www.facebook.com` or `m.facebook.com`; `tiktok.com` or `www.tiktok.com`. It must have a path after the host and no user info or port. Anything else is refused, so a link can never send shoppers to another site.
 - **Announcement:** optional, 0 to 80 characters, plain text, trimmed, without line breaks or control characters. When it is set, the header strip shows it. When it is empty, the strip shows "Envío gratis desde $X" as today (UC-31), or nothing without a threshold.
 - **Low-stock threshold** (D-E8-03): an integer from 0 to 1,000. 0 means only sold-out variants count as low.
@@ -204,20 +205,23 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given an announcement "Envío gratis a todo Santa Fe", when the store opens, then the strip shows it instead of the free-shipping amount.
 - Given an empty announcement and a $50,000 free-shipping threshold, when the store opens, then the strip reads "Envío gratis desde $50.000".
 - Given an empty TikTok link, when the footer shows, then it has no TikTok link.
+- Given a Facebook link `https://www.facebook.com/pijamaparty`, when the footer shows, then "Redes sociales" links to it next to Instagram.
+- Given the opening hours "Lunes a viernes de 9 a 18 h" and the address "San Martín 2000, Santa Fe", when the footer shows, then Contacto shows both and the address opens Google Maps.
+- Given hours of 81 characters or an announcement with a line break, when saved, then it is refused with `422`.
 - Given a threshold of 0, when the summary opens, then only sold-out variants show in "Stock bajo".
 - Given a threshold of 1,001 or -1, when saved, then it is refused with `422`.
 - Given two tabs that saved the same version, when the second saves, then it gets `409` and nothing of it is saved.
 - Given a visitor, when it calls `PUT /api/admin/store/settings`, then it gets `401`; a customer gets `403`.
 
 **Design notes**
-- **New module `settings`** (no dependencies). `settings.domain.StoreSettings` aggregate with value objects `ContactEmail`, `WhatsAppNumber`, `SocialLink` (one per network, with its allowed hosts), `Announcement` and `LowStockThreshold`, plus a `version` for the optimistic check. The table is `store_settings` (one migration): a single row with an `id` fixed by a check constraint, the columns above, `version` and `updated_at`, and check constraints backing the domain rules. It has no personal data, so there is no RLS and it joins the public list of `RowLevelSecurityCoverageTest` with that reason. Insert and delete are revoked from `tienda_app`, as `shop_setting`.
+- **New module `settings`** (depends only on `activity`, for the entry of each save). `settings.domain.StoreSettings` aggregate with value objects `ContactEmail`, `WhatsAppNumber`, `SocialLink` (one per network, with its allowed hosts), `PlainText` (the announcement, the hours and the address, each with its maximum length) and `LowStockThreshold`, plus a `version` for the optimistic check. The table is `store_settings` (one migration): a single row with an `id` fixed by a check constraint, the columns above, `version` and `updated_at`, and check constraints backing the domain rules. It has no personal data, so there is no RLS and it joins the public list of `RowLevelSecurityCoverageTest` with that reason. Insert and delete are revoked from `tienda_app`, as `shop_setting`.
 - **Inbound ports:** `GetPublicStoreContact` (no actor; the contact links and the announcement), `GetStoreSettings` (admin), `UpdateStoreSettings` (`Command(actor, version, fields...)`; result `Updated(settings)`, `Invalid(fields)`, `VersionChanged(current)` or `Forbidden`).
 - **`settings.api.StoreSettings`:** `lowStockThreshold()`, for `backoffice` and the Stock screen.
 - **Endpoints:**
-  - `GET /api/store/contact` → `200` `{email, whatsAppNumber, instagramUrl, facebookUrl, tiktokUrl, announcement}`, with nulls for empty values (catalog rate-limit policy).
+  - `GET /api/store/contact` → `200` `{email, whatsAppNumber, openingHours, address, instagramUrl, facebookUrl, tiktokUrl, announcement}`, with nulls for empty values (catalog rate-limit policy).
   - `GET /api/admin/store/settings` → `200`, everything plus `version`.
   - `PUT /api/admin/store/settings` with every field and `version` → `200`; `409` `SETTINGS_CHANGED`; `422` with the fields.
-- **Storefront:** `storeContact.ts` stops being the source. `useStoreContact()` (TanStack Query, one shared query, `staleTime` 5 minutes) feeds `ContactSection`, `SiteFooter` (Facebook joins Instagram and TikTok in "Redes") and the header strip. While it loads, or when it fails, nothing that depends on it is shown, as today with empty values. The test helper `frontend/src/test/storeContact.ts` mocks the query instead.
+- **Storefront:** `storeContact.ts` stops being the source. `useStoreContact()` (TanStack Query, one shared query, `staleTime` 5 minutes) feeds `ContactSection`, `WhatsAppButton`, the phone menu, `SiteFooter` (Facebook joins Instagram and TikTok in "Redes sociales") and the header strip. The strip is the ticker of T-E7-39: the announcement takes the place of "Envío gratis desde $X", and the carrier and the payment providers stay. While it loads, or when it fails, nothing that depends on it is shown, as today with empty values. The test helper `frontend/src/test/storeContact.ts` mocks the query instead.
 - **Page:** `/admin/datos-de-la-tienda`, a one-column form at 360 px with the strip preview.
 
 ---
@@ -257,7 +261,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - **Never recorded:** buyer or customer names, emails, phones, national IDs or addresses; the free-text note of a stock adjustment (it may contain personal data, UC-07); review texts; passwords, second-factor secrets, codes, tokens or idempotency keys; photo file names.
 - Entries are append-only: nothing edits or deletes them, except the retention job.
 - **Retention** (D-E8-11): a daily job at 03:00 Argentina time deletes the entries older than 2 years.
-- **Screen:** "Actividad" lists 50 per page, newest first, filterable by area and by a date range (Argentina dates, both inclusive). Each row shows the date and time, the action in Spanish, the subject label linked to its screen (a product or an order opens itself; a category, a coupon, a review, a withdrawal, the shipping table and the banner open their section; a variant, the settings, a customer and the administrator are not links until their screens exist), and the changed fields as "antes → después".
+- **Screen:** "Actividad" lists 50 per page, newest first, filterable by area and by a date range (Argentina dates, both inclusive). Each row shows the date and time, the action in Spanish, the subject label linked to its screen (a product or an order opens itself; a category, a coupon, a review, a withdrawal, the shipping table, the banner and the store settings (T-E8-04) open their section; a variant, a customer and the administrator are not links until their screens exist), and the changed fields as "antes → después".
 
 **Acceptance criteria**
 - Given a variant whose price changes from $20,000 to $22,000, when saved, then "Actividad" shows the change with the SKU, $20.000 → $22.000 and the time.
@@ -310,10 +314,11 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   | `REVIEW_APPROVED`, `REVIEW_REJECTED`, `REVIEW_DELETED` | review (its product's name; none when the catalog no longer has it) | none (never the text, the rating or the author) |
   | `SHIPPING_ZONES_CHANGED` | `SHIPPING` without an id, labelled with the province (`SANTA_FE`); one entry per province whose cost changed | `cost`: before → after (none: not served) |
   | `FREE_SHIPPING_THRESHOLD_CHANGED` | `SHIPPING` without an id or label | `threshold`: before → after (none: no free shipping) |
+  | `STORE_SETTINGS_CHANGED` | `STORE_SETTINGS` without an id or label (T-E8-04) | only the ones that changed: `email`, `whatsAppNumber`, `openingHours`, `address`, `instagramUrl`, `facebookUrl`, `tiktokUrl`, `announcement` (each as stored; none: empty) and `lowStockThreshold` (a count) |
   | `ADMIN_SIGNED_IN` | `ADMINISTRATOR` (the administrator's id, no label) | none |
   | `RECOVERY_CODE_USED`, `SECOND_FACTOR_ENROLLED` | `ADMINISTRATOR` | none; recorded next to the `ADMIN_SIGNED_IN` of the same sign-in, so every sign-in has one |
 
-  Nothing is recorded when the write changes nothing: an adjustment answered from an earlier one with the same key, correcting a tracking number to the same one, resolving a resolved withdrawal, saving a coupon with the same terms, activating an active coupon or deactivating an inactive one, approving an approved review or rejecting a rejected one, saving the same zone costs or threshold. A refused write (a `409`, a `422`, deleting a coupon that has uses) records nothing either.
+  Nothing is recorded when the write changes nothing: an adjustment answered from an earlier one with the same key, correcting a tracking number to the same one, resolving a resolved withdrawal, saving a coupon with the same terms, activating an active coupon or deactivating an inactive one, approving an approved review or rejecting a rejected one, saving the same zone costs or threshold, saving the same store settings. A refused write (a `409`, a `422`, deleting a coupon that has uses) records nothing either.
 - **Variant SKUs for stock entries:** `inventory` cannot depend on `catalog` (`catalog` already depends on `inventory::api`), so `inventory.api.VariantSkus` declares the lookup and `catalog` implements it over its own store (dependency inversion, ARCHITECTURE.md section 3, rule 3).
 - **Sign-in entries** are recorded by `accounts` after a successful sign-in as `ADMIN`, never for failed attempts: those stay in the lock counter of UC-04.
 - **Endpoint:** `GET /api/admin/activity?area=&from=&to=&page=` → `200` `{items, hasMore}`; `400`.

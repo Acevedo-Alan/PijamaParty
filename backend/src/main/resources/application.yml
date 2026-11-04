@@ -264,9 +264,10 @@ store:
         keys: [ip]
         capacity: 10
         period: 1m
-      # UC-01 to UC-03, UC-26 and the home page's banner (UC-32): generous, many shoppers share a mobile-data IP
+      # UC-01 to UC-03, UC-26, the home page's banner (UC-32) and the store's contact data (UC-36): generous, many
+      # shoppers share a mobile-data IP
       - name: catalog
-        paths: [/api/catalog/**, /api/home/banner]
+        paths: [/api/catalog/**, /api/home/banner, /api/store/contact]
         methods: [GET]
         keys: [ip]
         capacity: 120

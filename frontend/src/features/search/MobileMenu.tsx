@@ -11,7 +11,8 @@ import { BagIcon } from '../cart/CartButton.tsx';
 import { useCartPanel } from '../cart/CartPanelContext.tsx';
 import { useCart } from '../cart/useCart.ts';
 import { FAQ_PATH, SIZE_GUIDES_PATH } from '../help/FaqLink.tsx';
-import { STORE_CONTACT, whatsAppUrl } from '../help/storeContact.ts';
+import { whatsAppUrl } from '../help/storeContact.ts';
+import { useStoreContact } from '../help/useStoreContact.ts';
 import { SocialIconLinks } from './SiteFooter.tsx';
 import { StoreNavigationLink, useStoreLinks, type StoreLink } from './StoreNavigation.tsx';
 import { useShopCategories } from './useShopCategories.ts';
@@ -97,10 +98,10 @@ function Shortcuts({ onChoose, onOpenCart, open }: { onChoose: () => void; onOpe
   );
 }
 
-/** "¿Necesitás ayuda?" with the FAQ and, once the business sent its number (D-15), WhatsApp; then the networks. */
+/** "¿Necesitás ayuda?" with the FAQ and, with the store's number (UC-36), WhatsApp; then the networks. */
 function MenuHelp({ onChoose }: { onChoose: () => void }) {
   const titleId = useId();
-  const number = STORE_CONTACT.whatsAppNumber;
+  const number = useStoreContact().whatsAppNumber;
   return (
     <section className="menu-help" aria-labelledby={titleId}>
       <p id={titleId}>{es.header.help}</p>

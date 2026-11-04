@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
-import { STORE_CONTACT, whatsAppUrl } from './storeContact.ts';
+import { whatsAppUrl } from './storeContact.ts';
+import { useStoreContact } from './useStoreContact.ts';
 import './whatsAppButton.css';
 
 /** Where the button would get in the way of paying or of the customer's own data (T-E7-27). */
@@ -12,12 +13,12 @@ function isHidden(pathname: string): boolean {
 
 /**
  * The round WhatsApp button fixed at the bottom right of the store (UC-31, T-E7-27): the chat with the business, in a
- * new tab. Not in the checkout or the account, and nowhere until the business sends its number (D-15). The CSS lifts
+ * new tab. Not in the checkout or the account, and nowhere without the store's number (UC-36). The CSS lifts
  * it above the product page's add-to-cart bar while that bar shows.
  */
 export function WhatsAppButton() {
   const { pathname } = useLocation();
-  const number = STORE_CONTACT.whatsAppNumber;
+  const number = useStoreContact().whatsAppNumber;
   if (number === undefined || isHidden(pathname)) {
     return null;
   }

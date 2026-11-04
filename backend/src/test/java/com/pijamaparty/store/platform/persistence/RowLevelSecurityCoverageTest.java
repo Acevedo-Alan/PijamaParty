@@ -27,7 +27,7 @@ class RowLevelSecurityCoverageTest {
     private static final Set<String> PUBLIC = Set.of(
         // The catalog and the store's settings: public, without personal data
         "category", "product", "variant", "product_image", "size_guide", "home_banner", "stock_level",
-        "shipping_zone_rate", "shop_setting",
+        "shipping_zone_rate", "shop_setting", "store_settings",
         // Coupons and their uses, by order id only
         "coupon", "coupon_scope", "coupon_redemption",
         // Quantities and the administrator's note, by variant, order and administrator id

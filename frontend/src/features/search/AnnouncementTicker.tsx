@@ -4,6 +4,7 @@ import { formatMoney } from '../../i18n/formatMoney.ts';
 import { usePaymentProviders } from '../checkout/useCheckout.ts';
 import { paymentMethodNames } from '../help/paymentMethods.ts';
 import { useShippingRates } from '../help/useShippingRates.ts';
+import { useStoreContact } from '../help/useStoreContact.ts';
 
 const messages = es.header.ticker;
 
@@ -11,15 +12,17 @@ const messages = es.header.ticker;
 const SPEED = 40;
 
 /**
- * The store's messages (UC-31, T-E7-39): "Envío gratis desde $X" with a threshold, the carrier, and the enabled payment
- * providers once they are known. No installments or discounts (D-01, D-02). The carrier is always there, so the
- * ticker never appears late and pushes the header down.
+ * The store's messages (UC-31, T-E7-39): the announcement of "Datos de la tienda" (UC-36), or else "Envío gratis
+ * desde $X" with a threshold; the carrier; and the enabled payment providers once they are known. No installments or
+ * discounts (D-01, D-02). The carrier is always there, so the ticker never appears late and pushes the header down.
  */
 function useMessages(): string[] {
+  const { announcement } = useStoreContact();
   const threshold = useShippingRates().data?.freeShippingThresholdCents ?? null;
   const providers = usePaymentProviders().data ?? [];
+  const freeShipping = threshold === null ? [] : [es.header.freeShippingFrom(formatMoney(threshold))];
   return [
-    ...(threshold === null ? [] : [es.header.freeShippingFrom(formatMoney(threshold))]),
+    ...(announcement === undefined ? freeShipping : [announcement]),
     messages.carrier,
     ...(providers.length > 0 ? [es.faq.summary.payWith(paymentMethodNames(providers))] : []),
   ];

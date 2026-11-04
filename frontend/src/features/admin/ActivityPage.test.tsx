@@ -242,6 +242,34 @@ describe('the activity log in the back office (UC-37)', () => {
     expect(screen.getByText('Orden: Verano, Invierno → Invierno, Verano')).toBeInTheDocument();
   });
 
+  it('given a change of the store settings, when listed, then it links to "Datos de la tienda" with each field named (UC-36)', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      [LIST]: answer(200, {
+        items: [
+          row('a-1', {
+            area: 'SETTINGS',
+            action: 'STORE_SETTINGS_CHANGED',
+            subject: { type: 'STORE_SETTINGS', id: null, label: null },
+            changes: [
+              { field: 'announcement', before: null, after: 'Envío gratis a todo Santa Fe' },
+              { field: 'lowStockThreshold', before: '3', after: '5' },
+            ],
+          }),
+        ],
+        hasMore: false,
+      }),
+    });
+    renderRoute('/admin/actividad');
+
+    expect(await screen.findByRole('link', { name: messages.subjects.STORE_SETTINGS })).toHaveAttribute(
+      'href',
+      '/admin/datos-de-la-tienda',
+    );
+    expect(screen.getByText('Anuncio: — → Envío gratis a todo Santa Fe')).toBeInTheDocument();
+    expect(screen.getByText('Umbral de stock bajo: 3 → 5')).toBeInTheDocument();
+  });
+
   it('given more than one page, when Ver más is pressed, then the next page is asked for and added', async () => {
     const api = stubApi({
       'GET /api/admin/auth/me': signedIn,

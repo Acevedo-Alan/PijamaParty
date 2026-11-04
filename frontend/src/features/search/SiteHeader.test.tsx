@@ -78,6 +78,23 @@ describe('announcement ticker (UC-31, T-E7-39)', () => {
     expect(tickerMessages()[0]).toBe(es.header.freeShippingFrom(shown(5_000_000)));
   });
 
+  it('given an announcement in "Datos de la tienda" and a $50,000 threshold, when a page opens, then the ticker shows the announcement instead of the free shipping (UC-36)', async () => {
+    setStoreContact({ announcement: 'Envío gratis a todo Santa Fe' });
+    stubCatalogApi({
+      listings: [listed([])],
+      shippingRates: answer(200, { zones: [], freeShippingThresholdCents: 5_000_000 }),
+    });
+    renderRoute('/');
+
+    await waitFor(() => {
+      expect(tickerMessages()).toEqual([
+        'Envío gratis a todo Santa Fe',
+        es.header.ticker.carrier,
+        es.faq.summary.payWith('MercadoPago'),
+      ]);
+    });
+  });
+
   it.each([
     ['no threshold', answer(200, { zones: [], freeShippingThresholdCents: null })],
     ['the rates failing', answer(500)],

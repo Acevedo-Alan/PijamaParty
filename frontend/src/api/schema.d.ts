@@ -4,6 +4,27 @@
  */
 
 export interface paths {
+    "/api/admin/store/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every setting of the store and its version */
+        get: operations["get"];
+        /**
+         * Save every setting of the store
+         * @description Replaces every value; null or blank is none. Email: at most 254 characters, stored in lower case. WhatsApp: 10 to 15 digits once spaces, + and dashes are removed. Opening hours: at most 80 characters; address: at most 120; announcement: at most 80; each plain text on one line, trimmed. Instagram, Facebook and TikTok: https links of at most 200 characters to the network's own host, with a path, without user info or port. Low-stock threshold: 0 to 1,000. version is the one read; a save in between is a 409. Requires the CSRF token.
+         */
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/shipping/zones": {
         parameters: {
             query?: never;
@@ -75,12 +96,12 @@ export interface paths {
          * The banner as stored, published or not
          * @description The texts are null until first saved, the image until a photo is uploaded.
          */
-        get: operations["get"];
+        get: operations["get_1"];
         /**
          * Edit the banner's texts
          * @description Replaces the title (1 to 60 characters), the text (0 to 200), the link text (1 to 30) and the link target (a path of this store: one leading /, no backslash, at most 200 characters), all trimmed. A published banner stays published. Requires the CSRF token.
          */
-        put: operations["update"];
+        put: operations["update_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -100,7 +121,7 @@ export interface paths {
          * Edit a coupon
          * @description Replaces every field but the state and the uses, also on a used coupon; automatic is ignored. Requires the CSRF token.
          */
-        put: operations["update_1"];
+        put: operations["update_2"];
         post?: never;
         /**
          * Delete a coupon without uses
@@ -120,12 +141,12 @@ export interface paths {
             cookie?: never;
         };
         /** A product with its sizes, colors, variants and photos */
-        get: operations["get_1"];
+        get: operations["get_2"];
         /**
          * Edit the details of a product
          * @description A new name regenerates the slug. Requires the CSRF token.
          */
-        put: operations["update_2"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -161,7 +182,7 @@ export interface paths {
             cookie?: never;
         };
         /** The category's name and its size guide, null without one */
-        get: operations["get_2"];
+        get: operations["get_3"];
         /**
          * Create or replace the category's size guide
          * @description Replaces the whole guide. Requires the CSRF token.
@@ -1252,6 +1273,26 @@ export interface paths {
         patch: operations["rename"];
         trace?: never;
     };
+    "/api/store/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The store's contact data, social links and header announcement
+         * @description Public. A value the store does not have is null, and the store leaves it out. A null announcement shows the free-shipping message instead.
+         */
+        get: operations["contact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/shipping/rates": {
         parameters: {
             query?: never;
@@ -1597,7 +1638,7 @@ export interface paths {
             cookie?: never;
         };
         /** The shipping cost of every province and the free-shipping threshold */
-        get: operations["get_3"];
+        get: operations["get_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1654,7 +1695,7 @@ export interface paths {
             cookie?: never;
         };
         /** An order with its buyer, address, lines, amounts, next statuses, withdrawal and alerts */
-        get: operations["get_4"];
+        get: operations["get_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1671,7 +1712,7 @@ export interface paths {
             cookie?: never;
         };
         /** The summary: what to do today, the sales of a period, the chart, low stock, best sellers, recent orders and the totals */
-        get: operations["get_5"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1688,7 +1729,7 @@ export interface paths {
             cookie?: never;
         };
         /** The counts of the back-office menu: the PAID orders waiting to be prepared */
-        get: operations["get_6"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1935,6 +1976,47 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        StoreSettingsRequest: {
+            email?: string | null;
+            whatsAppNumber?: string | null;
+            openingHours?: string | null;
+            address?: string | null;
+            instagramUrl?: string | null;
+            facebookUrl?: string | null;
+            tiktokUrl?: string | null;
+            announcement?: string | null;
+            /** Format: int64 */
+            lowStockThreshold: number;
+            /** Format: int64 */
+            version: number;
+        };
+        StoreSettingsResponse: {
+            email?: string | null;
+            whatsAppNumber?: string | null;
+            openingHours?: string | null;
+            address?: string | null;
+            instagramUrl?: string | null;
+            facebookUrl?: string | null;
+            tiktokUrl?: string | null;
+            announcement?: string | null;
+            /** Format: int32 */
+            lowStockThreshold?: number;
+            /** Format: int64 */
+            version?: number;
+        };
+        ProblemDetail: {
+            /** Format: uri */
+            type?: string;
+            title?: string | null;
+            /** Format: int32 */
+            status?: number;
+            detail?: string | null;
+            /** Format: uri */
+            instance?: string | null;
+            properties?: {
+                [key: string]: unknown;
+            } | null;
+        };
         ZoneRequest: {
             /** @enum {string} */
             province: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
@@ -1954,19 +2036,6 @@ export interface components {
             province?: "BUENOS_AIRES" | "CIUDAD_DE_BUENOS_AIRES" | "CATAMARCA" | "CHACO" | "CHUBUT" | "CORDOBA" | "CORRIENTES" | "ENTRE_RIOS" | "FORMOSA" | "JUJUY" | "LA_PAMPA" | "LA_RIOJA" | "MENDOZA" | "MISIONES" | "NEUQUEN" | "RIO_NEGRO" | "SALTA" | "SAN_JUAN" | "SAN_LUIS" | "SANTA_CRUZ" | "SANTA_FE" | "SANTIAGO_DEL_ESTERO" | "TIERRA_DEL_FUEGO" | "TUCUMAN";
             /** Format: int64 */
             costCents?: number | null;
-        };
-        ProblemDetail: {
-            /** Format: uri */
-            type?: string;
-            title?: string | null;
-            /** Format: int32 */
-            status?: number;
-            detail?: string | null;
-            /** Format: uri */
-            instance?: string | null;
-            properties?: {
-                [key: string]: unknown;
-            } | null;
         };
         FreeShippingRequest: {
             /** Format: int64 */
@@ -2428,6 +2497,16 @@ export interface components {
             /** Format: int64 */
             priceCents?: number;
             active?: boolean;
+        };
+        StoreContactResponse: {
+            email?: string | null;
+            whatsAppNumber?: string | null;
+            openingHours?: string | null;
+            address?: string | null;
+            instagramUrl?: string | null;
+            facebookUrl?: string | null;
+            tiktokUrl?: string | null;
+            announcement?: string | null;
         };
         ShippingRatesResponse: {
             zones?: components["schemas"]["ZoneRateResponse"][];
@@ -3024,6 +3103,86 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreSettingsResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved, with the new version */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreSettingsResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description SETTINGS_CHANGED: another save got in first; nothing is saved */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description INVALID_SETTINGS with the invalid fields; nothing is saved */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     replaceZones: {
         parameters: {
             query?: never;
@@ -3170,7 +3329,7 @@ export interface operations {
             };
         };
     };
-    get: {
+    get_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3199,7 +3358,7 @@ export interface operations {
             };
         };
     };
-    update: {
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3241,7 +3400,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3352,7 +3511,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3392,7 +3551,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -3507,7 +3666,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -6556,6 +6715,26 @@ export interface operations {
             };
         };
     };
+    contact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The contact data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreContactResponse"];
+                };
+            };
+        };
+    };
     shippingRates: {
         parameters: {
             query?: never;
@@ -7219,7 +7398,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -7330,7 +7509,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -7370,7 +7549,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: {
                 /** @description The chart by the last 30 days or the last 12 months */
@@ -7417,7 +7596,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;

@@ -102,6 +102,19 @@ class DashboardAdminApiTest {
     }
 
     @Test
+    void givenAThresholdOf0InTheStoreSettings_whenTheSummaryOpens_thenLowStockUsesIt() throws Exception {
+        owner.update("update store_settings set low_stock_threshold = 0");
+        try {
+            // UC-36: with 0, only the sold-out variants are low (catalog.api.LowStockVariants).
+            mvc.perform(get(DASHBOARD).with(ADMIN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lowStock.threshold").value(0));
+        } finally {
+            owner.update("update store_settings set low_stock_threshold = 3");
+        }
+    }
+
+    @Test
     void givenTheChartByMonths_whenTheSummaryOpens_thenItHas12Months() throws Exception {
         mvc.perform(get(DASHBOARD).param("chart", "MONTHS").with(ADMIN))
             .andExpect(status().isOk())

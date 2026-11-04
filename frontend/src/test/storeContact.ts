@@ -1,13 +1,22 @@
-import { STORE_CONTACT, type StoreContact } from '../features/help/storeContact.ts';
+import type { StoreContact } from '../features/help/storeContactApi.ts';
 
-/** Fills the business's contact links (D-15) for one test; clearStoreContact empties them again. */
+/**
+ * What GET /api/store/contact answers in tests: setup.ts replaces fetchStoreContact with this value, so a test sets the
+ * business's contact data (UC-36) before rendering without stubbing the whole API.
+ */
+let current: StoreContact = {};
+
+/** Fills the store's contact data for one test; clearStoreContact empties it again. */
 export function setStoreContact(contact: StoreContact): void {
-  Object.assign(STORE_CONTACT, contact);
+  current = { ...contact };
 }
 
-/** Back to the build's state: nothing sent by the business yet. */
+/** Back to a store without contact data. */
 export function clearStoreContact(): void {
-  for (const key of Object.keys(STORE_CONTACT)) {
-    Reflect.deleteProperty(STORE_CONTACT, key);
-  }
+  current = {};
+}
+
+/** The contact data the mocked request answers. */
+export function storedContact(): StoreContact {
+  return current;
 }

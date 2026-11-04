@@ -506,6 +506,7 @@ export const es = {
     contact: 'Contacto',
     social: 'Redes sociales',
     instagram: 'Instagram',
+    facebook: 'Facebook',
     tiktok: 'TikTok',
     payments: 'Medios de pago',
     /** T-E7-26: the carrier, under the payment providers. */

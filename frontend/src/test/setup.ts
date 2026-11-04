@@ -1,12 +1,19 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, configure } from '@testing-library/react';
-import { afterEach, beforeEach } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 import { clearStoreContact } from './storeContact.ts';
 
 // Lazy routes (the back office) load their chunk on first use, which a busy parallel run can take over a second.
 configure({ asyncUtilTimeout: 5000 });
 
-// Every test starts without the business's contact links (D-15); one that needs them sets them (setStoreContact).
+// The store's contact data (UC-36) comes from test/storeContact.ts instead of the API, so the many tests that stub
+// the API path by path need not know about it. storeContactApi.test.ts checks the real request.
+vi.mock('../features/help/storeContactApi.ts', async () => {
+  const { storedContact } = await import('./storeContact.ts');
+  return { fetchStoreContact: () => Promise.resolve(storedContact()) };
+});
+
+// Every test starts without the store's contact data; one that needs it sets it (setStoreContact).
 beforeEach(() => {
   clearStoreContact();
 });

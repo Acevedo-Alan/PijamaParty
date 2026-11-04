@@ -64,6 +64,7 @@ describe('back-office navigation (E8a, T-E8-05)', () => {
       esAdmin.reviews,
       esAdmin.home,
       esAdmin.shipping,
+      esAdmin.storeSettings,
       esAdmin.activity,
       esAdmin.viewStore,
     ]);
