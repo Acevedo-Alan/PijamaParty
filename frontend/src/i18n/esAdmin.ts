@@ -453,6 +453,45 @@ export const esAdmin = {
     registered: (date: string) => `Registrado el ${date}`,
     orders: (count: number) => (count === 1 ? '1 pedido' : `${count.toLocaleString('es-AR')} pedidos`),
   },
+  /** T-E8-11, UC-34: a customer's profile. */
+  customerProfile: {
+    backToList: 'Volver a clientes',
+    notFound: 'Esta cuenta no existe.',
+    /** The registration date, as formatDate writes it. */
+    since: (date: string) => `Cliente desde el ${date}`,
+    figures: 'Compras del cliente',
+    purchases: 'Compras',
+    spent: 'Total gastado',
+    lastPurchase: 'Última compra',
+    noPurchases: 'Sin compras',
+    /** Under "Compras": all the orders, e.g. "de 3 pedidos". */
+    ofOrders: (count: number) => (count === 1 ? 'de 1 pedido' : `de ${count.toLocaleString('es-AR')} pedidos`),
+    purchasesHint: 'Cuentan los pedidos pagados que no se cancelaron.',
+    orders: 'Pedidos',
+    noOrders: 'Todavía no hizo pedidos con su cuenta.',
+    noOrdersHint: 'Los pedidos que hizo como invitado no se suman.',
+    contact: 'Contacto',
+    email: 'Email',
+    verified: 'Verificado',
+    unverified: 'Sin verificar',
+    phone: 'Teléfono',
+    noPhone: 'No guardó un teléfono.',
+    writeEmail: 'Escribir un email',
+    openWhatsApp: 'Abrir WhatsApp',
+    copy: 'Copiar',
+    copied: 'Copiado',
+    /** What the copy buttons say to a screen reader. */
+    copyEmail: 'Copiar el email',
+    copyPhone: 'Copiar el teléfono',
+    signIn: 'Ingresa con',
+    providers: { GOOGLE: 'Google', FACEBOOK: 'Facebook' },
+    noProviders: 'Email y contraseña',
+    addresses: 'Direcciones',
+    noAddresses: 'No guardó direcciones.',
+    primary: 'Principal',
+    /** "Santa Fe, Santa Fe (S3000ABC)". */
+    cityLine: (city: string, province: string, postalCode: string) => `${city}, ${province} (${postalCode})`,
+  },
   withdrawalList: {
     title: 'Arrepentimientos',
     filter: 'Estado',
@@ -649,6 +688,8 @@ export const esAdmin = {
   },
   orderDetail: {
     backToList: 'Volver a pedidos',
+    /** T-E8-11: the order was opened from a customer's profile. */
+    backToCustomer: 'Volver al cliente',
     notFound: 'No encontramos este pedido.',
     /** The order number, e.g. "Pedido #1001". */
     title: (number: number) => `Pedido #${String(number)}`,

@@ -2,6 +2,8 @@ package com.pijamaparty.store.backoffice.adapter.in.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -27,7 +29,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-/** UC-34 (T-E8-10): "Clientes" through the back office API, with the real security chain and PostgreSQL (V44). */
+/**
+ * UC-34 (T-E8-10, T-E8-11): "Clientes" and a customer's profile through the back office API, with the real security
+ * chain and PostgreSQL (V44).
+ */
 @ApiTest
 class CustomerAdminApiTest {
 
@@ -48,6 +53,17 @@ class CustomerAdminApiTest {
         values (?, nextval('order_number_seq'), ?, md5(random()::text) || md5(random()::text), 'PAID', 'Ana', 'Gómez',
                 'ana@example.com', '3425551234', '12345678', 'San Martín', '1234', 'Santa Fe', 'SANTA_FE', '3000',
                 2000000, 0, 300000, 2300000, 'MERCADOPAGO', '2026-10', ?, ?, ?)
+        """;
+
+    private static final String INSERT_ORDER_IN = """
+        insert into orders (id, number, user_id, tracking_token_hash, status, customer_first_name, customer_last_name,
+                            customer_email, customer_phone, national_id, street, street_number, city, province,
+                            postal_code, subtotal_cents, discount_cents, shipping_cents, total_cents,
+                            payment_provider, terms_version, reservation_expires_at, created_at, updated_at,
+                            shipment_tracking_number, delivered_at)
+        values (?, nextval('order_number_seq'), ?, md5(random()::text) || md5(random()::text), ?, 'Ana', 'Gómez',
+                'ana_1@example.com', '3425551234', '12345678', 'San Martín', '1234', 'Santa Fe', 'SANTA_FE', '3000',
+                ?, 0, 0, ?, 'MERCADOPAGO', '2026-10', ?, ?, ?, ?, ?)
         """;
 
     private final MockMvc mvc;
@@ -78,6 +94,93 @@ class CustomerAdminApiTest {
     void cleanUp() {
         owner.execute("truncate withdrawal_request, order_tracking_token, order_item, orders");
         owner.execute("truncate address, user_token, external_identity, pending_link, admin_recovery_code, app_user");
+        owner.execute("truncate activity_entry");
+    }
+
+    @Test
+    void givenACustomerWithADeliveredACancelledAndAnAwaitingOrder_whenItsProfileOpens_thenThreeOrdersOnePurchase()
+        throws Exception {
+        UUID owned = storedUser("Rosa Paz", "rosa@example.com", "CUSTOMER", "2026-10-01T15:00:00Z");
+        owner.update("update app_user set phone = '3425559876' where id = ?", owned);
+        owner.update("""
+            insert into address (id, user_id, street, street_number, floor, apartment, city, province, postal_code,
+                                 is_primary, created_at, updated_at)
+            values (?, ?, 'Rivadavia', '100', null, null, 'Rosario', 'SANTA_FE', 'S2000ABC', false, now(), now()),
+                   (?, ?, 'San Martín', '2550', '3', 'B', 'Santa Fe', 'SANTA_FE', 'S3000ABC', true, now(), now())
+            """, UUID.randomUUID(), owned, UUID.randomUUID(), owned);
+        owner.update("""
+            insert into external_identity (id, user_id, provider, subject, email, created_at)
+            values (?, ?, 'GOOGLE', 'google-subject-1', 'rosa.google@example.com', now())
+            """, UUID.randomUUID(), owned);
+        orderIn(owned, "DELIVERED", 3_000_000, "2026-10-10T15:00:00Z");
+        orderIn(owned, "CANCELLED", 1_000_000, "2026-10-11T15:00:00Z");
+        orderIn(owned, "AWAITING_PAYMENT", 500_000, "2026-10-12T15:00:00Z");
+
+        mvc.perform(get(CUSTOMERS + "/" + owned).with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("Rosa Paz"))
+            .andExpect(jsonPath("$.email").value("rosa@example.com"))
+            .andExpect(jsonPath("$.emailVerified").value(true))
+            .andExpect(jsonPath("$.phone").value("3425559876"))
+            .andExpect(jsonPath("$.registeredAt").value("2026-10-01T15:00:00Z"))
+            .andExpect(jsonPath("$.providers", contains("GOOGLE")))
+            .andExpect(jsonPath("$.addresses[*].street", contains("San Martín", "Rivadavia")))
+            .andExpect(jsonPath("$.addresses[0].primary").value(true))
+            .andExpect(jsonPath("$.addresses[0].floor").value("3"))
+            .andExpect(jsonPath("$.orders[*].status", contains("AWAITING_PAYMENT", "CANCELLED", "DELIVERED")))
+            .andExpect(jsonPath("$.orders[2].totalCents").value(3_000_000))
+            .andExpect(jsonPath("$.hasMoreOrders").value(false))
+            .andExpect(jsonPath("$.orderCount").value(3))
+            .andExpect(jsonPath("$.purchases").value(1))
+            .andExpect(jsonPath("$.spentCents").value(3_000_000))
+            .andExpect(jsonPath("$.lastPurchaseAt").value("2026-10-10T15:00:00Z"))
+            .andExpect(content().string(not(containsString("google-subject-1"))))
+            .andExpect(content().string(not(containsString("rosa.google@"))));
+    }
+
+    @Test
+    void givenAProfileOpened_whenActividadOpens_thenOneCustomerViewedWithoutNameOrEmailAndNoneForTheSecondPage()
+        throws Exception {
+        mvc.perform(get(CUSTOMERS + "/" + ana).with(ADMIN)).andExpect(status().isOk());
+        mvc.perform(get(CUSTOMERS + "/" + ana).param("ordersPage", "1").with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.orders").isEmpty());
+
+        var entries = owner.queryForList("select action, area, subject_type, subject_id, subject_label, changes::text "
+            + "as changes from activity_entry");
+        assertThat(entries).hasSize(1);
+        assertThat(entries.getFirst()).containsEntry("action", "CUSTOMER_VIEWED").containsEntry("area", "CUSTOMERS")
+            .containsEntry("subject_type", "CUSTOMER").containsEntry("subject_id", ana);
+        assertThat(entries.getFirst().toString()).doesNotContain("Ana", "ana_1");
+    }
+
+    @Test
+    void givenAnUnknownIdOrTheAdministrator_whenTheProfileIsAskedFor_thenItIsNotFoundAndNothingIsRecorded()
+        throws Exception {
+        UUID admin = owner.queryForObject("select id from app_user where role = 'ADMIN'", UUID.class);
+
+        mvc.perform(get(CUSTOMERS + "/" + UUID.randomUUID()).with(ADMIN))
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.problem").value("CUSTOMER_NOT_FOUND"));
+        mvc.perform(get(CUSTOMERS + "/" + admin).with(ADMIN)).andExpect(status().isNotFound());
+        mvc.perform(get(CUSTOMERS + "/" + ana).param("ordersPage", "-1").with(ADMIN))
+            .andExpect(status().isBadRequest());
+        assertThat(owner.queryForObject("select count(*) from activity_entry", Long.class)).isZero();
+    }
+
+    @Test
+    void givenACustomerSessionOrNone_whenAProfileIsCalled_thenItIsRefused() throws Exception {
+        mvc.perform(get(CUSTOMERS + "/" + ana)).andExpect(status().isUnauthorized());
+        mvc.perform(get(CUSTOMERS + "/" + ana).with(user(ana.toString()).roles("CUSTOMER")))
+            .andExpect(status().isForbidden());
+    }
+
+    private void orderIn(UUID customer, String status, long totalCents, String placedAt) {
+        var at = Instant.parse(placedAt).atOffset(ZoneOffset.UTC);
+        boolean shipped = status.equals("SHIPPED") || status.equals("DELIVERED");
+        owner.update(INSERT_ORDER_IN, UUID.randomUUID(), customer, status, totalCents, totalCents,
+            at.plusMinutes(30), at, at, shipped ? "CA123456789AR" : null, status.equals("DELIVERED") ? at : null);
     }
 
     @Test

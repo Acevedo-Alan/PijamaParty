@@ -13,7 +13,7 @@ import {
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react';
-import { useId, useState, type CSSProperties } from 'react';
+import { useId, useState } from 'react';
 import { Link } from 'react-router';
 import { Badge, type badgeVariants } from '../../components/ui/Badge.tsx';
 import { Button } from '../../components/ui/Button.tsx';
@@ -38,17 +38,10 @@ import {
   type SalesPeriod,
 } from './dashboardApi.ts';
 import type { OrderStatus } from './ordersApi.ts';
+import { rise } from './rise.ts';
 import { SalesChart } from './SalesChart.tsx';
 
 const messages = esAdmin.dashboard;
-
-/**
- * D-E8-12 motion: the cards rise in one after another when the summary first shows, once; a refresh keeps them
- * mounted, so it does not move the screen. Nothing moves under reduced motion (motion-safe).
- */
-function rise(order: number): { className: string; style: CSSProperties } {
-  return { className: 'motion-safe:animate-rise', style: { animationDelay: `${String(order * 50)}ms` } };
-}
 
 type Level = keyof typeof messages.todo.levels;
 

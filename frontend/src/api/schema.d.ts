@@ -1758,6 +1758,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/customers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A customer's profile: contact, linked providers, addresses, orders and purchase figures
+         * @description The orders come 20 per page, newest first, from `ordersPage` 0; `hasMoreOrders` tells whether another page follows. Only the orders linked to the account count. `purchases`, `spentCents` and `lastPurchaseAt` count the orders paid and neither cancelled nor expired. Opening the profile (`ordersPage` 0) records CUSTOMER_VIEWED in the activity log, with the customer's id only.
+         */
+        get: operations["profile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/stock": {
         parameters: {
             query?: never;
@@ -2991,6 +3011,52 @@ export interface components {
             registeredAt?: string;
             /** Format: int64 */
             orders?: number;
+        };
+        CustomerAddressResponse: {
+            /** Format: uuid */
+            id?: string;
+            street?: string;
+            number?: string;
+            floor?: string | null;
+            apartment?: string | null;
+            city?: string;
+            province?: string;
+            postalCode?: string;
+            primary?: boolean;
+        };
+        CustomerOrderResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int64 */
+            number?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** @enum {string} */
+            status?: "AWAITING_PAYMENT" | "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "EXPIRED";
+            /** Format: int64 */
+            totalCents?: number;
+        };
+        CustomerProfileResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            email?: string;
+            emailVerified?: boolean;
+            phone?: string | null;
+            /** Format: date-time */
+            registeredAt?: string;
+            providers?: ("GOOGLE" | "FACEBOOK")[];
+            addresses?: components["schemas"]["CustomerAddressResponse"][];
+            orders?: components["schemas"]["CustomerOrderResponse"][];
+            hasMoreOrders?: boolean;
+            /** Format: int64 */
+            orderCount?: number;
+            /** Format: int64 */
+            purchases?: number;
+            /** Format: int64 */
+            spentCents?: number;
+            /** Format: date-time */
+            lastPurchaseAt?: string | null;
         };
         StockPageResponse: {
             items?: components["schemas"]["StockRowResponse"][];
@@ -7751,6 +7817,57 @@ export interface operations {
             };
             /** @description Not the administrator */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    profile: {
+        parameters: {
+            query?: {
+                ordersPage?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerProfileResponse"];
+                };
+            };
+            /** @description ordersPage out of range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description No such customer (problem CUSTOMER_NOT_FOUND): unknown, deleted, or the administrator */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

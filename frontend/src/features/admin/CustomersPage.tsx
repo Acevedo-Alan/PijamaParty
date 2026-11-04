@@ -1,12 +1,13 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRef, useState, type SubmitEvent } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDate } from '../../i18n/formatDate.ts';
 import { fetchCustomers, type CustomerListFilter } from './customersApi.ts';
+import { listReturn } from './listReturn.ts';
 
 const messages = esAdmin.customerList;
 const SEARCH_PARAM = 'buscar';
@@ -35,10 +36,11 @@ function filterOf(params: URLSearchParams): CustomerListFilter {
 /**
  * UC-34 at /admin/clientes (T-E8-10): the registered customers, newest first, 50 at a time, each with its email,
  * registration date and number of orders, filtered by a search (name or email) and by registration dates, both kept
- * in the address. The profile arrives with T-E8-11.
+ * in the address. Each name opens the customer's profile (T-E8-11), whose back link returns to the same filters.
  */
 export function CustomersPage() {
   const [params, setParams] = useSearchParams();
+  const opened = listReturn(useLocation().search);
   const filter = filterOf(params);
   const [search, setSearch] = useState(filter.q ?? '');
   const [searchInvalid, setSearchInvalid] = useState(false);
@@ -141,7 +143,9 @@ export function CustomersPage() {
           {items.map((customer) => (
             <li key={customer.id} className="admin-card">
               <div className="admin-card-head">
-                <p className="admin-card-title">{customer.name}</p>
+                <Link to={`/admin/clientes/${customer.id}`} state={opened} className="admin-card-title">
+                  {customer.name}
+                </Link>
                 <p className="admin-card-meta">
                   {customer.email} · {messages.registered(formatDate(customer.registeredAt))}
                 </p>

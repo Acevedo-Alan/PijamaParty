@@ -37,7 +37,7 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 | `reviews` | Reviews and moderation | `Review` | `ordering`, `catalog`, `accounts` (the author's name, its reviews in the data download and their deletion with the account, UC-24, UC-28), `activity` |
 | `settings` | The store's contact data, social links, header announcement and low-stock threshold (UC-36) | `StoreSettings` | `activity` |
 | `activity` | The back-office activity log (UC-37): every admin change, recorded in the transaction of the change | `ActivityEntry` | – |
-| `backoffice` | Composition of admin screens that need data from several modules | read models only | `accounts` (the customers of "Clientes", UC-34), `ordering`, `notifications`, `catalog`, `inventory`, `reviews`, `settings` (the low-stock threshold) |
+| `backoffice` | Composition of admin screens that need data from several modules | read models only | `accounts` (the customers of "Clientes" and their profiles, UC-34), `activity` (records the opening of a profile, UC-37), `ordering`, `notifications`, `catalog`, `inventory`, `reviews`, `settings` (the low-stock threshold) |
 | `platform` | Shared kernel: `Money`, `Clock`, ids, `Actor`, idempotency, rate limiting, problem+json, security context for RLS | – | – |
 
 **Rules**

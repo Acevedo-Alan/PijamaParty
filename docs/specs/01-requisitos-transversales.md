@@ -132,9 +132,9 @@ Es una defensa en profundidad: no reemplaza la autorización de la aplicación, 
 | `pedido`, `pedido_item` | Lee los propios y el de su token; crea el propio en el checkout; corrige su email; desvincula los propios al borrar su cuenta (solo con la función de V36, CU-28) | Lee el pedido de su token; crea el suyo en el checkout, atado a su token; corrige su email | Lee y actualiza el estado | Lee y actualiza el estado |
 | `pago`, `pago_evento` | – | – | Lee | Crea y actualiza |
 | `direccion` | Todo sobre las propias | – | Lee | – |
-| `usuario` | Lee y actualiza el propio (solo nombre, teléfono y contraseña); borra el propio (CU-28) | – | Lee el propio | Crea el administrador inicial y clientes sin verificar, lee para autenticar, actualiza intentos fallidos, bloqueo y segundo factor, y marca el email verificado o cambia la contraseña solo consumiendo un token de ese usuario |
+| `usuario` | Lee y actualiza el propio (solo nombre, teléfono y contraseña); borra el propio (CU-28) | – | Lee el propio y los de los clientes (V44, CU-34) | Crea el administrador inicial y clientes sin verificar, lee para autenticar, actualiza intentos fallidos, bloqueo y segundo factor, y marca el email verificado o cambia la contraseña solo consumiendo un token de ese usuario |
 | `token_usuario` | – | – | – | Crea, lee, marca usado y limpia |
-| `identidad_externa` | Lee y desvincula las propias | – | – | Crea y lee para autenticar |
+| `identidad_externa` | Lee y desvincula las propias | – | Lee (V44); la ficha del cliente muestra solo el proveedor (CU-34) | Crea y lee para autenticar |
 | `solicitud_arrepentimiento` | Crea y lee las del pedido cuyo número y email acaba de verificar la base | Igual que el cliente | Lee y resuelve | Lee (para componer los correos) |
 | `carrito`, `carrito_item` | Los propios | Los de su token de carrito | – | Limpieza |
 | `resena` | Crea y edita las propias; lee las aprobadas y las propias; borra las propias al borrar su cuenta (CU-28) | Lee las aprobadas | Lee todas, modera y borra | – |

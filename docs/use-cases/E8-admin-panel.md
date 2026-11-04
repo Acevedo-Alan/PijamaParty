@@ -138,7 +138,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 
 **Alternative flows**
 - No customer matches: "No encontramos clientes con esa búsqueda".
-- The customer was deleted meanwhile (UC-28): the profile answers `404` and the page says the account no longer exists.
+- The customer was deleted meanwhile (UC-28), or the id is unknown: the profile answers `404` and the page says "Esta cuenta no existe." (decided on 2026-11-04: without a cause, since a mistyped address gets it too).
 
 **Business rules**
 - Only users with role `CUSTOMER`; the administrator does not list itself.
@@ -148,7 +148,8 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - **Profile:** name, email (and whether it is verified), phone, registration date, linked sign-in providers (Google, Facebook), saved addresses (main one first), and the customer's orders, newest first, 20 per page, each with number, date, status and total linked to the order detail. Also the number of purchases, the total spent (sum of the orders that count as sales) and the date of the last purchase.
 - Orders a guest made with the same email are not added: only the orders linked to the account count (UC-21, UC-28).
 - Read-only. The customer edits or deletes their own account (UC-19, UC-28).
-- Opening a profile adds an activity entry `CUSTOMER_VIEWED` with the customer's id, never their name or email (UC-37).
+- **Contact (decided on 2026-11-04):** the email opens the mail app (`mailto:`) and the phone opens a WhatsApp chat (`https://wa.me/549<area code and number>`: the 10 digits of an Argentine number, without a leading 0; a phone that does not reduce to them gets no WhatsApp link); each has a "Copiar" button. Nothing is sent from the store.
+- Opening a profile adds an activity entry `CUSTOMER_VIEWED` with the customer's id, never their name or email (UC-37). Loading more of its orders (`ordersPage` above 0) adds nothing.
 
 **Acceptance criteria**
 - Given 3 customers and the administrator, when "Clientes" opens, then the 3 customers show, newest first, and the administrator does not.
@@ -160,15 +161,18 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given a profile opened, when "Actividad" opens, then it shows `CUSTOMER_VIEWED`, and the entry has neither the name nor the email.
 - Given a customer session, when it calls the customer list or a profile, then it gets `403`; a customer can still read only their own user (RLS).
 - Given a search, when the request is logged, then the log line has no `q` value.
+- Given a profile opened, when its second page of orders loads, then no second `CUSTOMER_VIEWED` is added.
+- Given an unknown id or the administrator's own id, when its profile is asked for, then the API answers `404`.
 
 **Design notes**
 - **RLS (one migration in `accounts`):** a new policy `app_user_admin_customer_select` lets `ADMIN` read the `CUSTOMER` rows of `app_user`. `app_user_admin_select` keeps the administrator's own row. Nothing else widens: no update, no other role. `address_admin_select` already exists. `external_identity` gets an `ADMIN` select policy, and the profile returns only the provider, never the external subject or its email. The security review (security-reviewer agent) checks the policies before the commit. It is V44 (T-E8-10). Since then the administrator also sees a customer's name wherever a screen names users through `accounts.api.UserNames` (the stock history of UC-07).
 - **`accounts`:**
   - `accounts.api.CustomerDirectory` (T-E8-10): `list(q?, from?, to?, page)` → `Listed(customers, hasMore)`, `InvalidSearch` or `InvalidPeriod`, implemented by `CustomerDirectoryService` over the read port `CustomerPages`; the actor check is `backoffice`'s `ListCustomers`, and Row Level Security decides what is visible. The SQL is constant: `lower(unaccent(name)) LIKE lower(unaccent(:pattern)) ESCAPE '\'` (and the same on the email), with the pattern escaped in Java by `LikePattern` (RNF-28). It returns users only: `ordering` depends on `accounts`, so `accounts` cannot ask `ordering` for order counts.
   - `accounts.api.CustomerProfiles` (new): `find(userId)` → name, email, verified, phone, created at, providers, addresses.
-- **`backoffice`:** `ListCustomers` (T-E8-10; wraps the `accounts` list, exposed as `accounts.api.CustomerDirectory`, and adds the order counts from a new `ordering.api.CustomerOrderCounts`, one grouped query for the page's ids) and `GetCustomerProfile` (`Query(actor, userId, ordersPage)`; result `Shown(profile)`, `NotFound` or `Forbidden`). They compose `accounts.api.CustomerProfiles` with a new `ordering.api.CustomerOrders`: page, count, purchases, spent, last purchase, for a user id. `GetCustomerProfile` records `CUSTOMER_VIEWED` through `activity.api.ActivityLog` in the same transaction.
+- **`backoffice`:** `ListCustomers` (T-E8-10; wraps the `accounts` list, exposed as `accounts.api.CustomerDirectory`, and adds the order counts from a new `ordering.api.CustomerOrderCounts`, one grouped query for the page's ids) and `GetCustomerProfile` (`Query(actor, userId, ordersPage)`; result `Shown(profile, orders)`, `NotFound` or `Forbidden`). They compose `accounts.api.CustomerProfiles` with a new `ordering.api.CustomerOrders`: page, count, purchases, spent, last purchase, for a user id. `GetCustomerProfile` records `CUSTOMER_VIEWED` through `activity.api.ActivityLog` in the same transaction.
 - **Endpoints:** `GET /api/admin/customers?q=&from=&to=&page=` → `200` `{items, hasMore}`; `400`. `GET /api/admin/customers/{id}?ordersPage=` → `200`; `404`. Both are `backoffice.adapter.in.web`. The search is never logged: the application logs no query strings (a test checks the output), and Caddy drops them from its access log.
 - **Pages:** `/admin/clientes` (list with the search box and the date filter, both kept in the URL) and `/admin/clientes/:customerId` (profile). The orders link to `/admin/pedidos/:orderId`. Cards at 360 px, columns from 860 px.
+- **Profile layout (T-E8-11, decided on 2026-11-04, Jakob's law):** the layout store owners already know from other e-commerce back offices. From 860 px it has two columns: the main one holds the purchase figures (purchases, total spent, last purchase) and the orders, as the rows of "Pedidos" with "Ver más"; the side one holds the contact details, the sign-in providers and the addresses. On a phone they stack in that order. Motion as D-E8-12: the cards rise in one after another once, and nothing moves under reduced motion.
 
 ---
 
@@ -361,7 +365,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - state: published or hidden;
   - stock, one of three that never overlap: `OUT` (no active variant has available units, which includes a product without active variants; decided on 2026-11-04), `LOW` (not `OUT`, and some active variant is at or under the threshold, sold-out ones included) or `IN_STOCK` (not `OUT`, and every active variant is above the threshold).
 - The filters combine, are kept in the URL, and the list keeps its order and 50 per page.
-- **Back to the list** (decided on 2026-11-04): the "back to the list" link of a product, and of "Nuevo producto", returns to the list with the filters it was opened from. Opened another way (the summary, a saved or pasted address), it returns to the unfiltered list. The order list (UC-18) and its order detail do the same, and so does the order's packing slip on its way back to the order.
+- **Back to the list** (decided on 2026-11-04): the "back to the list" link of a product, and of "Nuevo producto", returns to the list with the filters it was opened from. Opened another way (the summary, a saved or pasted address), it returns to the unfiltered list. The order list (UC-18) and its order detail do the same, and so does the order's packing slip on its way back to the order. An order opened from a customer's profile (UC-34; decided on 2026-11-04) returns to that profile instead ("Volver al cliente"), through its packing slip too, and the profile still returns to "Clientes" with the filters it was opened from.
 
 **Acceptance criteria**
 - Given a product "Pijama Corazón" and a search `corazon`, when applied, then it shows.

@@ -15,6 +15,7 @@ export { ProductsPage } from './ProductsPage.tsx';
 export { ReviewsPage } from './ReviewsPage.tsx';
 export { SignInPage } from './SignInPage.tsx';
 export { SizeGuidePage } from './SizeGuidePage.tsx';
+export { CustomerProfilePage } from './CustomerProfilePage.tsx';
 export { CustomersPage } from './CustomersPage.tsx';
 export { StockOverviewPage } from './StockOverviewPage.tsx';
 export { StockPage } from './StockPage.tsx';

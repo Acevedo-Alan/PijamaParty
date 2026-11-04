@@ -47,3 +47,50 @@ export function useBackToList(listPath: string): { to: string; state: ListReturn
   const listSearch = listSearchOf(useLocation().state);
   return { to: `${listPath}${listSearch}`, state: listReturn(listSearch) };
 }
+
+/** A customer's profile: the only page other than a list an order can be opened from. */
+const CUSTOMER_PROFILE = /^\/admin\/clientes\/[0-9a-fA-F-]{36}$/;
+
+/**
+ * UC-18, UC-34 (decided on 2026-11-04): an order opened from a customer's profile returns to that profile, which in
+ * turn still returns to "Clientes" with the filters it was opened from (`profileState`).
+ */
+export interface ProfileReturn {
+  profilePath: string;
+  profileState: ListReturn;
+}
+
+/** The navigation state of an order link on a customer's profile. */
+export function profileReturn(profilePath: string, profileState: ListReturn): ProfileReturn {
+  return { profilePath, profileState };
+}
+
+/** The profile a navigation state names, if it is a customer's profile; anything else is none. */
+export function profileReturnOf(state: unknown): ProfileReturn | null {
+  if (typeof state === 'object' && state !== null && 'profilePath' in state && 'profileState' in state) {
+    const { profilePath, profileState } = state;
+    if (typeof profilePath === 'string' && CUSTOMER_PROFILE.test(profilePath)) {
+      return profileReturn(profilePath, listReturn(listSearchOf(profileState)));
+    }
+  }
+  return null;
+}
+
+/**
+ * Where the back link of an order (and of its packing slip, through the order) goes: the customer's profile it was
+ * opened from, or the orders list with its filters. `state` goes with the back link; `passOn` with the links to the
+ * order's own pages, so coming back from them still knows the way.
+ */
+export function useOrderBack(orderList: string): {
+  from: 'list' | 'customer';
+  to: string;
+  state: ListReturn;
+  passOn: ListReturn | ProfileReturn;
+} {
+  const state: unknown = useLocation().state;
+  const list = useBackToList(orderList);
+  const profile = profileReturnOf(state);
+  return profile === null
+    ? { from: 'list', to: list.to, state: list.state, passOn: list.state }
+    : { from: 'customer', to: profile.profilePath, state: profile.profileState, passOn: profile };
+}

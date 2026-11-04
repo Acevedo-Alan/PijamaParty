@@ -84,6 +84,7 @@ export const routes: RouteObject[] = [
       },
       { path: 'arrepentimientos', lazy: async () => ({ Component: (await admin()).WithdrawalsPage }) },
       { path: 'clientes', lazy: async () => ({ Component: (await admin()).CustomersPage }) },
+      { path: 'clientes/:customerId', lazy: async () => ({ Component: (await admin()).CustomerProfilePage }) },
       { path: 'productos', lazy: async () => ({ Component: (await admin()).ProductsPage }) },
       { path: 'productos/nuevo', lazy: async () => ({ Component: (await admin()).NewProductPage }) },
       { path: 'productos/:productId', lazy: async () => ({ Component: (await admin()).ProductEditPage }) },
