@@ -18,6 +18,9 @@ import com.pijamaparty.store.catalog.domain.Description;
 import com.pijamaparty.store.catalog.domain.Material;
 import com.pijamaparty.store.catalog.domain.ProductId;
 import com.pijamaparty.store.catalog.domain.ProductName;
+import com.pijamaparty.store.catalog.domain.ProductSearch;
+import com.pijamaparty.store.catalog.domain.ProductState;
+import com.pijamaparty.store.catalog.domain.ProductStock;
 import com.pijamaparty.store.catalog.domain.Season;
 import com.pijamaparty.store.catalog.domain.Variant;
 import com.pijamaparty.store.catalog.domain.VariantId;
@@ -95,13 +98,29 @@ class ProductAdminController {
     }
 
     @GetMapping("/products")
-    @Operation(summary = "Every product, published or not, newest first", description = "50 per page, from page 0.")
+    @Operation(summary = "The products, published or not, newest first, filtered by search, category, state and stock",
+        description = "50 per page, from page 0. `q` is 2 to 100 characters that the name contains, ignoring case and "
+            + "accents, every character literal, or the whole SKU of one of its variants, ignoring case. `stock` "
+            + "looks at the available units (on hand minus reserved) of the active variants against the low-stock "
+            + "threshold of the store's settings: OUT when none has any (or there are none), LOW when not OUT and "
+            + "some is at or under it, IN_STOCK when not OUT and all are above it.")
     @ApiResponse(responseCode = "200", description = "One page of products", content = @Content(
         mediaType = "application/json", schema = @Schema(implementation = ProductPageResponse.class)))
-    ResponseEntity<?> list(@RequestParam(defaultValue = "0") @Min(0) @Max(MAX_PAGE) int page) {
-        return switch (listAll.execute(new ListAllProducts.Query(actor(), page))) {
+    @ApiResponse(responseCode = "400", description = "Unknown state or stock, a category that is not a UUID, page out "
+        + "of range, or INVALID_SEARCH (1 character or over 100)",
+        content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<?> list(@RequestParam(required = false) String q,
+                           @RequestParam(required = false) UUID category,
+                           @RequestParam(required = false) ProductState state,
+                           @RequestParam(required = false) ProductStock stock,
+                           @RequestParam(defaultValue = "0") @Min(0) @Max(MAX_PAGE) int page) {
+        var query = new ListAllProducts.Query(actor(), Optional.ofNullable(q),
+            Optional.ofNullable(category).map(CategoryId::of), Optional.ofNullable(state), Optional.ofNullable(stock),
+            page);
+        return switch (listAll.execute(query)) {
             case ListAllProducts.Result.Listed listed -> ResponseEntity.ok(new ProductPageResponse(
                 listed.products().stream().map(ProductSummaryResponse::of).toList(), listed.hasMore()));
+            case ListAllProducts.Result.InvalidSearch invalid -> invalidSearch();
             case ListAllProducts.Result.Forbidden forbidden -> forbidden();
         };
     }
@@ -260,6 +279,14 @@ class ProductAdminController {
         problem.setTitle("Invalid product details");
         problem.setProperty("fields", fields.stream().map(Enum::name).sorted().toList());
         return ResponseEntity.unprocessableEntity().body(problem);
+    }
+
+    private static ResponseEntity<ProblemDetail> invalidSearch() {
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "2 to " + ProductSearch.MAX_LENGTH
+            + " characters of the product's name, or a SKU.");
+        problem.setTitle("Invalid search");
+        problem.setProperty("problem", "INVALID_SEARCH");
+        return ResponseEntity.badRequest().body(problem);
     }
 
     private static ResponseEntity<ProblemDetail> unknownCategory() {

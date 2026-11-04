@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.TestcontainersConfiguration;
+import com.pijamaparty.store.catalog.application.AdminProductFilter;
 import com.pijamaparty.store.catalog.application.LoadProducts;
 import com.pijamaparty.store.catalog.application.ProductStoreContractTest;
 import com.pijamaparty.store.catalog.application.ProductSummaries;
@@ -72,9 +73,17 @@ class JdbcProductStoreContractTest extends ProductStoreContractTest<JdbcProductS
         return CategoryId.of(id);
     }
 
+    @Override
+    protected void givenStock(VariantId variant, int onHand, int reserved) {
+        app.update("""
+            insert into stock_level (variant_id, on_hand, reserved, updated_at) values (?, ?, ?, now())
+            on conflict (variant_id) do update set on_hand = excluded.on_hand, reserved = excluded.reserved
+            """, variant.value(), onHand, reserved);
+    }
+
     @AfterEach
     void cleanUp() {
-        owner.execute("truncate product_image, variant, product, size_guide, category");
+        owner.execute("truncate stock_movement, stock_level, product_image, variant, product, size_guide, category");
     }
 
     @Test
@@ -93,7 +102,7 @@ class JdbcProductStoreContractTest extends ProductStoreContractTest<JdbcProductS
             assertThat(adapter.add(other)).isEqualTo(SaveProduct.Outcome.SAVED);
         });
 
-        assertThat(inTransaction.list(0, 10)).extracting(ProductSummaryView::id)
+        assertThat(inTransaction.list(AdminProductFilter.ALL, 0, 10)).extracting(ProductSummaryView::id)
             .containsExactlyInAnyOrder(existing.id(), other.id());
     }
 
@@ -134,8 +143,8 @@ class JdbcProductStoreContractTest extends ProductStoreContractTest<JdbcProductS
         }
 
         @Override
-        public List<ProductSummaryView> list(int offset, int limit) {
-            return transactions.execute(status -> adapter.list(offset, limit));
+        public List<ProductSummaryView> list(AdminProductFilter filter, int offset, int limit) {
+            return transactions.execute(status -> adapter.list(filter, offset, limit));
         }
 
         @Override

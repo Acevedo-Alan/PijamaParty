@@ -359,7 +359,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - search (`q`, 2 to 100 characters): name contains it, ignoring case and accents; or a variant's SKU equals it, ignoring case;
   - category filter;
   - state: published or hidden;
-  - stock, one of three that never overlap: `OUT` (no active variant has available units), `LOW` (not `OUT`, and some active variant is at or under the threshold, sold-out ones included) or `IN_STOCK` (every active variant is above the threshold).
+  - stock, one of three that never overlap: `OUT` (no active variant has available units, which includes a product without active variants; decided on 2026-11-04), `LOW` (not `OUT`, and some active variant is at or under the threshold, sold-out ones included) or `IN_STOCK` (not `OUT`, and every active variant is above the threshold).
 - The filters combine, are kept in the URL, and the list keeps its order and 50 per page.
 
 **Acceptance criteria**
@@ -367,10 +367,12 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given a variant SKU `PP-AB12CD34`, when searching `pp-ab12cd34`, then its product shows.
 - Given the filter `OUT` and a product whose only variant has 2 on hand and 2 reserved, when applied, then it shows.
 - Given a hidden product and the published filter, when applied, then it does not show.
+- Given a product without active variants, when the filter `OUT` is applied, then it shows; with `LOW` or `IN_STOCK`, it does not.
+- Given a search of 1 character or over 100, or an unknown state or stock, when sent, then it is `400`.
 
 **Design notes**
 - `ListAllProducts.Query` gains `q`, `categoryId`, `state` and `stock` (enums). `ProductSummaries` uses one constant SQL text with optional conditions, the name compared with `lower(unaccent(...))` (the extension of UC-26, V10), and `inventory.v_variant_availability` for stock. The threshold comes from `settings.api.StoreSettings`, so `catalog` gains a dependency on `settings` (it has none of its own, so no cycle).
-- `GET /api/admin/catalog/products?q=&category=&state=&stock=&page=`; `400` for unknown enum values.
+- `GET /api/admin/catalog/products?q=&category=&state=PUBLISHED|HIDDEN&stock=IN_STOCK|LOW|OUT&page=`; `400` for unknown enum values or a category that is not a UUID, and `INVALID_SEARCH` for a search of 1 character or over 100. The search is the catalog's, not personal data.
 
 ---
 

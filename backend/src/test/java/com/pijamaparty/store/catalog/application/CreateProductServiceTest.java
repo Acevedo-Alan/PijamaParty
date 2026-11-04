@@ -45,7 +45,7 @@ class CreateProductServiceTest {
         Result result = fixture.create.execute(new Command(ADMIN, details("PIJAMA DE ALGODON")));
 
         assertThat(result).isEqualTo(new Result.SlugAlreadyUsed("pijama-de-algodon"));
-        assertThat(fixture.products.list(0, 10)).hasSize(1);
+        assertThat(fixture.products.list(AdminProductFilter.ALL, 0, 10)).hasSize(1);
     }
 
     @Test
@@ -55,7 +55,7 @@ class CreateProductServiceTest {
 
         assertThat(result).isEqualTo(new Result.InvalidDetails(Set.of(Field.CATEGORY, Field.NAME, Field.DESCRIPTION,
             Field.MATERIAL, Field.SEASON, Field.AUDIENCE)));
-        assertThat(fixture.products.list(0, 10)).isEmpty();
+        assertThat(fixture.products.list(AdminProductFilter.ALL, 0, 10)).isEmpty();
     }
 
     @Test
@@ -71,6 +71,6 @@ class CreateProductServiceTest {
         assertThat(fixture.create.execute(new Command(CUSTOMER, details("Pijama")))).isEqualTo(new Result.Forbidden());
         assertThat(fixture.create.execute(new Command(Actor.system(), details("Pijama"))))
             .isEqualTo(new Result.Forbidden());
-        assertThat(fixture.products.list(0, 10)).isEmpty();
+        assertThat(fixture.products.list(AdminProductFilter.ALL, 0, 10)).isEmpty();
     }
 }

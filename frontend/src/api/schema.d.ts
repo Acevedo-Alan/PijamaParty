@@ -720,8 +720,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Every product, published or not, newest first
-         * @description 50 per page, from page 0.
+         * The products, published or not, newest first, filtered by search, category, state and stock
+         * @description 50 per page, from page 0. `q` is 2 to 100 characters that the name contains, ignoring case and accents, every character literal, or the whole SKU of one of its variants, ignoring case. `stock` looks at the available units (on hand minus reserved) of the active variants against the low-stock threshold of the store's settings: OUT when none has any (or there are none), LOW when not OUT and some is at or under it, IN_STOCK when not OUT and all are above it.
          */
         get: operations["list_1"];
         put?: never;
@@ -5200,6 +5200,10 @@ export interface operations {
     list_1: {
         parameters: {
             query?: {
+                q?: string;
+                category?: string;
+                state?: "PUBLISHED" | "HIDDEN";
+                stock?: "IN_STOCK" | "LOW" | "OUT";
                 page?: number;
             };
             header?: never;
@@ -5215,6 +5219,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductPageResponse"];
+                };
+            };
+            /** @description Unknown state or stock, a category that is not a UUID, page out of range, or INVALID_SEARCH (1 character or over 100) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description Not the administrator */

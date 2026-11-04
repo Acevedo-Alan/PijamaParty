@@ -15,6 +15,9 @@ import com.pijamaparty.store.catalog.domain.ProductDetails;
 import com.pijamaparty.store.catalog.domain.ProductId;
 import com.pijamaparty.store.catalog.domain.ProductImage;
 import com.pijamaparty.store.catalog.domain.ProductName;
+import com.pijamaparty.store.catalog.domain.ProductSearch;
+import com.pijamaparty.store.catalog.domain.ProductState;
+import com.pijamaparty.store.catalog.domain.ProductStock;
 import com.pijamaparty.store.catalog.domain.Season;
 import com.pijamaparty.store.catalog.domain.Slug;
 import com.pijamaparty.store.catalog.domain.Sku;
@@ -46,6 +49,9 @@ public abstract class ProductStoreContractTest<T extends LoadProducts & SaveProd
 
     /** Creates a category that products can belong to (the product's foreign key). */
     protected abstract CategoryId givenACategory();
+
+    /** Sets the inventory's stock of a variant (UC-07): its available units are {@code onHand - reserved}. */
+    protected abstract void givenStock(VariantId variant, int onHand, int reserved);
 
     @BeforeEach
     void createCategory() {
@@ -186,12 +192,95 @@ public abstract class ProductStoreContractTest<T extends LoadProducts & SaveProd
         subject.update(oldest);
         persistAndForget();
 
-        assertThat(subject.list(0, 2)).containsExactly(
+        assertThat(subject.list(AdminProductFilter.ALL, 0, 2)).containsExactly(
             new ProductSummaryView(newest.id(), category, "Bata", "bata", false, 0),
             new ProductSummaryView(middle.id(), category, "Camisón", "camison", false, 0));
-        assertThat(subject.list(2, 2)).containsExactly(
+        assertThat(subject.list(AdminProductFilter.ALL, 2, 2)).containsExactly(
             new ProductSummaryView(oldest.id(), category, "Pijama", "pijama", false, 2));
-        assertThat(subject.list(3, 2)).isEmpty();
+        assertThat(subject.list(AdminProductFilter.ALL, 3, 2)).isEmpty();
+    }
+
+    @Test
+    void givenASearch_whenListing_thenTheNameContainsItIgnoringCaseAndAccentsOrAVariantHasItAsSku() {
+        Product heart = product("Pijama Corazón", CREATED);
+        Product sale = product("Descuento 50%", CREATED.plusSeconds(60));
+        Product plain = product("Pijama 500", CREATED.plusSeconds(120));
+        Product bySku = product("Camisón", CREATED.plusSeconds(180));
+        Product underscore = product("Talle_S", CREATED.plusSeconds(240));
+        Product wildcardDecoy = product("TalleXS", CREATED.plusSeconds(300));
+        Product backslash = product("Bata\\Luna", CREATED.plusSeconds(360));
+        List.of(heart, sale, plain, bySku, underscore, wildcardDecoy, backslash).forEach(subject::add);
+        generate(bySku, List.of("M"), List.of("Rosa"), "PP-X", "PP-AB12CD34");
+        subject.update(bySku);
+        persistAndForget();
+
+        assertThat(names(search("corazon"))).containsExactly("Pijama Corazón");
+        assertThat(names(search("CORAZÓN"))).containsExactly("Pijama Corazón");
+        assertThat(names(search("pp-ab12cd34"))).containsExactly("Camisón");
+        assertThat(names(search("PP-AB12"))).isEmpty();
+        assertThat(names(search("0%"))).containsExactly("Descuento 50%");
+        assertThat(names(search("e_s"))).containsExactly("Talle_S");
+        assertThat(names(search("a\\l"))).containsExactly("Bata\\Luna");
+        assertThat(names(search("pijama"))).containsExactly("Pijama 500", "Pijama Corazón");
+    }
+
+    @Test
+    void givenACategoryAndAState_whenListing_thenOnlyTheProductsOfThatCategoryAndStateShow() {
+        CategoryId other = givenACategory();
+        Product published = product("Publicado", CREATED);
+        Product hidden = product("Oculto", CREATED.plusSeconds(60));
+        Product elsewhere = Product.create(ProductId.of(UUID.randomUUID()), new ProductDetails(other,
+            new ProductName("Otra categoría"), new Description(""), new Material("Algodón"), Season.SUMMER,
+            Audience.WOMEN), CREATED.plusSeconds(120));
+        List.of(published, hidden, elsewhere).forEach(subject::add);
+        generate(published, List.of("M"), List.of("Rosa"), "PP-A");
+        published.changeVariant(published.variants().getFirst().id(), Optional.of(Money.of(1000)), Optional.empty(),
+            LATER);
+        published.publish(LATER);
+        subject.update(published);
+        persistAndForget();
+
+        assertThat(names(new AdminProductFilter(Optional.empty(), Optional.of(category), Optional.empty(),
+            Optional.empty()))).containsExactly("Oculto", "Publicado");
+        assertThat(names(new AdminProductFilter(Optional.empty(), Optional.of(other), Optional.empty(),
+            Optional.empty()))).containsExactly("Otra categoría");
+        assertThat(names(new AdminProductFilter(Optional.empty(), Optional.empty(),
+            Optional.of(ProductState.PUBLISHED), Optional.empty()))).containsExactly("Publicado");
+        assertThat(names(new AdminProductFilter(Optional.empty(), Optional.of(category),
+            Optional.of(ProductState.HIDDEN), Optional.empty()))).containsExactly("Oculto");
+    }
+
+    @Test
+    void givenAvailableStock_whenFilteringByStock_thenEachProductIsInExactlyOneLevelOverItsActiveVariants() {
+        stocked("Sin variantes", 0);
+        stocked("Todo reservado", 1, new int[] {2, 2});
+        Product inactive = stocked("Activa agotada, inactiva con stock", 2, new int[] {0, 0}, new int[] {10, 0});
+        inactive.changeVariant(inactive.variants().get(1).id(), Optional.empty(), Optional.of(false), LATER);
+        subject.update(inactive);
+        stocked("Sin fila de stock", 3, (int[][]) null);
+        stocked("Una en el umbral", 4, new int[] {3, 0}, new int[] {10, 0});
+        stocked("Una agotada", 5, new int[] {0, 0}, new int[] {10, 0});
+        stocked("Con stock", 6, new int[] {6, 2}, new int[] {10, 0});
+        persistAndForget();
+
+        assertThat(names(stock(ProductStock.OUT, 3))).containsExactly("Sin fila de stock",
+            "Activa agotada, inactiva con stock", "Todo reservado", "Sin variantes");
+        assertThat(names(stock(ProductStock.LOW, 3))).containsExactly("Una agotada", "Una en el umbral");
+        assertThat(names(stock(ProductStock.IN_STOCK, 3))).containsExactly("Con stock");
+        assertThat(names(stock(ProductStock.LOW, 0))).containsExactly("Una agotada");
+        assertThat(names(stock(ProductStock.IN_STOCK, 0))).containsExactly("Con stock", "Una en el umbral");
+    }
+
+    @Test
+    void givenASearchAndAStockLevel_whenListing_thenBothApply() {
+        stocked("Pijama agotado", 0, new int[] {0, 0});
+        stocked("Pijama con stock", 1, new int[] {9, 0});
+        stocked("Bata agotada", 2, new int[] {0, 0});
+        persistAndForget();
+
+        assertThat(names(new AdminProductFilter(Optional.of(new ProductSearch("pijama")), Optional.empty(),
+            Optional.empty(), Optional.of(new AdminProductFilter.StockCondition(ProductStock.OUT, 3)))))
+            .containsExactly("Pijama agotado");
     }
 
     @Test
@@ -200,6 +289,44 @@ public abstract class ProductStoreContractTest<T extends LoadProducts & SaveProd
         assertThat(subject.findBySlug(new Slug("no-existe"))).isEmpty();
         assertThat(subject.lockById(ProductId.of(UUID.randomUUID()))).isEmpty();
         assertThat(subject.lockByVariantId(VariantId.of(UUID.randomUUID()))).isEmpty();
+    }
+
+    private List<String> names(AdminProductFilter filter) {
+        return subject.list(filter, 0, 100).stream().map(ProductSummaryView::name).toList();
+    }
+
+    private static AdminProductFilter search(String text) {
+        return new AdminProductFilter(Optional.of(new ProductSearch(text)), Optional.empty(), Optional.empty(),
+            Optional.empty());
+    }
+
+    private static AdminProductFilter stock(ProductStock level, int threshold) {
+        return new AdminProductFilter(Optional.empty(), Optional.empty(), Optional.empty(),
+            Optional.of(new AdminProductFilter.StockCondition(level, threshold)));
+    }
+
+    /**
+     * A product created {@code order} minutes after the others, with one size and a color per {@code stock} entry
+     * (on hand, reserved), whose stock is set; {@code null} gives one variant without a stock row.
+     */
+    private Product stocked(String name, int order, int[]... stock) {
+        Product product = product(name, CREATED.plusSeconds(60L * order));
+        subject.add(product);
+        if (stock == null) {
+            generate(product, List.of("M"), List.of("Rosa"), "PP-N");
+            subject.update(product);
+            return product;
+        }
+        if (stock.length == 0) {
+            return product;
+        }
+        List<String> colors = java.util.stream.IntStream.range(0, stock.length).mapToObj(i -> "Color " + i).toList();
+        generate(product, List.of("M"), colors, "PP-S");
+        subject.update(product);
+        for (int i = 0; i < stock.length; i++) {
+            givenStock(product.variants().get(i).id(), stock[i][0], stock[i][1]);
+        }
+        return product;
     }
 
     private Product product(String name, Instant createdAt) {

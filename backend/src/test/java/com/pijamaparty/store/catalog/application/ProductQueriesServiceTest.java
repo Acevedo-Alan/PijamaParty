@@ -6,7 +6,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pijamaparty.store.catalog.domain.ProductId;
+import com.pijamaparty.store.catalog.domain.ProductState;
+import com.pijamaparty.store.catalog.domain.ProductStock;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,58 @@ class ProductQueriesServiceTest {
         assertThat(fixture.listAll.execute(new ListAllProducts.Query(CUSTOMER, 0)))
             .isEqualTo(new ListAllProducts.Result.Forbidden());
         assertThatThrownBy(() -> new ListAllProducts.Query(ADMIN, -1)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void givenSearches_whenListing_thenOneOf1CharacterOrOver100IsInvalidAndABlankOneIsNoSearch() {
+        fixture.created("Pijama Corazón");
+        fixture.created("Bata");
+
+        assertThat(fixture.listAll.execute(searching("a"))).isEqualTo(new ListAllProducts.Result.InvalidSearch());
+        assertThat(fixture.listAll.execute(searching("a".repeat(101))))
+            .isEqualTo(new ListAllProducts.Result.InvalidSearch());
+        assertThat(names(fixture.listAll.execute(searching("   ")))).containsExactlyInAnyOrder("Pijama Corazón", "Bata");
+        assertThat(names(fixture.listAll.execute(searching("  corazon ")))).containsExactly("Pijama Corazón");
+        assertThat(names(fixture.listAll.execute(searching("c".repeat(100))))).isEmpty();
+        assertThat(fixture.listAll.execute(new ListAllProducts.Query(CUSTOMER, Optional.of("a"), Optional.empty(),
+            Optional.empty(), Optional.empty(), 0))).isEqualTo(new ListAllProducts.Result.Forbidden());
+    }
+
+    @Test
+    void givenAVariantWith2Available_whenFilteringByStock_thenTheThresholdOfTheStoreSettingsDecidesItsLevel() {
+        ProductView product = fixture.withMatrix("Pijama", List.of("M"), List.of("Rosa"));
+        fixture.products.setAvailable(product.variants().getFirst().id(), 2);
+
+        assertThat(names(fixture.listAll.execute(filteringBy(ProductStock.LOW)))).containsExactly("Pijama");
+        fixture.lowStockThreshold.set(1);
+        assertThat(names(fixture.listAll.execute(filteringBy(ProductStock.LOW)))).isEmpty();
+        assertThat(names(fixture.listAll.execute(filteringBy(ProductStock.IN_STOCK)))).containsExactly("Pijama");
+    }
+
+    @Test
+    void givenACategoryAndAState_whenListing_thenTheyReachTheFilter() {
+        fixture.created("Oculto");
+
+        assertThat(names(fixture.listAll.execute(new ListAllProducts.Query(ADMIN, Optional.empty(),
+            Optional.of(ProductFixture.CATEGORY), Optional.of(ProductState.HIDDEN), Optional.empty(), 0))))
+            .containsExactly("Oculto");
+        assertThat(names(fixture.listAll.execute(new ListAllProducts.Query(ADMIN, Optional.empty(),
+            Optional.of(ProductFixture.CATEGORY), Optional.of(ProductState.PUBLISHED), Optional.empty(), 0))))
+            .isEmpty();
+    }
+
+    private static ListAllProducts.Query searching(String text) {
+        return new ListAllProducts.Query(ADMIN, Optional.of(text), Optional.empty(), Optional.empty(),
+            Optional.empty(), 0);
+    }
+
+    private static ListAllProducts.Query filteringBy(ProductStock stock) {
+        return new ListAllProducts.Query(ADMIN, Optional.empty(), Optional.empty(), Optional.empty(),
+            Optional.of(stock), 0);
+    }
+
+    private static List<String> names(ListAllProducts.Result result) {
+        return ((ListAllProducts.Result.Listed) result).products().stream().map(ProductSummaryView::name).toList();
     }
 
     @Test

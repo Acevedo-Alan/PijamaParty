@@ -56,6 +56,99 @@ describe('product list and creation (UC-06)', () => {
     ]);
   });
 
+  it('given filters in the address, when the list opens, then they are asked for and the fields show them (T-E8-08)', async () => {
+    const robes = '6f1c2b3a-0000-4000-8000-0000000000c2';
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': answer(200, [category('c-1', 'Pijamas'), category(robes, 'Batas', false)]),
+      'GET /api/admin/catalog/products': answer(200, { items: [], hasMore: false }),
+    });
+    renderRoute(`/admin/productos?buscar=coraz%C3%B3n&categoria=${robes}&estado=HIDDEN&stock=OUT`);
+
+    expect(await screen.findByText(messages.emptyFiltered)).toBeInTheDocument();
+    expect(api.callsTo('GET /api/admin/catalog/products')[0]?.options.params?.query).toEqual({
+      page: 0,
+      q: 'corazón',
+      category: robes,
+      state: 'HIDDEN',
+      stock: 'OUT',
+    });
+    expect(screen.getByLabelText(messages.search)).toHaveValue('corazón');
+    expect(screen.getByLabelText(messages.state)).toHaveValue('HIDDEN');
+    expect(screen.getByLabelText(messages.stock)).toHaveValue('OUT');
+    expect(await screen.findByRole('option', { name: form.inactiveCategory('Batas') })).toBeInTheDocument();
+    expect(screen.getByLabelText(messages.category)).toHaveValue(robes);
+  });
+
+  it('given values the server would refuse in the address, when the list opens, then they are left out', async () => {
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      'GET /api/admin/catalog/products': answer(200, { items: [], hasMore: false }),
+    });
+    renderRoute('/admin/productos?buscar=a&categoria=verano&estado=DRAFT&stock=SOME');
+
+    expect(await screen.findByText(messages.empty)).toBeInTheDocument();
+    expect(api.callsTo('GET /api/admin/catalog/products')[0]?.options.params?.query).toEqual({ page: 0 });
+  });
+
+  it('given a category in the address that no longer exists, when the list opens, then the select says so', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      'GET /api/admin/catalog/products': answer(200, { items: [], hasMore: false }),
+    });
+    renderRoute('/admin/productos?categoria=6f1c2b3a-0000-4000-8000-0000000000ff');
+
+    expect(await screen.findByRole('option', { name: messages.unknownCategory })).toBeInTheDocument();
+    expect(screen.getByLabelText(messages.category)).toHaveValue('6f1c2b3a-0000-4000-8000-0000000000ff');
+  });
+
+  it('given a search and a stock level, when applied, then both are asked for and stay in the address', async () => {
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      'GET /api/admin/catalog/products': answer(200, { items: [summary('p-1', 'Pijama Luna', true, 2)], hasMore: false }),
+    });
+    const { router } = renderRoute('/admin/productos');
+    const filters = within(await screen.findByRole('search', { name: messages.filters }));
+
+    await userEvent.selectOptions(filters.getByLabelText(messages.stock), messages.stocks.LOW);
+    await userEvent.type(filters.getByLabelText(messages.search), '  pp-ab12cd34 ');
+    await userEvent.click(filters.getByRole('button', { name: messages.apply }));
+
+    await vi.waitFor(() => {
+      expect(api.callsTo('GET /api/admin/catalog/products').at(-1)?.options.params?.query).toEqual({
+        page: 0,
+        q: 'pp-ab12cd34',
+        stock: 'LOW',
+      });
+    });
+    const address = new URLSearchParams(router.state.location.search);
+    expect(address.get('buscar')).toBe('pp-ab12cd34');
+    expect(address.get('stock')).toBe('LOW');
+    expect(filters.getByLabelText(messages.search)).toHaveAccessibleDescription(messages.searchHint);
+  });
+
+  it('given a search of one letter, when submitted, then the field says why and nothing is asked for', async () => {
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': categories,
+      'GET /api/admin/catalog/products': answer(200, { items: [], hasMore: false }),
+    });
+    renderRoute('/admin/productos');
+    await screen.findByText(messages.empty);
+
+    await userEvent.type(screen.getByLabelText(messages.search), 'a');
+    await userEvent.click(screen.getByRole('button', { name: messages.apply }));
+
+    const field = screen.getByLabelText(messages.search);
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(field).toHaveFocus();
+    expect(field).toHaveAccessibleDescription(`${messages.searchHint} ${messages.searchInvalid}`);
+    expect(api.callsTo('GET /api/admin/catalog/products')).toHaveLength(1);
+  });
+
   it('given the details of a new product, when created, then it is sent and opens to add variants', async () => {
     const created = adminProduct({ categoryId: 'c-2', season: 'SUMMER', audience: 'KIDS' });
     const api = stubApi({

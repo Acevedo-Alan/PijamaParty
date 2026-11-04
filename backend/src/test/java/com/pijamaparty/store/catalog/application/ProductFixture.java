@@ -41,7 +41,8 @@ final class ProductFixture {
     final UpdateVariant updateVariant = new UpdateVariantService(products, products, events, activity, clock);
     final PublishProduct publish = new PublishProductService(products, products, activity, clock);
     final HideProduct hide = new HideProductService(products, products, activity, clock);
-    final ListAllProducts listAll = new ListAllProductsService(products);
+    final InMemoryLowStockThreshold lowStockThreshold = new InMemoryLowStockThreshold();
+    final ListAllProducts listAll = new ListAllProductsService(products, lowStockThreshold);
     final GetProductForAdmin get = new GetProductForAdminService(products);
     final InMemoryImageProcessor imageProcessor = new InMemoryImageProcessor();
     final InMemoryImageStore imageStore = new InMemoryImageStore();

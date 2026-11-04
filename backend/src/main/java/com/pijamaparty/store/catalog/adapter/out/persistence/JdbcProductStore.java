@@ -1,5 +1,6 @@
 package com.pijamaparty.store.catalog.adapter.out.persistence;
 
+import com.pijamaparty.store.catalog.application.AdminProductFilter;
 import com.pijamaparty.store.catalog.application.LoadProducts;
 import com.pijamaparty.store.catalog.application.ProductSummaries;
 import com.pijamaparty.store.catalog.application.ProductSummaryView;
@@ -17,6 +18,8 @@ import com.pijamaparty.store.catalog.domain.ProductDetails;
 import com.pijamaparty.store.catalog.domain.ProductId;
 import com.pijamaparty.store.catalog.domain.ProductImage;
 import com.pijamaparty.store.catalog.domain.ProductName;
+import com.pijamaparty.store.catalog.domain.ProductSearch;
+import com.pijamaparty.store.catalog.domain.ProductState;
 import com.pijamaparty.store.catalog.domain.Season;
 import com.pijamaparty.store.catalog.domain.Size;
 import com.pijamaparty.store.catalog.domain.Sku;
@@ -26,6 +29,7 @@ import com.pijamaparty.store.catalog.domain.UploadKey;
 import com.pijamaparty.store.catalog.domain.Variant;
 import com.pijamaparty.store.catalog.domain.VariantId;
 import com.pijamaparty.store.platform.domain.Money;
+import com.pijamaparty.store.platform.persistence.LikePattern;
 import com.pijamaparty.store.platform.persistence.Savepoints;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -96,10 +100,32 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
         ORDER BY position, id
         """;
 
+    // UC-06 (T-E8-08): newest first. One constant text whose conditions each switch off with a null parameter, never
+    // built by concatenation (RNF-28). The pattern is the search with %, _ and \ escaped (LikePattern), folded like the
+    // name; the SKU is compared whole. The stock comes from the ProductStock enum, over the available units of the
+    // active variants (the inventory's v_variant_availability; a variant without a stock row has none): any_available
+    // is null without active variants, which is OUT. Under a few hundred products, the plan need not be specific.
     private static final String SELECT_SUMMARIES = """
         SELECT p.id, p.category_id, p.name, p.slug, p.active,
                (SELECT count(*) FROM variant v WHERE v.product_id = p.id) AS variant_count
         FROM product p
+        CROSS JOIN LATERAL (
+            SELECT bool_or(coalesce(a.available, 0) > 0) AS any_available,
+                   bool_or(coalesce(a.available, 0) <= CAST(:threshold AS integer)) AS any_low
+            FROM variant v
+            LEFT JOIN v_variant_availability a ON a.variant_id = v.id
+            WHERE v.product_id = p.id AND v.active
+        ) s
+        WHERE (CAST(:pattern AS text) IS NULL
+               OR lower(unaccent(p.name)) LIKE lower(unaccent(CAST(:pattern AS text))) ESCAPE '\\'
+               OR EXISTS (SELECT 1 FROM variant sv
+                          WHERE sv.product_id = p.id AND lower(sv.sku) = lower(CAST(:sku AS text))))
+          AND (CAST(:categoryId AS uuid) IS NULL OR p.category_id = CAST(:categoryId AS uuid))
+          AND (CAST(:published AS boolean) IS NULL OR p.active = CAST(:published AS boolean))
+          AND (CAST(:stock AS text) IS NULL
+               OR (CAST(:stock AS text) = 'OUT' AND NOT coalesce(s.any_available, false))
+               OR (CAST(:stock AS text) = 'LOW' AND coalesce(s.any_available, false) AND s.any_low)
+               OR (CAST(:stock AS text) = 'IN_STOCK' AND coalesce(s.any_available, false) AND NOT s.any_low))
         ORDER BY p.created_at DESC, p.id DESC
         LIMIT :limit OFFSET :offset
         """;
@@ -213,9 +239,18 @@ class JdbcProductStore implements LoadProducts, SaveProduct, ProductSummaries {
     }
 
     @Override
-    public List<ProductSummaryView> list(int offset, int limit) {
-        return jdbc.query(SELECT_SUMMARIES, new MapSqlParameterSource().addValue("offset", offset)
-            .addValue("limit", limit), JdbcProductStore::toSummary);
+    public List<ProductSummaryView> list(AdminProductFilter filter, int offset, int limit) {
+        var params = new MapSqlParameterSource("offset", offset).addValue("limit", limit)
+            .addValue("pattern", filter.search().map(search -> LikePattern.contains(search.text())).orElse(null),
+                Types.VARCHAR)
+            .addValue("sku", filter.search().map(ProductSearch::text).orElse(null), Types.VARCHAR)
+            .addValue("categoryId", filter.category().map(CategoryId::value).orElse(null), Types.OTHER)
+            .addValue("published", filter.state().map(state -> state == ProductState.PUBLISHED).orElse(null),
+                Types.BOOLEAN)
+            .addValue("stock", filter.stock().map(condition -> condition.stock().name()).orElse(null), Types.VARCHAR)
+            .addValue("threshold", filter.stock().map(AdminProductFilter.StockCondition::threshold).orElse(0),
+                Types.INTEGER);
+        return jdbc.query(SELECT_SUMMARIES, params, JdbcProductStore::toSummary);
     }
 
     @Override

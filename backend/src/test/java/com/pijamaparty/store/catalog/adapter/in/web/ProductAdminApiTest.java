@@ -201,6 +201,52 @@ class ProductAdminApiTest {
     }
 
     @Test
+    void givenProducts_whenSearchedAndFiltered_thenTheListShowsThoseThatMatchEveryCondition() throws Exception {
+        String heart = idOf(create("Pijama Corazón"));
+        JsonNode heartProduct = body(generate(heart, List.of("M"), List.of("Rosa")));
+        String sku = heartProduct.at("/variants/0/sku").asText();
+        owner.update("update stock_level set on_hand = 2, reserved = 2 where variant_id = ?",
+            UUID.fromString(heartProduct.at("/variants/0/id").asText()));
+        String robe = idOf(create("Bata"));
+        String robeVariant = body(generate(robe, List.of("M"), List.of("Rosa"))).at("/variants/0/id").asText();
+        owner.update("update stock_level set on_hand = 9 where variant_id = ?", UUID.fromString(robeVariant));
+        send(patch(VARIANTS + "/" + robeVariant), "{\"priceCents\":1999900}").andExpect(status().isOk());
+        mvc.perform(post(PRODUCTS + "/" + robe + "/publish").with(ADMIN).with(csrf())).andExpect(status().isOk());
+
+        mvc.perform(get(PRODUCTS).param("q", "corazon").with(ADMIN))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[*].id", contains(heart)));
+        mvc.perform(get(PRODUCTS).param("q", sku.toLowerCase(java.util.Locale.ROOT)).with(ADMIN))
+            .andExpect(jsonPath("$.items[*].id", contains(heart)));
+        mvc.perform(get(PRODUCTS).param("stock", "OUT").with(ADMIN))
+            .andExpect(jsonPath("$.items[*].id", contains(heart)));
+        mvc.perform(get(PRODUCTS).param("stock", "IN_STOCK").with(ADMIN))
+            .andExpect(jsonPath("$.items[*].id", contains(robe)));
+        mvc.perform(get(PRODUCTS).param("state", "PUBLISHED").param("category", category).with(ADMIN))
+            .andExpect(jsonPath("$.items[*].id", contains(robe)));
+        mvc.perform(get(PRODUCTS).param("q", "corazon").param("state", "PUBLISHED").with(ADMIN))
+            .andExpect(jsonPath("$.items.length()").value(0))
+            .andExpect(jsonPath("$.hasMore").value(false));
+        mvc.perform(get(PRODUCTS).param("category", UUID.randomUUID().toString()).with(ADMIN))
+            .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void givenInvalidFilters_whenListingProducts_thenTheyAreRejectedAsProblemJson() throws Exception {
+        mvc.perform(get(PRODUCTS).param("q", "a").with(ADMIN))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.problem").value("INVALID_SEARCH"));
+        mvc.perform(get(PRODUCTS).param("q", "a".repeat(101)).with(ADMIN))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.problem").value("INVALID_SEARCH"));
+        mvc.perform(get(PRODUCTS).param("state", "DRAFT").with(ADMIN)).andExpect(status().isBadRequest());
+        mvc.perform(get(PRODUCTS).param("stock", "SOME").with(ADMIN)).andExpect(status().isBadRequest());
+        mvc.perform(get(PRODUCTS).param("category", "verano").with(ADMIN)).andExpect(status().isBadRequest());
+        mvc.perform(get(PRODUCTS).param("q", "  ").with(ADMIN)).andExpect(status().isOk());
+    }
+
+    @Test
     void givenInvalidInput_whenManagingProducts_thenItIsRejectedAsProblemJson() throws Exception {
         String id = idOf(create("Pijama"));
 

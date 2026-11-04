@@ -1,5 +1,5 @@
 import { api } from '../../api/client.ts';
-import type { components } from '../../api/schema.d.ts';
+import type { components, paths } from '../../api/schema.d.ts';
 import { toImage, type ListingImage } from '../catalog/catalogApi.ts';
 import type { Audience, Season } from '../catalog/listingCriteria.ts';
 import { ensureSignedIn, problemProperty, problemText } from './adminSession.ts';
@@ -179,13 +179,41 @@ export function toProduct(data: ProductResponse): AdminProduct {
   };
 }
 
-/** One page of every product, published or not, newest first, 50 per page from 0. */
+type ProductListQuery = NonNullable<paths['/api/admin/catalog/products']['get']['parameters']['query']>;
+export type ProductState = NonNullable<ProductListQuery['state']>;
+export type ProductStock = NonNullable<ProductListQuery['stock']>;
+
+export const PRODUCT_STATES: readonly ProductState[] = ['PUBLISHED', 'HIDDEN'];
+/** The three stock levels of UC-06, which never overlap. */
+export const PRODUCT_STOCKS: readonly ProductStock[] = ['IN_STOCK', 'LOW', 'OUT'];
+
+/** T-E8-08: which products the list shows; every part optional, all combined. */
+export interface ProductListFilter {
+  q: string | null;
+  categoryId: string | null;
+  state: ProductState | null;
+  stock: ProductStock | null;
+}
+
+export const NO_PRODUCT_FILTER: ProductListFilter = { q: null, categoryId: null, state: null, stock: null };
+
+/** One page of the products the filter lets through, published or not, newest first, 50 per page from 0. */
 export async function fetchProductSummaries(
+  filter: ProductListFilter,
   page: number,
   signal?: AbortSignal,
 ): Promise<{ items: ProductSummary[]; hasMore: boolean }> {
+  const { q, categoryId, state, stock } = filter;
   const { data, response } = await api.GET('/api/admin/catalog/products', {
-    params: { query: { page } },
+    params: {
+      query: {
+        page,
+        ...(q === null ? {} : { q }),
+        ...(categoryId === null ? {} : { category: categoryId }),
+        ...(state === null ? {} : { state }),
+        ...(stock === null ? {} : { stock }),
+      },
+    },
     signal: signal ?? null,
   });
   ensureSignedIn(response);
@@ -202,7 +230,7 @@ const MAX_SUMMARY_PAGES = 100;
 export async function fetchAllProductSummaries(signal?: AbortSignal): Promise<ProductSummary[]> {
   const products: ProductSummary[] = [];
   for (let page = 0; page < MAX_SUMMARY_PAGES; page++) {
-    const { items, hasMore } = await fetchProductSummaries(page, signal);
+    const { items, hasMore } = await fetchProductSummaries(NO_PRODUCT_FILTER, page, signal);
     products.push(...items);
     if (!hasMore) {
       break;
