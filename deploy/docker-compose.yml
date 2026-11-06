@@ -40,6 +40,8 @@ services:
       - caddy-data:/data
       - caddy-config:/config
       - uploads:/srv/uploads:ro
+      # RNF-31.7: Caddy serves the maintenance page while maintenance.on exists in this folder (see the Caddyfile)
+      - ./maintenance:/srv/flag:ro
     networks:
       edge:
         # Fixed address: the only proxy the API trusts for X-Forwarded-For (TRUSTED_PROXY_REGEX, RNF-22).

@@ -56,6 +56,29 @@
 	encode zstd gzip
 	import security_headers
 
+	# RNF-31.7 (T-E6-25): maintenance mode. While deploy/maintenance/maintenance.on exists (the deploy and restore scripts
+	# create and remove it; the folder is mounted read-only at /srv/flag), every page answers the maintenance page with
+	# 503 and Retry-After, and the API answers 503 in problem+json (RNF-21). First, so nothing else answers meanwhile.
+	@maintenance file {
+		root /srv/flag
+		try_files maintenance.on
+	}
+	handle @maintenance {
+		header Cache-Control "no-store"
+		header Retry-After "120"
+		handle /api/* {
+			header Content-Type "application/problem+json"
+			respond `{"type":"about:blank","title":"Service Unavailable","status":503}` 503
+		}
+		handle {
+			root * /srv/maintenance
+			rewrite * /index.html
+			file_server {
+				status 503
+			}
+		}
+	}
+
 	handle /api/* {
 		import api
 	}
@@ -127,6 +150,16 @@
 			header Content-Type "application/problem+json"
 			header Retry-After "5"
 			respond `{"type":"about:blank","title":"Service Unavailable","status":503}` 503
+		}
+		# RNF-31.7: a page the backend could not answer (a link preview, the sitemap) shows the maintenance page.
+		handle {
+			header Cache-Control "no-store"
+			header Retry-After "5"
+			root * /srv/maintenance
+			rewrite * /index.html
+			file_server {
+				status 503
+			}
 		}
 	}
 }

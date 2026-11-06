@@ -11,4 +11,5 @@ RUN VITE_GA4_MEASUREMENT_ID="$VITE_GA4_MEASUREMENT_ID" VITE_META_PIXEL_ID="$VITE
 
 FROM caddy:2.11.7-alpine
 COPY deploy/caddy/Caddyfile /etc/caddy/Caddyfile
+COPY deploy/caddy/maintenance.html /srv/maintenance/index.html
 COPY --from=frontend /frontend/dist/ /srv/www/
