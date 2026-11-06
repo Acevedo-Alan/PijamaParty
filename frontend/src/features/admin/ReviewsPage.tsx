@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { Button } from '../../components/ui/Button.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
@@ -102,9 +103,9 @@ export function ReviewsPage() {
       {reviews.isError && items.length === 0 && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>
-          <button type="button" className="btn" onClick={() => void reviews.refetch()}>
+          <Button onClick={() => void reviews.refetch()}>
             {esAdmin.retry}
-          </button>
+          </Button>
         </div>
       )}
       {reviews.isSuccess && items.length === 0 && <p>{messages.empty[status]}</p>}
@@ -131,39 +132,33 @@ export function ReviewsPage() {
               <p className="admin-review-text">{review.text ?? messages.noText}</p>
               <div className="admin-actions">
                 {review.status !== 'APPROVED' && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
+                  <Button
                     disabled={busy !== null}
                     onClick={() => {
                       decide(review, 'approve');
                     }}
                   >
                     {messages.approve}
-                  </button>
+                  </Button>
                 )}
                 {review.status !== 'REJECTED' && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
+                  <Button
                     disabled={busy !== null}
                     onClick={() => {
                       decide(review, 'reject');
                     }}
                   >
                     {messages.reject}
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
-                  className="btn btn-secondary danger"
+                <Button variant="danger"
                   disabled={busy !== null}
                   onClick={() => {
                     remove(review);
                   }}
                 >
                   {messages.delete}
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -171,14 +166,12 @@ export function ReviewsPage() {
       )}
       {reviews.isFetchNextPageError && <p role="alert">{esAdmin.loadError}</p>}
       {reviews.hasNextPage && (
-        <button
-          type="button"
-          className="btn btn-secondary show-more-btn"
+        <Button className="show-more-btn"
           disabled={reviews.isFetchingNextPage}
           onClick={() => void reviews.fetchNextPage()}
         >
           {reviews.isFetchingNextPage ? esAdmin.loading : esAdmin.showMore}
-        </button>
+        </Button>
       )}
     </>
   );

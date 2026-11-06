@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode, type SubmitEvent } from 'react';
+import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { centsToPesosInput, parsePesos } from './adminInput.ts';
 import { CouponScopePicker } from './CouponScopePicker.tsx';
@@ -92,7 +93,7 @@ function wholeNumber(text: string): number | null {
 }
 
 /** A field with its label, an optional hint and, when it was refused, its message. */
-function Field({
+function CouponField({
   label,
   hint,
   field,
@@ -103,30 +104,14 @@ function Field({
   hint?: string;
   field: CouponField | null;
   invalid: readonly CouponField[];
-  children: (props: { id: string; 'aria-invalid': boolean; 'aria-describedby'?: string }) => ReactNode;
+  children: ReactNode;
 }) {
-  const id = useId();
-  const hintId = `${id}-hint`;
-  const errorId = `${id}-error`;
   const isInvalid = field !== null && invalid.includes(field);
-  const describedBy = [hint === undefined ? null : hintId, isInvalid ? errorId : null]
-    .filter((part) => part !== null)
-    .join(' ');
   return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      {children({ id, 'aria-invalid': isInvalid, ...(describedBy === '' ? {} : { 'aria-describedby': describedBy }) })}
-      {hint !== undefined && (
-        <p id={hintId} className="field-hint">
-          {hint}
-        </p>
-      )}
-      {isInvalid && (
-        <p id={errorId} className="field-error">
-          {messages.errors[field]}
-        </p>
-      )}
-    </div>
+    <Field hint={hint} error={isInvalid ? messages.errors[field] : undefined}>
+      <FieldLabel>{label}</FieldLabel>
+      {children}
+    </Field>
   );
 }
 
@@ -214,103 +199,94 @@ export function CouponForm({ initial, submitLabel, onSubmit, onSaved, onCancel }
           </p>
         </div>
       )}
-      <Field label={messages.code} hint={messages.codeHint} field="CODE" invalid={invalid}>
-        {(aria) => (
-          <input
-            {...aria}
-            value={draft.code}
-            maxLength={20}
-            autoCapitalize="characters"
-            autoComplete="off"
-            required
-            onChange={(event) => {
-              change({ code: event.target.value });
-            }}
-          />
-        )}
-      </Field>
-      <Field label={messages.type} field={null} invalid={invalid}>
-        {(aria) => (
-          <select
-            {...aria}
-            value={draft.type}
-            onChange={(event) => {
-              change({ type: event.target.value as CouponType });
-            }}
-          >
-            {TYPES.map((type) => (
-              <option key={type} value={type}>
-                {messages.types[type]}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
-      <Field
+      <CouponField label={messages.code} hint={messages.codeHint} field="CODE" invalid={invalid}>
+        <FieldInput
+          name="code"
+          value={draft.code}
+          maxLength={20}
+          autoCapitalize="characters"
+          autoComplete="off"
+          required
+          onChange={(event) => {
+            change({ code: event.target.value });
+          }}
+        />
+      </CouponField>
+      <CouponField label={messages.type} field={null} invalid={invalid}>
+        <FieldSelect
+          name="type"
+          value={draft.type}
+          onChange={(event) => {
+            change({ type: event.target.value as CouponType });
+          }}
+        >
+          {TYPES.map((type) => (
+            <option key={type} value={type}>
+              {messages.types[type]}
+            </option>
+          ))}
+        </FieldSelect>
+      </CouponField>
+      <CouponField
         label={draft.type === 'PERCENTAGE' ? messages.percent : messages.amount}
         field="DISCOUNT_VALUE"
         invalid={invalid}
       >
-        {(aria) => (
-          <input
-            {...aria}
-            value={draft.value}
-            inputMode={draft.type === 'PERCENTAGE' ? 'numeric' : 'decimal'}
-            required
-            onChange={(event) => {
-              change({ value: event.target.value });
-            }}
-          />
-        )}
-      </Field>
-      <Field label={messages.validFrom} hint={messages.optional} field="VALIDITY" invalid={invalid}>
-        {(aria) => (
-          <input
-            {...aria}
-            type="date"
-            value={draft.validFrom}
-            onChange={(event) => {
-              change({ validFrom: event.target.value });
-            }}
-          />
-        )}
-      </Field>
-      <Field label={messages.validUntil} hint={messages.optional} field={null} invalid={invalid}>
-        {(aria) => (
-          <input
-            {...aria}
-            type="date"
-            value={draft.validUntil}
-            onChange={(event) => {
-              change({ validUntil: event.target.value });
-            }}
-          />
-        )}
-      </Field>
-      <Field label={messages.maxUses} hint={messages.maxUsesHint} field="MAX_USES" invalid={invalid}>
-        {(aria) => (
-          <input
-            {...aria}
-            value={draft.maxUses}
-            inputMode="numeric"
-            onChange={(event) => {
-              change({ maxUses: event.target.value });
-            }}
-          />
-        )}
-      </Field>
-      <Field label={messages.minimum} hint={messages.minimumHint} field="MINIMUM_PURCHASE" invalid={invalid}>
-        {(aria) => (
-          <input
-            {...aria}
-            value={draft.minimum}
-            inputMode="decimal"
-            onChange={(event) => {
-              change({ minimum: event.target.value });
-            }}
-          />
-        )}
-      </Field>
+        <FieldInput
+          name="value"
+          autoComplete="off"
+          value={draft.value}
+          inputMode={draft.type === 'PERCENTAGE' ? 'numeric' : 'decimal'}
+          required
+          onChange={(event) => {
+            change({ value: event.target.value });
+          }}
+        />
+      </CouponField>
+      <CouponField label={messages.validFrom} hint={messages.optional} field="VALIDITY" invalid={invalid}>
+        <FieldInput
+          name="validFrom"
+          autoComplete="off"
+          type="date"
+          value={draft.validFrom}
+          onChange={(event) => {
+            change({ validFrom: event.target.value });
+          }}
+        />
+      </CouponField>
+      <CouponField label={messages.validUntil} hint={messages.optional} field={null} invalid={invalid}>
+        <FieldInput
+          name="validUntil"
+          autoComplete="off"
+          type="date"
+          value={draft.validUntil}
+          onChange={(event) => {
+            change({ validUntil: event.target.value });
+          }}
+        />
+      </CouponField>
+      <CouponField label={messages.maxUses} hint={messages.maxUsesHint} field="MAX_USES" invalid={invalid}>
+        <FieldInput
+          name="maxUses"
+          autoComplete="off"
+          value={draft.maxUses}
+          inputMode="numeric"
+          onChange={(event) => {
+            change({ maxUses: event.target.value });
+          }}
+        />
+      </CouponField>
+      <CouponField label={messages.minimum} hint={messages.minimumHint} field="MINIMUM_PURCHASE" invalid={invalid}>
+        <FieldInput
+          name="minimum"
+          autoComplete="off"
+          value={draft.minimum}
+          inputMode="decimal"
+          onChange={(event) => {
+            change({ minimum: event.target.value });
+          }}
+        />
+      </CouponField>
       {draft.automatic && (
         <CouponScopePicker
           scope={draft.scope}

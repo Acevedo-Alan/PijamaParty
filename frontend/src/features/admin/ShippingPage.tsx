@@ -1,6 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
 import { es } from '../../i18n/es.ts';
+import { Button } from '../../components/ui/Button.tsx';
+import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { centsToPesosInput, parsePesos } from './adminInput.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
@@ -80,36 +82,30 @@ function ZonesForm({ configuration, onSaved }: FormProps) {
         {messages.zonesHint}
       </p>
       {configuration.zones.map(({ province }) => {
-        const fieldId = `${id}-${province}`;
-        const errorId = `${fieldId}-error`;
+        const errorId = `${id}-${province}-error`;
         const isInvalid = invalid.includes(province);
         return (
-          <div className="field" key={province}>
-            <label htmlFor={fieldId}>{es.provinces[province]}</label>
-            <input
-              id={fieldId}
+          <Field key={province} error={isInvalid ? messages.invalidCost : undefined}>
+            <FieldLabel>{es.provinces[province]}</FieldLabel>
+            {/* The one hint above the list describes every field. */}
+            <FieldInput
+              name={province}
               value={costs[province] ?? ''}
               inputMode="decimal"
               autoComplete="off"
-              aria-invalid={isInvalid}
               aria-describedby={isInvalid ? `${hintId} ${errorId}` : hintId}
               onChange={(event) => {
                 setCosts({ ...costs, [province]: event.target.value });
               }}
             />
-            {isInvalid && (
-              <p id={errorId} className="field-error">
-                {messages.invalidCost}
-              </p>
-            )}
-          </div>
+          </Field>
         );
       })}
       <Feedback notice={notice} />
       <div className="admin-actions">
-        <button type="submit" className="btn" disabled={saving}>
+        <Button variant="primary" type="submit" disabled={saving}>
           {messages.saveZones}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -117,9 +113,6 @@ function ZonesForm({ configuration, onSaved }: FormProps) {
 
 /** The purchase amount from which shipping is free; empty for none. */
 function ThresholdForm({ configuration, onSaved }: FormProps) {
-  const id = useId();
-  const hintId = `${id}-hint`;
-  const errorId = `${id}-error`;
   const [threshold, setThreshold] = useState(() => pesosText(configuration.freeShippingThresholdCents));
   const [invalid, setInvalid] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -156,33 +149,23 @@ function ThresholdForm({ configuration, onSaved }: FormProps) {
 
   return (
     <form className="admin-form" onSubmit={(event) => void submit(event)}>
-      <div className="field">
-        <label htmlFor={id}>{messages.threshold}</label>
-        <input
-          id={id}
+      <Field hint={messages.thresholdHint} error={invalid ? messages.invalidThreshold : undefined}>
+        <FieldLabel>{messages.threshold}</FieldLabel>
+        <FieldInput
+          name="threshold"
           value={threshold}
           inputMode="decimal"
           autoComplete="off"
-          aria-invalid={invalid}
-          aria-describedby={invalid ? `${hintId} ${errorId}` : hintId}
           onChange={(event) => {
             setThreshold(event.target.value);
           }}
         />
-        <p id={hintId} className="field-hint">
-          {messages.thresholdHint}
-        </p>
-        {invalid && (
-          <p id={errorId} className="field-error">
-            {messages.invalidThreshold}
-          </p>
-        )}
-      </div>
+      </Field>
       <Feedback notice={notice} />
       <div className="admin-actions">
-        <button type="submit" className="btn" disabled={saving}>
+        <Button variant="primary" type="submit" disabled={saving}>
           {messages.saveThreshold}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -210,9 +193,9 @@ export function ShippingPage() {
       {shipping.isError && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>
-          <button type="button" className="btn" onClick={() => void shipping.refetch()}>
+          <Button onClick={() => void shipping.refetch()}>
             {esAdmin.retry}
-          </button>
+          </Button>
         </div>
       )}
       {shipping.data !== undefined && (

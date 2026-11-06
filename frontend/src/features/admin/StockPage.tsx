@@ -1,6 +1,8 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
+import { Button } from '../../components/ui/Button.tsx';
+import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { parseQuantity } from './adminInput.ts';
@@ -43,7 +45,6 @@ function adjustNotice(answer: AdjustAnswer): Notice {
  */
 function AdjustForm({ variantId, onAdjusted }: { variantId: string; onAdjusted: () => Promise<void> }) {
   const titleId = useId();
-  const quantityId = useId();
   const [quantity, setQuantity] = useState('');
   const [note, setNote] = useState('');
   const [key, setKey] = useState(newIdempotencyKey);
@@ -97,21 +98,20 @@ function AdjustForm({ variantId, onAdjusted }: { variantId: string; onAdjusted: 
     <section className="admin-section" aria-labelledby={titleId}>
       <h2 id={titleId}>{messages.adjust}</h2>
       <form className="admin-form" onSubmit={(event) => void submit(event)}>
-        <div className="field">
-          <label htmlFor={quantityId}>{messages.quantity}</label>
+        <Field>
+          <FieldLabel>{messages.quantity}</FieldLabel>
           <div className="stepper">
-            <button
-              type="button"
-              className="btn btn-secondary icon-text"
+            <Button size="icon"
               aria-label={messages.decrease}
               onClick={() => {
                 step(-1);
               }}
             >
               −
-            </button>
-            <input
-              id={quantityId}
+            </Button>
+            <FieldInput
+              name="quantity"
+              autoComplete="off"
               type="number"
               inputMode="numeric"
               step={1}
@@ -121,32 +121,32 @@ function AdjustForm({ variantId, onAdjusted }: { variantId: string; onAdjusted: 
                 edit({ quantity: event.target.value });
               }}
             />
-            <button
-              type="button"
-              className="btn btn-secondary icon-text"
+            <Button size="icon"
               aria-label={messages.increase}
               onClick={() => {
                 step(1);
               }}
             >
               +
-            </button>
+            </Button>
           </div>
-        </div>
-        <label className="field">
-          <span>{messages.note}</span>
-          <input
+        </Field>
+        <Field>
+          <FieldLabel>{messages.note}</FieldLabel>
+          <FieldInput
+            name="note"
+            autoComplete="off"
             value={note}
             maxLength={200}
             onChange={(event) => {
               edit({ note: event.target.value });
             }}
           />
-        </label>
+        </Field>
         <Feedback notice={notice} />
-        <button type="submit" className="btn" disabled={saving}>
+        <Button variant="primary" type="submit" disabled={saving}>
           {saving ? messages.submitting : messages.submit}
-        </button>
+        </Button>
       </form>
     </section>
   );
@@ -210,9 +210,9 @@ export function StockPage() {
       {history.isError && first === undefined && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>
-          <button type="button" className="btn" onClick={() => void history.refetch()}>
+          <Button onClick={() => void history.refetch()}>
             {esAdmin.retry}
-          </button>
+          </Button>
         </div>
       )}
       {first?.status === 'unknownVariant' && <p role="alert">{messages.variantNotFound}</p>}
@@ -236,14 +236,12 @@ export function StockPage() {
             )}
             {history.isFetchNextPageError && <p role="alert">{esAdmin.loadError}</p>}
             {history.hasNextPage && (
-              <button
-                type="button"
-                className="btn btn-secondary show-more-btn"
+              <Button className="show-more-btn"
                 disabled={history.isFetchingNextPage}
                 onClick={() => void history.fetchNextPage()}
               >
                 {history.isFetchingNextPage ? esAdmin.loading : esAdmin.showMore}
-              </button>
+              </Button>
             )}
           </section>
         </>

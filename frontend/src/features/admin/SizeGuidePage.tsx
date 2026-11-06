@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
 import { Link, useParams } from 'react-router';
+import { Button } from '../../components/ui/Button.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import {
@@ -181,9 +182,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
                 }}
               />
             </label>
-            <button
-              type="button"
-              className="btn btn-secondary"
+            <Button
               aria-label={messages.removeColumn(columnName(index))}
               disabled={busy || columns.length === 1}
               onClick={() => {
@@ -201,7 +200,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
               }}
             >
               {messages.remove}
-            </button>
+            </Button>
           </div>
         ))}
         {isInvalid('columns') && (
@@ -210,16 +209,14 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
           </p>
         )}
         <div className="admin-actions">
-          <button
-            type="button"
-            className="btn btn-secondary"
+          <Button
             disabled={busy || columns.length >= MAX_COLUMNS}
             onClick={() => {
               setDraft({ ...draft, columns: [...columns, { key: newKey(columns), name: '' }] });
             }}
           >
             {messages.addColumn}
-          </button>
+          </Button>
         </div>
       </fieldset>
       <fieldset className="admin-section size-guide-fieldset" {...errorOf('rows')}>
@@ -255,9 +252,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
                 ))}
               </fieldset>
               <div className="admin-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary icon-text"
+                <Button size="icon"
                   aria-label={messages.moveUp(index + 1)}
                   disabled={busy || index === 0}
                   onClick={() => {
@@ -265,10 +260,8 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
                   }}
                 >
                   ↑
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary icon-text"
+                </Button>
+                <Button size="icon"
                   aria-label={messages.moveDown(index + 1)}
                   disabled={busy || index === rows.length - 1}
                   onClick={() => {
@@ -276,10 +269,8 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
                   }}
                 >
                   ↓
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
+                </Button>
+                <Button
                   aria-label={messages.removeRow(index + 1)}
                   disabled={busy || rows.length === 1}
                   onClick={() => {
@@ -287,7 +278,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
                   }}
                 >
                   {messages.remove}
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -298,16 +289,14 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
           </p>
         )}
         <div className="admin-actions">
-          <button
-            type="button"
-            className="btn btn-secondary"
+          <Button
             disabled={busy || rows.length >= MAX_ROWS}
             onClick={() => {
               setDraft({ ...draft, rows: [...rows, { key: newKey(rows), size: '', values: {} }] });
             }}
           >
             {messages.addRow}
-          </button>
+          </Button>
         </div>
       </fieldset>
       <div className="field">
@@ -334,13 +323,13 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
       </div>
       <Feedback notice={notice} />
       <div className="admin-actions">
-        <button type="submit" className="btn" disabled={busy}>
+        <Button variant="primary" type="submit" disabled={busy}>
           {esAdmin.save}
-        </button>
+        </Button>
         {guide !== null && (
-          <button type="button" className="btn btn-secondary danger" disabled={busy} onClick={() => void remove()}>
+          <Button variant="danger" disabled={busy} onClick={() => void remove()}>
             {messages.delete}
-          </button>
+          </Button>
         )}
       </div>
     </form>
@@ -367,9 +356,9 @@ export function SizeGuidePage() {
       {found.isError && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>
-          <button type="button" className="btn" onClick={() => void found.refetch()}>
+          <Button onClick={() => void found.refetch()}>
             {esAdmin.retry}
-          </button>
+          </Button>
         </div>
       )}
       {found.data?.status === 'notFound' && (

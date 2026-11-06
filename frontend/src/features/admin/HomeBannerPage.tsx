@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
+import { Button } from '../../components/ui/Button.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { CharacterBannerView, homeBannerKey } from '../catalog/CharacterBanner.tsx';
 import '../catalog/catalog.css';
@@ -193,9 +194,9 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
         {field('linkText', messages.linkText)}
         {field('linkPath', messages.linkPath, messages.linkPathHint)}
         <div className="admin-actions">
-          <button type="submit" className="btn" disabled={busy}>
+          <Button variant="primary" type="submit" disabled={busy}>
             {esAdmin.save}
-          </button>
+          </Button>
         </div>
       </form>
       <section className="admin-section" aria-labelledby={`${id}-photo`}>
@@ -235,9 +236,7 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
             )}
             {photo.state === 'failed' && photo.bytes !== null && (
               <div className="admin-actions">
-                <button
-                  type="button"
-                  className="btn"
+                <Button variant="primary"
                   onClick={() => {
                     const { bytes } = photo;
                     if (bytes !== null) {
@@ -246,16 +245,14 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
                   }}
                 >
                   {esAdmin.photos.retry}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
+                </Button>
+                <Button
                   onClick={() => {
                     setPhoto(null);
                   }}
                 >
                   {esAdmin.photos.dismissShort}
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -304,9 +301,9 @@ export function HomeBannerPage() {
       {found.isError && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>
-          <button type="button" className="btn" onClick={() => void found.refetch()}>
+          <Button onClick={() => void found.refetch()}>
             {esAdmin.retry}
-          </button>
+          </Button>
         </div>
       )}
       {found.data !== undefined && (

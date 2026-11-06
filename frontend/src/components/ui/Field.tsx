@@ -92,3 +92,8 @@ export function FieldSelect({ className, ...props }: Omit<ComponentProps<'select
   const control = useFieldControl('FieldSelect');
   return <select className={cn(FIELD_CONTROL, 'pr-8', className)} {...control} {...props} />;
 }
+
+export function FieldTextarea({ className, ...props }: Omit<ComponentProps<'textarea'>, 'id'>) {
+  const control = useFieldControl('FieldTextarea');
+  return <textarea className={cn(FIELD_CONTROL, 'py-2', className)} {...control} {...props} />;
+}

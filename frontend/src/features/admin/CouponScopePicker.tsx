@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { MAX_SCOPE_TARGETS, type CouponScope } from './couponsApi.ts';
 import { useCategories } from './useCategories.ts';
@@ -72,7 +73,6 @@ export function CouponScopePicker({ scope, onChange, invalid }: CouponScopePicke
   const [filter, setFilter] = useState('');
   const hintId = useId();
   const errorId = useId();
-  const filterId = useId();
   const count = scope.categoryIds.length + scope.productIds.length;
   const full = count >= MAX_SCOPE_TARGETS;
 
@@ -131,10 +131,10 @@ export function CouponScopePicker({ scope, onChange, invalid }: CouponScopePicke
           </fieldset>
           <fieldset>
             <legend>{messages.products}</legend>
-            <div className="field">
-              <label htmlFor={filterId}>{messages.productFilter}</label>
-              <input
-                id={filterId}
+            <Field>
+              <FieldLabel>{messages.productFilter}</FieldLabel>
+              <FieldInput
+                name="productFilter"
                 type="search"
                 value={filter}
                 autoComplete="off"
@@ -142,7 +142,7 @@ export function CouponScopePicker({ scope, onChange, invalid }: CouponScopePicke
                   setFilter(event.target.value);
                 }}
               />
-            </div>
+            </Field>
             {productTargets.length === 0 ? (
               <p className="field-hint">{messages.noProducts}</p>
             ) : (

@@ -1,7 +1,9 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { Button } from '../../components/ui/Button.tsx';
+import { Field, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
@@ -27,7 +29,6 @@ function statusOf(params: URLSearchParams): WithdrawalStatus | null {
  * if one is chosen, each with its order, the out-of-term mark and, while received, a button to resolve it.
  */
 export function WithdrawalsPage() {
-  const filterId = useId();
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -66,10 +67,10 @@ export function WithdrawalsPage() {
       <div className="admin-title-row">
         <h1>{messages.title}</h1>
       </div>
-      <div className="field order-filter">
-        <label htmlFor={filterId}>{messages.filter}</label>
-        <select
-          id={filterId}
+      <Field className="max-w-xs">
+        <FieldLabel>{messages.filter}</FieldLabel>
+        <FieldSelect
+          name="status"
           value={status ?? ''}
           onChange={(event) => {
             const next = event.target.value;
@@ -83,16 +84,16 @@ export function WithdrawalsPage() {
               {messages.statuses[value]}
             </option>
           ))}
-        </select>
-      </div>
+        </FieldSelect>
+      </Field>
       <Feedback notice={notice} />
       {withdrawals.isPending && <p role="status">{esAdmin.loading}</p>}
       {withdrawals.isError && items.length === 0 && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>
-          <button type="button" className="btn" onClick={() => void withdrawals.refetch()}>
+          <Button onClick={() => void withdrawals.refetch()}>
             {esAdmin.retry}
-          </button>
+          </Button>
         </div>
       )}
       {withdrawals.isSuccess && items.length === 0 && (
@@ -116,14 +117,12 @@ export function WithdrawalsPage() {
                 {withdrawal.resolvedAt !== null && ` · ${messages.resolvedAt(formatDateTime(withdrawal.resolvedAt))}`}
               </p>
               {withdrawal.status === 'RECEIVED' && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
+                <Button
                   disabled={resolving !== null}
                   onClick={() => void resolve(withdrawal)}
                 >
                   {resolving === withdrawal.id ? messages.resolving : messages.resolve}
-                </button>
+                </Button>
               )}
             </li>
           ))}
@@ -131,14 +130,12 @@ export function WithdrawalsPage() {
       )}
       {withdrawals.isFetchNextPageError && <p role="alert">{esAdmin.loadError}</p>}
       {withdrawals.hasNextPage && (
-        <button
-          type="button"
-          className="btn btn-secondary show-more-btn"
+        <Button className="show-more-btn"
           disabled={withdrawals.isFetchingNextPage}
           onClick={() => void withdrawals.fetchNextPage()}
         >
           {withdrawals.isFetchingNextPage ? esAdmin.loading : esAdmin.showMore}
-        </button>
+        </Button>
       )}
     </>
   );

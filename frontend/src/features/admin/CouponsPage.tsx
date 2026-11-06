@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
+import { Button } from '../../components/ui/Button.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { CouponForm } from './CouponForm.tsx';
@@ -127,22 +128,20 @@ function CouponRow({ coupon, scopeNames, busy, onSaved, onToggleActive, onDelete
       )}
       <p className="admin-card-meta">{messages.uses(coupon.uses, coupon.maxUses)}</p>
       <div className="admin-actions">
-        <button
-          type="button"
-          className="btn btn-secondary"
+        <Button
           disabled={busy}
           onClick={() => {
             setEditing(true);
           }}
         >
           {messages.edit}
-        </button>
-        <button type="button" className="btn btn-secondary" disabled={busy} onClick={onToggleActive}>
+        </Button>
+        <Button disabled={busy} onClick={onToggleActive}>
           {coupon.active ? messages.deactivate : messages.activate}
-        </button>
-        <button type="button" className="btn btn-secondary danger" disabled={busy} onClick={onDelete}>
+        </Button>
+        <Button variant="danger" disabled={busy} onClick={onDelete}>
           {messages.delete}
-        </button>
+        </Button>
       </div>
     </li>
   );
@@ -208,9 +207,9 @@ export function CouponsPage() {
       {coupons.isError && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>
-          <button type="button" className="btn" onClick={() => void coupons.refetch()}>
+          <Button onClick={() => void coupons.refetch()}>
             {esAdmin.retry}
-          </button>
+          </Button>
         </div>
       )}
       {coupons.data?.length === 0 && <p>{messages.empty}</p>}
