@@ -114,7 +114,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - **Built before T-E8-04, T-E8-09 and T-E8-10 (decided 2026-10-31, the owner wanted the summary first):**
   - The low-stock threshold comes from the `LowStockThreshold` port through an adapter that answers the default of D-E8-03, 3 units, until T-E8-04 backs it with `settings.api.StoreSettings`.
   - `catalog.api.LowStockVariants` is written here; T-E8-09 reuses its reading for the Stock screen. Since T-E8-09, the sold-out count of "Para hacer hoy" opens the Stock screen filtered by `OUT`, and the low-stock count and the low-stock block's link ("Ver en Stock", without a count) open it filtered by `LOW` (decided on 2026-11-04). The figures can differ: the summary counts variants of published products only, and its low stock includes the sold-out ones, which the Stock screen lists under `OUT`. (Before T-E8-09, the links led to the product list filtered by published and `OUT` or `LOW`.)
-  - The totals show the published products only; the registered customers join them with T-E8-10, which brings the RLS change `CustomerCounts` needs.
+  - The totals show the published products only; the registered customers join them with T-E8-10, which brings the RLS change `CustomerCounts` needs. (T-E8-10 left them out; T-E8-14 added them: `accounts.api.CustomerCounts.count(since)` → registered and registered since, read through the `backoffice` port `CustomerFigures` from the 1st of the month, a store date; "Totales" shows "Clientes registrados" and "N nuevos este mes".)
   - No migration of its own: the `orders (created_at DESC)` index (`orders_created_idx`, which T-E8-06 found already there since V20) also serves the period sums (a btree reads both ways), and V42 and V44 stay with T-E8-04 and T-E8-10 (V43 is T-E8-09's view).
 - **Module graph:** `backoffice` adds `accounts`, `reviews` and `settings` to its dependencies (`reviews` now; `accounts` with T-E8-10 and `settings` with T-E8-04). Nobody depends on `backoffice`, so no cycle.
 - **Endpoint:** `GET /api/admin/dashboard?chart=DAYS|MONTHS&period=TODAY|LAST_7_DAYS|MONTH|CUSTOM&from=&to=` (default `MONTH`; `from` and `to` only with `CUSTOM`, both required then) → `200` with the blocks (amounts in cents; the sales block carries its period, its dates and the average ticket); `400` problem for another `chart` or `period`, or an invalid custom period. OpenAPI is updated.
@@ -202,8 +202,10 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - An empty field is saved as "none", and its link is not shown in the store (UC-30, UC-31 as today).
 - The seller data of the footer (RNF-30.2) and the free-shipping threshold (UC-12) are not part of this screen.
 - Saving adds an activity entry with the fields that changed, before and after (UC-37). These are business data, not personal data.
+- **Unsaved changes** (decided on 2026-11-04, T-E8-14, as the Stock screen of UC-07): while a field differs from what was last loaded or saved, leaving the screen, reloading or closing the tab asks first ("Hay cambios sin guardar en los datos de la tienda. ¿Salir igual?"). Saving, and the redirect to sign in when the session ends, do not ask.
 
 **Acceptance criteria**
+- Given an edited field not saved yet, when the administrator opens another screen, then it asks before leaving; once saved, it does not ask.
 - Given a WhatsApp number `+54 9 342 400-0000`, when saved, then it is stored as `5493424000000` and the contact section links to `https://wa.me/5493424000000`.
 - Given an Instagram link `https://evil.example/instagram.com`, `http://instagram.com/x` or `https://instagram.com.evil.example/x`, when saved, then it is refused with `422`.
 - Given an announcement "Envío gratis a todo Santa Fe", when the store opens, then the strip shows it instead of the free-shipping amount.
