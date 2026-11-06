@@ -6,6 +6,7 @@ import { NoIndex } from '../seo/NoIndex.tsx';
 export function NotFoundPage() {
   return (
     <main className="wrap">
+      <title>{`${es.notFound.title} | ${es.store.name}`}</title>
       <NoIndex />
       <h1>{es.notFound.title}</h1>
       <p>{es.notFound.body}</p>

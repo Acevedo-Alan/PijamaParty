@@ -109,7 +109,10 @@ describe('the customer leaves a review (UC-24)', () => {
     await userEvent.click(await screen.findByRole('button', { name: messages.send }));
 
     expect(screen.getByText(messages.pickRating)).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: messages.rating })).toHaveAccessibleDescription(messages.pickRating);
+    const firstStar = screen.getByRole('radio', { name: messages.stars(1) });
+    expect(firstStar).toHaveAccessibleDescription(messages.pickRating);
+    expect(firstStar).toBeInvalid();
+    expect(firstStar).toHaveFocus();
     expect(put).not.toHaveBeenCalled();
   });
 

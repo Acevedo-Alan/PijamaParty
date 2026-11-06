@@ -8,6 +8,8 @@ export const es = {
   store: {
     name: 'Pijama Party Santa Fe',
   },
+  /** WCAG 2.4.1: the first link of every storefront page. */
+  skipToContent: 'Ir al contenido',
   /** T-E6-23 (RNF-31.1): the descriptions search engines show; drafted for the owner to review. */
   seo: {
     homeDescription: 'Pijamas y ropa de dormir para mujer, hombre y niños. Tienda online de Pijama Party Santa Fe.',
@@ -144,6 +146,8 @@ export const es = {
     enlargePhoto: 'Ampliar foto',
     enlarged: 'Foto ampliada',
     closeEnlarged: 'Cerrar foto ampliada',
+    /** The keyboard's way to the 2x zoom of the enlarged photo. */
+    zoomPhoto: 'Acercar foto',
     previousPhoto: 'Foto anterior',
     nextPhoto: 'Foto siguiente',
     /** The position in the enlarged view, e.g. "2 / 5". */

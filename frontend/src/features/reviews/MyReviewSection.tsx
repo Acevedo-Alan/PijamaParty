@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useId, useState, type SyntheticEvent } from 'react';
+import { useId, useRef, useState, type SyntheticEvent } from 'react';
 import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { SIGN_IN_PATH } from '../account/AccountLink.tsx';
@@ -37,6 +37,8 @@ function ReviewForm({ productId, review }: ReviewFormProps) {
   const textId = useId();
   const ratingErrorId = useId();
   const textErrorId = useId();
+  const firstRatingRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
 
   const submit = useMutation({
     mutationFn: (chosen: number) => submitReview(productId, chosen, text),
@@ -50,6 +52,7 @@ function ReviewForm({ productId, review }: ReviewFormProps) {
         case 'invalid':
           setNotice(null);
           setInvalid(answer.fields);
+          (answer.fields.includes('rating') ? firstRatingRef : textRef).current?.focus();
           return;
         case 'notABuyer':
           setNotice(messages.notABuyer);
@@ -73,6 +76,8 @@ function ReviewForm({ productId, review }: ReviewFormProps) {
     if (rating === null) {
       setNotice(null);
       setInvalid(['rating']);
+      // WCAG 3.3.1: focus goes to the first control that needs fixing
+      firstRatingRef.current?.focus();
       return;
     }
     submit.mutate(rating);
@@ -83,16 +88,15 @@ function ReviewForm({ productId, review }: ReviewFormProps) {
 
   return (
     <form className="my-review-form" onSubmit={send} noValidate>
-      <fieldset
-        className="option-group"
-        aria-invalid={ratingInvalid}
-        {...(ratingInvalid ? { 'aria-describedby': ratingErrorId } : {})}
-      >
+      <fieldset className="option-group">
         <legend>{messages.rating}</legend>
         <div className="chips">
           {RATINGS.map((value) => (
             <label key={value} className="chip">
               <input
+                {...(value === RATINGS[0] ? { ref: firstRatingRef } : {})}
+                aria-invalid={ratingInvalid}
+                {...(ratingInvalid ? { 'aria-describedby': ratingErrorId } : {})}
                 type="radio"
                 name="rating"
                 value={value}
@@ -117,6 +121,7 @@ function ReviewForm({ productId, review }: ReviewFormProps) {
         {messages.text}
       </label>
       <textarea
+        ref={textRef}
         id={textId}
         value={text}
         rows={4}

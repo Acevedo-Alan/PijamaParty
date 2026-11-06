@@ -1,6 +1,7 @@
 import { m } from 'motion/react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Outlet, useLocation } from 'react-router';
+import { es } from '../../i18n/es.ts';
 import { useEntranceMotion } from '../../components/motion/useActionMotion.ts';
 import { Analytics } from '../analytics/ConsentBanner.tsx';
 import { AccountDeletedNotice } from '../account/AccountDataSection.tsx';
@@ -22,6 +23,47 @@ function PageEntrance({ children }: { children: ReactNode }) {
   return <m.div {...useEntranceMotion()}>{children}</m.div>;
 }
 
+/** The page's heading, or its main region while the heading is not there yet. */
+function pageTarget(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('main h1') ?? document.querySelector<HTMLElement>('main');
+}
+
+function focusPage() {
+  const target = pageTarget();
+  if (target !== null) {
+    target.tabIndex = -1;
+    target.focus({ preventScroll: true });
+  }
+}
+
+/** WCAG 2.4.3: after moving to another page (not on the first one), focus starts at the page, not at <body>. */
+function useFocusPageOnNavigation(pathname: string) {
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    focusPage();
+  }, [pathname]);
+}
+
+/** WCAG 2.4.1: the first stop of the keyboard, which skips the header and goes to the page. */
+function SkipLink() {
+  return (
+    <a
+      className="skip-link"
+      href="#main"
+      onClick={(event) => {
+        event.preventDefault();
+        focusPage();
+      }}
+    >
+      {es.skipToContent}
+    </a>
+  );
+}
+
 /**
  * The frame of every public page: the header, the footer, the benefits bar above it on the home page only (UC-31,
  * T-E7-23), the cart side panel (UC-08), the analytics consent (RNF-25), which the back office never shows, and the
@@ -29,9 +71,11 @@ function PageEntrance({ children }: { children: ReactNode }) {
  */
 export function StoreLayout() {
   const { pathname } = useLocation();
+  useFocusPageOnNavigation(pathname);
   return (
     <CartPanelProvider>
       {isPrivatePath(pathname) && <NoIndex />}
+      <SkipLink />
       <SiteHeader />
       {/* Before the page, so a returning visitor's tools are loaded when the page sends its first events. */}
       <Analytics />

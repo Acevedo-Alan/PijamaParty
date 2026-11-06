@@ -119,6 +119,20 @@ function LightboxStage({ images, index, altFor, onIndexChange }: Omit<ProductLig
           }}
         />
       </div>
+      <button
+        type="button"
+        className="icon-btn product-lightbox-zoom"
+        aria-label={es.product.zoomPhoto}
+        aria-pressed={zoom !== null}
+        onClick={() => {
+          setZoom(zoom === null ? { x: 50, y: 50 } : null);
+        }}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="6" />
+          <path d="m20 20-4.3-4.3M11 8.5v5M8.5 11h5" />
+        </svg>
+      </button>
       {images.length > 1 && (
         <>
           <button

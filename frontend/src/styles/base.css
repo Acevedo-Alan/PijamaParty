@@ -136,3 +136,26 @@
     }
   }
 }
+
+/* WCAG 2.4.1: "Ir al contenido", hidden until a keyboard reaches it, then it jumps past the header to the page */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+/* The page's heading takes focus after a navigation (WCAG 2.4.3): it is not a control, so no ring */
+main:focus,
+main h1:focus {
+  outline: none;
+}

@@ -241,6 +241,16 @@ describe('product detail (UC-03)', () => {
     await userEvent.click(photo);
     expect(photo).not.toHaveStyle({ transform: 'scale(2)' });
 
+    // WCAG 2.1.1: the zoom button does what pressing the photo does, so a keyboard can zoom too
+    const zoomButton = view.getByRole('button', { name: es.product.zoomPhoto });
+    expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
+    zoomButton.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(zoomButton).toHaveAttribute('aria-pressed', 'true');
+    expect(photo).toHaveStyle({ transform: 'scale(2)' });
+    await userEvent.keyboard('{Enter}');
+    expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
+
     await userEvent.click(view.getByRole('button', { name: es.product.closeEnlarged }));
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: es.product.enlarged })).not.toBeInTheDocument();

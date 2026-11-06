@@ -9,6 +9,7 @@ import { NoIndex } from '../seo/NoIndex.tsx';
 export function RouteErrorPage() {
   return (
     <main className="wrap">
+      <title>{`${es.routeError.title} | ${es.store.name}`}</title>
       <NoIndex />
       <h1>{es.routeError.title}</h1>
       <p>{es.routeError.body}</p>

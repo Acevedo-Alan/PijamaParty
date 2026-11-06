@@ -170,7 +170,12 @@
   border-color: var(--danger);
 }
 
-.checkout-field-error,
+.checkout-field-error {
+  margin-top: 5px;
+  color: var(--danger);
+  font-size: 13px;
+}
+
 .checkout-field-error:empty {
   display: none;
 }

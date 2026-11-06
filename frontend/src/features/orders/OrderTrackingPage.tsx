@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useId, useState, type SyntheticEvent } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import { AlertBox } from '../../components/AlertBox.tsx';
 import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
@@ -238,6 +238,22 @@ function EmailCorrection({ token, order }: { token: string; order: TrackedOrder 
   const [email, setEmail] = useState('');
   const [saved, setSaved] = useState<{ email: string; resent: boolean } | null>(null);
   const id = useId();
+  const errorId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const openRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+  const problem = emailProblem(correction.data, correction.isError);
+
+  // WCAG 2.4.3: opening the form puts focus in its field; closing it, after saving, returns it to the button.
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      inputRef.current?.focus();
+    } else if (wasOpen.current) {
+      wasOpen.current = false;
+      openRef.current?.focus();
+    }
+  }, [open]);
 
   function save(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -268,6 +284,7 @@ function EmailCorrection({ token, order }: { token: string; order: TrackedOrder 
         <form className="tracking-email-form" onSubmit={save} noValidate>
           <label htmlFor={id}>{es.tracking.emailCorrection.label}</label>
           <input
+            ref={inputRef}
             id={id}
             name="email"
             type="email"
@@ -275,6 +292,8 @@ function EmailCorrection({ token, order }: { token: string; order: TrackedOrder 
             autoComplete="email"
             maxLength={254}
             required
+            aria-invalid={problem !== null}
+            aria-describedby={errorId}
             value={email}
             onChange={(event) => {
               setEmail(event.target.value);
@@ -283,10 +302,13 @@ function EmailCorrection({ token, order }: { token: string; order: TrackedOrder 
           <button type="submit" className="btn" disabled={correction.isPending || email.trim() === ''}>
             {correction.isPending ? es.tracking.emailCorrection.saving : es.tracking.emailCorrection.save}
           </button>
-          <AlertBox message={emailProblem(correction.data, correction.isError)} />
+          <div id={errorId}>
+            <AlertBox message={problem} />
+          </div>
         </form>
       ) : (
         <button
+          ref={openRef}
           type="button"
           className="link-btn"
           onClick={() => {

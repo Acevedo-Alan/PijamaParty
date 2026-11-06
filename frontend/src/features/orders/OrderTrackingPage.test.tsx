@@ -344,6 +344,8 @@ describe('email correction (UC-17, T-E3-23)', () => {
     });
     expect(await screen.findByRole('status')).toHaveTextContent(es.tracking.emailCorrection.resent('ana.perez@gmail.com'));
     expect(screen.queryByLabelText(es.tracking.emailCorrection.label)).not.toBeInTheDocument();
+    // WCAG 2.4.3: focus returns to the button when the form closes
+    expect(screen.getByRole('button', { name: es.tracking.emailCorrection.open })).toHaveFocus();
   });
 
   it('given an order awaiting payment, when the buyer corrects its email, then it is told the confirmation will go there once paid', async () => {
