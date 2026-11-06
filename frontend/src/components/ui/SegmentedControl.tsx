@@ -1,10 +1,12 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { cn } from './cn.ts';
 
 interface Option<T extends string> {
   value: T;
   label: string;
+  /** A decorative icon before the label, e.g. the calendar of a custom range (hidden from screen readers). */
+  icon?: ReactNode;
 }
 
 interface SegmentedControlProps<T extends string> {
@@ -59,11 +61,12 @@ export function SegmentedControl<T extends string>({
           key={option.value}
           value={option.value}
           className={cn(
-            'relative z-[1] min-h-11 cursor-pointer rounded-sm border-0 bg-transparent px-2 text-[13px] font-medium whitespace-nowrap',
+            'relative z-[1] inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-sm border-0 bg-transparent px-2 text-[13px] font-medium whitespace-nowrap',
             'text-muted-foreground transition-colors duration-[var(--dur-fast)] data-[state=on]:font-bold data-[state=on]:text-primary-text',
             'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
           )}
         >
+          {option.icon}
           {option.label}
         </ToggleGroup.Item>
       ))}

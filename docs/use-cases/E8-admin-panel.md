@@ -57,7 +57,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
   - `PENDING` reviews (UC-25);
   - open orders with an email alert: orders in `PAID`, `PREPARING` or `SHIPPED` whose buyer email is `BOUNCED` or `FAILED` (UC-17, UC-18);
   - sold-out variants: active variants of published products with no available stock (UC-07), linking to the Stock screen filtered by sold out.
-  Each count links to its list with that filter. A count of 0 still shows, without a link.
+  Each count links to its list with that filter, and its row ends with a chevron so it reads as a link. A count of 0 still shows, dimmed, with a check mark and without a link, so the eye goes to what is waiting (2026-11-06).
   The counts show in three levels (D-E8-12), each with its own tone and title: Urgente (email alerts, withdrawal requests), Operativo (`PAID`, `PREPARING`, reviews) and Inventario (sold-out variants, and the variants with low stock: the count of the low-stock block, "Con stock bajo (N o menos)", linking where that block's link goes).
 - **Sales of one period**, chosen with a selector (D-E8-12): "Hoy", "7 días" (today and the 6 days before), "Este mes" (from the 1st to today; the default) or "Fechas", a custom period ("Desde" and "Hasta", store dates, both included). It shows the amount and the number of orders, and the variation of the amount in percent against the period before: yesterday; the 7 days before those; the same days of the previous month (the 1st up to today's day number, or that month's last day if it is shorter); and for a custom period, the same number of days just before "Desde". With nothing in the earlier period, the variation is "—". Variations are rounded to whole percents.
 - **Custom period:** "Desde" on or before "Hasta", "Hasta" not after today, at most 366 days. Only the sales block follows it: the chart, best sellers and the rest keep their own periods.
@@ -70,8 +70,8 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - **Recent activity:** the 5 newest entries of the activity log (UC-37), each with its action, what it was about and its time, and a link to "Actividad".
 - **Payment methods:** deferred until E3b adds MODO; until then every payment is MercadoPago, and the block would only say 100 %.
 - The figures are read when the page opens and when the period changes. "Actualizar" reads them again. "Actualizar cada 5 minutos", a switch off by default and remembered in that browser, reads them every 5 minutes while the page is visible; a refresh keeps everything in place (D-E8-12).
-- Beside "Actualizar", the time of the last read: "Actualizado a las HH:MM".
-- **Quick actions** (D-E8-12): "Nuevo producto" (the new product form), "Cupones" and "Ver pedidos".
+- The time of the last read, "Actualizado a las HH:MM", is small text directly under "Actualizar"; the 5-minute switch sits in a small options menu (gear) attached to that button (2026-11-06), so the row holds one button.
+- **Quick actions** (D-E8-12, moved on 2026-11-06): "Nuevo producto" (the new product form, the screen's one primary action), "Cupones" and "Ver pedidos", in the top row of the page beside the refresh controls, not in a block further down.
 
 **Acceptance criteria**
 - Given an administrator who signs in, when the back office opens, then it shows the summary, not the product list; `/admin` shows it too.
@@ -98,6 +98,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given a `SHIPPED` order with a bounced email, when the summary opens, then it counts in the email alerts; once `DELIVERED`, it does not.
 - Given a published product with one variant at 0 available units and one with 2, and a hidden product with a variant at 0, when the summary opens, then "Para hacer hoy" shows 1 sold-out variant.
 - Given a customer session, when it calls `GET /api/admin/dashboard`, then it gets `403`.
+- Given a count of 0 in "Para hacer hoy", when the summary shows, then its row is dimmed, has a check mark and no link; a count above 0 ends with a chevron and links to its list (2026-11-06).- Given the sales selector, when it shows, then "Fechas" carries a calendar icon; the average ticket block has the same neutral surface as the sales block, also without orders (2026-11-06).
 
 **Design notes**
 - **Inbound port:** `backoffice.application.GetDashboard` (`Query(actor, chart: DAYS | MONTHS, period: TODAY | LAST_7_DAYS | MONTH | CUSTOM, from?, to?)`; result `Shown(Dashboard)`, `InvalidPeriod` or `Forbidden`). `SalesPeriods` checks a custom period and gives the range before it. It is one read-only transaction as `ADMIN`. `Dashboard` is a record of the blocks above. The periods are computed by `backoffice.domain.SalesPeriods` from the `Clock`'s date in Argentina (pure, unit tested: month ends, a 31st against a 30-day month, a leap year). The variation and the average ticket are computed by `backoffice.domain.Variation` and `Money`.
@@ -435,3 +436,33 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 
 **Design notes**
 - `AdminLayout` gets `AdminNav` (the groups as a data list, so a phase adds an entry without editing the component's logic) and `AdminMenuPanel` (a modal `dialog`, like the store's `MobileMenu` of UC-31). The badge reads `GET /api/admin/dashboard/counts`, a small part of UC-33 (`backoffice.application.GetWorkloadCounts`), so the menu does not load the whole summary.
+
+---
+
+## UC-39 Back-office frame and global search (2026-11-06, owner's review of the summary)
+
+**Actor:** Administrator · **Module:** `backoffice` (front end only) · **Stage:** E8
+
+**Main flow**
+1. The back office uses the whole width of the window: the side menu is flush with the left edge and the page fills the rest, up to a readable maximum width on very wide screens.
+2. The top bar (from 860 px) holds, on the right, the search, "Ver tienda" (the live storefront, same tab) and who is signed in with "Cerrar sesión". Under 860 px the menu panel keeps its own entries.
+3. The administrator presses Ctrl+K (Cmd+K on Mac) or the search button: a dialog opens with a search box. Typing 2 or more characters (100 at most) searches orders, products and customers at once; each group shows its first 5 matches.
+4. Choosing a match opens its page: the order, the product's form or the customer's profile. Escape closes the dialog and focus returns to where it was.
+
+**Business rules**
+- No new endpoint: the dialog asks the three lists that already search (UC-18: orders by number or buyer; UC-06: products by name or SKU; UC-34: customers by name or email) with the same rules, so each answers `400` to a text it would refuse and the dialog does not ask for it.
+- Search text is personal data (R-05): it is sent as the lists' `q`, never stored in the browser (no history, no `localStorage`) and never logged; the dialog keeps it only while open.
+- A group that fails says so without hiding the others; a group with no match says "Sin resultados".
+- Only an administrator session reaches it; the shortcut is ignored while typing in a field other than the search box.
+
+**Acceptance criteria**
+- Given the back office open, when Ctrl+K is pressed, then the search dialog opens with focus in its box; Escape closes it and returns focus.
+- Given "1001" typed, when the orders list finds order 1001, then it shows under "Pedidos" and opens `/admin/pedidos/{id}`.
+- Given "luna" typed, then matching products and customers show in their groups, up to 5 each.
+- Given one character typed, then nothing is asked.
+- Given the customers list failing, then orders and products still show and customers say they could not load.
+- Given a search, when it is closed, then nothing of it remains in the browser's storage.
+- Given a 1,280 px wide window, when the back office opens, then the side menu touches the left edge.
+
+**Design notes**
+- `AdminSearch` (`features/admin`): a native `dialog` like `AdminMenuPanel`, three TanStack queries (`enabled` from 2 characters, debounced 250 ms) over `fetchOrders`, `fetchProductSummaries` and `fetchCustomers` with their `q`; results are links. The header gets the search button, a "Ver tienda" link and the signed-in name with a sign-out button.

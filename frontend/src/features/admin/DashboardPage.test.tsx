@@ -129,6 +129,51 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
     expect(await screen.findByText(/^Actualizado a las \d{2}:\d{2}$/)).toBeInTheDocument();
   });
 
+  it('given the summary, when it shows, then the quick actions are in the top row and the time of the read is under "Actualizar" (2026-11-06)', async () => {
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: answer(200, dashboard()) });
+    renderRoute('/admin');
+    await screen.findByRole('region', { name: messages.todo.title });
+
+    const quick = screen.getByRole('navigation', { name: messages.quick.title });
+    expect(within(quick).getByRole('link', { name: messages.quick.newProduct })).toHaveAttribute('href', '/admin/productos/nuevo');
+    expect(within(quick).getByRole('link', { name: messages.quick.coupons })).toHaveAttribute('href', '/admin/cupones');
+    expect(within(quick).getByRole('link', { name: messages.quick.orders })).toHaveAttribute('href', '/admin/pedidos');
+    expect(screen.queryByRole('region', { name: messages.quick.title })).not.toBeInTheDocument();
+    const refresh = screen.getByRole('button', { name: messages.refresh });
+    expect(refresh.parentElement).toHaveTextContent(/Actualizado a las \d{2}:\d{2}/);
+    expect(screen.getByRole('switch', { name: messages.autoRefresh }).closest('details')).not.toBeNull();
+  });
+
+  it('given counts of 0 and above 0, when "Para hacer hoy" shows, then the 0s are dimmed without a link and the rest end with a chevron', async () => {
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: answer(200, dashboard()) });
+    renderRoute('/admin');
+    await screen.findByRole('region', { name: messages.todo.title });
+
+    const todo = section(messages.todo.title);
+    const zero = todo.getByText(messages.todo.preparingOrders).closest('li');
+    expect(zero?.firstElementChild).toHaveClass('opacity-50');
+    expect(zero?.querySelector('a')).toBeNull();
+    const waiting = todo.getByRole('link', { name: new RegExp(messages.todo.paidOrders) });
+    expect(waiting.querySelector('svg')).not.toBeNull();
+    expect(waiting).not.toHaveClass('opacity-50');
+  });
+
+  it('given the sales block, when it shows, then "Fechas" carries a calendar and the average ticket is not tinted', async () => {
+    stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
+      [DASHBOARD]: answer(200, dashboard({ sales: { period: 'MONTH', from: '2026-10-01', to: '2026-10-15',
+        amountCents: 0, orders: 0, variation: null, averageTicketCents: null } })) });
+    renderRoute('/admin');
+    await screen.findByRole('region', { name: messages.sales.title });
+
+    const dates = screen.getByRole('radio', { name: messages.sales.periods.CUSTOM });
+    expect(dates.querySelector('svg')).not.toBeNull();
+    expect(screen.getByRole('radio', { name: messages.sales.periods.TODAY }).querySelector('svg')).toBeNull();
+    const ticket = screen.getByText(messages.sales.averageTicket).parentElement;
+    expect(ticket).not.toHaveClass('bg-accent');
+  });
+
   it('given this month by default, when "Hoy" is chosen, then it asks for today and shows its figures, "—" without sales before', async () => {
     const api = stub({
       'GET /api/admin/auth/me': signedIn,

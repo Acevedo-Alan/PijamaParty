@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { LogOut, Store } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { esAdmin } from '../../i18n/esAdmin.ts';
@@ -6,6 +7,7 @@ import { leaveAnalyticsBehind } from '../analytics/analytics.ts';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import { AdminMenuPanel } from './AdminMenuPanel.tsx';
 import { AdminNav } from './AdminNav.tsx';
+import { AdminSearch } from './AdminSearch.tsx';
 import { clearAdmin, markAdmin } from './adminHint.ts';
 import { onSessionExpired } from './adminSession.ts';
 import { signOut } from './authApi.ts';
@@ -121,6 +123,26 @@ export function AdminLayout() {
         <div className="admin-header-inner">
           <AdminMenuPanel {...signOutProps} />
           <p className="admin-brand">{esAdmin.title}</p>
+          {/* UC-39: the top bar's tools: search (Ctrl+K), the live store, who is signed in */}
+          <div className="admin-header-tools">
+            <AdminSearch />
+            <Link to="/" className="admin-header-link">
+              <Store aria-hidden="true" />
+              <span>{esAdmin.viewStore}</span>
+            </Link>
+            <span className="admin-header-who">{session.data.administrator.name}</span>
+            <button
+              type="button"
+              className="admin-header-link"
+              disabled={leave.isPending}
+              onClick={() => {
+                leave.mutate();
+              }}
+            >
+              <LogOut aria-hidden="true" />
+              <span>{esAdmin.signOut}</span>
+            </button>
+          </div>
         </div>
       </header>
       <div className="admin-shell">

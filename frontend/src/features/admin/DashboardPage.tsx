@@ -1,12 +1,16 @@
 import type { VariantProps } from 'class-variance-authority';
 import { useQuery } from '@tanstack/react-query';
 import {
+  CalendarDays,
+  Check,
+  ChevronRight,
   CircleAlert,
   ClipboardList,
   History,
   PackageX,
   Plus,
   RefreshCw,
+  Settings,
   ShoppingBag,
   Ticket,
   TrendingDown,
@@ -155,17 +159,22 @@ function TodoLevel({ level, icon: Icon, entries, dashboard }: {
               <span className="font-medium">{label(dashboard)}</span>
             </>
           );
-          // A count of 0 still shows, without a link (UC-33), and quiet.
+          // A count of 0 still shows, without a link (UC-33): dimmed, with a check mark, so the eye goes to what waits.
+          // A count above 0 ends with a chevron, so it reads as a link.
           return (
             <li key={id}>
               {count === 0 ? (
-                <span className={cn(ROW, 'text-muted-foreground')}>{content}</span>
+                <span className={cn(ROW, 'text-muted-foreground opacity-50')}>
+                  {content}
+                  <Check aria-hidden="true" className="ml-auto size-4 shrink-0" />
+                </span>
               ) : (
                 <Link
                   to={to}
                   className={cn(ROW, tone.row, 'hover:brightness-[0.97] motion-safe:transition-transform motion-safe:active:scale-[0.99]')}
                 >
                   {content}
+                  <ChevronRight aria-hidden="true" className="ml-auto size-4 shrink-0" />
                 </Link>
               )}
             </li>
@@ -325,7 +334,12 @@ function Sales({ sales, period, onPeriod, draft, onDraft, problem, today, loadin
         </div>
         <SegmentedControl
           label={messages.sales.periodLabel}
-          options={PERIODS.map((value) => ({ value, label: messages.sales.periods[value] }))}
+          options={PERIODS.map((value) => ({
+            value,
+            label: messages.sales.periods[value],
+            // "Fechas" opens a range, not a preset: the calendar says so
+            ...(value === 'CUSTOM' ? { icon: <CalendarDays aria-hidden="true" className="size-3.5" /> } : {}),
+          }))}
           value={period}
           onValueChange={onPeriod}
           className="w-full min-[640px]:w-auto"
@@ -343,9 +357,9 @@ function Sales({ sales, period, onPeriod, draft, onDraft, problem, today, loadin
             <Variation variation={sales.variation} versus={versusOf(sales)} />
           </p>
         </div>
-        {/* The highlighted figure: the period's average ticket, tinted as the store's accent */}
-        <div className="flex flex-col gap-1 rounded-lg bg-accent p-4 text-accent-foreground">
-          <p className="m-0 text-[13px] font-semibold">{messages.sales.averageTicket}</p>
+        {/* The period's average ticket, on the same neutral surface as the sales: a tint is for status (2026-11-06) */}
+        <div className="flex flex-col gap-1 rounded-lg border border-border p-4">
+          <p className="m-0 text-[13px] font-semibold text-muted-foreground">{messages.sales.averageTicket}</p>
           <Figure
             value={sales.averageTicketCents === null ? messages.sales.none : formatMoney(sales.averageTicketCents)}
           />
@@ -391,36 +405,29 @@ function ChartBlock({ chart, requested, loading, onKind, order }: ChartBlockProp
   );
 }
 
-function QuickActions({ order }: { order: number }) {
-  const titleId = useId();
-  const { className, style } = rise(order);
+/** The screen's one primary action and its two secondary ones, in the top row (D-E8-12, UC-33 2026-11-06). */
+function QuickActions() {
   return (
-    <Card aria-labelledby={titleId} className={className} style={style}>
-      <CardHeader>
-        <CardTitle id={titleId}>{messages.quick.title}</CardTitle>
-      </CardHeader>
-      {/* The screen's one primary action (D-E8-12); the others are secondary */}
-      <CardContent className="gap-2">
-        <Button asChild variant="primary">
-          <Link to="/admin/productos/nuevo">
-            <Plus aria-hidden="true" />
-            {messages.quick.newProduct}
-          </Link>
-        </Button>
-        <Button asChild variant="secondary">
-          <Link to="/admin/cupones">
-            <Ticket aria-hidden="true" />
-            {messages.quick.coupons}
-          </Link>
-        </Button>
-        <Button asChild variant="secondary">
-          <Link to="/admin/pedidos">
-            <ShoppingBag aria-hidden="true" />
-            {messages.quick.orders}
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
+    <nav aria-label={messages.quick.title} className="flex flex-wrap items-center gap-2">
+      <Button asChild variant="primary">
+        <Link to="/admin/productos/nuevo">
+          <Plus aria-hidden="true" />
+          {messages.quick.newProduct}
+        </Link>
+      </Button>
+      <Button asChild variant="secondary">
+        <Link to="/admin/cupones">
+          <Ticket aria-hidden="true" />
+          {messages.quick.coupons}
+        </Link>
+      </Button>
+      <Button asChild variant="secondary">
+        <Link to="/admin/pedidos">
+          <ShoppingBag aria-hidden="true" />
+          {messages.quick.orders}
+        </Link>
+      </Button>
+    </nav>
   );
 }
 
@@ -712,30 +719,47 @@ export function DashboardPage() {
           <h1>{messages.title}</h1>
           <p className="m-0 text-sm text-muted-foreground">{messages.intro}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <label htmlFor={switchId} className="flex min-h-11 cursor-pointer items-center gap-2 text-[13px] font-semibold">
-            <Switch id={switchId} checked={autoRefresh} onCheckedChange={setAutoRefresh} />
-            {messages.autoRefresh}
-          </label>
-          {dashboard.data !== undefined && (
-            <p className="m-0 text-[13px] text-muted-foreground tabular-nums">
-              {messages.updatedAt(formatTime(new Date(dashboard.dataUpdatedAt)))}
-            </p>
-          )}
-          {/* Focusable while it reads (aria-disabled), so a keyboard does not lose its place. */}
-          <Button
-            variant="secondary"
-            aria-disabled={fetching}
-            onClick={() => {
-              if (!fetching) {
-                void dashboard.refetch();
-                void activity.refetch();
-              }
-            }}
-          >
-            <RefreshCw aria-hidden="true" className={cn(fetching && 'motion-safe:animate-spin')} />
-            {messages.refresh}
-          </Button>
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+          <QuickActions />
+          <div className="flex items-start gap-1">
+            <div className="flex flex-col items-center gap-0.5">
+              {/* Focusable while it reads (aria-disabled), so a keyboard does not lose its place. */}
+              <Button
+                variant="secondary"
+                aria-disabled={fetching}
+                onClick={() => {
+                  if (!fetching) {
+                    void dashboard.refetch();
+                    void activity.refetch();
+                  }
+                }}
+              >
+                <RefreshCw aria-hidden="true" className={cn(fetching && 'motion-safe:animate-spin')} />
+                {messages.refresh}
+              </Button>
+              {dashboard.data !== undefined && (
+                <p className="m-0 text-[11px] text-muted-foreground tabular-nums">
+                  {messages.updatedAt(formatTime(new Date(dashboard.dataUpdatedAt)))}
+                </p>
+              )}
+            </div>
+            {/* The 5-minute interval tucked into an options menu attached to the button (2026-11-06) */}
+            <details className="relative">
+              <summary
+                aria-label={messages.refreshOptions}
+                title={messages.refreshOptions}
+                className="grid size-11 cursor-pointer list-none place-items-center rounded-md border border-input bg-card text-muted-foreground marker:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
+              >
+                <Settings aria-hidden="true" className="size-4" />
+              </summary>
+              <div className="absolute right-0 z-10 mt-1 w-64 rounded-md border border-border bg-card p-3 shadow-raised">
+                <label htmlFor={switchId} className="flex min-h-11 cursor-pointer items-center gap-2 text-[13px] font-semibold">
+                  <Switch id={switchId} checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+                  {messages.autoRefresh}
+                </label>
+              </div>
+            </details>
+          </div>
         </div>
       </div>
       {/* Always mounted, so screen readers hear each change: loading, refreshing, and back to quiet. */}
@@ -777,7 +801,6 @@ export function DashboardPage() {
             onKind={setChart}
             order={2}
           />
-          <QuickActions order={3} />
           <RecentOrders orders={dashboard.data.recentOrders} order={4} />
           <RecentActivity activity={activity} today={today} order={5} />
           <LowStock lowStock={dashboard.data.lowStock} order={6} />

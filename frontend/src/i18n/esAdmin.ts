@@ -14,6 +14,21 @@ export const esAdmin = {
   owner: 'Dueño de la tienda',
   menu: 'Menú',
   closeMenu: 'Cerrar menú',
+  closeSearch: 'Cerrar búsqueda',
+  /** UC-39: the global search of the top bar (Ctrl+K). */
+  search: {
+    open: 'Buscar en todo',
+    title: 'Buscar en el backoffice',
+    label: 'Buscar pedidos, productos y clientes',
+    placeholder: 'Pedido, producto o cliente…',
+    hint: 'Escribí un número de pedido, un producto o el nombre o email de un cliente.',
+    tooShort: 'Escribí al menos 2 letras.',
+    searching: 'Buscando…',
+    failed: 'No pudimos cargar esta búsqueda.',
+    none: 'Sin resultados',
+    hidden: 'oculto',
+    groups: { orders: 'Pedidos', products: 'Productos', customers: 'Clientes' },
+  },
   skipToContent: 'Ir al contenido',
   summary: 'Resumen',
   /** UC-33: the summary the back office opens on. */
@@ -27,6 +42,7 @@ export const esAdmin = {
     /** The time of the last read, already formatted, e.g. "10:05". */
     updatedAt: (time: string) => `Actualizado a las ${time}`,
     autoRefresh: 'Actualizar cada 5 minutos',
+    refreshOptions: 'Opciones de actualización',
     quick: { title: 'Accesos rápidos', newProduct: 'Nuevo producto', coupons: 'Cupones', orders: 'Ver pedidos' },
     todo: {
       title: 'Para hacer hoy',
