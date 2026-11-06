@@ -27,16 +27,27 @@ public class InMemoryPaymentStore implements LoadPayments, SavePayments, Payment
 
     /** What the table would hold of a payment; {@code checkout} is the current one. */
     public record StoredPayment(UUID id, long orderNumber, Money amount, Optional<Checkout> checkout,
-                                PaymentStatus status, Optional<String> externalPaymentId) {
+                                PaymentStatus status, Optional<String> externalPaymentId,
+                                Optional<CardCharge> cardCharge) {
 
         StoredPayment withCheckout(Checkout newCheckout) {
-            return new StoredPayment(id, orderNumber, amount, Optional.of(newCheckout), status, externalPaymentId);
+            return new StoredPayment(id, orderNumber, amount, Optional.of(newCheckout), status, externalPaymentId,
+                cardCharge);
         }
 
+        /** An approval or rejection verified: the card charge is over (T-E3-32). */
         StoredPayment verified(PaymentStatus newStatus, String newExternalPaymentId) {
-            return new StoredPayment(id, orderNumber, amount, checkout, newStatus, Optional.of(newExternalPaymentId));
+            return new StoredPayment(id, orderNumber, amount, checkout, newStatus, Optional.of(newExternalPaymentId),
+                Optional.empty());
+        }
+
+        StoredPayment withCardCharge(Optional<CardCharge> newCardCharge) {
+            return new StoredPayment(id, orderNumber, amount, checkout, status, externalPaymentId, newCardCharge);
         }
     }
+
+    /** What {@code card_charge_state} and {@code card_charge_started_at} would hold. */
+    public record CardCharge(boolean inReview, Instant startedAt, UUID key) {}
 
     /** What {@code payment_checkout} would hold of an attempt. */
     public record StoredAttempt(CheckoutAttempt attempt, Optional<Checkout> checkout, Instant createdAt) {}
@@ -62,7 +73,47 @@ public class InMemoryPaymentStore implements LoadPayments, SavePayments, Payment
                 + payment.orderNumber());
         }
         payments.putIfAbsent(new Key(payment.orderId(), payment.provider()), new StoredPayment(payment.id(),
-            payment.orderNumber(), payment.amount(), Optional.empty(), PaymentStatus.PENDING, Optional.empty()));
+            payment.orderNumber(), payment.amount(), Optional.empty(), PaymentStatus.PENDING, Optional.empty(),
+            Optional.empty()));
+    }
+
+    @Override
+    public synchronized CardChargeStart beginCardCharge(UUID orderId, PaymentProvider provider, UUID submitKey,
+                                                        Instant at, Instant staleBefore) {
+        var key = new Key(orderId, provider);
+        StoredPayment payment = payments.get(key);
+        if (payment != null && payment.status() == PaymentStatus.APPROVED) {
+            return CardChargeStart.ALREADY_APPROVED;
+        }
+        if (payment == null) {
+            return CardChargeStart.BUSY;
+        }
+        boolean free = payment.cardCharge().isEmpty()
+            || payment.cardCharge().get().key().equals(submitKey)
+            || (!payment.cardCharge().get().inReview() && payment.cardCharge().get().startedAt().isBefore(staleBefore));
+        if (!free) {
+            return CardChargeStart.BUSY;
+        }
+        payments.put(key, payment.withCardCharge(Optional.of(new CardCharge(false, at, submitKey))));
+        return CardChargeStart.STARTED;
+    }
+
+    private static boolean ownedBy(StoredPayment payment, UUID submitKey) {
+        return payment.cardCharge().filter(charge -> charge.key().equals(submitKey)).isPresent();
+    }
+
+    @Override
+    public synchronized void releaseCardCharge(UUID orderId, PaymentProvider provider, UUID submitKey) {
+        payments.computeIfPresent(new Key(orderId, provider),
+            (key, payment) -> ownedBy(payment, submitKey) ? payment.withCardCharge(Optional.empty()) : payment);
+    }
+
+    @Override
+    public synchronized void holdCardChargeInReview(UUID orderId, PaymentProvider provider, UUID submitKey) {
+        payments.computeIfPresent(new Key(orderId, provider), (key, payment) ->
+            payment.cardCharge().filter(charge -> !charge.inReview() && charge.key().equals(submitKey)).isPresent()
+                ? payment.withCardCharge(Optional.of(new CardCharge(true, payment.cardCharge().get().startedAt(), payment.cardCharge().get().key())))
+                : payment);
     }
 
     @Override
@@ -109,7 +160,7 @@ public class InMemoryPaymentStore implements LoadPayments, SavePayments, Payment
             .filter(entry -> entry.getKey().provider() == provider && entry.getValue().orderNumber() == orderNumber)
             .findFirst()
             .map(entry -> new PaymentToConfirm(entry.getKey().orderId(), orderNumber, entry.getValue().status(),
-                entry.getValue().amount()));
+                entry.getValue().amount(), entry.getValue().externalPaymentId()));
     }
 
     @Override

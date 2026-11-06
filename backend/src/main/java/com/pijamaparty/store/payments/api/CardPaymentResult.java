@@ -19,6 +19,12 @@ public sealed interface CardPaymentResult {
         }
     }
 
+    /** T-E3-32: another charge of the order is in progress or in review; nothing was charged. */
+    record ChargeInProgress() implements CardPaymentResult {}
+
+    /** T-E3-32: the order's payment is already approved; nothing was charged. */
+    record AlreadyPaid() implements CardPaymentResult {}
+
     /** The provider could not be reached: nothing was charged, and paying can be retried. */
     record ProviderUnavailable() implements CardPaymentResult {}
 }

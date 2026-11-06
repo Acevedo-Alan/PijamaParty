@@ -87,10 +87,39 @@ class JdbcPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm,
                           WHERE payment_id = :paymentId AND attempt > :attempt AND checkout_id IS NOT NULL)
         """;
 
+    // T-E3-32: one conditional update takes the payment's single card charge; of two submits at once, the second waits
+    // for the first one's row lock, then sees the state and updates nothing. The same submit again (the same key) goes
+    // on: the provider answers it with the same payment.
+    private static final String BEGIN_CARD_CHARGE = """
+        UPDATE payment SET card_charge_state = 'IN_PROGRESS', card_charge_started_at = :at, card_charge_key = :key,
+            updated_at = :at
+        WHERE order_id = :orderId AND provider = :provider AND status <> 'APPROVED'
+          AND (card_charge_state IS NULL
+               OR card_charge_key = :key
+               OR (card_charge_state = 'IN_PROGRESS' AND card_charge_started_at < :staleBefore))
+        """;
+
+    private static final String PAYMENT_STATUS = """
+        SELECT status FROM payment WHERE order_id = :orderId AND provider = :provider
+        """;
+
+    private static final String RELEASE_CARD_CHARGE = """
+        UPDATE payment SET card_charge_state = NULL, card_charge_started_at = NULL, card_charge_key = NULL
+        WHERE order_id = :orderId AND provider = :provider AND card_charge_key = :key
+        """;
+
+    // Only a charge still in progress goes to review: a verification that already approved or rejected it cleared the
+    // state, and must not be blocked again.
+    private static final String HOLD_CARD_CHARGE_IN_REVIEW = """
+        UPDATE payment SET card_charge_state = 'IN_REVIEW'
+        WHERE order_id = :orderId AND provider = :provider AND card_charge_state = 'IN_PROGRESS'
+          AND card_charge_key = :key
+        """;
+
     // UC-15: over payment_provider_order_number_uk. The lock makes two notifications of the payment wait for each
     // other (RNF-20.3).
     private static final String LOCK_BY_ORDER_NUMBER = """
-        SELECT order_id, order_number, status, amount_cents FROM payment
+        SELECT order_id, order_number, status, amount_cents, external_payment_id FROM payment
         WHERE provider = :provider AND order_number = :orderNumber
         FOR UPDATE
         """;
@@ -115,7 +144,8 @@ class JdbcPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm,
 
     // RNF-20.5: an approved payment is final.
     private static final String RECORD_VERIFICATION = """
-        UPDATE payment SET status = :status, external_payment_id = :externalPaymentId, updated_at = :at
+        UPDATE payment SET status = :status, external_payment_id = :externalPaymentId, updated_at = :at,
+            card_charge_state = NULL, card_charge_started_at = NULL, card_charge_key = NULL
         WHERE order_id = :orderId AND provider = :provider AND status <> 'APPROVED'
         """;
 
@@ -143,6 +173,34 @@ class JdbcPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm,
             .addValue("orderNumber", payment.orderNumber())
             .addValue("amountCents", payment.amount().cents())
             .addValue("createdAt", payment.createdAt().atOffset(ZoneOffset.UTC)));
+    }
+
+    @Override
+    @Transactional
+    public CardChargeStart beginCardCharge(UUID orderId, PaymentProvider provider, UUID key, Instant at,
+                                           Instant staleBefore) {
+        int updated = jdbc.update(BEGIN_CARD_CHARGE, keyOf(orderId, provider)
+            .addValue("key", key)
+            .addValue("at", at.atOffset(ZoneOffset.UTC))
+            .addValue("staleBefore", staleBefore.atOffset(ZoneOffset.UTC)));
+        if (updated == 1) {
+            return CardChargeStart.STARTED;
+        }
+        boolean approved = jdbc.query(PAYMENT_STATUS, keyOf(orderId, provider), (row, n) -> row.getString("status"))
+            .stream().anyMatch(PaymentStatus.APPROVED.name()::equals);
+        return approved ? CardChargeStart.ALREADY_APPROVED : CardChargeStart.BUSY;
+    }
+
+    @Override
+    @Transactional
+    public void releaseCardCharge(UUID orderId, PaymentProvider provider, UUID key) {
+        jdbc.update(RELEASE_CARD_CHARGE, keyOf(orderId, provider).addValue("key", key));
+    }
+
+    @Override
+    @Transactional
+    public void holdCardChargeInReview(UUID orderId, PaymentProvider provider, UUID key) {
+        jdbc.update(HOLD_CARD_CHARGE_IN_REVIEW, keyOf(orderId, provider).addValue("key", key));
     }
 
     @Override
@@ -191,7 +249,8 @@ class JdbcPaymentStore implements LoadPayments, SavePayments, PaymentsToConfirm,
         return jdbc.query(LOCK_BY_ORDER_NUMBER, new MapSqlParameterSource("provider", provider.name())
                 .addValue("orderNumber", orderNumber),
             (row, n) -> new PaymentToConfirm(row.getObject("order_id", UUID.class), row.getLong("order_number"),
-                PaymentStatus.valueOf(row.getString("status")), Money.of(row.getLong("amount_cents"))))
+                PaymentStatus.valueOf(row.getString("status")), Money.of(row.getLong("amount_cents")),
+                Optional.ofNullable(row.getString("external_payment_id"))))
             .stream().findFirst();
     }
 

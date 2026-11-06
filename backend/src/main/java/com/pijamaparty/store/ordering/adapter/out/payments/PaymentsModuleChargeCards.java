@@ -35,6 +35,8 @@ class PaymentsModuleChargeCards implements ChargeCards {
             case CardPaymentResult.InProcess inProcess -> new PayOrderWithCard.Result.InProcess();
             case CardPaymentResult.Rejected rejected ->
                 new PayOrderWithCard.Result.Rejected(PayOrderWithCard.Rejection.valueOf(rejected.reason().name()));
+            case CardPaymentResult.ChargeInProgress inProgress -> new PayOrderWithCard.Result.ChargeInProgress();
+            case CardPaymentResult.AlreadyPaid paid -> new PayOrderWithCard.Result.NotPayable();
             case CardPaymentResult.ProviderUnavailable unavailable ->
                 new PayOrderWithCard.Result.ProviderUnavailable();
         };

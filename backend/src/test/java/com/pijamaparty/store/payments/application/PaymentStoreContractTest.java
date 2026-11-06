@@ -1,5 +1,8 @@
 package com.pijamaparty.store.payments.application;
 
+import static com.pijamaparty.store.payments.application.SavePayments.CardChargeStart.ALREADY_APPROVED;
+import static com.pijamaparty.store.payments.application.SavePayments.CardChargeStart.BUSY;
+import static com.pijamaparty.store.payments.application.SavePayments.CardChargeStart.STARTED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.payments.api.PaymentProvider;
@@ -206,7 +209,7 @@ public abstract class PaymentStoreContractTest<
         persistAndForget();
 
         assertThat(subject.lock(MERCADOPAGO, payment.orderNumber())).contains(new PaymentsToConfirm.PaymentToConfirm(
-            order, payment.orderNumber(), PaymentStatus.PENDING, Money.of(2_100_050)));
+            order, payment.orderNumber(), PaymentStatus.PENDING, Money.of(2_100_050), Optional.empty()));
     }
 
     @Test
@@ -246,6 +249,120 @@ public abstract class PaymentStoreContractTest<
         assertThat(approvedAgain).isFalse();
         assertThat(subject.lock(MERCADOPAGO, payment.orderNumber()))
             .hasValueSatisfying(found -> assertThat(found.status()).isEqualTo(PaymentStatus.APPROVED));
+    }
+
+    @Test
+    void givenAChargeThatTookOver_whenTheOldOnesLateAnswerReleasesOrHolds_thenTheTakeOverIsLeftAlone() {
+        subject.insertPending(pendingPayment(order));
+        subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW, STALE);
+        subject.beginCardCharge(order, MERCADOPAGO, ANOTHER_SUBMIT, NOW.plusSeconds(601), NOW.plusSeconds(1));
+
+        subject.releaseCardCharge(order, MERCADOPAGO, SUBMIT);
+        subject.holdCardChargeInReview(order, MERCADOPAGO, SUBMIT);
+
+        assertThat(subject.beginCardCharge(order, MERCADOPAGO, UUID.randomUUID(), NOW.plusSeconds(602), STALE))
+            .isEqualTo(BUSY);
+        subject.releaseCardCharge(order, MERCADOPAGO, ANOTHER_SUBMIT);
+        assertThat(subject.beginCardCharge(order, MERCADOPAGO, UUID.randomUUID(), NOW.plusSeconds(603), STALE))
+            .isEqualTo(STARTED);
+    }
+
+    private static final Instant STALE = NOW.minusSeconds(600);
+    private static final UUID SUBMIT = UUID.randomUUID();
+    private static final UUID ANOTHER_SUBMIT = UUID.randomUUID();
+
+    @Test
+    void givenAChargeInProgressOrInReview_whenTheSameSubmitComesAgain_thenItGoesOn() {
+        subject.insertPending(pendingPayment(order));
+        subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW, STALE);
+
+        var inProgress = subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW.plusSeconds(1), STALE);
+        subject.holdCardChargeInReview(order, MERCADOPAGO, SUBMIT);
+        var inReview = subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW.plusSeconds(2), STALE);
+
+        assertThat(inProgress).isEqualTo(STARTED);
+        assertThat(inReview).isEqualTo(STARTED);
+    }
+
+    @Test
+    void givenAnIdlePayment_whenACardChargeBegins_thenASecondOneIsRefusedUntilItIsReleased() {
+        subject.insertPending(pendingPayment(order));
+
+        var first = subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW, STALE);
+        var second = subject.beginCardCharge(order, MERCADOPAGO, ANOTHER_SUBMIT, NOW.plusSeconds(1), STALE);
+        subject.releaseCardCharge(order, MERCADOPAGO, SUBMIT);
+        var afterRelease = subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW.plusSeconds(2), STALE);
+
+        assertThat(first).isEqualTo(STARTED);
+        assertThat(second).isEqualTo(BUSY);
+        assertThat(afterRelease).isEqualTo(STARTED);
+    }
+
+    @Test
+    void givenNoPayment_whenACardChargeBegins_thenItIsRefused() {
+        assertThat(subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW, STALE)).isEqualTo(BUSY);
+    }
+
+    @Test
+    void givenAChargeThatBeganLongAgo_whenAnotherBegins_thenItTakesOverOnlyOnceTheTimeoutPassed() {
+        subject.insertPending(pendingPayment(order));
+        subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW, STALE);
+
+        var tooSoon = subject.beginCardCharge(order, MERCADOPAGO, ANOTHER_SUBMIT, NOW.plusSeconds(599), NOW.plusSeconds(599 - 600));
+        var later = subject.beginCardCharge(order, MERCADOPAGO, ANOTHER_SUBMIT, NOW.plusSeconds(601), NOW.plusSeconds(1));
+
+        assertThat(tooSoon).isEqualTo(BUSY);
+        assertThat(later).isEqualTo(STARTED);
+    }
+
+    @Test
+    void givenAChargeInReview_whenAnotherBegins_thenItIsRefusedEvenAfterTheTimeout() {
+        subject.insertPending(pendingPayment(order));
+        subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW, STALE);
+        subject.holdCardChargeInReview(order, MERCADOPAGO, SUBMIT);
+
+        assertThat(subject.beginCardCharge(order, MERCADOPAGO, ANOTHER_SUBMIT, NOW.plusSeconds(7200), NOW.plusSeconds(3600)))
+            .isEqualTo(BUSY);
+    }
+
+    @Test
+    void givenAChargeInReview_whenTheVerificationRejectsIt_thenAnotherCardMayBegin() {
+        subject.insertPending(pendingPayment(order));
+        subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW, STALE);
+        subject.holdCardChargeInReview(order, MERCADOPAGO, SUBMIT);
+        subject.record(order, MERCADOPAGO, PaymentStatus.REJECTED, "111", NOW.plusSeconds(60));
+
+        assertThat(subject.beginCardCharge(order, MERCADOPAGO, ANOTHER_SUBMIT, NOW.plusSeconds(61), STALE)).isEqualTo(STARTED);
+    }
+
+    @Test
+    void givenAChargeAlreadyVerified_whenItIsHeldInReview_thenNothingIsBlocked() {
+        subject.insertPending(pendingPayment(order));
+        subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW, STALE);
+        subject.record(order, MERCADOPAGO, PaymentStatus.REJECTED, "111", NOW.plusSeconds(1));
+
+        subject.holdCardChargeInReview(order, MERCADOPAGO, SUBMIT);
+
+        assertThat(subject.beginCardCharge(order, MERCADOPAGO, ANOTHER_SUBMIT, NOW.plusSeconds(2), STALE)).isEqualTo(STARTED);
+    }
+
+    @Test
+    void givenAnApprovedPayment_whenACardChargeBegins_thenItIsRefused() {
+        subject.insertPending(pendingPayment(order));
+        subject.record(order, MERCADOPAGO, PaymentStatus.APPROVED, "111", NOW);
+
+        assertThat(subject.beginCardCharge(order, MERCADOPAGO, SUBMIT, NOW.plusSeconds(1), STALE)).isEqualTo(ALREADY_APPROVED);
+    }
+
+    @Test
+    void givenAVerifiedPayment_whenLocked_thenItsProviderPaymentIdIsKnown() {
+        SavePayments.NewPayment payment = pendingPayment(order);
+        subject.insertPending(payment);
+        subject.record(order, MERCADOPAGO, PaymentStatus.APPROVED, "222", NOW);
+        persistAndForget();
+
+        assertThat(subject.lock(MERCADOPAGO, payment.orderNumber()))
+            .hasValueSatisfying(found -> assertThat(found.externalPaymentId()).contains("222"));
     }
 
     @Test

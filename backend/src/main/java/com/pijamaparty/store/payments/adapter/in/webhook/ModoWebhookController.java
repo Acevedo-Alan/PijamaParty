@@ -87,6 +87,11 @@ class ModoWebhookController {
                 yield ResponseEntity.ok().build();
             }
             case ConfirmPayment.Result.AlreadyApproved already -> ResponseEntity.ok().build();
+            case ConfirmPayment.Result.DuplicateApproval duplicate -> {
+                log.error("MODO payment request {} of order {} is a second approved payment: refund it from the "
+                    + "provider's panel", id, duplicate.orderNumber());
+                yield ResponseEntity.ok().build();
+            }
             case ConfirmPayment.Result.Rejected rejected -> {
                 log.info("MODO payment request {} of order {} was rejected", id, rejected.orderNumber());
                 yield ResponseEntity.ok().build();

@@ -75,6 +75,9 @@ public interface PayOrderWithCard {
             }
         }
 
+        /** T-E3-32: another charge of the order is in progress or in review; nothing was charged. */
+        record ChargeInProgress() implements Result {}
+
         /** The provider could not be reached: nothing was charged, and paying can be retried. */
         record ProviderUnavailable() implements Result {}
 

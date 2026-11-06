@@ -10,6 +10,7 @@ export type CardPaymentAnswer =
   | { status: 'inProcess' }
   | { status: 'rejected'; reason: CardRejection }
   | { status: 'notPayable' }
+  | { status: 'chargeInProgress' }
   | { status: 'providerUnavailable' }
   | { status: 'tooManyAttempts' }
   | { status: 'notFound' };
@@ -29,7 +30,7 @@ export interface CardDetails {
  * submit of the form: a network retry of the same submit never charges twice (RNF-20).
  */
 export async function payWithCard(token: string, idempotencyKey: string, card: CardDetails): Promise<CardPaymentAnswer> {
-  const { data, response } = await api.POST('/api/orders/{token}/card-payment', {
+  const { data, error, response } = await api.POST('/api/orders/{token}/card-payment', {
     params: { path: { token }, header: { 'Idempotency-Key': idempotencyKey } },
     body: {
       cardToken: card.cardToken,
@@ -54,7 +55,8 @@ export async function payWithCard(token: string, idempotencyKey: string, card: C
   }
   switch (response.status) {
     case 409:
-      return { status: 'notPayable' };
+      // T-E3-32: another charge of the order is in progress or in review; the order is still payable.
+      return isChargeInProgress(error) ? { status: 'chargeInProgress' } : { status: 'notPayable' };
     case 503:
       return { status: 'providerUnavailable' };
     case 429:
@@ -64,6 +66,10 @@ export async function payWithCard(token: string, idempotencyKey: string, card: C
     default:
       throw new Error(`The card payment failed with status ${String(response.status)}`);
   }
+}
+
+function isChargeInProgress(problem: unknown): boolean {
+  return typeof problem === 'object' && problem !== null && 'problem' in problem && problem.problem === 'CHARGE_IN_PROGRESS';
 }
 
 /** The public key of MercadoPago's card form (T-E3-29); null when the store has none configured. */

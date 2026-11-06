@@ -72,14 +72,16 @@ class ConfirmPaymentServiceTest {
     }
 
     @Test
-    void givenAnApprovedPayment_whenAnotherApprovedPaymentOfTheOrderIsNotified_thenTheOrderIsNotToldAgain() {
+    void givenAnApprovedPayment_whenAnotherApprovedPaymentOfTheOrderIsNotified_thenItIsADuplicateAndTheOrderIsNotToldAgain() {
         mercadoPago.holds(new VerifiedPayment("111", NUMBER, VerifiedStatus.APPROVED, TOTAL));
         mercadoPago.holds(new VerifiedPayment("222", NUMBER, VerifiedStatus.APPROVED, TOTAL));
         service.execute(new Command(MERCADOPAGO, "111"));
 
         Result result = service.execute(new Command(MERCADOPAGO, "222"));
 
-        assertThat(result).isEqualTo(new Result.AlreadyApproved(NUMBER));
+        assertThat(result).isEqualTo(new Result.DuplicateApproval(NUMBER, "222"));
+        assertThat(notifications.recorded()).extracting(InMemoryPaymentNotifications.Recorded::externalPaymentId)
+            .contains("222");
         assertThat(events.published()).hasSize(1);
         assertThat(payments.paymentOf(order, MERCADOPAGO).orElseThrow().externalPaymentId()).contains("111");
     }

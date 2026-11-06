@@ -56,7 +56,12 @@ export function usePayWithCard(token: string) {
   return useMutation({
     mutationFn: (card: CardDetails) => payWithCard(token, crypto.randomUUID(), card),
     onSuccess: (answer) => {
-      if (answer.status !== 'rejected' && answer.status !== 'providerUnavailable' && answer.status !== 'tooManyAttempts') {
+      if (
+        answer.status !== 'rejected' &&
+        answer.status !== 'providerUnavailable' &&
+        answer.status !== 'tooManyAttempts' &&
+        answer.status !== 'chargeInProgress'
+      ) {
         void queryClient.invalidateQueries({ queryKey: trackedOrderKey(token) });
       }
     },

@@ -5,7 +5,9 @@ import com.pijamaparty.store.payments.api.CardPaymentResult;
 import com.pijamaparty.store.payments.api.CardPayments;
 import com.pijamaparty.store.payments.api.CardRejection;
 import com.pijamaparty.store.platform.application.IdGenerator;
+import com.pijamaparty.store.payments.domain.CardChargeLock;
 import java.time.Clock;
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 
 /**
@@ -34,20 +36,44 @@ class PayWithCardService implements CardPayments {
 
     @Override
     public CardPaymentResult pay(CardPaymentRequest request) {
+        Instant now = clock.instant();
         savePayments.insertPending(new SavePayments.NewPayment(ids.newId(), request.orderId(), request.orderNumber(),
-            charges.provider(), request.amount(), clock.instant()));
+            charges.provider(), request.amount(), now));
+        switch (savePayments.beginCardCharge(request.orderId(), charges.provider(), request.idempotencyKey(), now,
+            CardChargeLock.staleBefore(now))) {
+            case BUSY -> {
+                return new CardPaymentResult.ChargeInProgress();
+            }
+            case ALREADY_APPROVED -> {
+                return new CardPaymentResult.AlreadyPaid();
+            }
+            case STARTED -> { }
+        }
         var charge = new CardCharges.CardCharge(request.orderNumber(), request.amount(), request.payerEmail(),
             request.card(), request.idempotencyKey());
         return switch (charges.charge(charge)) {
+            // The charge stays held: the provider may have charged (CardChargeLock).
             case CardCharges.Charge.Unavailable unavailable -> new CardPaymentResult.ProviderUnavailable();
-            case CardCharges.Charge.Refused refused -> new CardPaymentResult.Rejected(CardRejection.BAD_CARD_DATA);
+            case CardCharges.Charge.Refused refused -> {
+                savePayments.releaseCardCharge(request.orderId(), charges.provider(), request.idempotencyKey());
+                yield new CardPaymentResult.Rejected(CardRejection.BAD_CARD_DATA);
+            }
             case CardCharges.Charge.Charged charged -> {
                 // Whatever it answers, the webhook confirms the payment again later; the buyer hears the charge's status.
                 confirmPayment.execute(new ConfirmPayment.Command(charges.provider(), charged.paymentId()));
                 yield switch (charged.status()) {
-                    case APPROVED -> new CardPaymentResult.Approved();
-                    case IN_PROCESS -> new CardPaymentResult.InProcess();
-                    case REJECTED -> new CardPaymentResult.Rejected(charged.rejection().orElse(CardRejection.OTHER));
+                    case APPROVED -> {
+                        savePayments.releaseCardCharge(request.orderId(), charges.provider(), request.idempotencyKey());
+                        yield new CardPaymentResult.Approved();
+                    }
+                    case IN_PROCESS -> {
+                        savePayments.holdCardChargeInReview(request.orderId(), charges.provider(), request.idempotencyKey());
+                        yield new CardPaymentResult.InProcess();
+                    }
+                    case REJECTED -> {
+                        savePayments.releaseCardCharge(request.orderId(), charges.provider(), request.idempotencyKey());
+                        yield new CardPaymentResult.Rejected(charged.rejection().orElse(CardRejection.OTHER));
+                    }
                 };
             }
         };

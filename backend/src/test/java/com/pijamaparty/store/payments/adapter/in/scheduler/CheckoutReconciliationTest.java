@@ -29,6 +29,8 @@ class CheckoutReconciliationTest {
             new ReconcileCheckouts.Reconciled(MODO, "pr-rejected", new ConfirmPayment.Result.Rejected(1002)),
             new ReconcileCheckouts.Reconciled(MODO, "pr-mismatch",
                 new ConfirmPayment.Result.AmountMismatch(1003, Money.of(2_100_050), Money.of(2_000_000))),
+            new ReconcileCheckouts.Reconciled(MODO, "pr-twice",
+                new ConfirmPayment.Result.DuplicateApproval(1004, "pay-2")),
             new ReconcileCheckouts.Reconciled(MODO, "pr-unpaid", new ConfirmPayment.Result.NotFoundAtProvider()),
             new ReconcileCheckouts.Reconciled(MODO, "pr-down", new ConfirmPayment.Result.ProviderUnavailable()))));
 
@@ -38,6 +40,7 @@ class CheckoutReconciliationTest {
             .contains("Reconciliation: MODO checkout pr-rejected of order 1002 was rejected")
             .contains("Reconciliation: MODO checkout pr-mismatch of order 1003 was approved for ARS 20000.00 instead "
                 + "of ARS 21000.50: the order is not paid")
+            .contains("Reconciliation: MODO checkout pr-twice of order 1004 has a second approved payment pay-2: refund it")
             .doesNotContain("pr-unpaid")
             .doesNotContain("pr-down");
     }

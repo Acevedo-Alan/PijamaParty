@@ -246,6 +246,25 @@ class OrderTrackingApiTest {
     }
 
     @Test
+    void givenACardInReview_whenAnotherCardIsSentWithANewKey_thenItIs409ChargeInProgressAndNothingIsCharged()
+        throws Exception {
+        JsonNode placed = placeOrder();
+        mercadoPago.cardsAnswer("in_process", "pending_contingency");
+        String token = placed.get("trackingToken").asText();
+        payWithCard(token, UUID.randomUUID().toString()).andExpect(status().isOk());
+        int charges = mercadoPago.requests().stream().filter(request -> request.method().equals("POST")).toList()
+            .size();
+
+        payWithCard(token, UUID.randomUUID().toString())
+            .andExpect(status().isConflict())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.problem").value("CHARGE_IN_PROGRESS"));
+
+        assertThat(mercadoPago.requests().stream().filter(request -> request.method().equals("POST")).count())
+            .isEqualTo(charges);
+    }
+
+    @Test
     void givenMercadoPagoDown_whenACardIsSent_thenItAnswers503WithRetryAfterAndTheOrderStillAwaitsPayment()
         throws Exception {
         JsonNode placed = placeOrder();

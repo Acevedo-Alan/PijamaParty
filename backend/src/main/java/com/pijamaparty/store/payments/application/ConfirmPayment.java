@@ -31,6 +31,17 @@ public interface ConfirmPayment {
         /** The payment had already been approved: nothing happened again. */
         record AlreadyApproved(long orderNumber) implements Result {}
 
+        /**
+         * T-E3-32: the provider approved a payment of the order other than the one already recorded: a second charge
+         * to refund from the provider's panel. The order is unchanged.
+         */
+        record DuplicateApproval(long orderNumber, String externalPaymentId) implements Result {
+
+            public DuplicateApproval {
+                Objects.requireNonNull(externalPaymentId, "externalPaymentId");
+            }
+        }
+
         /** The buyer's attempt was rejected; the order keeps its reservation until it expires. */
         record Rejected(long orderNumber) implements Result {}
 

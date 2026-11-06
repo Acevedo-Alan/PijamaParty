@@ -153,7 +153,9 @@ class OrderTrackingController {
     @ApiResponse(responseCode = "404", description = "No order has this token (problem ORDER_NOT_FOUND)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "409", description = "No longer awaiting payment, its reservation is over, or not "
-        + "paid by card on the page (problem NOT_PAYABLE): read the order again; nothing was charged",
+        + "paid by card on the page (problem NOT_PAYABLE): read the order again; nothing was charged. Or another "
+        + "charge of the order is in progress or in review (problem CHARGE_IN_PROGRESS): wait for its result; "
+        + "nothing was charged",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "503", description = "The payment provider could not be reached (problem "
         + "PAYMENT_PROVIDER_UNAVAILABLE): nothing was charged; try again after Retry-After",
@@ -184,6 +186,9 @@ class OrderTrackingController {
             case PayOrderWithCard.Result.NotPayable notPayable -> problem(HttpStatus.CONFLICT, "Not payable",
                 "The order no longer awaits payment, its reservation is over, or it is not paid by card here.",
                 "NOT_PAYABLE");
+            case PayOrderWithCard.Result.ChargeInProgress inProgress -> problem(HttpStatus.CONFLICT,
+                "Charge in progress", "Another card payment of this order is in progress or in review. Wait for "
+                    + "its result before trying another card.", "CHARGE_IN_PROGRESS");
             case PayOrderWithCard.Result.ProviderUnavailable unavailable -> providerUnavailable();
         };
     }

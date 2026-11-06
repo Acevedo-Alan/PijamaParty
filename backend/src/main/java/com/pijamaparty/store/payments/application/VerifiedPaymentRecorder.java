@@ -60,7 +60,8 @@ class VerifiedPaymentRecorder {
         }
         var payment = found.get();
         long number = payment.orderNumber();
-        return switch (PaymentDecision.decide(payment.status(), payment.amount(), verified)) {
+        return switch (PaymentDecision.decide(payment.status(), payment.amount(), payment.externalPaymentId(),
+            verified)) {
             case PaymentDecision.Approve approve -> {
                 record(payment, provider, PaymentStatus.APPROVED, verified);
                 events.paymentApproved(payment.orderId(), provider);
@@ -71,6 +72,8 @@ class VerifiedPaymentRecorder {
                 yield new Result.Rejected(number);
             }
             case PaymentDecision.AlreadyApproved already -> new Result.AlreadyApproved(number);
+            case PaymentDecision.DuplicateApproval duplicate ->
+                new Result.DuplicateApproval(number, verified.externalId());
             case PaymentDecision.Unchanged unchanged -> new Result.Unchanged(number);
             case PaymentDecision.AmountMismatch mismatch ->
                 new Result.AmountMismatch(number, mismatch.expected(), mismatch.paid());

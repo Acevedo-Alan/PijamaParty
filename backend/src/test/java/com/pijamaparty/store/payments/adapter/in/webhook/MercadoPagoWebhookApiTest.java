@@ -223,6 +223,24 @@ class MercadoPagoWebhookApiTest {
     }
 
     @Test
+    void givenAPaidOrder_whenAnotherPaymentOfItIsApproved_thenItIsAcknowledgedLoggedForRefundAndTheOrderIsUnchanged(
+        CapturedOutput logs) throws Exception {
+        Placed placed = placeOrder();
+        mercadoPago.holdsPayment("111", placed.number(), "approved", placed.pesos());
+        mercadoPago.holdsPayment("222", placed.number(), "approved", placed.pesos());
+        notifyPayment("111").andExpect(status().isOk());
+
+        notifyPayment("222").andExpect(status().isOk());
+
+        assertThat(orderStatus(placed)).isEqualTo("PAID");
+        assertThat(payment(placed)).containsEntry("status", "APPROVED").containsEntry("external_payment_id", "111");
+        assertThat(owner.queryForObject("select count(*) from stock_movement where type = 'DEDUCTION'", Long.class))
+            .isOne();
+        assertThat(logLines(logs)).contains("MercadoPago payment 222 of order " + placed.number()
+            + " is a second approved payment: refund it");
+    }
+
+    @Test
     void givenARejectedAttempt_whenTheBuyerPaysWithAnotherCard_thenTheOrderIsPaid() throws Exception {
         Placed placed = placeOrder();
         mercadoPago.holdsPayment("111", placed.number(), "rejected", placed.pesos());

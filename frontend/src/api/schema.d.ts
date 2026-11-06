@@ -4439,7 +4439,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description No longer awaiting payment, its reservation is over, or not paid by card on the page (problem NOT_PAYABLE): read the order again; nothing was charged */
+            /** @description No longer awaiting payment, its reservation is over, or not paid by card on the page (problem NOT_PAYABLE): read the order again; nothing was charged. Or another charge of the order is in progress or in review (problem CHARGE_IN_PROGRESS): wait for its result; nothing was charged */
             409: {
                 headers: {
                     [name: string]: unknown;

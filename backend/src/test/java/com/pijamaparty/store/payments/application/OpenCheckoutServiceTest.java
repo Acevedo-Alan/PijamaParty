@@ -48,7 +48,7 @@ class OpenCheckoutServiceTest {
         assertThat(payments.paymentOf(request.orderId(), MERCADOPAGO)).contains(new InMemoryPaymentStore.StoredPayment(
             paymentId, 1001, Money.of(2_100_050), Optional.of(
                 new Checkout("checkout-1", URI.create("https://pay.example.com/checkout-1"))),
-            PaymentStatus.PENDING, Optional.empty()));
+            PaymentStatus.PENDING, Optional.empty(), Optional.empty()));
         assertThat(gateway.requests()).containsExactly(request);
     }
 

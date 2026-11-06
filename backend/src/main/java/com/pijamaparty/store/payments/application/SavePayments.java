@@ -34,6 +34,33 @@ public interface SavePayments {
      */
     boolean recordCheckout(UUID orderId, PaymentProvider provider, int attempt, Checkout checkout, Instant at);
 
+    /**
+     * UC-14 (T-E3-32): takes the payment's single card charge, before the provider is called: one conditional update
+     * that applies only to a payment that is not {@code APPROVED} and has no charge in progress or in review, or whose
+     * charge began before {@code staleBefore} (the provider timed out and the store cannot know whether it charged).
+     * The same submit again ({@code key}, the buyer's {@code Idempotency-Key}) goes on whatever the state: the provider
+     * answers it with the same payment.
+     *
+     * @return whether the charge may go on, or why not (a payment is always inserted first)
+     */
+    CardChargeStart beginCardCharge(UUID orderId, PaymentProvider provider, UUID key, Instant at,
+                                    Instant staleBefore);
+
+    /** The charge in progress of {@code key} is over and nothing is owed: the provider rejected or refused it. A charge of another key (one that took over after the timeout) is left alone. */
+    void releaseCardCharge(UUID orderId, PaymentProvider provider, UUID key);
+
+    /** The provider keeps the charge of {@code key} in review: no other card until a verification says approved or rejected. */
+    void holdCardChargeInReview(UUID orderId, PaymentProvider provider, UUID key);
+
+    /** T-E3-32: how {@link #beginCardCharge} answered. */
+    enum CardChargeStart {
+        STARTED,
+        /** Another charge of the order is in progress or in review. */
+        BUSY,
+        /** The order's payment is already approved: nothing to charge. */
+        ALREADY_APPROVED
+    }
+
     record NewPayment(UUID id, UUID orderId, long orderNumber, PaymentProvider provider, Money amount,
                       Instant createdAt) {
 

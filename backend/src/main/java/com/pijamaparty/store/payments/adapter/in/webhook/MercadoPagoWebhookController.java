@@ -84,6 +84,11 @@ class MercadoPagoWebhookController {
                 yield ResponseEntity.ok().build();
             }
             case ConfirmPayment.Result.AlreadyApproved already -> ResponseEntity.ok().build();
+            case ConfirmPayment.Result.DuplicateApproval duplicate -> {
+                log.error("MercadoPago payment {} of order {} is a second approved payment: refund it from the "
+                    + "provider's panel", dataId, duplicate.orderNumber());
+                yield ResponseEntity.ok().build();
+            }
             case ConfirmPayment.Result.Rejected rejected -> {
                 log.info("MercadoPago payment {} of order {} was rejected", dataId, rejected.orderNumber());
                 yield ResponseEntity.ok().build();

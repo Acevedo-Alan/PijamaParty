@@ -601,6 +601,8 @@ export const es = {
     reservationOver: 'La reserva de tus productos venció y el pedido no se pagó. Podés volver a comprarlos desde la tienda.',
     providerUnavailable: 'El medio de pago no respondió. Esperá un momento y probá de nuevo.',
     tooManyAttempts: 'Hiciste muchos intentos. Esperá un minuto y probá de nuevo.',
+    /** T-E3-32: another card payment of the order is in progress or in review. */
+    chargeInProgress: 'Ya hay un pago de este pedido en curso. Esperá unos minutos a que se confirme antes de probar con otra tarjeta.',
     payError: 'No pudimos abrir el pago. Probá de nuevo.',
     /** T-E3-29: the card typed in MercadoPago's form, inside the store's page. */
     card: {

@@ -6,6 +6,8 @@ import com.pijamaparty.store.payments.api.CardPaymentRequest;
 import com.pijamaparty.store.payments.api.CardPaymentResult;
 import com.pijamaparty.store.payments.api.CardRejection;
 import com.pijamaparty.store.payments.api.PaymentProvider;
+import com.pijamaparty.store.payments.domain.CardChargeLock;
+import com.pijamaparty.store.payments.domain.PaymentStatus;
 import com.pijamaparty.store.platform.domain.Money;
 import java.time.Clock;
 import java.time.Instant;
@@ -94,5 +96,57 @@ class PayWithCardServiceTest {
         service.pay(request(key));
 
         assertThat(confirmed).extracting(ConfirmPayment.Command::externalPaymentId).containsOnly("1000001");
+    }
+
+    @Test
+    void givenACardInReview_whenAnotherCardIsSentWithANewKey_thenNothingIsChargedAgain() {
+        cards.review();
+        service.pay(request(UUID.randomUUID()));
+
+        assertThat(service.pay(request(UUID.randomUUID()))).isEqualTo(new CardPaymentResult.ChargeInProgress());
+        assertThat(cards.charges()).hasSize(1);
+    }
+
+    @Test
+    void givenARejectedCard_whenAnotherCardIsSent_thenItIsCharged() {
+        cards.rejectForFunds();
+        service.pay(request(UUID.randomUUID()));
+        cards.approve();
+
+        assertThat(service.pay(request(UUID.randomUUID()))).isEqualTo(new CardPaymentResult.Approved());
+        assertThat(cards.charges()).hasSize(2);
+    }
+
+    @Test
+    void givenARefusedCard_whenAnotherCardIsSent_thenItIsCharged() {
+        cards.refuse();
+        service.pay(request(UUID.randomUUID()));
+        cards.approve();
+
+        assertThat(service.pay(request(UUID.randomUUID()))).isEqualTo(new CardPaymentResult.Approved());
+    }
+
+    @Test
+    void givenATimeout_whenAnotherCardIsSentBeforeTenMinutes_thenItIsRefusedAndAfterwardsCharged() {
+        cards.down();
+        service.pay(request(UUID.randomUUID()));
+        cards.approve();
+
+        assertThat(service.pay(request(UUID.randomUUID()))).isEqualTo(new CardPaymentResult.ChargeInProgress());
+        assertThat(cards.charges()).hasSize(1);
+
+        var later = new PayWithCardService(payments, cards, confirmPayment, UUID::randomUUID,
+            Clock.fixed(NOW.plus(CardChargeLock.TIMEOUT).plusSeconds(1), ZoneOffset.UTC));
+        assertThat(later.pay(request(UUID.randomUUID()))).isEqualTo(new CardPaymentResult.Approved());
+    }
+
+    @Test
+    void givenAPaymentApproved_whenAnotherCardIsSent_thenItIsAlreadyPaidAndNothingIsCharged() {
+        payments.insertPending(new SavePayments.NewPayment(UUID.randomUUID(), order, NUMBER,
+            PaymentProvider.MERCADOPAGO, TOTAL, NOW));
+        payments.record(order, PaymentProvider.MERCADOPAGO, PaymentStatus.APPROVED, "999", NOW);
+
+        assertThat(service.pay(request(UUID.randomUUID()))).isEqualTo(new CardPaymentResult.AlreadyPaid());
+        assertThat(cards.charges()).isEmpty();
     }
 }

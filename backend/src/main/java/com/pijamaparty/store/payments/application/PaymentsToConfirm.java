@@ -16,13 +16,18 @@ public interface PaymentsToConfirm {
      */
     Optional<PaymentToConfirm> lock(PaymentProvider provider, long orderNumber);
 
-    /** @param amount what the order has to be paid with (R-02) */
-    record PaymentToConfirm(UUID orderId, long orderNumber, PaymentStatus status, Money amount) {
+    /**
+     * @param amount            what the order has to be paid with (R-02)
+     * @param externalPaymentId the provider's id of the last verified payment; empty before any (T-E3-32)
+     */
+    record PaymentToConfirm(UUID orderId, long orderNumber, PaymentStatus status, Money amount,
+                            Optional<String> externalPaymentId) {
 
         public PaymentToConfirm {
             Objects.requireNonNull(orderId, "orderId");
             Objects.requireNonNull(status, "status");
             Objects.requireNonNull(amount, "amount");
+            Objects.requireNonNull(externalPaymentId, "externalPaymentId");
         }
     }
 }

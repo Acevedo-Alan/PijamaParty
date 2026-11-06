@@ -61,6 +61,10 @@ public class InMemoryCardCharges implements CardCharges {
         return new Charge.Charged(Integer.toString(ids.incrementAndGet()), status, rejection);
     }
 
+    public void approve() {
+        mode = Mode.APPROVE;
+    }
+
     public void rejectForFunds() {
         mode = Mode.REJECT_FOR_FUNDS;
     }

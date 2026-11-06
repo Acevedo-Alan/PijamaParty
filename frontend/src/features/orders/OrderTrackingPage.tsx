@@ -85,6 +85,8 @@ function cardOutcome(answer: CardPaymentAnswer | undefined, failed: boolean): { 
       return { problem: null, note: es.tracking.card.inProcess };
     case 'rejected':
       return { problem: es.tracking.card.rejections[answer.reason], note: null };
+    case 'chargeInProgress':
+      return { problem: es.tracking.chargeInProgress, note: null };
     case 'providerUnavailable':
       return { problem: es.tracking.providerUnavailable, note: null };
     case 'tooManyAttempts':

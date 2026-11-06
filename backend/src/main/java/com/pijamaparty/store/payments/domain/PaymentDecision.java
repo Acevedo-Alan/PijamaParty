@@ -2,6 +2,7 @@ package com.pijamaparty.store.payments.domain;
 
 import com.pijamaparty.store.platform.domain.Money;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * UC-15: what a verified payment does to the store's payment of the order. An approved payment is final: nothing a
@@ -15,6 +16,12 @@ public sealed interface PaymentDecision {
 
     /** The payment was already approved: a repeated or later notification, with no effect. */
     record AlreadyApproved() implements PaymentDecision {}
+
+    /**
+     * T-E3-32: an approved payment of the provider other than the one recorded, for an order already paid: a second
+     * charge. Nothing changes, and someone has to refund it.
+     */
+    record DuplicateApproval() implements PaymentDecision {}
 
     /** The payment becomes {@code REJECTED}, the last attempt the buyer made. */
     record Reject() implements PaymentDecision {}
@@ -31,13 +38,23 @@ public sealed interface PaymentDecision {
         }
     }
 
-    /** What {@code verified} does to a payment in {@code current} status, created for {@code expected}. */
-    static PaymentDecision decide(PaymentStatus current, Money expected, VerifiedPayment verified) {
+    /**
+     * What {@code verified} does to a payment in {@code current} status, created for {@code expected}, whose last
+     * verified provider payment is {@code recordedId}.
+     */
+    static PaymentDecision decide(PaymentStatus current, Money expected, Optional<String> recordedId,
+                                  VerifiedPayment verified) {
         Objects.requireNonNull(current, "current");
         Objects.requireNonNull(expected, "expected");
+        Objects.requireNonNull(recordedId, "recordedId");
         Objects.requireNonNull(verified, "verified");
         if (current == PaymentStatus.APPROVED) {
-            return verified.status() == VerifiedStatus.APPROVED ? new AlreadyApproved() : new Unchanged();
+            if (verified.status() != VerifiedStatus.APPROVED) {
+                return new Unchanged();
+            }
+            return recordedId.filter(id -> !id.equals(verified.externalId())).isPresent()
+                ? new DuplicateApproval()
+                : new AlreadyApproved();
         }
         return switch (verified.status()) {
             case APPROVED -> verified.amount().equals(expected)

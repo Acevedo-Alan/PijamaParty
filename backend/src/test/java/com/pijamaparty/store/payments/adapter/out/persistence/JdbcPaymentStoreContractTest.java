@@ -137,6 +137,34 @@ class JdbcPaymentStoreContractTest extends PaymentStoreContractTest<JdbcPaymentS
     }
 
     @Test
+    void givenAnIdlePayment_whenManyCardChargesBeginAtOnceWithDifferentKeys_thenExactlyOneStarts() throws Exception {
+        subject.insertPending(pendingPayment(order));
+        int submits = 8;
+        var start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(submits);
+        try {
+            List<Future<SavePayments.CardChargeStart>> results = new java.util.ArrayList<>();
+            for (int i = 0; i < submits; i++) {
+                results.add(executor.submit(() -> {
+                    start.await(10, TimeUnit.SECONDS);
+                    return subject.beginCardCharge(order, MERCADOPAGO, UUID.randomUUID(), NOW, NOW.minusSeconds(600));
+                }));
+            }
+            start.countDown();
+
+            long started = 0;
+            for (Future<SavePayments.CardChargeStart> result : results) {
+                if (result.get(20, TimeUnit.SECONDS) == SavePayments.CardChargeStart.STARTED) {
+                    started++;
+                }
+            }
+            assertThat(started).isOne();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     void givenAGuest_whenInsertingAPayment_thenRowLevelSecurityRefusesIt() {
         var guest = Actor.anonymous(Optional.empty(), Optional.empty());
 
@@ -211,6 +239,23 @@ class JdbcPaymentStoreContractTest extends PaymentStoreContractTest<JdbcPaymentS
         @Override
         public void insertPending(NewPayment payment) {
             CurrentActor.runAsSystem(() -> adapter.insertPending(payment));
+        }
+
+        @Override
+        public CardChargeStart beginCardCharge(UUID orderId, PaymentProvider provider, UUID key, Instant at,
+                                       Instant staleBefore) {
+            return CurrentActor.callAsSystem(() ->
+                adapter.beginCardCharge(orderId, provider, key, at, staleBefore));
+        }
+
+        @Override
+        public void releaseCardCharge(UUID orderId, PaymentProvider provider, UUID key) {
+            CurrentActor.runAsSystem(() -> adapter.releaseCardCharge(orderId, provider, key));
+        }
+
+        @Override
+        public void holdCardChargeInReview(UUID orderId, PaymentProvider provider, UUID key) {
+            CurrentActor.runAsSystem(() -> adapter.holdCardChargeInReview(orderId, provider, key));
         }
 
         @Override

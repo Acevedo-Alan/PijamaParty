@@ -41,6 +41,10 @@ class CheckoutReconciliation {
                         + "paid", checkout.provider(), checkout.checkoutId(), mismatch.orderNumber(), mismatch.paid(),
                     mismatch.expected());
                 case ConfirmPayment.Result.AlreadyApproved already -> { }
+                case ConfirmPayment.Result.DuplicateApproval duplicate -> log.error(
+                    "Reconciliation: {} checkout {} of order {} has a second approved payment {}: refund it from the "
+                        + "provider's panel", checkout.provider(), checkout.checkoutId(), duplicate.orderNumber(),
+                    duplicate.externalPaymentId());
                 case ConfirmPayment.Result.Unchanged unchanged -> { }
                 case ConfirmPayment.Result.UnknownPayment unknown -> { }
                 case ConfirmPayment.Result.AlreadyProcessed processed -> { }
