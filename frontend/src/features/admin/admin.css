@@ -126,13 +126,27 @@
   padding: 16px 8px 24px;
 }
 
+:root {
+  /* The header's one row from 860 px; the side menu is placed under it */
+  --admin-header-height: 60px;
+}
+
 @media (min-width: 860px) {
   .admin-menu-btn {
     display: none;
   }
 
+  /* From 860 px the header stays at the top, one row of a fixed height, and the menu fills the rest (T-E8-14) */
+  .admin-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
   .admin-header-inner {
-    padding: 12px 24px;
+    box-sizing: border-box;
+    height: var(--admin-header-height);
+    padding: 0 24px;
   }
 
   .admin-shell {
@@ -145,17 +159,18 @@
   .admin-side {
     display: block;
     position: sticky;
-    top: 0;
+    top: calc(var(--admin-header-height) + 1px);
     align-self: start;
     overflow-y: auto;
     overscroll-behavior: contain;
     /* The left padding keeps the focus ring inside the scroll box, which would clip it */
     padding: 20px 12px 24px 8px;
     /* A plane a shade lighter than the page, with a lighter separator (D-E8-12) */
-    background: #fffcf9;
-    border-right: 1px solid #f6e8df;
-    /* The menu fills the column, so who is signed in sits at its bottom */
-    height: 100dvh;
+    background: var(--admin-side);
+    border-right: 1px solid var(--admin-side-line);
+    /* The menu fills the column under the header and its 1 px line, so who is signed in sits at its bottom, on
+       screen */
+    height: calc(100dvh - var(--admin-header-height) - 1px);
   }
 
   .admin-shell > .admin-main {
@@ -683,6 +698,13 @@
 .order-total {
   margin-left: auto;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Long lists (50 more at a time) skip laying out the cards off screen, as the Stock rows do (T-E8-14) */
+.admin-list > .admin-card:not(.stock-row) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 88px;
 }
 
 .order-alert {
@@ -735,18 +757,7 @@
   font-size: 14px;
 }
 
-/* UC-37: the activity log. One filter per row on a phone, side by side from 640 px. */
-.activity-filters {
-  display: grid;
-  gap: 12px;
-}
-
-@media (min-width: 640px) {
-  .activity-filters {
-    grid-template-columns: repeat(3, minmax(0, 220px));
-  }
-}
-
+/* UC-37: the changed fields of an entry. */
 .activity-changes {
   margin: 0;
   padding-left: 20px;

@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router';
 import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
 import { ensureSignedIn } from './adminSession.ts';
@@ -21,12 +22,20 @@ export async function fetchWorkloadCounts(signal?: AbortSignal): Promise<Workloa
   return { paidOrders: data.paidOrders ?? 0 };
 }
 
-/** Without the counts the menu just shows no badge: a failed read never blocks the back office. */
+/** The summary's address, /admin with or without its slash. */
+const SUMMARY_PATH = /^\/admin\/?$/;
+
+/**
+ * Without the counts the menu just shows no badge: a failed read never blocks the back office. On the summary
+ * (/admin) the summary's own read brings the count (useDashboard), so the menu does not ask for it too (T-E8-14).
+ */
 export function useWorkloadCounts() {
+  const onSummary = SUMMARY_PATH.test(useLocation().pathname);
   return useQuery({
     queryKey: WORKLOAD_COUNTS_KEY,
     queryFn: ({ signal }) => fetchWorkloadCounts(signal),
     retry: false,
+    enabled: !onSummary,
   });
 }
 
@@ -99,7 +108,8 @@ export interface Dashboard {
   lowStock: { threshold: number; count: number; items: LowStockItem[] };
   bestSellers: BestSeller[];
   recentOrders: RecentOrder[];
-  totals: { publishedProducts: number };
+  /** UC-33: the published products and the registered customers, with how many joined this month. */
+  totals: { publishedProducts: number; customers: number; newCustomersThisMonth: number };
 }
 
 function toSales(value: components['schemas']['SalesResponse'] | undefined, choice: PeriodChoice): PeriodSales {
@@ -159,7 +169,11 @@ function toDashboard(data: components['schemas']['DashboardResponse'], chart: Ch
       status: order.status ?? 'AWAITING_PAYMENT',
       totalCents: order.totalCents ?? 0,
     })),
-    totals: { publishedProducts: data.totals?.publishedProducts ?? 0 },
+    totals: {
+      publishedProducts: data.totals?.publishedProducts ?? 0,
+      customers: data.totals?.customers ?? 0,
+      newCustomersThisMonth: data.totals?.newCustomersThisMonth ?? 0,
+    },
   };
 }
 

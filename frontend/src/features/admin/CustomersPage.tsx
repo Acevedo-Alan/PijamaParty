@@ -92,6 +92,7 @@ export function CustomersPage() {
           <FieldLabel>{messages.search}</FieldLabel>
           <FieldInput
             ref={searchField}
+            name={SEARCH_PARAM}
             type="search"
             value={search}
             maxLength={MAX_SEARCH}
@@ -105,7 +106,9 @@ export function CustomersPage() {
         <Field error={invalidPeriod ? messages.invalidPeriod : undefined}>
           <FieldLabel>{messages.from}</FieldLabel>
           <FieldInput
+            name={FROM_PARAM}
             type="date"
+            autoComplete="off"
             value={filter.from ?? ''}
             onChange={(event) => {
               change(FROM_PARAM, event.target.value);
@@ -115,7 +118,9 @@ export function CustomersPage() {
         <Field>
           <FieldLabel>{messages.to}</FieldLabel>
           <FieldInput
+            name={TO_PARAM}
             type="date"
+            autoComplete="off"
             value={filter.to ?? ''}
             onChange={(event) => {
               change(TO_PARAM, event.target.value);

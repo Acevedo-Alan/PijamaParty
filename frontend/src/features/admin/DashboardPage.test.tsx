@@ -50,7 +50,7 @@ function dashboard(overrides: Partial<Body> = {}): Body {
     bestSellers: [{ productSlug: 'luna', productName: 'Pijama Luna', units: 5, amountCents: 10_000_000 }],
     recentOrders: [{ id: 'o-1', number: 1042, createdAt: '2026-10-15T15:00:00Z', buyerName: 'Ana Pérez',
       status: 'PAID', totalCents: 2_300_000 }],
-    totals: { publishedProducts: 286 },
+    totals: { publishedProducts: 286, customers: 1240, newCustomersThisMonth: 37 },
     ...overrides,
   };
 }
@@ -297,6 +297,10 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
       .toHaveAttribute('href', '/admin/pedidos/o-1');
     expect(section(messages.bestSellers.title).getByText('Pijama Luna')).toBeInTheDocument();
     expect(section(messages.totals.title).getByText('286')).toBeInTheDocument();
+    // UC-33 (T-E8-14): the registered customers, with this month's new ones.
+    expect(section(messages.totals.title).getByText('1.240')).toBeInTheDocument();
+    expect(section(messages.totals.title).getByText(messages.totals.customers)).toBeInTheDocument();
+    expect(section(messages.totals.title).getByText(messages.totals.newCustomers(37))).toBeInTheDocument();
   });
 
   it('given the summary, when "Actualizar" is pressed, then it reads the figures again', async () => {

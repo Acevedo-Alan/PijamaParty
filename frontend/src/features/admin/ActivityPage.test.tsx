@@ -318,8 +318,10 @@ describe('the activity log in the back office (UC-37)', () => {
     });
     renderRoute('/admin/actividad?desde=2026-10-15&hasta=2026-10-01');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(messages.invalidPeriod);
-    expect(screen.getByLabelText(messages.from)).toHaveAttribute('aria-invalid', 'true');
+    // The error is the date's own description, so a screen reader reads it with the field (T-E8-14).
+    const from = await screen.findByLabelText(messages.from);
+    expect(from).toHaveAccessibleDescription(messages.invalidPeriod);
+    expect(from).toHaveAttribute('aria-invalid', 'true');
     expect(api.callsTo(LIST)).toHaveLength(0);
   });
 

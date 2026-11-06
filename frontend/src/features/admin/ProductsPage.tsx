@@ -197,6 +197,7 @@ export function ProductsPage() {
           ))}
         </ul>
       )}
+      {products.isFetchNextPageError && <p role="alert">{esAdmin.loadError}</p>}
       {products.hasNextPage && (
         <button
           type="button"

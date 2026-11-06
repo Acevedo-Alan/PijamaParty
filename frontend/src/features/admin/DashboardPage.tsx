@@ -161,7 +161,7 @@ function TodoLevel({ level, icon: Icon, entries, dashboard }: {
               ) : (
                 <Link
                   to={to}
-                  className={cn(ROW, tone.row, 'transition-[filter] hover:brightness-[0.97] motion-safe:active:scale-[0.99]')}
+                  className={cn(ROW, tone.row, 'hover:brightness-[0.97] motion-safe:transition-transform motion-safe:active:scale-[0.99]')}
                 >
                   {content}
                 </Link>
@@ -255,7 +255,9 @@ function CustomDates({ draft, onDraft, problem, today }: {
         <label className="flex flex-col gap-1 text-[13px] font-semibold text-muted-foreground">
           {messages.sales.from}
           <input
+            name="from"
             type="date"
+            autoComplete="off"
             className={FIELD}
             value={draft.from}
             max={today}
@@ -268,7 +270,9 @@ function CustomDates({ draft, onDraft, problem, today }: {
         <label className="flex flex-col gap-1 text-[13px] font-semibold text-muted-foreground">
           {messages.sales.to}
           <input
+            name="to"
             type="date"
+            autoComplete="off"
             className={FIELD}
             value={draft.to}
             max={today}
@@ -322,12 +326,12 @@ function Sales({ sales, period, onPeriod, draft, onDraft, problem, today, loadin
           options={PERIODS.map((value) => ({ value, label: messages.sales.periods[value] }))}
           value={period}
           onValueChange={onPeriod}
-          className="w-full min-[560px]:w-auto"
+          className="w-full min-[640px]:w-auto"
         />
       </CardHeader>
       {period === 'CUSTOM' && <CustomDates draft={draft} onDraft={onDraft} problem={problem} today={today} />}
       <CardContent
-        className={cn('grid gap-3 transition-opacity min-[560px]:grid-cols-2', loading && 'opacity-60')}
+        className={cn('grid gap-3 transition-opacity min-[640px]:grid-cols-2', loading && 'opacity-60')}
       >
         <div className="flex flex-col gap-1 rounded-lg border border-border p-4">
           <p className="m-0 text-[13px] font-semibold text-muted-foreground">{messages.sales.periods[sales.period]}</p>
@@ -646,9 +650,19 @@ function Totals({ totals, order }: { totals: Dashboard['totals']; order: number 
       <CardHeader>
         <CardTitle id={titleId}>{messages.totals.title}</CardTitle>
       </CardHeader>
-      <CardContent className="gap-1">
-        <Figure value={totals.publishedProducts.toLocaleString('es-AR')} />
-        <p className="m-0 text-[13px] text-muted-foreground">{messages.totals.publishedProducts}</p>
+      {/* UC-33: the published products and the registered customers, with how many joined this month. */}
+      <CardContent className="grid grid-cols-2 gap-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <Figure value={totals.publishedProducts.toLocaleString('es-AR')} />
+          <p className="m-0 text-[13px] text-muted-foreground">{messages.totals.publishedProducts}</p>
+        </div>
+        <div className="flex min-w-0 flex-col gap-1">
+          <Figure value={totals.customers.toLocaleString('es-AR')} />
+          <p className="m-0 text-[13px] text-muted-foreground">{messages.totals.customers}</p>
+          <p className="m-0 text-[13px] text-muted-foreground">
+            {messages.totals.newCustomers(totals.newCustomersThisMonth)}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

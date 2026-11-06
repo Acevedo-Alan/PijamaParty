@@ -4,6 +4,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
+import { leaveAnalyticsBehind } from '../analytics/analytics.ts';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import {
   confirmEnrollment,
@@ -277,6 +278,11 @@ export function SignInPage() {
   const state = (useLocation().state ?? {}) as SignInState;
   const target = returnPath(state.from);
   const [step, setStep] = useState<Step>({ name: 'password' });
+
+  // As every back-office page (AdminLayout): the analytics tools stay on the store.
+  useEffect(() => {
+    leaveAnalyticsBehind();
+  }, []);
 
   function enter(administrator: Administrator) {
     const signedIn: SessionAnswer = { status: 'signedIn', administrator };

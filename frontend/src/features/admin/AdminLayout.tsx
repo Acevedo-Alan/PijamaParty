@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { leaveAnalyticsBehind } from '../analytics/analytics.ts';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import { AdminMenuPanel } from './AdminMenuPanel.tsx';
 import { AdminNav } from './AdminNav.tsx';
@@ -35,6 +36,11 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const from = location.pathname + location.search;
+
+  // The analytics tools stay on the store: opened from it with them loaded, the back office loads itself again.
+  useEffect(() => {
+    leaveAnalyticsBehind();
+  }, []);
 
   useEffect(
     () =>

@@ -31,6 +31,22 @@
   --accent-text: var(--accent-hover);
   --line-strong: #958178;
 
+  /*
+   * The back office's calmer planes and status tones (D-E8-12; T-E8-14 moved them here from the theme): each text tone
+   * reaches 4.5:1 on its own background (tokens.test.ts). The store does not use them.
+   */
+  --admin-muted: #fff3ec;
+  --admin-border: #f3e3da;
+  --admin-side: #fffcf9;
+  --admin-side-line: #f6e8df;
+  --warning: #6d5615;
+  --warning-bg: #fdf6e3;
+  --warning-line: #efdca8;
+  --success: #2f6b3f;
+  --success-bg: #e9f5ec;
+  --info: #2d5487;
+  --info-bg: #eaf1fb;
+
   /* The header's hover fill (UC-31): a pastel rainbow from the bottom up. --ink keeps 7:1 or more on every stop. */
   --rainbow: linear-gradient(to top, #ffc9c9, #ffe0bd, #fff3b8, #cdf0cb, #c4e4ff, #dccdff);
   /* The add button's bar (E7 motion): the same rainbow from left to right, and a soft red for a rejected add. */

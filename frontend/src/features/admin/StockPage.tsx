@@ -234,6 +234,7 @@ export function StockPage() {
                 ))}
               </ol>
             )}
+            {history.isFetchNextPageError && <p role="alert">{esAdmin.loadError}</p>}
             {history.hasNextPage && (
               <button
                 type="button"

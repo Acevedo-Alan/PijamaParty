@@ -7,6 +7,7 @@ import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { mailLink } from './contactLinks.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import {
   changeOrderStatus,
@@ -327,7 +328,7 @@ function OrderView({ order, onChanged }: Props) {
         <p>{buyer.name}</p>
         <p>{messages.nationalId(buyer.nationalId)}</p>
         <p>
-          <a href={`tel:${buyer.phone}`}>{buyer.phone}</a> · <a href={`mailto:${buyer.email}`}>{buyer.email}</a>
+          <a href={`tel:${buyer.phone}`}>{buyer.phone}</a> · <a href={mailLink(buyer.email)}>{buyer.email}</a>
         </p>
       </section>
       <section className="admin-section" aria-labelledby="order-address">

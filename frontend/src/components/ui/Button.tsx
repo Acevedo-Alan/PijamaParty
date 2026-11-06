@@ -10,7 +10,7 @@ import { cn } from './cn.ts';
 export const buttonVariants = cva(
   [
     'inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-semibold whitespace-nowrap no-underline',
-    'cursor-pointer transition-[background-color,border-color,color,transform,box-shadow] duration-150',
+    'cursor-pointer transition-[background-color,border-color,color,transform,box-shadow] duration-[var(--dur-fast)]',
     'motion-safe:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
     'aria-disabled:cursor-progress aria-disabled:opacity-70',
     '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',

@@ -50,8 +50,8 @@ export const esAdmin = {
       dates: (from: string, to: string) => (from === to ? from : `${from} al ${to}`),
       invalid: {
         missing: 'Elegí las dos fechas.',
-        order: '"Desde" tiene que ser antes de "Hasta" o el mismo día.',
-        future: '"Hasta" no puede ser después de hoy.',
+        order: '“Desde” tiene que ser antes de “Hasta” o el mismo día.',
+        future: '“Hasta” no puede ser después de hoy.',
         tooLong: 'Elegí un período de hasta 366 días.',
       },
       /** E.g. "3 pedidos". */
@@ -115,6 +115,9 @@ export const esAdmin = {
     totals: {
       title: 'Totales',
       publishedProducts: 'Productos publicados',
+      customers: 'Clientes registrados',
+      /** Under the customers, e.g. "3 nuevos este mes". */
+      newCustomers: (count: number) => (count === 1 ? '1 nuevo este mes' : `${count.toLocaleString('es-AR')} nuevos este mes`),
     },
   },
   /** What the badge on "Pedidos" says to screen readers (T-E8-05). */
@@ -141,6 +144,7 @@ export const esAdmin = {
   save: 'Guardar',
   cancel: 'Cancelar',
   saved: 'Cambios guardados.',
+  saving: 'Guardando…',
   accessDenied: {
     title: 'Acceso denegado',
     body: 'Esta sección es solo para la administración de la tienda.',
@@ -390,10 +394,10 @@ export const esAdmin = {
       lowStockThreshold: 'Umbral de stock bajo',
     },
     hints: {
-      email: 'Se muestra en "Contactanos" y en el pie.',
+      email: 'Se muestra en “Contactanos” y en el pie.',
       whatsAppNumber: 'Con código de país y de área, por ejemplo +54 9 342 400-0000.',
-      openingHours: 'Como querés que se lea, por ejemplo "Lunes a viernes de 9 a 18 h".',
-      address: 'Como la encuentra Google Maps, por ejemplo "San Martín 2000, Santa Fe".',
+      openingHours: 'Como querés que se lea, por ejemplo “Lunes a viernes de 9 a 18 h”.',
+      address: 'Como la encuentra Google Maps, por ejemplo “San Martín 2000, Santa Fe”.',
       instagramUrl: 'El enlace completo, por ejemplo https://www.instagram.com/pijamaparty.zzz/',
       facebookUrl: 'El enlace completo, por ejemplo https://www.facebook.com/pijamaparty',
       tiktokUrl: 'El enlace completo, por ejemplo https://www.tiktok.com/@pijamaparty',
@@ -414,6 +418,7 @@ export const esAdmin = {
     invalid: 'Revisá los datos marcados.',
     changed: 'Alguien guardó los datos desde otra pestaña. Cargamos los datos actuales: revisá y volvé a guardar.',
     previewTitle: 'Así se ve la franja',
+    unsavedChanges: 'Hay cambios sin guardar en los datos de la tienda. ¿Salir igual?',
   },
   orderList: {
     title: 'Pedidos',
@@ -514,6 +519,7 @@ export const esAdmin = {
   /** UC-37 (T-E8-01): the changes made from the back office. */
   activityList: {
     title: 'Actividad',
+    filters: 'Filtrar la actividad',
     area: 'Sección',
     all: 'Todas',
     from: 'Desde',
@@ -967,8 +973,9 @@ export const esAdmin = {
     adjust: (product: string, variant: string) => `Ajustar ${product}, ${variant}`,
     quantity: 'Cantidad',
     note: 'Motivo (opcional)',
-    add: 'Sumar',
-    subtract: 'Restar',
+    /** The quick adjustment's buttons, with their sign. */
+    add: '+ Sumar',
+    subtract: '− Restar',
     quantityInvalid: 'Ingresá una cantidad entera mayor que 0.',
     connectionLost: 'Se cortó la conexión. Volvé a tocar el mismo botón: el ajuste no se va a duplicar.',
     history: 'Ver movimientos',

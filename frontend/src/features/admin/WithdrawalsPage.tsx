@@ -129,6 +129,7 @@ export function WithdrawalsPage() {
           ))}
         </ul>
       )}
+      {withdrawals.isFetchNextPageError && <p role="alert">{esAdmin.loadError}</p>}
       {withdrawals.hasNextPage && (
         <button
           type="button"

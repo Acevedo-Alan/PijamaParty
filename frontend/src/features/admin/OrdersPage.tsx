@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type SubmitEvent } from 'react';
+import { useRef, useState, type SubmitEvent } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
@@ -57,6 +57,7 @@ export function OrdersPage() {
   const filter = filterOf(params);
   const [search, setSearch] = useState(filter.q ?? '');
   const [searchInvalid, setSearchInvalid] = useState(false);
+  const searchField = useRef<HTMLInputElement>(null);
   const invalidPeriod = filter.from !== null && filter.to !== null && filter.from > filter.to;
   const filtered = filter.q !== null || filter.from !== null || filter.to !== null;
   const queryClient = useQueryClient();
@@ -90,6 +91,8 @@ export function OrdersPage() {
     event.preventDefault();
     if (!validSearch(search)) {
       setSearchInvalid(true);
+      // The error is read where the focus lands, as in "Clientes" and "Stock".
+      searchField.current?.focus();
       return;
     }
     setSearchInvalid(false);
@@ -112,6 +115,8 @@ export function OrdersPage() {
         >
           <FieldLabel>{messages.search}</FieldLabel>
           <FieldInput
+            ref={searchField}
+            name={SEARCH_PARAM}
             type="search"
             value={search}
             maxLength={MAX_SEARCH}
@@ -125,6 +130,7 @@ export function OrdersPage() {
         <Field>
           <FieldLabel>{messages.filter}</FieldLabel>
           <FieldSelect
+            name={STATUS_PARAM}
             value={filter.status ?? ''}
             onChange={(event) => {
               change(STATUS_PARAM, event.target.value);
@@ -141,7 +147,9 @@ export function OrdersPage() {
         <Field error={invalidPeriod ? messages.invalidPeriod : undefined}>
           <FieldLabel>{messages.from}</FieldLabel>
           <FieldInput
+            name={FROM_PARAM}
             type="date"
+            autoComplete="off"
             value={filter.from ?? ''}
             onChange={(event) => {
               change(FROM_PARAM, event.target.value);
@@ -151,7 +159,9 @@ export function OrdersPage() {
         <Field>
           <FieldLabel>{messages.to}</FieldLabel>
           <FieldInput
+            name={TO_PARAM}
             type="date"
+            autoComplete="off"
             value={filter.to ?? ''}
             onChange={(event) => {
               change(TO_PARAM, event.target.value);
@@ -193,6 +203,7 @@ export function OrdersPage() {
           ))}
         </ul>
       )}
+      {orders.isFetchNextPageError && <p role="alert">{esAdmin.loadError}</p>}
       {orders.hasNextPage && (
         <button
           type="button"

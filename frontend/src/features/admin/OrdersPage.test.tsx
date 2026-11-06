@@ -136,7 +136,27 @@ describe('order list (UC-18)', () => {
     const field = screen.getByLabelText(messages.search);
     expect(field).toHaveAttribute('aria-invalid', 'true');
     expect(field).toHaveAccessibleDescription(`${messages.searchHint} ${messages.searchInvalid}`);
+    // The error is read where the focus lands (T-E8-14).
+    expect(field).toHaveFocus();
     expect(api.callsTo('GET /api/admin/orders')).toHaveLength(1);
+  });
+
+  it('given more orders, when the next page cannot be read, then the list stays and says so', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/orders': [
+        answer(200, { items: [row(1002, 'PAID')], hasMore: true }),
+        answer(500, { title: 'Internal Server Error' }),
+        answer(500, { title: 'Internal Server Error' }),
+      ],
+    });
+    renderRoute('/admin/pedidos');
+    await screen.findByRole('link', { name: '#1002' });
+
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.showMore }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(esAdmin.loadError);
+    expect(screen.getByRole('link', { name: '#1002' })).toBeInTheDocument();
   });
 
   it('given dates, when chosen, then they are asked for as store dates; reversed, nothing is asked and it says why', async () => {

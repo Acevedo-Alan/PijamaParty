@@ -83,7 +83,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 /** An entry: 44 px tall (Apple HIG), the current page tinted as a selected row. */
 const ENTRY = cn(
   'flex min-h-11 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium text-foreground no-underline',
-  'transition-colors hover:bg-muted [&_svg]:size-[18px] [&_svg]:shrink-0 [&_svg]:text-muted-foreground',
+  'transition-colors duration-[var(--dur-fast)] hover:bg-muted [&_svg]:size-[18px] [&_svg]:shrink-0 [&_svg]:text-muted-foreground',
   'aria-[current=page]:bg-accent aria-[current=page]:font-semibold aria-[current=page]:text-accent-foreground',
   'aria-[current=page]:[&_svg]:text-accent-foreground',
 );
@@ -188,7 +188,7 @@ export function AdminNav({ signingOut, onSignOut, onChoose }: AdminNavProps) {
             title={esAdmin.signOut}
             disabled={signingOut}
             onClick={onSignOut}
-            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border-0 bg-transparent text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-60 [&_svg]:size-[18px]"
+            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border-0 bg-transparent text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-muted hover:text-foreground disabled:opacity-60 [&_svg]:size-[18px]"
           >
             <LogOut aria-hidden="true" />
           </button>

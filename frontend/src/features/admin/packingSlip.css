@@ -15,8 +15,9 @@
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  color: #000;
+  /* On screen, the back office's tokens; printed, pure black on white (below) */
+  background: var(--surface);
+  color: var(--ink);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -97,6 +98,8 @@
   .packing-slip {
     border: 1px solid #000;
     border-radius: 0;
+    background: #fff;
+    color: #000;
     break-inside: avoid;
   }
 }

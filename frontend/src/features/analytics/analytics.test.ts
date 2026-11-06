@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   analyticsIds,
   clearAnalyticsCookies,
+  leaveAnalyticsBehind,
   loadAnalytics,
   resetAnalyticsForTests,
   trackEvent,
@@ -99,6 +100,17 @@ describe('analytics loader (RNF-25, T-E1-23)', () => {
       { page_location: `${window.location.origin}/buscar`, page_path: '/buscar', page_title: 'Resultados' },
     ]);
     expect(window.fbq?.queue.at(-1)).toEqual(['track', 'PageView']);
+  });
+
+  it('given the tools loaded on a store page, when the back office opens, then it reloads once; without them, never', () => {
+    const reload = vi.fn();
+    expect(leaveAnalyticsBehind(reload)).toBe(false);
+    expect(reload).not.toHaveBeenCalled();
+
+    loadAnalytics({ ga4: 'G-ABC123' });
+
+    expect(leaveAnalyticsBehind(reload)).toBe(true);
+    expect(reload).toHaveBeenCalledOnce();
   });
 
   it('given only GA4, when loaded, then the Pixel never loads', () => {

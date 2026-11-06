@@ -2993,6 +2993,10 @@ export interface components {
         TotalsResponse: {
             /** Format: int64 */
             publishedProducts?: number;
+            /** Format: int64 */
+            customers?: number;
+            /** Format: int64 */
+            newCustomersThisMonth?: number;
         };
         WorkloadCountsResponse: {
             /** Format: int64 */

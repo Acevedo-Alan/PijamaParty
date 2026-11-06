@@ -169,6 +169,7 @@ export function ReviewsPage() {
           ))}
         </ul>
       )}
+      {reviews.isFetchNextPageError && <p role="alert">{esAdmin.loadError}</p>}
       {reviews.hasNextPage && (
         <button
           type="button"

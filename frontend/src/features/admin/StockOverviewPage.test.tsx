@@ -164,7 +164,7 @@ describe('Stock screen (UC-07, T-E8-09)', () => {
     renderRoute('/admin/stock');
     await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
 
-    await press('M', `+ ${messages.add}`, '3', 'Llegó el pedido');
+    await press('M', messages.add, '3', 'Llegó el pedido');
 
     const medium = rowOf('M');
     expect(await medium.findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(7));
@@ -186,7 +186,7 @@ describe('Stock screen (UC-07, T-E8-09)', () => {
     renderRoute('/admin/stock');
     await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
 
-    await press('M', `− ${messages.subtract}`, '2');
+    await press('M', messages.subtract, '2');
 
     const medium = rowOf('M');
     expect(await medium.findByRole('alert')).toHaveTextContent(esAdmin.stock.wouldGoBelowReserved(3, 4));
@@ -205,11 +205,11 @@ describe('Stock screen (UC-07, T-E8-09)', () => {
     renderRoute('/admin/stock');
     await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
 
-    await press('M', `+ ${messages.add}`, '3');
+    await press('M', messages.add, '3');
     expect(await rowOf('M').findByRole('alert')).toHaveTextContent(messages.connectionLost);
-    await userEvent.click(rowOf('M').getByRole('button', { name: `+ ${messages.add}` }));
+    await userEvent.click(rowOf('M').getByRole('button', { name: messages.add }));
     expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(7));
-    await press('M', `+ ${messages.add}`, '1');
+    await press('M', messages.add, '1');
 
     const keys = api.callsTo(ADJUST).map((call) => call.options.params?.header?.['Idempotency-Key']);
     expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
@@ -226,7 +226,7 @@ describe('Stock screen (UC-07, T-E8-09)', () => {
     renderRoute('/admin/stock');
     await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
 
-    await press('M', `+ ${messages.add}`, '0');
+    await press('M', messages.add, '0');
 
     const field = rowOf('M').getByLabelText(messages.quantity);
     expect(field).toHaveAttribute('aria-invalid', 'true');
@@ -250,10 +250,10 @@ describe('Stock screen (UC-07, T-E8-09)', () => {
     await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
     expect(figure(rowOf('M'), messages.onHand)).toHaveTextContent('1.200');
 
-    await press('M', `+ ${messages.add}`, '2');
+    await press('M', messages.add, '2');
 
     expect(rowOf('M').getByRole('button', { name: esAdmin.stock.submitting })).toBeDisabled();
-    expect(rowOf('M').getByRole('button', { name: `− ${messages.subtract}` })).toBeDisabled();
+    expect(rowOf('M').getByRole('button', { name: messages.subtract })).toBeDisabled();
     answerAdjustment(answer(201, { variantId: 'v-M', onHand: 1202 }));
     expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(1202));
     expect(figure(rowOf('M'), messages.onHand)).toHaveTextContent('1.202');
@@ -318,7 +318,7 @@ describe('Stock screen (UC-07, T-E8-09)', () => {
     renderRoute('/admin/stock');
     await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
 
-    await press('M', `− ${messages.subtract}`, '2', 'Error de carga');
+    await press('M', messages.subtract, '2', 'Error de carga');
     expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(3));
     expect(rowOf('M').getByLabelText(messages.quantity)).toHaveValue(1);
     expect(rowOf('M').getByLabelText(messages.note)).toHaveValue('');
@@ -347,7 +347,7 @@ describe('Stock screen (UC-07, T-E8-09)', () => {
     renderRoute('/admin/stock');
     await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
 
-    await press('M', `+ ${messages.add}`, '1');
+    await press('M', messages.add, '1');
 
     expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(6));
     expect(rowOf('M').queryByRole('button', { name: /Deshacer/ })).not.toBeInTheDocument();
@@ -410,9 +410,9 @@ describe('Stock screen (UC-07, T-E8-09)', () => {
     renderRoute('/admin/stock');
     await screen.findByRole('form', { name: messages.adjust('Pijama Luna', messages.variant('M', 'Rosa')) });
 
-    await press('M', `− ${messages.subtract}`, '2');
+    await press('M', messages.subtract, '2');
     expect(await rowOf('M').findByRole('status')).toHaveTextContent(esAdmin.stock.adjusted(3));
-    await press('M', `− ${messages.subtract}`, '9');
+    await press('M', messages.subtract, '9');
     expect(await rowOf('M').findByRole('alert')).toHaveTextContent(esAdmin.stock.wouldGoNegative(3));
     await userEvent.click(rowOf('M').getByRole('button', { name: messages.undo(2) }));
 

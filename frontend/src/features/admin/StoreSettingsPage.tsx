@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useId, useState, type SubmitEvent } from 'react';
+import { useId, useRef, useState, type SubmitEvent } from 'react';
 import { Button } from '../../components/ui/Button.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card.tsx';
 import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
@@ -16,6 +16,7 @@ import {
   type SettingsField,
   type StoreSettings,
 } from './storeSettingsApi.ts';
+import { useUnsavedWarning } from './useUnsavedWarning.ts';
 
 const messages = esAdmin.storeSettingsPage;
 
@@ -74,13 +75,19 @@ interface EditorProps {
 function SettingsEditor({ settings, onChanged }: EditorProps) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<SettingsDraft>(() => draftOf(settings));
+  // What was last loaded or saved: a field that differs from it is unsaved (UC-36, decided on 2026-11-04).
+  const [saved, setSaved] = useState<SettingsDraft>(() => draftOf(settings));
+  const form = useRef<HTMLFormElement>(null);
   const [invalid, setInvalid] = useState<SettingsField[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
   const id = useId();
+  const unsaved = (Object.keys(draft) as SettingsField[]).some((name) => draft[name] !== saved[name]);
+  useUnsavedWarning(unsaved, messages.unsavedChanges);
 
   function changed(next: StoreSettings) {
     setDraft(draftOf(next));
+    setSaved(draftOf(next));
     onChanged(next);
   }
 
@@ -89,6 +96,7 @@ function SettingsEditor({ settings, onChanged }: EditorProps) {
     switch (answer.status) {
       case 'invalid':
         setInvalid(answer.fields);
+        focusFirst(answer.fields);
         return { kind: 'error', text: messages.invalid };
       case 'changed':
         // Another tab saved first: what it saved is shown, to review and save again.
@@ -103,6 +111,15 @@ function SettingsEditor({ settings, onChanged }: EditorProps) {
         void queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
         return { kind: 'ok', text: esAdmin.saved };
     }
+  }
+
+  /** The first refused field, in the order of the form, takes the focus, so its error is read where it lands. */
+  function focusFirst(fields: SettingsField[]) {
+    const first = [...(form.current?.elements ?? [])].find(
+      (element): element is HTMLInputElement =>
+        element instanceof HTMLInputElement && fields.some((name) => name === element.name),
+    );
+    first?.focus();
   }
 
   function submit(event: SubmitEvent<HTMLFormElement>) {
@@ -133,6 +150,7 @@ function SettingsEditor({ settings, onChanged }: EditorProps) {
         <FieldLabel>{messages.labels[name]}</FieldLabel>
         <FieldInput
           {...input}
+          name={name}
           value={value}
           autoComplete="off"
           spellCheck={name === 'announcement' || name === 'openingHours'}
@@ -146,7 +164,7 @@ function SettingsEditor({ settings, onChanged }: EditorProps) {
 
   return (
     // The server checks every rule (UC-36) and names each field it refuses; the browser's own checks would not.
-    <form className="flex max-w-2xl flex-col gap-4" noValidate onSubmit={submit}>
+    <form ref={form} className="flex max-w-2xl flex-col gap-4" noValidate onSubmit={submit}>
       <Card aria-labelledby={`${id}-contact`}>
         <CardHeader>
           <CardTitle id={`${id}-contact`}>{messages.contactTitle}</CardTitle>
@@ -178,7 +196,7 @@ function SettingsEditor({ settings, onChanged }: EditorProps) {
       <div>
         {/* Focusable while it saves (aria-disabled), so a keyboard does not lose its place. */}
         <Button type="submit" variant="primary" aria-disabled={busy}>
-          {esAdmin.save}
+          {busy ? esAdmin.saving : esAdmin.save}
         </Button>
       </div>
     </form>

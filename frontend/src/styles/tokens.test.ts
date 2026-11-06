@@ -40,6 +40,23 @@ describe('design tokens', () => {
     // The reason --accent-text exists: keep it documented by a test.
     expect(contrast(resolve('accent'), resolve('bg'))).toBeLessThan(4.5);
   });
+
+  it('given the back office status tones and planes, when their text is drawn on them, then it reaches 4.5:1', () => {
+    // D-E8-12: badges, the "to do" levels and the side menu (T-E8-14 moved these colors into tokens.css).
+    const pairs: [string, string][] = [
+      ['warning', 'warning-bg'],
+      ['success', 'success-bg'],
+      ['info', 'info-bg'],
+      ['danger-strong', 'danger-bg'],
+      ['ink-soft', 'admin-muted'],
+      ['ink-soft', 'admin-side'],
+      ['accent-text', 'admin-muted'],
+    ];
+    for (const [text, background] of pairs) {
+      expect(contrast(resolve(text), resolve(background)), `${text} on ${background}`).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(contrast(resolve('line-strong'), resolve('admin-muted'))).toBeGreaterThanOrEqual(3);
+  });
 });
 
 describe('motion tokens (D-16)', () => {

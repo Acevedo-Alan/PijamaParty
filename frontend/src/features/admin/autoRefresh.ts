@@ -1,7 +1,10 @@
 import { useState } from 'react';
 
-/** "Actualizar cada 5 minutos" (UC-33, T-E8-20): off by default, remembered in this browser only. */
-const KEY = 'pp-admin-auto-refresh';
+/**
+ * "Actualizar cada 5 minutos" (UC-33, T-E8-20): off by default, remembered in this browser only. The key carries a
+ * version: a later meaning of the stored value gets a new key, and the old one is simply never read again (T-E8-14).
+ */
+const KEY = 'pp-admin-auto-refresh:v1';
 
 function browserStorage(): Storage | null {
   try {

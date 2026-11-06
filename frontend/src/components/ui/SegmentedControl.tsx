@@ -19,6 +19,8 @@ interface SegmentedControlProps<T extends string> {
 /**
  * A segmented control (Apple HIG) on Radix's toggle group: one option is always chosen, the arrow keys move between
  * them, and a white marker slides under the chosen one (CSS `transform`, the motion tokens; instant under reduced motion).
+ * Each option is a 44 px touch target (RNF-26). The chosen one stands out by weight and by its raised marker, not only
+ * by its color (D-E8-12).
  */
 export function SegmentedControl<T extends string>({
   label,
@@ -47,7 +49,7 @@ export function SegmentedControl<T extends string>({
       <span
         aria-hidden="true"
         className={cn(
-          'pointer-events-none absolute inset-y-[3px] left-[3px] rounded-sm bg-card shadow-card',
+          'pointer-events-none absolute inset-y-[3px] left-[3px] rounded-sm border border-input bg-card shadow-raised',
           'w-[calc((100%-6px)/var(--segments))] translate-x-[calc(100%*var(--segment))]',
           'motion-safe:transition-transform motion-safe:duration-[var(--dur-base)] motion-safe:ease-[var(--ease-out)]',
         )}
@@ -57,8 +59,8 @@ export function SegmentedControl<T extends string>({
           key={option.value}
           value={option.value}
           className={cn(
-            'relative z-[1] min-h-9 cursor-pointer rounded-sm border-0 bg-transparent px-2 text-[13px] font-semibold whitespace-nowrap',
-            'text-muted-foreground transition-colors data-[state=on]:text-primary-text',
+            'relative z-[1] min-h-11 cursor-pointer rounded-sm border-0 bg-transparent px-2 text-[13px] font-medium whitespace-nowrap',
+            'text-muted-foreground transition-colors duration-[var(--dur-fast)] data-[state=on]:font-bold data-[state=on]:text-primary-text',
             'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
           )}
         >

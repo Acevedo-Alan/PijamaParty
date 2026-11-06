@@ -256,10 +256,10 @@ const StockRowItem = memo(function StockRowItem({ row, opened, onUnsaved }: Stoc
             disabled={saving !== null}
             onClick={() => void save(-1)}
           >
-            {saving === -1 ? esAdmin.stock.submitting : `− ${messages.subtract}`}
+            {saving === -1 ? esAdmin.stock.submitting : messages.subtract}
           </button>
-          <button type="button" className="btn" disabled={saving !== null} onClick={() => void save(1)}>
-            {saving === 1 ? esAdmin.stock.submitting : `+ ${messages.add}`}
+          <button type="button" className="btn btn-secondary" disabled={saving !== null} onClick={() => void save(1)}>
+            {saving === 1 ? esAdmin.stock.submitting : messages.add}
           </button>
         </div>
         <Feedback notice={notice} />
@@ -361,6 +361,7 @@ export function StockOverviewPage() {
           <FieldLabel>{messages.search}</FieldLabel>
           <FieldInput
             ref={searchField}
+            name={SEARCH_PARAM}
             type="search"
             value={search}
             maxLength={MAX_PRODUCT_SEARCH}
@@ -374,6 +375,7 @@ export function StockOverviewPage() {
         <Field>
           <FieldLabel>{messages.filter}</FieldLabel>
           <FieldSelect
+            name={FILTER_PARAM}
             value={filter.filter === 'ALL' ? '' : filter.filter}
             onChange={(event) => {
               change(FILTER_PARAM, event.target.value);
@@ -390,6 +392,7 @@ export function StockOverviewPage() {
         <Field>
           <FieldLabel>{messages.category}</FieldLabel>
           <FieldSelect
+            name={CATEGORY_PARAM}
             value={filter.categoryId ?? ''}
             onChange={(event) => {
               change(CATEGORY_PARAM, event.target.value);

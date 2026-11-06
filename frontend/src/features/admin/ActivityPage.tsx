@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useId } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
+import { FilterBar } from '../../components/ui/FilterBar.tsx';
 import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
@@ -49,9 +50,6 @@ function changeText({ field, before, after }: ActivityChange): string {
  * by area and by store dates if chosen, each with what it was about and what changed.
  */
 export function ActivityPage() {
-  const areaId = useId();
-  const fromId = useId();
-  const toId = useId();
   const [params, setParams] = useSearchParams();
   const filter = filterOf(params);
   const invalidPeriod = filter.from !== null && filter.to !== null && filter.from > filter.to;
@@ -81,11 +79,17 @@ export function ActivityPage() {
       <div className="admin-title-row">
         <h1>{messages.title}</h1>
       </div>
-      <div className="activity-filters">
-        <div className="field">
-          <label htmlFor={areaId}>{messages.area}</label>
-          <select
-            id={areaId}
+      {/* The filters apply as they change; the shared bar links the period's error to the dates (T-E8-14). */}
+      <FilterBar
+        aria-label={messages.filters}
+        onSubmit={(event) => {
+          event.preventDefault();
+        }}
+      >
+        <Field>
+          <FieldLabel>{messages.area}</FieldLabel>
+          <FieldSelect
+            name={AREA_PARAM}
             value={filter.area ?? ''}
             onChange={(event) => {
               change(AREA_PARAM, event.target.value);
@@ -97,38 +101,33 @@ export function ActivityPage() {
                 {messages.areas[value]}
               </option>
             ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor={fromId}>{messages.from}</label>
-          <input
-            id={fromId}
+          </FieldSelect>
+        </Field>
+        <Field error={invalidPeriod ? messages.invalidPeriod : undefined}>
+          <FieldLabel>{messages.from}</FieldLabel>
+          <FieldInput
+            name={FROM_PARAM}
+            autoComplete="off"
             type="date"
             value={filter.from ?? ''}
-            aria-invalid={invalidPeriod || undefined}
             onChange={(event) => {
               change(FROM_PARAM, event.target.value);
             }}
           />
-        </div>
-        <div className="field">
-          <label htmlFor={toId}>{messages.to}</label>
-          <input
-            id={toId}
+        </Field>
+        <Field>
+          <FieldLabel>{messages.to}</FieldLabel>
+          <FieldInput
+            name={TO_PARAM}
+            autoComplete="off"
             type="date"
             value={filter.to ?? ''}
-            aria-invalid={invalidPeriod || undefined}
             onChange={(event) => {
               change(TO_PARAM, event.target.value);
             }}
           />
-        </div>
-      </div>
-      {invalidPeriod && (
-        <p className="field-error" role="alert">
-          {messages.invalidPeriod}
-        </p>
-      )}
+        </Field>
+      </FilterBar>
       {!invalidPeriod && activity.isPending && <p role="status">{esAdmin.loading}</p>}
       {activity.isError && items.length === 0 && (
         <div role="alert">
@@ -171,6 +170,7 @@ export function ActivityPage() {
           })}
         </ul>
       )}
+      {activity.isFetchNextPageError && <p role="alert">{esAdmin.loadError}</p>}
       {activity.hasNextPage && (
         <button
           type="button"

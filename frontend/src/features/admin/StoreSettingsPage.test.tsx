@@ -101,6 +101,37 @@ describe('store settings (UC-36)', () => {
     expect(instagram).toHaveAccessibleDescription(`${messages.hints.instagramUrl} ${messages.errors.instagramUrl}`);
     expect(screen.getByLabelText(labels.lowStockThreshold)).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText(labels.email)).toHaveAttribute('aria-invalid', 'false');
+    // The first refused field, in the order of the form, takes the focus, so its error is read (T-E8-14).
+    expect(instagram).toHaveFocus();
+  });
+
+  it('given a field edited and not saved, when another screen opens, then it asks first; once saved, it does not', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/shipping/rates': rates,
+      'GET /api/admin/store/settings': answer(200, STORED),
+      'PUT /api/admin/store/settings': answer(200, { ...STORED, openingHours: 'Lunes a viernes', version: 5 }),
+    });
+    const { router } = renderRoute('/admin/datos-de-la-tienda');
+    await userEvent.type(await screen.findByLabelText(labels.openingHours), 'Lunes a viernes');
+
+    void router.navigate('/admin/actividad');
+
+    await vi.waitFor(() => {
+      expect(confirm).toHaveBeenCalledWith(messages.unsavedChanges);
+    });
+    expect(router.state.location.pathname).toBe('/admin/datos-de-la-tienda');
+
+    confirm.mockClear();
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.save }));
+    expect(await screen.findByRole('status')).toHaveTextContent(esAdmin.saved);
+    await router.navigate('/admin/actividad');
+
+    expect(confirm).not.toHaveBeenCalled();
+    await vi.waitFor(() => {
+      expect(router.state.location.pathname).toBe('/admin/actividad');
+    });
   });
 
   it('given a threshold that is not a whole number, when saved, then it is refused without asking the server', async () => {

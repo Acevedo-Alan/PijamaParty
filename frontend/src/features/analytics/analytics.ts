@@ -110,6 +110,25 @@ export function analyticsLoaded(): boolean {
   return loaded !== null;
 }
 
+/**
+ * R-05, RNF-25 (T-E8-14): the back office never runs next to the analytics tools. Loaded on a store page, they would
+ * stay in the document when the owner moves on to /admin, and a history-based page view configured on the tool's own
+ * side could send the full address of a search (/admin/clientes?buscar=...). So the back office, opened in such a
+ * document, loads itself again: the new document has no tools, since only the store loads them (ConsentBanner).
+ * Returns whether it reloaded.
+ */
+export function leaveAnalyticsBehind(
+  reload: () => void = () => {
+    window.location.reload();
+  },
+): boolean {
+  if (loaded === null) {
+    return false;
+  }
+  reload();
+  return true;
+}
+
 /** A page view of the address without query string or fragment, which may hold search texts or tokens. */
 export function trackPageView(path: string, title: string): void {
   if (loaded === null) {
