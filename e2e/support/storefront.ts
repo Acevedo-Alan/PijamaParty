@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, type Page } from '@playwright/test';
 import type { ProductForSale, Variant } from './admin.ts';
+import { emailsTo } from './backdoors.ts';
 
 /** The storefront steps a buyer takes, through the UI and its Spanish texts (frontend/src/i18n/es.ts). */
 
@@ -109,7 +110,37 @@ export async function trackedOrderNumber(page: Page): Promise<number> {
   return Number((await heading.innerText()).replace('Pedido #', ''));
 }
 
-/** The whole purchase of one variant as a guest, paid and approved; returns the order number. */
+/**
+ * UC-19 (T-E8-14): the buyer creates an account with its name and email, opens the verification link the store
+ * emailed (read from the Resend stub) and signs in, so its next purchase is linked to the account (UC-21).
+ */
+export async function registerAndSignIn(page: Page, buyer: Buyer, password: string): Promise<void> {
+  await page.goto('/cuenta/registro');
+  await page.getByLabel('Nombre y apellido').fill(`${buyer.firstName} ${buyer.lastName}`);
+  await page.getByLabel('Email').fill(buyer.email);
+  await page.getByRole('textbox', { name: 'Contraseña' }).fill(password);
+  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+  await expect(page.getByText(`Te enviamos un email a ${buyer.email}`, { exact: false })).toBeVisible();
+
+  let link: string | undefined;
+  await expect(async () => {
+    const emails = await emailsTo(buyer.email);
+    link = emails.flatMap((email) => email.links).find((href) => href.includes('/cuenta/verificar'));
+    expect(link).toBeDefined();
+  }).toPass();
+  await page.goto(link ?? '');
+  await expect(page.getByText('¡Listo! Verificaste tu email. Ya podés ingresar.')).toBeVisible();
+
+  await page.getByLabel('Email').fill(buyer.email);
+  await page.getByRole('textbox', { name: 'Contraseña' }).fill(password);
+  await page.getByRole('button', { name: 'Ingresar' }).click();
+  await expect(page).not.toHaveURL(/\/cuenta\/ingresar/);
+}
+
+/**
+ * The whole purchase of one variant, paid and approved; returns the order number. A guest's, or a signed-in
+ * customer's when the page's browser signed in first (registerAndSignIn).
+ */
 export async function buyAsGuest(page: Page, product: ProductForSale, variant: Variant, buyer: Buyer): Promise<number> {
   await addToCart(page, product, variant);
   await fillCheckout(page, buyer);

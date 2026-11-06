@@ -29,6 +29,8 @@ export interface SentEmail {
   id: string;
   to: string;
   subject: string;
+  /** The href of every link in the email, in order. */
+  links: string[];
 }
 
 /** The emails the store sent to one address through the Resend stub. */

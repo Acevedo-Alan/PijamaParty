@@ -6,18 +6,27 @@ import { RESEND_API_KEY } from './settings.ts';
 /**
  * T-E6-01: a stub of Resend's POST /emails (UC-17, ResendEmailSender), so the tests can count the emails an order
  * sends. They stay in memory only: never written to disk or to the log. GET /__e2e/emails?to=... lists those sent to
- * one address.
+ * one address, with the links of each (T-E8-14: a test follows the email verification link, as a customer does).
  */
 
 interface SentEmail {
   id: string;
   to: string;
   subject: string;
+  /** The href of every link in the HTML body, in order. */
+  links: string[];
 }
 
 interface EmailBody {
   to?: string | string[];
   subject?: string;
+  html?: string;
+}
+
+const HREF = /href="([^"]+)"/g;
+
+function linksOf(html: string | undefined): string[] {
+  return [...(html ?? '').matchAll(HREF)].map((match) => (match[1] ?? '').replaceAll('&amp;', '&'));
 }
 
 const emails: SentEmail[] = [];
@@ -52,7 +61,7 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
       sendJson(response, 422, { message: 'missing to or subject' });
       return;
     }
-    const email: SentEmail = { id: randomUUID(), to, subject: body.subject };
+    const email: SentEmail = { id: randomUUID(), to, subject: body.subject, links: linksOf(body.html) };
     emails.push(email);
     sendJson(response, 200, { id: email.id });
   } else if (method === 'GET' && url.pathname === '/__e2e/emails') {
