@@ -4,7 +4,7 @@ import { createMemoryRouter, matchRoutes, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from './api/client.ts';
 import { es } from './i18n/es.ts';
-import { routes } from './routes.tsx';
+import { createAppRoutes, routes } from './routes.tsx';
 import { renderRoute } from './test/renderRoute.tsx';
 
 describe('routes', () => {
@@ -65,5 +65,19 @@ describe('routes', () => {
     );
 
     expect(await screen.findByRole('heading', { level: 1, name: es.faq.title })).toBeInTheDocument();
+  });
+});
+
+describe('back office loading (T-E8-22)', () => {
+  it('given the back office layout, when its chunk is requested, then the session request starts with it', async () => {
+    const prefetch = vi.fn(() => Promise.resolve());
+    const admin = createAppRoutes(prefetch)[0]?.children?.find((route) => route.path === '/admin');
+
+    expect(prefetch).not.toHaveBeenCalled();
+    const lazy = admin?.lazy;
+    const loaded = typeof lazy === 'function' ? await lazy() : undefined;
+
+    expect(prefetch).toHaveBeenCalledOnce();
+    expect(loaded).toHaveProperty('Component');
   });
 });

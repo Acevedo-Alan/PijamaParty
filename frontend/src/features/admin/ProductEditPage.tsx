@@ -12,8 +12,13 @@ import { VariantsSection } from './VariantsSection.tsx';
 
 const messages = esAdmin.productEdit;
 
-function DetailsSection({ product }: { product: AdminProduct }) {
-  const categories = useCategories();
+function DetailsSection({
+  product,
+  categories,
+}: {
+  product: AdminProduct;
+  categories: ReturnType<typeof useCategories>;
+}) {
   const store = useStoreProduct();
   const titleId = useId();
 
@@ -92,6 +97,8 @@ export function ProductEditPage() {
   const { productId = '' } = useParams();
   const back = useBackToList('/admin/productos');
   const product = useAdminProduct(productId);
+  // Asked here, beside the product, so the two requests run together and not one after the other (T-E8-22).
+  const categories = useCategories();
 
   return (
     <>
@@ -112,7 +119,7 @@ export function ProductEditPage() {
         <>
           <title>{`${product.data.product.name} | ${esAdmin.title}`}</title>
           <h1>{product.data.product.name}</h1>
-          <DetailsSection key={product.data.product.id} product={product.data.product} />
+          <DetailsSection key={product.data.product.id} product={product.data.product} categories={categories} />
           <StateSection product={product.data.product} />
           <VariantsSection product={product.data.product} />
           <PhotosSection product={product.data.product} />

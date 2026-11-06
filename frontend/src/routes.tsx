@@ -28,7 +28,6 @@ import { WITHDRAWAL_PATH } from './features/withdrawal/WithdrawalLink.tsx';
  */
 const account = () => import('./features/account/accountPages.ts');
 const checkout = () => import('./features/checkout/checkoutPages.ts');
-const admin = () => import('./features/admin/adminPages.ts');
 const helpPages = () => import('./features/help/HelpPages.tsx');
 
 /** Feature folders add their routes here (catalog, cart, checkout, account, admin: ARCHITECTURE.md section 11). */
@@ -72,40 +71,94 @@ export const routes: RouteObject[] = [
       { path: '*', element: <NotFoundPage /> },
     ],
   },
-  { path: '/admin/ingresar', lazy: async () => ({ Component: (await admin()).SignInPage }) },
+  {
+    path: '/admin/ingresar',
+    lazy: async () => ({ Component: (await import('./features/admin/SignInPage.tsx')).SignInPage }),
+  },
   {
     path: '/admin',
-    lazy: async () => ({ Component: (await admin()).AdminLayout }),
+    lazy: async () => ({ Component: (await import('./features/admin/AdminLayout.tsx')).AdminLayout }),
     children: [
-      { index: true, lazy: async () => ({ Component: (await admin()).DashboardPage }) },
-      { path: 'pedidos', lazy: async () => ({ Component: (await admin()).OrdersPage }) },
-      { path: 'pedidos/:orderId', lazy: async () => ({ Component: (await admin()).OrderDetailPage }) },
+      {
+        index: true,
+        lazy: async () => ({ Component: (await import('./features/admin/DashboardPage.tsx')).DashboardPage }),
+      },
+      {
+        path: 'pedidos',
+        lazy: async () => ({ Component: (await import('./features/admin/OrdersPage.tsx')).OrdersPage }),
+      },
+      {
+        path: 'pedidos/:orderId',
+        lazy: async () => ({ Component: (await import('./features/admin/OrderDetailPage.tsx')).OrderDetailPage }),
+      },
       {
         path: 'pedidos/:orderId/remito',
-        lazy: async () => ({ Component: (await admin()).PackingSlipPage }),
+        lazy: async () => ({ Component: (await import('./features/admin/PackingSlipPage.tsx')).PackingSlipPage }),
       },
-      { path: 'arrepentimientos', lazy: async () => ({ Component: (await admin()).WithdrawalsPage }) },
-      { path: 'clientes', lazy: async () => ({ Component: (await admin()).CustomersPage }) },
-      { path: 'clientes/:customerId', lazy: async () => ({ Component: (await admin()).CustomerProfilePage }) },
-      { path: 'productos', lazy: async () => ({ Component: (await admin()).ProductsPage }) },
-      { path: 'productos/nuevo', lazy: async () => ({ Component: (await admin()).NewProductPage }) },
-      { path: 'productos/:productId', lazy: async () => ({ Component: (await admin()).ProductEditPage }) },
+      {
+        path: 'arrepentimientos',
+        lazy: async () => ({ Component: (await import('./features/admin/WithdrawalsPage.tsx')).WithdrawalsPage }),
+      },
+      {
+        path: 'clientes',
+        lazy: async () => ({ Component: (await import('./features/admin/CustomersPage.tsx')).CustomersPage }),
+      },
+      {
+        path: 'clientes/:customerId',
+        lazy: async () => ({ Component: (await import('./features/admin/CustomerProfilePage.tsx')).CustomerProfilePage }),
+      },
+      {
+        path: 'productos',
+        lazy: async () => ({ Component: (await import('./features/admin/ProductsPage.tsx')).ProductsPage }),
+      },
+      {
+        path: 'productos/nuevo',
+        lazy: async () => ({ Component: (await import('./features/admin/NewProductPage.tsx')).NewProductPage }),
+      },
+      {
+        path: 'productos/:productId',
+        lazy: async () => ({ Component: (await import('./features/admin/ProductEditPage.tsx')).ProductEditPage }),
+      },
       {
         path: 'productos/:productId/variantes/:variantId/stock',
-        lazy: async () => ({ Component: (await admin()).StockPage }),
+        lazy: async () => ({ Component: (await import('./features/admin/StockPage.tsx')).StockPage }),
       },
-      { path: 'stock', lazy: async () => ({ Component: (await admin()).StockOverviewPage }) },
-      { path: 'categorias', lazy: async () => ({ Component: (await admin()).CategoriesPage }) },
+      {
+        path: 'stock',
+        lazy: async () => ({ Component: (await import('./features/admin/StockOverviewPage.tsx')).StockOverviewPage }),
+      },
+      {
+        path: 'categorias',
+        lazy: async () => ({ Component: (await import('./features/admin/CategoriesPage.tsx')).CategoriesPage }),
+      },
       {
         path: 'categorias/:categoryId/guia-de-talles',
-        lazy: async () => ({ Component: (await admin()).SizeGuidePage }),
+        lazy: async () => ({ Component: (await import('./features/admin/SizeGuidePage.tsx')).SizeGuidePage }),
       },
-      { path: 'cupones', lazy: async () => ({ Component: (await admin()).CouponsPage }) },
-      { path: 'resenas', lazy: async () => ({ Component: (await admin()).ReviewsPage }) },
-      { path: 'envios', lazy: async () => ({ Component: (await admin()).ShippingPage }) },
-      { path: 'datos-de-la-tienda', lazy: async () => ({ Component: (await admin()).StoreSettingsPage }) },
-      { path: 'portada', lazy: async () => ({ Component: (await admin()).HomeBannerPage }) },
-      { path: 'actividad', lazy: async () => ({ Component: (await admin()).ActivityPage }) },
+      {
+        path: 'cupones',
+        lazy: async () => ({ Component: (await import('./features/admin/CouponsPage.tsx')).CouponsPage }),
+      },
+      {
+        path: 'resenas',
+        lazy: async () => ({ Component: (await import('./features/admin/ReviewsPage.tsx')).ReviewsPage }),
+      },
+      {
+        path: 'envios',
+        lazy: async () => ({ Component: (await import('./features/admin/ShippingPage.tsx')).ShippingPage }),
+      },
+      {
+        path: 'datos-de-la-tienda',
+        lazy: async () => ({ Component: (await import('./features/admin/StoreSettingsPage.tsx')).StoreSettingsPage }),
+      },
+      {
+        path: 'portada',
+        lazy: async () => ({ Component: (await import('./features/admin/HomeBannerPage.tsx')).HomeBannerPage }),
+      },
+      {
+        path: 'actividad',
+        lazy: async () => ({ Component: (await import('./features/admin/ActivityPage.tsx')).ActivityPage }),
+      },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
@@ -126,4 +179,25 @@ export function withRoot(children: RouteObject[]): RouteObject[] {
   ];
 }
 
-export const appRoutes = withRoot(routes);
+/**
+ * The routes of the browser router (T-E8-22). `prefetchAdminSession` starts the session request while the back
+ * office layout's chunk downloads, so the first page waits for the slower of the two, not for both in a row.
+ */
+export function createAppRoutes(prefetchAdminSession: () => Promise<unknown>): RouteObject[] {
+  return withRoot(
+    routes.map((route) =>
+      route.path === '/admin'
+        ? {
+            ...route,
+            lazy: async () => {
+              const [{ AdminLayout }] = await Promise.all([
+                import('./features/admin/AdminLayout.tsx'),
+                prefetchAdminSession(),
+              ]);
+              return { Component: AdminLayout };
+            },
+          }
+        : route,
+    ),
+  );
+}

@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useId } from 'react';
 import { es } from '../../i18n/es.ts';
-import { fetchProductPage } from './catalogApi.ts';
-import { NO_FILTERS } from './listingCriteria.ts';
+import { newestPageQuery } from './newestPage.ts';
 import { ProductCard } from './ProductCard.tsx';
 import './catalog.css';
 
@@ -16,10 +15,7 @@ const SHOWN = 4;
  */
 export function NewestProducts({ className, onOpen }: { className?: string; onOpen?: () => void }) {
   const titleId = useId();
-  const listing = useQuery({
-    queryKey: ['catalog', 'newest'],
-    queryFn: ({ signal }) => fetchProductPage(undefined, { filters: NO_FILTERS, sort: 'NEWEST' }, 0, signal),
-  });
+  const listing = useQuery(newestPageQuery(undefined));
   const page = listing.data;
   const newest = page?.status === 'listed' ? page.items.filter((item) => !item.soldOut).slice(0, SHOWN) : [];
   if (newest.length === 0) {
