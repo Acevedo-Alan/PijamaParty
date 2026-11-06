@@ -48,3 +48,7 @@ deploy/secrets/*
 
 # Photos and products copied from the Treinta catalog for the demo catalog (DevCatalogSeed)
 /treinta-photos/
+
+# Logo drafts kept next to the frontend, not part of the store
+/frontend/logo.jpeg
+/frontend/logorecortado.jpeg
