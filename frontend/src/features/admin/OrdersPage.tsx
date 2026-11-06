@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState, type SubmitEvent } from 'react';
+import { useEffect, useRef, useState, type SubmitEvent } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
@@ -63,19 +63,23 @@ export function OrdersPage() {
   const queryClient = useQueryClient();
   const orders = useInfiniteQuery({
     queryKey: ['admin', 'orders', 'list', filter.status, filter.q, filter.from, filter.to],
-    queryFn: ({ pageParam, signal }) => {
-      // T-E8-05: the menu's count of paid orders is read again whenever the list loads from its start, alongside it.
-      // A count already on its way is kept, not sent again.
-      if (pageParam === 0) {
-        void queryClient.invalidateQueries({ queryKey: WORKLOAD_COUNTS_KEY }, { cancelRefetch: false });
-      }
-      return fetchOrders(filter, pageParam, signal);
-    },
+    queryFn: ({ pageParam, signal }) => fetchOrders(filter, pageParam, signal),
     initialPageParam: 0,
     getNextPageParam: (last, _pages, page) => (last.hasMore ? page + 1 : undefined),
     enabled: !invalidPeriod,
   });
   const items = orders.data?.pages.flatMap((page) => page.items) ?? [];
+
+  // T-E8-05: the menu's count of paid orders is read again whenever the list loads from its start, alongside it
+  // (T-E8-23: here and not inside the query function, which also runs on every retry). A count already on its way is
+  // kept, not sent again. "Show more" adds a page and does not touch the count.
+  const loadedFromStart = orders.data?.pages.length === 1;
+  const loadedAt = orders.dataUpdatedAt;
+  useEffect(() => {
+    if (loadedFromStart) {
+      void queryClient.invalidateQueries({ queryKey: WORKLOAD_COUNTS_KEY }, { cancelRefetch: false });
+    }
+  }, [queryClient, loadedFromStart, loadedAt]);
 
   function change(name: string, value: string) {
     const next = new URLSearchParams(params);

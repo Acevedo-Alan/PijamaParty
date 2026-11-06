@@ -304,7 +304,8 @@ export function FilterPanel({ category, filters, onApply, count }: FilterPanelPr
       field.focus();
       focusGroup.current = null;
     }
-  });
+    // Runs again when the options arrive or a group opens: the field it looks for may only exist then (T-E8-23).
+  }, [isOpen, options.data, expanded]);
 
   // An unknown or inactive category has nothing to filter; the grid shows its message.
   if (options.data?.status === 'unknownCategory') {

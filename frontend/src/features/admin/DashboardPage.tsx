@@ -40,6 +40,7 @@ import {
 import type { OrderStatus } from './ordersApi.ts';
 import { rise } from './rise.ts';
 import { SalesChart } from './SalesChart.tsx';
+import { useStoreDay } from './useStoreDay.ts';
 
 const messages = esAdmin.dashboard;
 
@@ -674,7 +675,7 @@ function Totals({ totals, order }: { totals: Dashboard['totals']; order: number 
  * turned that on. One column at 360 px, three from 860 px (RNF-26).
  */
 export function DashboardPage() {
-  const [today] = useState(() => storeDay(new Date()));
+  const today = useStoreDay();
   const [chart, setChart] = useState<Chart>('DAYS');
   const [period, setPeriod] = useState<SalesPeriod>('MONTH');
   const [draft, setDraft] = useState<DatesDraft>({ from: `${today.slice(0, 8)}01`, to: today });

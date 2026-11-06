@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type PointerEvent } from 'react';
+import { memo, useState, type CSSProperties, type PointerEvent } from 'react';
 import { Link } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { es } from '../../i18n/es.ts';
@@ -22,7 +22,7 @@ export type CardPhotoPriority = 'lazy' | 'eager' | 'high';
  * touch devices (T-E7-32), the "Nuevo" (D-05) and "Sold out" labels, the colors with stock (D-04) at the left of
  * the sizes (T-E7-35), the name and the price, "from" only when its variants have more than one.
  */
-export function ProductCard({
+export const ProductCard = memo(function ProductCard({
   product,
   photo = 'lazy',
   view = 'grid',
@@ -111,4 +111,4 @@ export function ProductCard({
       </p>
     </Link>
   );
-}
+});

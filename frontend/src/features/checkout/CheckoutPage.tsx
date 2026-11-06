@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { memo, useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { AlertBox } from '../../components/AlertBox.tsx';
@@ -280,7 +280,7 @@ function Summary({ cart, amounts }: { cart: Cart; amounts: Amounts }) {
         {cart.items
           .filter((item) => item.status === 'AVAILABLE')
           .map((item) => (
-            <SummaryItem key={item.id} item={item} />
+            <MemoSummaryItem key={item.id} item={item} />
           ))}
       </ul>
       {cart.coupon !== null && (
@@ -370,6 +370,14 @@ interface Attempt {
 
 /** What should take the focus after the next render: the step's heading or a field. */
 type FocusTarget = { kind: 'heading' } | { kind: 'field'; field: FormField } | { kind: 'terms' };
+
+/**
+ * T-E8-23: typing in the form re-renders the wizard on every key; the steps, the summary and its items only depend on
+ * the step, the cart and the amounts, so they are skipped while those stay the same.
+ */
+const MemoSteps = memo(Steps);
+const MemoSummary = memo(Summary);
+const MemoSummaryItem = memo(SummaryItem);
 
 function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) {
   const navigate = useNavigate();
@@ -587,12 +595,11 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   }
 
   const quoted = shipping.data?.status === 'quoted' ? shipping.data.cost : null;
-  const amounts: Amounts = quoted ?? {
-    subtotalCents: cart.subtotalCents,
-    discountCents: cart.discountCents,
-    shippingCents: null,
-    totalCents: cart.totalCents,
-  };
+  const { subtotalCents, discountCents, totalCents } = cart;
+  const amounts: Amounts = useMemo(
+    () => quoted ?? { subtotalCents, discountCents, shippingCents: null, totalCents },
+    [quoted, subtotalCents, discountCents, totalCents],
+  );
   const fieldProps = { form, invalid, onChange: change, idOf };
   const provinceInvalid = invalid.includes('province');
   const noShipping = form.province !== '' && shipping.data?.status === 'noShipping';
@@ -615,7 +622,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   return (
     <div className="checkout-layout">
       <div className="checkout-main">
-        <Steps step={step} />
+        <MemoSteps step={step} />
         {!ready && <CartNotice />}
 
         {step === 1 && (
@@ -922,7 +929,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
           </section>
         )}
       </div>
-      <Summary cart={cart} amounts={amounts} />
+      <MemoSummary cart={cart} amounts={amounts} />
     </div>
   );
 }
