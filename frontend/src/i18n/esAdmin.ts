@@ -18,6 +18,8 @@ export const esAdmin = {
   /** UC-39: the global search of the top bar (Ctrl+K). */
   search: {
     open: 'Buscar en todo',
+    shortcut: 'Ctrl K',
+    shortcutMac: '⌘ K',
     title: 'Buscar en el backoffice',
     label: 'Buscar pedidos, productos y clientes',
     placeholder: 'Pedido, producto o cliente…',

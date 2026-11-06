@@ -21,6 +21,11 @@ function searchable(typed: string): boolean {
   return length >= MIN_LENGTH && length <= MAX_LENGTH;
 }
 
+/** Cmd+K on a Mac, Ctrl+K elsewhere: only the label the button shows. */
+function isMac(): boolean {
+  return /Mac|iPhone|iPad/.test(navigator.userAgent);
+}
+
 function useDebounced(value: string): string {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -50,11 +55,12 @@ interface Match {
 }
 
 /** One group of results: loading, failed, none, or up to five links. */
-function Group({ title, matches, pending, failed }: {
+function Group({ title, matches, pending, failed, onChoose }: {
   title: string;
   matches: readonly Match[] | undefined;
   pending: boolean;
   failed: boolean;
+  onChoose: () => void;
 }) {
   const titleId = useId();
   return (
@@ -67,7 +73,7 @@ function Group({ title, matches, pending, failed }: {
         <ul>
           {matches.map(({ id, to, label }) => (
             <li key={id}>
-              <Link to={to} data-admin-search-result>
+              <Link to={to} onClick={onChoose}>
                 {label}
               </Link>
             </li>
@@ -167,23 +173,16 @@ function SearchBody({ onChoose }: { onChoose: () => void }) {
           setTyped(event.target.value);
         }}
       />
-      <div
-        aria-live="polite"
-        onClick={(event) => {
-          if (event.target instanceof Element && event.target.closest('[data-admin-search-result]') !== null) {
-            onChoose();
-          }
-        }}
-      >
+      <div aria-live="polite">
         {typed.trim() === '' || !searchable(typed) ? (
           <p className="admin-search-note" role="status">
             {typed.trim() === '' ? messages.hint : messages.tooShort}
           </p>
         ) : (
           <>
-            <Group title={messages.groups.orders} matches={orderMatches} pending={ready ? orders.isPending : true} failed={orders.isError} />
-            <Group title={messages.groups.products} matches={productMatches} pending={ready ? products.isPending : true} failed={products.isError} />
-            <Group title={messages.groups.customers} matches={customerMatches} pending={ready ? customers.isPending : true} failed={customers.isError} />
+            <Group title={messages.groups.orders} matches={orderMatches} pending={ready ? orders.isPending : true} failed={orders.isError} onChoose={onChoose} />
+            <Group title={messages.groups.products} matches={productMatches} pending={ready ? products.isPending : true} failed={products.isError} onChoose={onChoose} />
+            <Group title={messages.groups.customers} matches={customerMatches} pending={ready ? customers.isPending : true} failed={customers.isError} onChoose={onChoose} />
           </>
         )}
       </div>
@@ -232,7 +231,7 @@ export function AdminSearch() {
       >
         <Search aria-hidden="true" />
         <span>{messages.open}</span>
-        <kbd aria-hidden="true">Ctrl K</kbd>
+        <kbd aria-hidden="true">{isMac() ? messages.shortcutMac : messages.shortcut}</kbd>
       </button>
       <PanelDialog open={open} from="bottom" className="admin-search-panel" labelledBy={titleId} onDismiss={close}
         onClosed={() => {

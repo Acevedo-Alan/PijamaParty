@@ -17,7 +17,7 @@ import {
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { Badge, type badgeVariants } from '../../components/ui/Badge.tsx';
 import { Button } from '../../components/ui/Button.tsx';
@@ -677,6 +677,65 @@ function Totals({ totals, order }: { totals: Dashboard['totals']; order: number 
   );
 }
 
+/** The options menu attached to "Actualizar": a native disclosure that also closes with Escape and a tap outside it. */
+function RefreshOptions({ autoRefresh, onAutoRefresh }: { autoRefresh: boolean; onAutoRefresh: (on: boolean) => void }) {
+  const menu = useRef<HTMLDetailsElement>(null);
+  const [open, setOpen] = useState(false);
+  const switchId = useId();
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    function close() {
+      if (menu.current !== null) {
+        menu.current.open = false;
+      }
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        close();
+        menu.current?.querySelector('summary')?.focus();
+      }
+    }
+    function onPointer(event: PointerEvent) {
+      if (event.target instanceof Node && menu.current?.contains(event.target) !== true) {
+        close();
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+    };
+  }, [open]);
+
+  return (
+    <details
+      ref={menu}
+      className="relative"
+      onToggle={(event) => {
+        setOpen(event.currentTarget.open);
+      }}
+    >
+      <summary
+        aria-label={messages.refreshOptions}
+        title={messages.refreshOptions}
+        className="grid size-11 cursor-pointer list-none place-items-center rounded-md border border-input bg-card text-muted-foreground marker:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
+      >
+        <Settings aria-hidden="true" className="size-4" />
+      </summary>
+      <div className="absolute right-0 z-10 mt-1 w-64 rounded-md border border-border bg-card p-3 shadow-raised">
+        <label htmlFor={switchId} className="flex min-h-11 cursor-pointer items-center gap-2 text-[13px] font-semibold">
+          <Switch id={switchId} checked={autoRefresh} onCheckedChange={onAutoRefresh} />
+          {messages.autoRefresh}
+        </label>
+      </div>
+    </details>
+  );
+}
+
 /**
  * UC-33 at /admin: the summary the back office opens on, in the look of D-E8-12. The figures are read when the page
  * opens, when the chart or the sales period changes, with "Actualizar", and every 5 minutes if the administrator
@@ -692,7 +751,6 @@ export function DashboardPage() {
   const [autoRefresh, setAutoRefresh] = useAutoRefresh();
   const dashboard = useDashboard(chart, choice, autoRefresh);
   const activity = useRecentActivity(autoRefresh);
-  const switchId = useId();
   const problem = period === 'CUSTOM' ? datesProblem(draft, today) : null;
 
   const choosePeriod = (next: SalesPeriod) => {
@@ -738,27 +796,13 @@ export function DashboardPage() {
                 {messages.refresh}
               </Button>
               {dashboard.data !== undefined && (
-                <p className="m-0 text-[11px] text-muted-foreground tabular-nums">
+                <p className="m-0 text-xs text-muted-foreground tabular-nums">
                   {messages.updatedAt(formatTime(new Date(dashboard.dataUpdatedAt)))}
                 </p>
               )}
             </div>
             {/* The 5-minute interval tucked into an options menu attached to the button (2026-11-06) */}
-            <details className="relative">
-              <summary
-                aria-label={messages.refreshOptions}
-                title={messages.refreshOptions}
-                className="grid size-11 cursor-pointer list-none place-items-center rounded-md border border-input bg-card text-muted-foreground marker:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
-              >
-                <Settings aria-hidden="true" className="size-4" />
-              </summary>
-              <div className="absolute right-0 z-10 mt-1 w-64 rounded-md border border-border bg-card p-3 shadow-raised">
-                <label htmlFor={switchId} className="flex min-h-11 cursor-pointer items-center gap-2 text-[13px] font-semibold">
-                  <Switch id={switchId} checked={autoRefresh} onCheckedChange={setAutoRefresh} />
-                  {messages.autoRefresh}
-                </label>
-              </div>
-            </details>
+            <RefreshOptions autoRefresh={autoRefresh} onAutoRefresh={setAutoRefresh} />
           </div>
         </div>
       </div>
