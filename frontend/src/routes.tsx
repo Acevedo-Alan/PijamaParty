@@ -15,6 +15,8 @@ import { CatalogPage } from './features/catalog/CatalogPage.tsx';
 import { HomePage } from './features/catalog/HomePage.tsx';
 import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
+import { RootLayout, RouteLoadingFallback } from './features/errors/RootLayout.tsx';
+import { RouteErrorPage } from './features/errors/RouteErrorPage.tsx';
 import { FAQ_PATH, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, SIZE_GUIDES_PATH, TERMS_PATH } from './features/help/FaqLink.tsx';
 import { SearchPage } from './features/search/SearchPage.tsx';
 import { StoreLayout } from './features/search/StoreLayout.tsx';
@@ -108,3 +110,20 @@ export const routes: RouteObject[] = [
     ],
   },
 ];
+
+/**
+ * What the browser router is built from (T-E8-21): every route under one root that owns the Spanish error page
+ * (a failed lazy chunk, typically after a deploy), the first-visit fallback and the navigation progress bar.
+ */
+export function withRoot(children: RouteObject[]): RouteObject[] {
+  return [
+    {
+      element: <RootLayout />,
+      errorElement: <RouteErrorPage />,
+      hydrateFallbackElement: <RouteLoadingFallback />,
+      children,
+    },
+  ];
+}
+
+export const appRoutes = withRoot(routes);

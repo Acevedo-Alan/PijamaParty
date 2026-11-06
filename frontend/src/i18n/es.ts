@@ -1078,6 +1078,13 @@ export const es = {
     body: 'Puede que el enlace esté mal escrito o que la página ya no exista.',
     backToStore: 'Volver a la tienda',
   },
+  /** Failed or slow route loading (T-E8-21). */
+  routeError: {
+    title: 'Algo salió mal',
+    body: 'No pudimos cargar esta página. Puede que haya una versión nueva de la tienda: recargá para verla.',
+    reload: 'Recargar',
+    loading: 'Cargando…',
+  },
 } as const;
 
 export type Messages = typeof es;

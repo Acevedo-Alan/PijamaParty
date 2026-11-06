@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { createQueryClient } from './api/queryClient.ts';
 import { MotionProvider } from './components/motion/MotionProvider.tsx';
-import { routes } from './routes.tsx';
+import { appRoutes } from './routes.tsx';
 
 const container = document.getElementById('root');
 if (container === null) {
@@ -20,7 +20,7 @@ createRoot(container).render(
   <StrictMode>
     <QueryClientProvider client={createQueryClient()}>
       <MotionProvider>
-        <RouterProvider router={createBrowserRouter(routes)} />
+        <RouterProvider router={createBrowserRouter(appRoutes)} />
       </MotionProvider>
     </QueryClientProvider>
   </StrictMode>,
