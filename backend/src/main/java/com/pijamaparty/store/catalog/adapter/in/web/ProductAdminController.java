@@ -63,6 +63,9 @@ import org.springframework.web.bind.annotation.RestController;
     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
 class ProductAdminController {
 
+    /** Bounds a search before its use case reads it (2 to 100 characters, RNF-28, T-E8-14), well above that. */
+    private static final int MAX_SEARCH_TYPED = 1_000;
+
     /** Bounds the offset; 10,000 pages of 50 are far beyond the catalog of the shop. */
     private static final int MAX_PAGE = 10_000;
 
@@ -109,7 +112,7 @@ class ProductAdminController {
     @ApiResponse(responseCode = "400", description = "Unknown state or stock, a category that is not a UUID, page out "
         + "of range, or INVALID_SEARCH (1 character or over 100)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-    ResponseEntity<?> list(@RequestParam(required = false) String q,
+    ResponseEntity<?> list(@RequestParam(required = false) @Size(max = MAX_SEARCH_TYPED) String q,
                            @RequestParam(required = false) UUID category,
                            @RequestParam(required = false) ProductState state,
                            @RequestParam(required = false) ProductStock stock,

@@ -68,14 +68,4 @@ public abstract class StockWatchContractTest<T extends StockWatch> extends Liste
         assertThat(subject.lowStock(3, 4)).hasSize(4);
         assertThat(subject.lowStockCount(3)).isEqualTo(6);
     }
-
-    @Test
-    void givenPublishedAndHiddenProducts_whenCounted_thenOnlyThePublishedCount() {
-        stored(product(summer, "Publicado", 0, List.of("M"), ROSA, 1000));
-        stored(product(summer, "Otro publicado", 1, List.of("M"), ROSA, 1000));
-        stored(product(summer, "Oculto", 2, List.of("M"), ROSA, 1000, builder -> builder.hidden()));
-        persistAndForget();
-
-        assertThat(subject.publishedProducts()).isEqualTo(2);
-    }
 }

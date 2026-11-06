@@ -113,6 +113,9 @@ public interface GetDashboard {
         }
     }
 
-    /** The published products; the registered customers join with T-E8-10. */
-    record Totals(long publishedProducts) {}
+    /**
+     * The published products, the registered customers and how many of them registered this month (store dates,
+     * since the 1st), T-E8-14.
+     */
+    record Totals(long publishedProducts, long customers, long newCustomersThisMonth) {}
 }

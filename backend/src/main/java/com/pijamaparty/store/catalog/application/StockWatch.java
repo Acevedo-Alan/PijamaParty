@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * Outbound read port (UC-33): the active variants of published products at or under a threshold of available stock
- * (a variant without stock has none), and the published products. Within the caller's transaction.
+ * (a variant without stock has none). Within the caller's transaction.
  */
 public interface StockWatch {
 
@@ -13,6 +13,4 @@ public interface StockWatch {
     List<LowStockVariant> lowStock(int threshold, int limit);
 
     long lowStockCount(int threshold);
-
-    long publishedProducts();
 }

@@ -1,6 +1,7 @@
 package com.pijamaparty.store.catalog.adapter.out.persistence;
 
 import com.pijamaparty.store.catalog.api.LowStockVariants.LowStockVariant;
+import com.pijamaparty.store.catalog.application.CountPublishedProducts;
 import com.pijamaparty.store.catalog.application.StockWatch;
 import java.util.List;
 import java.util.UUID;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Repository;
  * 4); a variant without a stock row has none. Constant SQL with named parameters (RNF-28).
  */
 @Repository
-class JdbcStockWatch implements StockWatch {
+class JdbcStockWatch implements StockWatch, CountPublishedProducts {
 
     // Low stock: an active variant of a published product at or under the threshold (LIST and COUNT share the rule).
     private static final String LIST = """

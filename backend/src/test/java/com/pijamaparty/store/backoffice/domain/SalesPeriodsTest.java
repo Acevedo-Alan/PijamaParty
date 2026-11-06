@@ -6,11 +6,14 @@ import com.pijamaparty.store.platform.domain.Money;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class SalesPeriodsTest {
+
+    private static final ZoneId ARGENTINA = ZoneId.of("America/Argentina/Buenos_Aires");
 
     private static DateRange range(String from, String to) {
         return new DateRange(LocalDate.parse(from), LocalDate.parse(to));
@@ -57,8 +60,8 @@ class SalesPeriodsTest {
     void givenAnArgentinaDate_whenItsInstantsAreAsked_thenTheDayRunsFromMidnightToMidnightThere() {
         DateRange day = range("2026-10-15", "2026-10-15");
 
-        assertThat(day.start()).isEqualTo(Instant.parse("2026-10-15T03:00:00Z"));
-        assertThat(day.end()).isEqualTo(Instant.parse("2026-10-16T03:00:00Z"));
+        assertThat(day.start(ARGENTINA)).isEqualTo(Instant.parse("2026-10-15T03:00:00Z"));
+        assertThat(day.end(ARGENTINA)).isEqualTo(Instant.parse("2026-10-16T03:00:00Z"));
     }
 
     @Test

@@ -34,10 +34,13 @@ class GetDashboardService implements GetDashboard {
     private final CatalogFigures catalog;
     private final PendingReviewCount reviews;
     private final LowStockThreshold threshold;
+    private final CustomerFigures customers;
     private final Clock clock;
 
     GetDashboardService(OrderCounts orders, SalesReadings sales, BuyerEmails buyerEmails, CatalogFigures catalog,
-                        PendingReviewCount reviews, LowStockThreshold threshold, Clock clock) {
+                        PendingReviewCount reviews, LowStockThreshold threshold, CustomerFigures customers,
+                        Clock clock) {
+        this.customers = customers;
         this.orders = orders;
         this.sales = sales;
         this.buyerEmails = buyerEmails;
@@ -47,14 +50,14 @@ class GetDashboardService implements GetDashboard {
         this.clock = clock;
     }
 
-    /** Every block in one read-only transaction, as the administrator. */
+    /** Every block in one read-only transaction, as the administrator. Store dates come from the clock's zone (R-07). */
     @Override
     @Transactional(readOnly = true)
     public Result execute(Query query) {
         if (!query.actor().is(Role.ADMIN)) {
             return new Result.Forbidden();
         }
-        SalesPeriods periods = SalesPeriods.of(LocalDate.now(clock.withZone(SalesPeriods.ARGENTINA)));
+        SalesPeriods periods = SalesPeriods.of(LocalDate.now(clock));
         Optional<Compared> chosen = chosen(query, periods);
         if (chosen.isEmpty()) {
             return new Result.InvalidPeriod();
@@ -68,7 +71,13 @@ class GetDashboardService implements GetDashboard {
         var lowStock = new LowStock(units, catalog.lowStock(units, LOW_STOCK_SHOWN), catalog.lowStockCount(units));
         return new Result.Shown(new Dashboard(todo, salesBlock, query.chart(), chart(query.chart(), periods), lowStock,
             bestSellers(periods.chartDays()), orders.newest(RECENT_ORDERS_SHOWN),
-            new Totals(catalog.publishedProducts())));
+            totals(periods)));
+    }
+
+    /** UC-33: the customers counted from the first of this month, a store date (R-07). */
+    private Totals totals(SalesPeriods periods) {
+        var counts = customers.count(periods.month().start(clock.getZone()));
+        return new Totals(catalog.publishedProducts(), counts.registered(), counts.registeredSince());
     }
 
     /** The chosen period and the one it is compared against; empty when the query's period is not valid. */

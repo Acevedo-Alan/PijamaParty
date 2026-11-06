@@ -1,12 +1,12 @@
 package com.pijamaparty.store.backoffice.application;
 
 import com.pijamaparty.store.backoffice.domain.DateRange;
-import com.pijamaparty.store.backoffice.domain.SalesPeriods;
 import com.pijamaparty.store.backoffice.domain.SalesTotal;
 import com.pijamaparty.store.platform.domain.Money;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -17,6 +17,9 @@ import java.util.function.Function;
 
 /** Fake of {@link SalesReadings}: the sales the test arranges, each of one variant. */
 public class InMemorySalesReadings implements SalesReadings {
+
+    /** The store's dates (R-07), as the clock the application runs with. */
+    private static final ZoneId STORE = ZoneId.of("America/Argentina/Buenos_Aires");
 
     private record Sale(Instant createdAt, Money total, UUID variant, long units, Money lineAmount) {}
 
@@ -29,12 +32,12 @@ public class InMemorySalesReadings implements SalesReadings {
 
     private List<Sale> within(DateRange range) {
         return sales.stream()
-            .filter(sale -> !sale.createdAt().isBefore(range.start()) && sale.createdAt().isBefore(range.end()))
+            .filter(sale -> !sale.createdAt().isBefore(range.start(STORE)) && sale.createdAt().isBefore(range.end(STORE)))
             .toList();
     }
 
     private static LocalDate day(Sale sale) {
-        return sale.createdAt().atZone(SalesPeriods.ARGENTINA).toLocalDate();
+        return sale.createdAt().atZone(STORE).toLocalDate();
     }
 
     private <K> Map<K, SalesTotal> grouped(DateRange range, Function<Sale, K> key) {

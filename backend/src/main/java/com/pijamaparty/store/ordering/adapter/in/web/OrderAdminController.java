@@ -48,6 +48,9 @@ import org.springframework.web.bind.annotation.RestController;
     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
 class OrderAdminController {
 
+    /** Bounds a search before its use case reads it (2 to 100 characters, RNF-28, T-E8-14), well above that. */
+    private static final int MAX_SEARCH_TYPED = 1_000;
+
     private static final int MAX_PAGE = 10_000;
 
     private final ListOrders listOrders;
@@ -73,7 +76,7 @@ class OrderAdminController {
         + "or over 100 and not an order number), a date that is not yyyy-MM-dd, or INVALID_PERIOD (from after to)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> list(@RequestParam(required = false) OrderStatus status,
-                           @RequestParam(required = false) String q,
+                           @RequestParam(required = false) @Size(max = MAX_SEARCH_TYPED) String q,
                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Optional<LocalDate> from,
                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Optional<LocalDate> to,
                            @RequestParam(defaultValue = "0") @Min(0) @Max(MAX_PAGE) int page) {

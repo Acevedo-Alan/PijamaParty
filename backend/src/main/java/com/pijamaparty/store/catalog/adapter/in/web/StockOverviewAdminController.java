@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +33,9 @@ import org.springframework.web.bind.annotation.RestController;
 @ApiResponse(responseCode = "403", description = "Not the administrator",
     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
 class StockOverviewAdminController {
+
+    /** Bounds a search before its use case reads it (2 to 100 characters, RNF-28, T-E8-14), well above that. */
+    private static final int MAX_SEARCH_TYPED = 1_000;
 
     /** Bounds the offset; 10,000 pages of 50 are far beyond the catalog of the shop. */
     private static final int MAX_PAGE = 10_000;
@@ -55,7 +59,7 @@ class StockOverviewAdminController {
         + "range, or INVALID_SEARCH (1 character or over 100)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<?> list(@RequestParam(defaultValue = "ALL") StockFilter filter,
-                           @RequestParam(required = false) String q,
+                           @RequestParam(required = false) @Size(max = MAX_SEARCH_TYPED) String q,
                            @RequestParam(required = false) UUID category,
                            @RequestParam(defaultValue = "0") @Min(0) @Max(MAX_PAGE) int page) {
         var query = new ListStockOverview.Query(actor(), filter, Optional.ofNullable(q),

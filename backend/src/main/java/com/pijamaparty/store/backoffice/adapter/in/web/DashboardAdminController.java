@@ -96,7 +96,8 @@ class DashboardAdminController {
                     lowStock.variants().stream().map(LowStockItemResponse::of).toList()),
                 dashboard.bestSellers().stream().map(BestSellerResponse::of).toList(),
                 dashboard.recentOrders().stream().map(RecentOrderResponse::of).toList(),
-                new TotalsResponse(dashboard.totals().publishedProducts()));
+                new TotalsResponse(dashboard.totals().publishedProducts(), dashboard.totals().customers(),
+                    dashboard.totals().newCustomersThisMonth()));
         }
     }
 
@@ -159,5 +160,6 @@ class DashboardAdminController {
         }
     }
 
-    record TotalsResponse(long publishedProducts) {}
+    /**  newCustomersThisMonth registered since the 1st of this month, a store date */
+    record TotalsResponse(long publishedProducts, long customers, long newCustomersThisMonth) {}
 }

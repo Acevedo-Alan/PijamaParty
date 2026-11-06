@@ -7,6 +7,7 @@ import com.pijamaparty.store.accounts.application.ConfirmSecondFactorEnrollment;
 import com.pijamaparty.store.accounts.application.StartSecondFactorEnrollment;
 import com.pijamaparty.store.accounts.application.VerifySecondFactor;
 import com.pijamaparty.store.activity.api.ActivityAction;
+import com.pijamaparty.store.backoffice.application.GetCustomerProfile;
 import com.pijamaparty.store.catalog.application.ActivateCategory;
 import com.pijamaparty.store.catalog.application.CreateCategory;
 import com.pijamaparty.store.catalog.application.CreateProduct;
@@ -114,9 +115,8 @@ class ActivityPersonalDataTest {
     private static final List<String> PERSONAL_DATA = List.of("Ana", "Pérez", "ana@example.com", "3425551234",
         "12345678", "San Martín");
 
-    /** Recorded by tasks still to come; each removes its actions as it records them. */
-    private static final Set<ActivityAction> NOT_RECORDED_YET = EnumSet.of(
-        ActivityAction.CUSTOMER_VIEWED);
+    /** Recorded by tasks still to come; each removes its actions as it records them. Empty since T-E8-14. */
+    private static final Set<ActivityAction> NOT_RECORDED_YET = EnumSet.noneOf(ActivityAction.class);
 
     private static final Actor ADMIN = RlsPolicyTester.ADMIN;
     private static final byte[] PHOTO = TestImages.png(1600, 1200);
@@ -132,11 +132,14 @@ class ActivityPersonalDataTest {
     private ProductView product;
     private ProductView.VariantView variant;
     private boolean administratorAdded;
+    private final GetCustomerProfile getCustomerProfile;
+    private UUID customer;
 
-    ActivityPersonalDataTest(Catalog catalog, BackOffice backOffice, PostgreSQLContainer<?> postgres,
-                             @Value("${store.images.uploads-dir}") Path uploads) {
+    ActivityPersonalDataTest(Catalog catalog, BackOffice backOffice, GetCustomerProfile getCustomerProfile,
+                             PostgreSQLContainer<?> postgres, @Value("${store.images.uploads-dir}") Path uploads) {
         this.catalog = catalog;
         this.backOffice = backOffice;
+        this.getCustomerProfile = getCustomerProfile;
         this.owner = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), "tienda_owner",
             TestcontainersConfiguration.OWNER_PASSWORD));
         this.uploads = uploads;
@@ -157,6 +160,9 @@ class ActivityPersonalDataTest {
                 image_placeholder = null, image_upload_key = null, image_content_sha256 = null, published = false
             """);
         owner.update("delete from admin_recovery_code");
+        if (customer != null) {
+            owner.update("delete from app_user where id = ?", customer);
+        }
         if (administratorAdded) {
             owner.update("delete from app_user where role = 'ADMIN'");
         } else {
@@ -181,6 +187,7 @@ class ActivityPersonalDataTest {
         as(this::runReviewActions);
         as(this::runShippingActions);
         as(this::runSettingsActions);
+        as(this::runCustomerActions);
         runSignInActions();
 
         List<String> forbidden = new ArrayList<>(PERSONAL_DATA);
@@ -309,6 +316,19 @@ class ActivityPersonalDataTest {
             "hola@pijamaparty.com.ar", "5493424000000", "Lunes a viernes de 9 a 18 h", "Bv. Gálvez 1500, Santa Fe",
             "https://www.instagram.com/pijamaparty.zzz/", "https://www.facebook.com/pijamaparty",
             "https://www.tiktok.com/@pijamaparty", "Envío gratis a todo Santa Fe", 5L)));
+    }
+
+    /** UC-34: the administrator opens the profile of a customer named like the buyer, with the buyer's phone. */
+    private void runCustomerActions() {
+        customer = UUID.randomUUID();
+        String email = "ana.perez.cliente@example.com";
+        neverRecorded.add(email);
+        owner.update("""
+            insert into app_user (id, email, email_verified, password_hash, name, role, phone, failed_login_attempts,
+                                  created_at, updated_at)
+            values (?, ?, true, ?, 'Ana Pérez', 'CUSTOMER', '3425551234', 0, now(), now())
+            """, customer, email, UNUSED_PASSWORD_HASH);
+        getCustomerProfile.execute(new GetCustomerProfile.Query(ADMIN, customer, 0));
     }
 
     /**

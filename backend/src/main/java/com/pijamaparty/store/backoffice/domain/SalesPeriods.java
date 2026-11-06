@@ -2,7 +2,6 @@ package com.pijamaparty.store.backoffice.domain;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneId;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -14,9 +13,6 @@ import java.util.Optional;
  * before it.
  */
 public final class SalesPeriods {
-
-    /** The store's dates (R-07). */
-    public static final ZoneId ARGENTINA = ZoneId.of("America/Argentina/Buenos_Aires");
 
     static final int WEEK_DAYS = 7;
     static final int CHART_DAYS = 30;

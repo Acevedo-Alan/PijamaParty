@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.Comparator;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
@@ -123,21 +124,25 @@ class StoreSettingsAdminController {
     }
 
     /**
-     * Every value as typed; null or blank is none. The use case checks the rules.
+     * Every value as typed; null or blank is none. The use case checks the rules and names each field it refuses
+     * (422); {@link #MAX_TYPED} only bounds what a request may carry before that (RNF-28, T-E8-14), well above them.
      *
      * @param lowStockThreshold null is refused with the field named
      * @param version the version read with the settings
      */
-    record StoreSettingsRequest(@Schema(nullable = true) String email,
-                                @Schema(nullable = true) String whatsAppNumber,
-                                @Schema(nullable = true) String openingHours,
-                                @Schema(nullable = true) String address,
-                                @Schema(nullable = true) String instagramUrl,
-                                @Schema(nullable = true) String facebookUrl,
-                                @Schema(nullable = true) String tiktokUrl,
-                                @Schema(nullable = true) String announcement,
+    record StoreSettingsRequest(@Schema(nullable = true) @Size(max = MAX_TYPED) String email,
+                                @Schema(nullable = true) @Size(max = MAX_TYPED) String whatsAppNumber,
+                                @Schema(nullable = true) @Size(max = MAX_TYPED) String openingHours,
+                                @Schema(nullable = true) @Size(max = MAX_TYPED) String address,
+                                @Schema(nullable = true) @Size(max = MAX_TYPED) String instagramUrl,
+                                @Schema(nullable = true) @Size(max = MAX_TYPED) String facebookUrl,
+                                @Schema(nullable = true) @Size(max = MAX_TYPED) String tiktokUrl,
+                                @Schema(nullable = true) @Size(max = MAX_TYPED) String announcement,
                                 @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Long lowStockThreshold,
                                 @NotNull Long version) {
+
+        /** Far above every limit of UC-36 (254 characters at most), so the use case still names the field. */
+        static final int MAX_TYPED = 1_000;
 
         StoreSettings.Typed typed() {
             return new StoreSettings.Typed(email, whatsAppNumber, openingHours, address, instagramUrl, facebookUrl,

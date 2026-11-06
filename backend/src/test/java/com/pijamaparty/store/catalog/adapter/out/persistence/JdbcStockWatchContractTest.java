@@ -82,11 +82,5 @@ class JdbcStockWatchContractTest extends StockWatchContractTest<JdbcStockWatchCo
             Long count = transactions.execute(status -> adapter.lowStockCount(threshold));
             return count == null ? 0 : count;
         }
-
-        @Override
-        public long publishedProducts() {
-            Long count = transactions.execute(status -> adapter.publishedProducts());
-            return count == null ? 0 : count;
-        }
     }
 }

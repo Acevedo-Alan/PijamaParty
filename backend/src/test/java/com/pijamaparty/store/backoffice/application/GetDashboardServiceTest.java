@@ -18,7 +18,7 @@ import com.pijamaparty.store.platform.domain.UserId;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -34,8 +34,9 @@ class GetDashboardServiceTest {
     private final InMemoryBuyerEmails buyerEmails = new InMemoryBuyerEmails();
     private final InMemoryCatalogFigures catalog = new InMemoryCatalogFigures();
     private final InMemoryPendingReviewCount reviews = new InMemoryPendingReviewCount();
+    private final InMemoryCustomerFigures customers = new InMemoryCustomerFigures();
     private final GetDashboardService service = new GetDashboardService(orders, sales, buyerEmails, catalog, reviews,
-        new InMemoryLowStockThreshold(3), Clock.fixed(NOW, ZoneOffset.UTC));
+        new InMemoryLowStockThreshold(3), customers, Clock.fixed(NOW, ZoneId.of("America/Argentina/Buenos_Aires")));
 
     private Dashboard shown(Chart chart) {
         Result result = service.execute(new Query(ADMIN, chart));
@@ -220,5 +221,19 @@ class GetDashboardServiceTest {
         assertThat(dashboard.recentOrders()).hasSize(5);
         assertThat(dashboard.recentOrders().getFirst().createdAt()).isEqualTo(NOW);
         assertThat(dashboard.totals().publishedProducts()).isEqualTo(1);
+    }
+
+    @Test
+    void givenCustomersRegisteredBeforeAndThisMonth_whenTheSummaryOpens_thenTheTotalsCountAllAndTheNewOnes() {
+        // The month starts on October 1st in Argentina, 03:00 UTC: a minute earlier is still September (R-07).
+        customers.registered(Instant.parse("2026-09-20T15:00:00Z"));
+        customers.registered(Instant.parse("2026-10-01T02:59:00Z"));
+        customers.registered(Instant.parse("2026-10-01T03:00:00Z"));
+        customers.registered(NOW);
+
+        Dashboard dashboard = shown(Chart.DAYS);
+
+        assertThat(dashboard.totals().customers()).isEqualTo(4);
+        assertThat(dashboard.totals().newCustomersThisMonth()).isEqualTo(2);
     }
 }

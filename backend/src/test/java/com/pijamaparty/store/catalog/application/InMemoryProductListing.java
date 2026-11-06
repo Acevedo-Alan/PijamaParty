@@ -22,7 +22,8 @@ import java.util.stream.Collectors;
  * product fakes, with the inventory's available stock set by {@link #setAvailable}. Ids break ties as PostgreSQL
  * orders UUIDs (by their text).
  */
-public class InMemoryProductListing implements ProductListingQuery, FilterOptionsQuery, ListedProductSlugs, StockWatch {
+public class InMemoryProductListing implements ProductListingQuery, FilterOptionsQuery, ListedProductSlugs, StockWatch,
+    CountPublishedProducts {
 
     private static final Comparator<Product> NEWEST_FIRST = Comparator.comparing(Product::createdAt)
         .thenComparing((Product product) -> product.id().value().toString())

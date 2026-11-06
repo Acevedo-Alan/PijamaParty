@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -39,6 +40,9 @@ import org.springframework.web.bind.annotation.RestController;
     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
 class CustomerAdminController {
 
+    /** Bounds a search before its use case reads it (2 to 100 characters, RNF-28, T-E8-14), well above that. */
+    private static final int MAX_SEARCH_TYPED = 1_000;
+
     /** Bounds the offset; 10,000 pages of 50 are far beyond the customers of the shop. */
     private static final int MAX_PAGE = 10_000;
 
@@ -61,7 +65,7 @@ class CustomerAdminController {
     @ApiResponse(responseCode = "400", description = "Page out of range, INVALID_SEARCH (1 character or over 100), a "
         + "date that is not yyyy-MM-dd, or INVALID_PERIOD (from after to)",
         content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-    ResponseEntity<?> list(@RequestParam(required = false) String q,
+    ResponseEntity<?> list(@RequestParam(required = false) @Size(max = MAX_SEARCH_TYPED) String q,
                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Optional<LocalDate> from,
                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Optional<LocalDate> to,
                            @RequestParam(defaultValue = "0") @Min(0) @Max(MAX_PAGE) int page) {
