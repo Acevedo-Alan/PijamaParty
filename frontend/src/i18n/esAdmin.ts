@@ -85,6 +85,12 @@ export const esAdmin = {
       period: 'Período',
       amount: 'Monto',
       orders: 'Pedidos',
+      /** The tallest bar, shown above the chart as its scale, e.g. "Máximo: $ 120.000". */
+      highest: (amount: string) => `Máximo: ${amount}`,
+      /** What a bar says when it is hovered or tapped, e.g. "15 oct: $ 12.000 · 3 pedidos". */
+      reading: (period: string, amount: string, orders: string) => `${period}: ${amount} · ${orders}`,
+      /** Under the chart, until a bar is chosen. */
+      readingHint: 'Tocá o pasá el mouse por una barra para ver su monto.',
     },
     lowStock: {
       title: 'Stock bajo',

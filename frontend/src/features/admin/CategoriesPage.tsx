@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
+import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import {
   createCategory,
@@ -254,7 +255,7 @@ export function CategoriesPage() {
         </Button>
       </form>
       <Feedback notice={notice} />
-      {categories.isPending && <p role="status">{esAdmin.loading}</p>}
+      {categories.isPending && <ListSkeleton />}
       {categories.isError && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 import { Button } from '../../components/ui/Button.tsx';
+import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { CouponForm } from './CouponForm.tsx';
@@ -203,7 +204,7 @@ export function CouponsPage() {
         />
       </section>
       <Feedback notice={notice} />
-      {coupons.isPending && <p role="status">{esAdmin.loading}</p>}
+      {coupons.isPending && <ListSkeleton />}
       {coupons.isError && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>

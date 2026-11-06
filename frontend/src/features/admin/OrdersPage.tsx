@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
 import { es } from '../../i18n/es.ts';
+import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -178,7 +179,7 @@ export function OrdersPage() {
           </Button>
         </FilterBarActions>
       </FilterBar>
-      {orders.isPending && !invalidPeriod && <p role="status">{esAdmin.loading}</p>}
+      {orders.isPending && !invalidPeriod && <ListSkeleton />}
       {orders.isError && items.length === 0 && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>

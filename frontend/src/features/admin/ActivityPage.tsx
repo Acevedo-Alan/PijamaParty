@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
 import { FilterBar } from '../../components/ui/FilterBar.tsx';
 import { es } from '../../i18n/es.ts';
+import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import {
@@ -128,7 +129,7 @@ export function ActivityPage() {
           />
         </Field>
       </FilterBar>
-      {!invalidPeriod && activity.isPending && <p role="status">{esAdmin.loading}</p>}
+      {!invalidPeriod && activity.isPending && <ListSkeleton />}
       {activity.isError && items.length === 0 && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>

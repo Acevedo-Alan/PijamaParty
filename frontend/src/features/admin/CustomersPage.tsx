@@ -4,6 +4,7 @@ import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
+import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDate } from '../../i18n/formatDate.ts';
 import { fetchCustomers, type CustomerListFilter } from './customersApi.ts';
@@ -133,7 +134,7 @@ export function CustomersPage() {
           </Button>
         </FilterBarActions>
       </FilterBar>
-      {customers.isPending && !invalidPeriod && <p role="status">{esAdmin.loading}</p>}
+      {customers.isPending && !invalidPeriod && <ListSkeleton />}
       {customers.isError && items.length === 0 && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>

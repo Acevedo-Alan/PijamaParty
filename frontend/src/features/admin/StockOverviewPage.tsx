@@ -4,6 +4,7 @@ import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
+import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { parseQuantity } from './adminInput.ts';
 import { newIdempotencyKey } from './adminSession.ts';
@@ -417,7 +418,7 @@ export function StockOverviewPage() {
           </Button>
         </FilterBarActions>
       </FilterBar>
-      {rows.isPending && <p role="status">{esAdmin.loading}</p>}
+      {rows.isPending && <ListSkeleton />}
       {rows.isError && items.length === 0 && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>

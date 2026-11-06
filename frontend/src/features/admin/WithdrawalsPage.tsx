@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
+import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
@@ -87,7 +88,7 @@ export function WithdrawalsPage() {
         </FieldSelect>
       </Field>
       <Feedback notice={notice} />
-      {withdrawals.isPending && <p role="status">{esAdmin.loading}</p>}
+      {withdrawals.isPending && <ListSkeleton />}
       {withdrawals.isError && items.length === 0 && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>

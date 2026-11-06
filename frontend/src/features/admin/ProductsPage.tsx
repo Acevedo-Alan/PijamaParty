@@ -4,6 +4,7 @@ import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
+import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { fetchProductSummaries, PRODUCT_STATES, PRODUCT_STOCKS, type ProductListFilter } from './productsApi.ts';
 import { listReturn } from './listReturn.ts';
@@ -167,7 +168,7 @@ export function ProductsPage() {
           </Button>
         </FilterBarActions>
       </FilterBar>
-      {products.isPending && <p role="status">{esAdmin.loading}</p>}
+      {products.isPending && <ListSkeleton />}
       {products.isError && items.length === 0 && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>

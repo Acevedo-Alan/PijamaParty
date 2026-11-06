@@ -1,4 +1,5 @@
 import { ChartNoAxesColumn } from 'lucide-react';
+import { useState } from 'react';
 import { EmptyState } from '../../components/ui/EmptyState.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDayMonth, formatMonthYear } from '../../i18n/formatDate.ts';
@@ -8,6 +9,7 @@ import type { Chart, ChartPoint } from './dashboardApi.ts';
 import { formatNumber } from '../../i18n/formatNumber.ts';
 
 const messages = esAdmin.dashboard.chart;
+const ordersText = esAdmin.dashboard.sales.orders;
 
 const WIDTH = 600;
 const HEIGHT = 160;
@@ -24,10 +26,14 @@ function periodLabel(kind: Chart, period: string): string {
  * when they first show, as when the view switches between days and months (new keys), not on a refresh.
  */
 export function SalesChart({ kind, points }: { kind: Chart; points: ChartPoint[] }) {
+  // The bar a pointer is on (hover, or a tap on a phone): its amount shows under the chart. A keyboard or a screen
+  // reader reads the same values from the table below (T-E8-26).
+  const [chosen, setChosen] = useState<string | null>(null);
   const highest = Math.max(1, ...points.map((point) => point.amountCents));
   const barWidth = points.length === 0 ? 0 : (WIDTH - GAP * (points.length - 1)) / points.length;
   const first = points[0];
   const last = points.at(-1);
+  const reading = points.find((point) => point.period === chosen);
   const empty = points.every((point) => point.amountCents === 0);
   return (
     <>
@@ -36,6 +42,11 @@ export function SalesChart({ kind, points }: { kind: Chart; points: ChartPoint[]
           {messages.emptyHint}
         </EmptyState>
       ) : (
+        <p className="m-0 text-xs font-semibold tabular-nums text-muted-foreground" aria-hidden="true">
+          {messages.highest(formatMoney(highest))}
+        </p>
+      )}
+      {!empty && (
         <svg
           className="block h-40 w-full"
           viewBox={`0 0 ${String(WIDTH)} ${String(HEIGHT)}`}
@@ -47,6 +58,12 @@ export function SalesChart({ kind, points }: { kind: Chart; points: ChartPoint[]
             return (
               <rect
                 key={point.period}
+                onPointerEnter={() => {
+                  setChosen(point.period);
+                }}
+                onPointerDown={() => {
+                  setChosen(point.period);
+                }}
                 className={cn(
                   point.amountCents === 0 ? 'fill-input' : 'fill-primary',
                   'origin-bottom [transform-box:fill-box] motion-safe:animate-grow',
@@ -57,10 +74,23 @@ export function SalesChart({ kind, points }: { kind: Chart; points: ChartPoint[]
                 width={barWidth}
                 height={height}
                 rx={Math.min(3, barWidth / 2)}
-              />
+              >
+                <title>{`${periodLabel(kind, point.period)}: ${formatMoney(point.amountCents)}`}</title>
+              </rect>
             );
           })}
         </svg>
+      )}
+      {!empty && (
+        <p className="m-0 min-h-5 text-[13px] font-semibold tabular-nums text-foreground" aria-hidden="true">
+          {reading === undefined
+            ? messages.readingHint
+            : messages.reading(
+                periodLabel(kind, reading.period),
+                formatMoney(reading.amountCents),
+                ordersText(reading.orders),
+              )}
+        </p>
       )}
       {!empty && first !== undefined && last !== undefined && (
         <p className="m-0 flex justify-between text-xs text-muted-foreground" aria-hidden="true">

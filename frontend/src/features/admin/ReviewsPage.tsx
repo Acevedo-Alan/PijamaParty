@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
+import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
@@ -99,7 +100,7 @@ export function ReviewsPage() {
         ))}
       </div>
       <Feedback notice={notice} />
-      {reviews.isPending && <p role="status">{esAdmin.loading}</p>}
+      {reviews.isPending && <ListSkeleton />}
       {reviews.isError && items.length === 0 && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>
