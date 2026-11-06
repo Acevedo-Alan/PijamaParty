@@ -33,7 +33,7 @@ describe('catalog grid (UC-01)', () => {
     // One price: no "Desde" (UC-01).
     expect(within(card).getByText(/^\$\s12\.345$/)).toBeInTheDocument();
     expect(within(card).queryByText(es.catalog.fromPrice, { exact: false })).not.toBeInTheDocument();
-    const photo = within(card).getByRole('img', { name: 'Pijama rosa' });
+    const photo = within(card).getByRole('presentation');
     expect(photo).toHaveAttribute('src', '/media/rosa-400.webp');
     expect(photo).toHaveAttribute(
       'srcset',
@@ -163,7 +163,7 @@ describe('catalog grid (UC-01)', () => {
     renderRoute('/categoria/verano');
 
     await within(screen.getByRole('main')).findAllByRole('listitem');
-    const photos = screen.getAllByTestId('blurred-image').map((image) => within(image).getByRole('img'));
+    const photos = screen.getAllByTestId('blurred-image').map((image) => within(image).getByRole('presentation'));
     expect(photos.map((photo) => photo.getAttribute('loading'))).toEqual(
       ['eager', 'eager', 'eager', 'eager', 'lazy', 'lazy'],
     );
@@ -249,7 +249,7 @@ describe('catalog grid (UC-01)', () => {
     expect(photo).toHaveAttribute('src', '/media/rosa-2-400.webp');
     expect(photo).toHaveAttribute('alt', '');
     expect(photo).toHaveAttribute('loading', 'lazy');
-    expect(within(card).getAllByRole('img')).toHaveLength(1);
+    expect(within(card).getAllByRole('presentation')).toHaveLength(1);
     const single = screen.getByRole('link', { name: /Pijama una-foto/ });
     expect(within(single).queryByTestId('second-photo')).not.toBeInTheDocument();
   });
@@ -281,7 +281,7 @@ describe('catalog grid (UC-01)', () => {
     stubCatalogApi({ listings: [listed([product('rosa', { secondImage: second })])] });
     const { router } = renderRoute('/');
     const card = await screen.findByRole('link', { name: /Pijama rosa/ });
-    const photo = within(card).getByRole('img');
+    const photo = within(card).getByRole('presentation');
     expect(within(card).getByTestId('second-photo')).not.toHaveClass('touched');
 
     fireEvent.pointerDown(photo, { pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 100 });

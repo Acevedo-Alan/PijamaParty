@@ -64,7 +64,7 @@ export const ProductCard = memo(function ProductCard({
             src={image.src}
             srcSet={image.srcSet}
             sizes={view === 'list' ? LIST_IMAGE_SIZES : GRID_IMAGE_SIZES}
-            alt={name}
+            alt=""
             loading={photo === 'lazy' ? 'lazy' : 'eager'}
             fetchPriority={photo === 'high' ? 'high' : 'auto'}
             {...(image.placeholder === undefined ? {} : { placeholder: image.placeholder })}

@@ -108,7 +108,7 @@ describe('home page (UC-30)', () => {
     renderRoute('/');
 
     await screen.findAllByRole('link', { name: /Pijama p-/ });
-    const photos = screen.getAllByTestId('blurred-image').map((image) => within(image).getByRole('img'));
+    const photos = screen.getAllByTestId('blurred-image').map((image) => within(image).getByRole('presentation'));
     expect(photos.map((photo) => photo.getAttribute('loading'))).toEqual(['lazy', 'lazy', 'lazy', 'lazy']);
   });
 

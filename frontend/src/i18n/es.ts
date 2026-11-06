@@ -541,6 +541,8 @@ export const es = {
     whatsApp: 'Pedir por WhatsApp',
     /** T-E7-27: the name of the floating button. */
     whatsAppButton: 'Escribinos por WhatsApp',
+    /** WCAG 3.2.5: the link opens WhatsApp in a new tab, and says so. */
+    whatsAppButtonLabel: 'Escribinos por WhatsApp (se abre en una pestaña nueva)',
   },
   sort: {
     label: 'Ordenar por',

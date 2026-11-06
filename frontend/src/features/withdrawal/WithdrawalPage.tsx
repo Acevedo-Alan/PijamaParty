@@ -78,13 +78,16 @@ export function WithdrawalPage() {
             inputMode="numeric"
             autoComplete="off"
             maxLength={20}
-            placeholder={es.withdrawal.orderNumberHint}
+            aria-describedby={`${id}-number-hint`}
             required
             value={form.orderNumber}
             onChange={(event) => {
               change('orderNumber', event.target.value);
             }}
           />
+          <p id={`${id}-number-hint`} className="withdrawal-hint">
+            {es.withdrawal.orderNumberHint}
+          </p>
           <label htmlFor={`${id}-email`}>{es.withdrawal.email}</label>
           <input
             id={`${id}-email`}

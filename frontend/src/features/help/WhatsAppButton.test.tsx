@@ -5,7 +5,7 @@ import { listed, product, stubCatalogApi } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { clearStoreContact, setStoreContact } from '../../test/storeContact.ts';
 
-const NAME = es.contact.whatsAppButton;
+const NAME = es.contact.whatsAppButtonLabel;
 
 const button = () => screen.queryByRole('link', { name: NAME });
 

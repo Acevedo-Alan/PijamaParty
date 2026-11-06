@@ -177,7 +177,12 @@ function Field({
 }: FieldProps) {
   const id = idOf(field);
   const isInvalid = invalid.includes(field);
-  const descriptions = [isInvalid ? `${id}-error` : null, describedBy ?? null].filter((each) => each !== null);
+  // WCAG 3.3.2: the hint is visible text tied to the field, not a placeholder that disappears while typing
+  const descriptions = [
+    hint === undefined ? null : `${id}-hint`,
+    isInvalid ? `${id}-error` : null,
+    describedBy ?? null,
+  ].filter((each) => each !== null);
   return (
     <div className={isInvalid ? 'checkout-field error' : 'checkout-field'}>
       <label htmlFor={id}>
@@ -192,7 +197,6 @@ function Field({
         value={form[field]}
         autoComplete={autoComplete}
         maxLength={maxLength}
-        placeholder={hint}
         required={required}
         aria-invalid={isInvalid}
         aria-describedby={descriptions.length > 0 ? descriptions.join(' ') : undefined}
@@ -201,6 +205,11 @@ function Field({
         }}
         onBlur={onBlur}
       />
+      {hint !== undefined && (
+        <p id={`${id}-hint`} className="checkout-note">
+          {hint}
+        </p>
+      )}
       {isInvalid && (
         <p id={`${id}-error`} className="checkout-field-error">
           {es.checkout.errors[field]}

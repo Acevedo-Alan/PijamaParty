@@ -28,8 +28,8 @@ export function WhatsAppButton() {
       href={whatsAppUrl(number)}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={es.contact.whatsAppButton}
-      title={es.contact.whatsAppButton}
+      aria-label={es.contact.whatsAppButtonLabel}
+      title={es.contact.whatsAppButtonLabel}
     >
       {/* The store's own drawing in WhatsApp's style, not its logo: a round speech bubble with a filled phone. */}
       <svg viewBox="0 0 24 24" aria-hidden="true">
