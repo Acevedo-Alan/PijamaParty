@@ -22,6 +22,8 @@ export const buttonVariants = cva(
         secondary:
           'border border-border bg-card text-foreground shadow-card hover:border-input/50 hover:bg-muted',
         ghost: 'border border-transparent bg-transparent text-foreground hover:bg-muted',
+        danger:
+          'border border-border bg-card text-destructive-strong shadow-card hover:border-destructive hover:bg-destructive-soft',
         link: 'border-0 bg-transparent p-0 text-primary-text underline-offset-4 hover:underline',
       },
       size: {

@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, type SubmitEvent } from 'react';
+import { useEffect, useRef, useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
+import { Button } from '../../components/ui/Button.tsx';
+import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import {
   createCategory,
@@ -63,14 +65,42 @@ interface RowProps {
   onDelete: () => void;
 }
 
+/** Where the focus goes once the row is quiet again: it would otherwise stay on a button that disappeared or got disabled. */
+type FocusTarget = 'input' | 'rename' | 'up' | 'down';
+
 function CategoryRow({ category, index, count, busy, onRename, onMove, onToggleActive, onDelete }: RowProps) {
   const [draft, setDraft] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const rename = useRef<HTMLButtonElement>(null);
+  const up = useRef<HTMLButtonElement>(null);
+  const down = useRef<HTMLButtonElement>(null);
+  const focusNext = useRef<FocusTarget | null>(null);
+
+  // T-E8-24: opening "Renombrar" focuses its field, closing it returns to the button, and a move keeps the focus on
+  // the arrow that was pressed (or the other one at the end of the list), once the row is enabled again.
+  useEffect(() => {
+    if (focusNext.current === null || busy) {
+      return;
+    }
+    const target = { input, rename, up, down }[focusNext.current].current;
+    if (target !== null && !target.disabled) {
+      target.focus();
+      focusNext.current = null;
+    }
+  }, [busy, index, draft]);
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (draft !== null && (await onRename(draft))) {
+      focusNext.current = 'rename';
       setDraft(null);
     }
+  }
+
+  function move(step: -1 | 1) {
+    const last = index + step === (step === -1 ? 0 : count - 1);
+    focusNext.current = step === -1 ? (last ? 'down' : 'up') : last ? 'up' : 'down';
+    onMove(step);
   }
 
   return (
@@ -83,9 +113,12 @@ function CategoryRow({ category, index, count, busy, onRename, onMove, onToggleA
         </div>
       ) : (
         <form className="inline-form" onSubmit={(event) => void submit(event)}>
-          <label className="field">
-            <span>{messages.renameLabel(category.name)}</span>
-            <input
+          <Field className="flex-[1_1_200px]">
+            <FieldLabel>{messages.renameLabel(category.name)}</FieldLabel>
+            <FieldInput
+              ref={input}
+              name="name"
+              autoComplete="off"
               value={draft}
               maxLength={80}
               required
@@ -93,70 +126,67 @@ function CategoryRow({ category, index, count, busy, onRename, onMove, onToggleA
                 setDraft(event.target.value);
               }}
             />
-          </label>
+          </Field>
           <div className="admin-actions">
-            <button type="submit" className="btn" disabled={busy}>
+            <Button type="submit" variant="primary" disabled={busy}>
               {esAdmin.save}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
+            </Button>
+            <Button
               onClick={() => {
+                focusNext.current = 'rename';
                 setDraft(null);
               }}
             >
               {esAdmin.cancel}
-            </button>
+            </Button>
           </div>
         </form>
       )}
       {draft === null && (
         <div className="admin-actions">
-          <button
-            type="button"
-            className="btn btn-secondary"
+          <Button
+            ref={rename}
             disabled={busy}
             onClick={() => {
+              focusNext.current = 'input';
               setDraft(category.name);
             }}
           >
             {messages.rename}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary icon-text"
+          </Button>
+          <Button
+            ref={up}
+            size="icon"
             aria-label={messages.moveUp(category.name)}
             disabled={busy || index === 0}
             onClick={() => {
-              onMove(-1);
+              move(-1);
             }}
           >
             ↑
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary icon-text"
+          </Button>
+          <Button
+            ref={down}
+            size="icon"
             aria-label={messages.moveDown(category.name)}
             disabled={busy || index === count - 1}
             onClick={() => {
-              onMove(1);
+              move(1);
             }}
           >
             ↓
-          </button>
-          <Link
-            to={`/admin/categorias/${category.id}/guia-de-talles`}
-            className="btn btn-secondary"
-            aria-label={messages.sizeGuideOf(category.name)}
-          >
-            {messages.sizeGuide}
-          </Link>
-          <button type="button" className="btn btn-secondary" disabled={busy} onClick={onToggleActive}>
+          </Button>
+          <Button asChild>
+            <Link to={`/admin/categorias/${category.id}/guia-de-talles`} aria-label={messages.sizeGuideOf(category.name)}>
+              {messages.sizeGuide}
+            </Link>
+          </Button>
+          <Button disabled={busy} onClick={onToggleActive}>
             {category.active ? messages.deactivate : messages.activate}
-          </button>
-          <button type="button" className="btn btn-secondary danger" disabled={busy} onClick={onDelete}>
+          </Button>
+          <Button variant="danger" disabled={busy} onClick={onDelete}>
             {messages.delete}
-          </button>
+          </Button>
         </div>
       )}
     </li>
@@ -206,9 +236,11 @@ export function CategoriesPage() {
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <h1>{messages.title}</h1>
       <form className="admin-form inline-form" onSubmit={(event) => void create(event)}>
-        <label className="field">
-          <span>{messages.newName}</span>
-          <input
+        <Field className="flex-[1_1_200px]">
+          <FieldLabel>{messages.newName}</FieldLabel>
+          <FieldInput
+            name="name"
+            autoComplete="off"
             value={name}
             maxLength={80}
             required
@@ -216,19 +248,17 @@ export function CategoriesPage() {
               setName(event.target.value);
             }}
           />
-        </label>
-        <button type="submit" className="btn" disabled={change.isPending}>
+        </Field>
+        <Button type="submit" variant="primary" disabled={change.isPending}>
           {messages.create}
-        </button>
+        </Button>
       </form>
       <Feedback notice={notice} />
       {categories.isPending && <p role="status">{esAdmin.loading}</p>}
       {categories.isError && (
         <div role="alert">
           <p>{esAdmin.loadError}</p>
-          <button type="button" className="btn" onClick={() => void categories.refetch()}>
-            {esAdmin.retry}
-          </button>
+          <Button onClick={() => void categories.refetch()}>{esAdmin.retry}</Button>
         </div>
       )}
       {categories.data?.length === 0 && <p>{messages.empty}</p>}

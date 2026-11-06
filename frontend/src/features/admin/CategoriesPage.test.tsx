@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { esAdmin } from '../../i18n/esAdmin.ts';
@@ -160,6 +160,35 @@ describe('category management (UC-05)', () => {
     expect(screen.queryByLabelText(messages.renameLabel('Pijamas'))).not.toBeInTheDocument();
     expect(api.callsTo('PATCH /api/admin/catalog/categories/{id}')[0]?.options.body).toEqual({
       name: 'Pijamas de invierno',
+    });
+  });
+
+  it('given the rename form, when it opens and closes, then the focus goes to its field and back to the button (T-E8-24)', async () => {
+    stubApi({ 'GET /api/admin/auth/me': signedIn, 'GET /api/admin/catalog/categories': listed });
+    renderRoute('/admin/categorias');
+
+    await userEvent.click((await findRow('Pijamas')).getByRole('button', { name: messages.rename }));
+    expect(screen.getByLabelText(messages.renameLabel('Pijamas'))).toHaveFocus();
+    expect(screen.getByLabelText(messages.renameLabel('Pijamas'))).not.toBeInvalid();
+
+    await userEvent.click(screen.getByRole('button', { name: esAdmin.cancel }));
+
+    expect(rowOf('Pijamas').getByRole('button', { name: messages.rename })).toHaveFocus();
+  });
+
+  it('given a category, when moved down, then the focus stays on the arrow that was pressed (T-E8-24)', async () => {
+    const camisones = category('c-3', 'Camisones');
+    stubApi({
+      'GET /api/admin/auth/me': signedIn,
+      'GET /api/admin/catalog/categories': answer(200, [pijamas, batas, camisones]),
+      'PUT /api/admin/catalog/categories/order': answer(200, [batas, pijamas, camisones]),
+    });
+    renderRoute('/admin/categorias');
+
+    await userEvent.click(await screen.findByRole('button', { name: messages.moveDown('Pijamas') }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: messages.moveDown('Pijamas') })).toHaveFocus();
     });
   });
 });
