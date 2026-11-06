@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
+import { Button } from '../../components/ui/Button.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { MAX_SCOPE_TARGETS, type CouponScope } from './couponsApi.ts';
 import { useCategories } from './useCategories.ts';
@@ -104,16 +105,14 @@ export function CouponScopePicker({ scope, onChange, invalid }: CouponScopePicke
       {(categories.isError || products.isError) && (
         <div role="alert">
           <p>{messages.scopeLoadError}</p>
-          <button
-            type="button"
-            className="btn btn-secondary"
+          <Button
             onClick={() => {
               void categories.refetch();
               void products.refetch();
             }}
           >
             {esAdmin.retry}
-          </button>
+          </Button>
         </div>
       )}
       {categories.isSuccess && products.isSuccess && (

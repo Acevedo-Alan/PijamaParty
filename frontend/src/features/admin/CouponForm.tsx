@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode, type SubmitEvent } from 'react';
 import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/Field.tsx';
+import { Button } from '../../components/ui/Button.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { centsToPesosInput, parsePesos } from './adminInput.ts';
 import { CouponScopePicker } from './CouponScopePicker.tsx';
@@ -298,13 +299,13 @@ export function CouponForm({ initial, submitLabel, onSubmit, onSaved, onCancel }
       )}
       <Feedback notice={notice} />
       <div className="admin-actions">
-        <button type="submit" className="btn" disabled={saving}>
+        <Button variant="primary" type="submit" disabled={saving}>
           {submitLabel}
-        </button>
+        </Button>
         {onCancel !== undefined && (
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+          <Button onClick={onCancel}>
             {esAdmin.cancel}
-          </button>
+          </Button>
         )}
       </div>
     </form>

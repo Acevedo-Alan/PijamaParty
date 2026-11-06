@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
 import { Button } from '../../components/ui/Button.tsx';
+import { Field, FieldInput, FieldLabel, FieldTextarea } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { CharacterBannerView, homeBannerKey } from '../catalog/CharacterBanner.tsx';
 import '../catalog/catalog.css';
@@ -148,34 +149,20 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
 
   const isInvalid = (field: BannerField) => invalid.includes(field);
   const field = (name: BannerField, label: string, hint?: string) => {
-    const describedBy = [hint === undefined ? '' : `${id}-${name}-hint`, isInvalid(name) ? `${id}-${name}-error` : '']
-      .filter(Boolean)
-      .join(' ');
     const props = {
-      id: `${id}-${name}`,
+      name,
       value: draft[name],
       maxLength: MAX_LENGTH[name],
-      'aria-invalid': isInvalid(name),
-      ...(describedBy === '' ? {} : { 'aria-describedby': describedBy }),
+      autoComplete: 'off',
       onChange: (event: { target: { value: string } }) => {
         setDraft({ ...draft, [name]: event.target.value });
       },
     };
     return (
-      <div className="field">
-        <label htmlFor={`${id}-${name}`}>{label}</label>
-        {name === 'body' ? <textarea rows={3} {...props} /> : <input {...props} />}
-        {hint !== undefined && (
-          <p id={`${id}-${name}-hint`} className="field-hint">
-            {hint}
-          </p>
-        )}
-        {isInvalid(name) && (
-          <p id={`${id}-${name}-error`} className="field-error">
-            {messages.invalidFields[name]}
-          </p>
-        )}
-      </div>
+      <Field hint={hint} error={isInvalid(name) ? messages.invalidFields[name] : undefined}>
+        <FieldLabel>{label}</FieldLabel>
+        {name === 'body' ? <FieldTextarea rows={3} {...props} /> : <FieldInput {...props} />}
+      </Field>
     );
   };
 
@@ -202,15 +189,14 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
       <section className="admin-section" aria-labelledby={`${id}-photo`}>
         <h2 id={`${id}-photo`}>{messages.photoTitle}</h2>
         {banner.image === null && <p>{messages.noPhoto}</p>}
-        <div className="field">
-          <label htmlFor={`${id}-file`}>{banner.image === null ? messages.addPhoto : messages.replacePhoto}</label>
-          <input
+        <Field hint={messages.photoHint}>
+          <FieldLabel>{banner.image === null ? messages.addPhoto : messages.replacePhoto}</FieldLabel>
+          <FieldInput
             key={inputVersion}
-            id={`${id}-file`}
+            name="photo"
             type="file"
             accept={ACCEPTED_TYPES}
             disabled={uploading}
-            aria-describedby={`${id}-file-hint`}
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (file !== undefined) {
@@ -218,10 +204,7 @@ function BannerEditor({ banner, onChanged }: EditorProps) {
               }
             }}
           />
-          <p id={`${id}-file-hint`} className="field-hint">
-            {messages.photoHint}
-          </p>
-        </div>
+        </Field>
         {photo !== null && (
           <div className={`upload-row ${photo.state}`}>
             <div className="upload-head">

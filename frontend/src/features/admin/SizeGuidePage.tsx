@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type SubmitEvent } from 'react';
 import { Link, useParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
+import { Field, FieldInput, FieldLabel, FieldTextarea } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import {
@@ -171,9 +172,11 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
         <legend>{messages.columnsTitle}</legend>
         {columns.map((column, index) => (
           <div className="inline-form" key={column.key}>
-            <label className="field">
-              <span>{messages.columnLabel(index + 1)}</span>
-              <input
+            <Field className="flex-[1_1_200px]">
+              <FieldLabel>{messages.columnLabel(index + 1)}</FieldLabel>
+              <FieldInput
+                name={`column-${String(column.key)}`}
+                autoComplete="off"
                 value={column.name}
                 maxLength={30}
                 aria-invalid={isInvalid('columns')}
@@ -181,7 +184,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
                   setColumn(column.key, event.target.value);
                 }}
               />
-            </label>
+            </Field>
             <Button
               aria-label={messages.removeColumn(columnName(index))}
               disabled={busy || columns.length === 1}
@@ -226,9 +229,11 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
             <li className="admin-card" key={row.key}>
               <fieldset className="size-guide-fieldset">
                 <legend>{messages.rowTitle(index + 1)}</legend>
-                <label className="field">
-                  <span>{messages.sizeLabel}</span>
-                  <input
+                <Field>
+                  <FieldLabel>{messages.sizeLabel}</FieldLabel>
+                  <FieldInput
+                    name={`size-${String(row.key)}`}
+                    autoComplete="off"
                     value={row.size}
                     maxLength={20}
                     aria-invalid={isInvalid('rows')}
@@ -236,11 +241,13 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
                       setRow(row.key, { size: event.target.value });
                     }}
                   />
-                </label>
+                </Field>
                 {columns.map((column, columnIndex) => (
-                  <label className="field" key={column.key}>
-                    <span>{columnName(columnIndex)}</span>
-                    <input
+                  <Field key={column.key}>
+                    <FieldLabel>{columnName(columnIndex)}</FieldLabel>
+                    <FieldInput
+                      name={`value-${String(row.key)}-${String(column.key)}`}
+                      autoComplete="off"
                       value={row.values[column.key] ?? ''}
                       maxLength={20}
                       aria-invalid={isInvalid('rows')}
@@ -248,7 +255,7 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
                         setRow(row.key, { values: { ...row.values, [column.key]: event.target.value } });
                       }}
                     />
-                  </label>
+                  </Field>
                 ))}
               </fieldset>
               <div className="admin-actions">
@@ -299,28 +306,18 @@ function SizeGuideForm({ categoryId, guide, onChanged }: FormProps) {
           </Button>
         </div>
       </fieldset>
-      <div className="field">
-        <label htmlFor={`${id}-note`}>{messages.note}</label>
-        <textarea
-          id={`${id}-note`}
+      <Field hint={messages.noteHint} error={isInvalid('note') ? messages.invalidNote : undefined}>
+        <FieldLabel>{messages.note}</FieldLabel>
+        <FieldTextarea
+          name="note"
           value={note}
           rows={3}
           maxLength={500}
-          aria-invalid={isInvalid('note')}
-          aria-describedby={isInvalid('note') ? `${id}-note-hint ${id}-note-error` : `${id}-note-hint`}
           onChange={(event) => {
             setDraft({ ...draft, note: event.target.value });
           }}
         />
-        <p id={`${id}-note-hint`} className="field-hint">
-          {messages.noteHint}
-        </p>
-        {isInvalid('note') && (
-          <p id={`${id}-note-error`} className="field-error">
-            {messages.invalidNote}
-          </p>
-        )}
-      </div>
+      </Field>
       <Feedback notice={notice} />
       <div className="admin-actions">
         <Button variant="primary" type="submit" disabled={busy}>
