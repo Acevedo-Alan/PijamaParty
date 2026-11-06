@@ -28,6 +28,7 @@ import { RelatedProducts } from './RelatedProducts.tsx';
 import { ShippingByProvince } from './ShippingByProvince.tsx';
 import { SizeGuideLink } from './SizeGuideSection.tsx';
 import { StickyAddToCart } from './StickyAddToCart.tsx';
+import { AdminEditLink } from './AdminEditLink.tsx';
 import { productDetailKey, useProductDetail } from './useProductDetail.ts';
 import { VariantPicker } from './VariantPicker.tsx';
 import {
@@ -194,6 +195,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
       />
       <div className="pdp-info">
         <h1>{product.name}</h1>
+        <AdminEditLink productId={product.id} />
         {REVIEWS_SHOWN && <RatingSummary slug={product.slug} />}
         <Price price={price} />
         {product.description !== '' && <p className="pdp-desc">{product.description}</p>}

@@ -881,3 +881,8 @@
 .pdp-section .pdp-facts {
   padding-bottom: 12px;
 }
+
+/* T-E8-27: the administrator's shortcut sits under the product name */
+.pdp-admin-edit {
+  margin: 0 0 14px;
+}

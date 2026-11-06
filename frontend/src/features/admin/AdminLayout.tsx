@@ -6,6 +6,7 @@ import { leaveAnalyticsBehind } from '../analytics/analytics.ts';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import { AdminMenuPanel } from './AdminMenuPanel.tsx';
 import { AdminNav } from './AdminNav.tsx';
+import { clearAdmin, markAdmin } from './adminHint.ts';
 import { onSessionExpired } from './adminSession.ts';
 import { signOut } from './authApi.ts';
 import { useSession, type SignInState } from './useSession.ts';
@@ -45,6 +46,7 @@ export function AdminLayout() {
   useEffect(
     () =>
       onSessionExpired(() => {
+        clearAdmin();
         queryClient.removeQueries({ queryKey: ['admin'] });
         const state: SignInState = { from, expired: true };
         void navigate('/admin/ingresar', { replace: true, state });
@@ -55,10 +57,21 @@ export function AdminLayout() {
   const leave = useMutation({
     mutationFn: signOut,
     onSettled: () => {
+      clearAdmin();
       queryClient.removeQueries({ queryKey: ['admin'] });
       void navigate('/admin/ingresar', { replace: true });
     },
   });
+
+  // T-E8-27: the store offers its "Editar producto" shortcut only in a browser that had a back-office session.
+  const status = session.data?.status;
+  useEffect(() => {
+    if (status === 'signedIn') {
+      markAdmin();
+    } else if (status !== undefined) {
+      clearAdmin();
+    }
+  }, [status]);
 
   if (session.isPending) {
     return (

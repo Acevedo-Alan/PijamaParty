@@ -40,6 +40,7 @@
 - Result record: `ProductListingItem(slug, name, image?, fromPrice: Money, soldOut: boolean)`; `image` carries the placeholder and the files of the first photo (400, 800 and 1200 px, for `srcset`).
 - Endpoint: `GET /api/catalog/products?category=&page=` (category by slug) → `200` `{items, hasMore}`, each item with `slug`, `name`, `image` (or null: `placeholder` and `files` with `width` and `url`), `fromPriceCents` and `soldOut`; `400` invalid parameters; `404` unknown or inactive category. Offset pagination with page size 24, pages from 0 to 1,000; revisit if the catalog exceeds a few thousand products.
 - Rate-limit policy: catalog (120 per minute per IP), activated in T-E1-15.
+- **Edit link for the administrator (T-E8-27):** `features/catalog/AdminEditLink` asks `GET /api/admin/auth/me` (the session query of the back office) only when the browser holds the hint `pp-admin` in `localStorage`, written by the back-office layout once a session is signed in and removed when it is signed out, expired or refused; the hint only avoids a request on every visit, the server decides who is an administrator. A signed-in administrator gets a link to `/admin/productos/{product id}` (the detail already carries the id); anyone else gets nothing, and a refused check removes the hint. No new endpoint.
 - Storefront pages (T-E1-09): the whole shop at `/` and a category at `/categoria/{slug}`; each card links to `/producto/{slug}` (UC-03). These public paths are Spanish because customers read and share them; API routes stay in English. An unknown or inactive category shows the empty-category message with a link to `/`. A failed "Show more" keeps the products already shown and lets the visitor retry.
 
 ---
@@ -97,6 +98,7 @@
 
 **Alternative flows**
 - Unknown or inactive slug: `404` page with a link to the shop.
+- An administrator signed in to the back office opens the product page (decided 2026-11-06): the page shows, only to them, an "Editar producto" link to that product's back-office form (UC-06), which already links back with "Ver en la tienda". Visitors and customers see nothing different.
 
 **Business rules**
 - A product opens when it is listed (UC-01): published, its category active and with an active priced variant. Otherwise its slug answers `404`, like an unknown one.
@@ -110,6 +112,7 @@
 - Given a combination with available stock 0, when selected, then the buy button is disabled.
 - Given the detail open, when the color changes, then the price updates to that variant and the gallery shows the photos of that color first.
 - Given a slug that does not exist, when opened, then a 404 page with a link to the shop is shown.
+- Given an administrator signed in to the back office, when a product page opens in the store, then it shows "Editar producto", which opens that product's back-office form; given a visitor or a customer, then the link is not shown.- Given a browser that never opened the back office, when a product page opens, then no back-office request is made.
 
 **Design notes**
 - Inbound query port: `GetProductDetail`; sealed result `Found(ProductDetail)` or `NotFound`. No actor: the detail is public. The product comes from `LoadProducts.findBySlug` (a text that is not a slug finds nothing), its category from `LoadCategories`; `Product.isListedIn(category)` holds the rule above and `Product.sellableVariants()` gives the active priced variants.

@@ -144,6 +144,8 @@ export const es = {
     noPhoto: 'Sin fotos',
     /** E7: the enlarged view of the main photo. */
     enlargePhoto: 'Ampliar foto',
+    /** T-E8-27: the shortcut of a signed-in administrator to the product's form in the back office. */
+    adminEdit: 'Editar producto',
     enlarged: 'Foto ampliada',
     closeEnlarged: 'Cerrar foto ampliada',
     /** The keyboard's way to the 2x zoom of the enlarged photo. */
