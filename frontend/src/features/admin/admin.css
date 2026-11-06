@@ -911,9 +911,14 @@
   text-decoration: none;
 }
 
-.admin-search-group li a:hover,
 .admin-search-group li a:focus-visible {
   background: var(--admin-side);
+}
+
+@media (hover: hover) {
+  .admin-search-group li a:hover {
+    background: var(--admin-side);
+  }
 }
 
 .admin-search-note {

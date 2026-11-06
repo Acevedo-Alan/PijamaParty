@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ReactNode, type SyntheticEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -60,7 +60,7 @@ function Group({ title, matches, pending, failed }: {
   return (
     <section aria-labelledby={titleId} className="admin-search-group">
       <h3 id={titleId}>{title}</h3>
-      {pending && <p className="admin-search-note">{messages.searching}</p>}
+      {pending && matches === undefined && <p className="admin-search-note">{messages.searching}</p>}
       {failed && <p className="admin-search-note" role="alert">{messages.failed}</p>}
       {matches !== undefined && matches.length === 0 && <p className="admin-search-note">{messages.none}</p>}
       {matches !== undefined && matches.length > 0 && (
@@ -100,18 +100,21 @@ function SearchBody({ onChoose }: { onChoose: () => void }) {
     queryFn: ({ signal }) => fetchOrders({ status: null, q, from: null, to: null }, 0, signal),
     enabled: searchable(q),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
   const products = useQuery({
     queryKey: ['admin', 'search', 'products', q],
     queryFn: ({ signal }) => fetchProductSummaries({ ...NO_PRODUCT_FILTER, q }, 0, signal),
     enabled: searchable(q),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
   const customers = useQuery({
     queryKey: ['admin', 'search', 'customers', q],
     queryFn: ({ signal }) => fetchCustomers({ q, from: null, to: null }, 0, signal),
     enabled: searchable(q),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 
   const orderMatches = orders.data?.items.slice(0, SHOWN).map(({ id, number, buyerName }) => ({
@@ -133,6 +136,10 @@ function SearchBody({ onChoose }: { onChoose: () => void }) {
   // Enter goes to the first match, in the order the groups show.
   function openFirst(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Shown results of an earlier text (kept while the new ones load) are not what was typed.
+    if (!ready || orders.isPlaceholderData || products.isPlaceholderData || customers.isPlaceholderData) {
+      return;
+    }
     const first = [orderMatches, productMatches, customerMatches].find((group) => group !== undefined && group.length > 0)?.[0];
     if (first !== undefined) {
       onChoose();
@@ -161,6 +168,7 @@ function SearchBody({ onChoose }: { onChoose: () => void }) {
         }}
       />
       <div
+        aria-live="polite"
         onClick={(event) => {
           if (event.target instanceof Element && event.target.closest('[data-admin-search-result]') !== null) {
             onChoose();
