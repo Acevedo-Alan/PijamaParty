@@ -57,8 +57,8 @@ describe('the approved reviews on the product page (UC-24)', () => {
     const items = await section.findAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0] as HTMLElement).getByRole('img', { name: messages.rating(5) })).toBeInTheDocument();
-    expect(items[0]).toHaveTextContent('Bruno · 18/10/26');
-    expect(items[1]).toHaveTextContent('Ana · 11/10/26');
+    expect(items[0]).toHaveTextContent('Bruno · 18/10/2026');
+    expect(items[1]).toHaveTextContent('Ana · 11/10/2026');
     expect(within(items[1] as HTMLElement).getByText(/Muy cómodo/)).toBeInTheDocument();
     expect(section.queryByRole('button', { name: messages.more })).not.toBeInTheDocument();
     expect(get).toHaveBeenCalledWith(REVIEWS_PATH, expect.objectContaining({

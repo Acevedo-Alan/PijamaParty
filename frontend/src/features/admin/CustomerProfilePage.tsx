@@ -20,6 +20,7 @@ import {
 } from './customersApi.ts';
 import { profileReturn, useBackToList, type ListReturn, type ProfileReturn } from './listReturn.ts';
 import { rise } from './rise.ts';
+import { formatNumber } from '../../i18n/formatNumber.ts';
 
 const messages = esAdmin.customerProfile;
 const CUSTOMER_LIST = '/admin/clientes';
@@ -163,7 +164,7 @@ function Figures({ customer }: { customer: CustomerProfile }) {
         <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-4">
           <Figure
             label={messages.purchases}
-            value={customer.purchases.toLocaleString('es-AR')}
+            value={formatNumber(customer.purchases)}
             detail={messages.ofOrders(customer.orderCount)}
             muted={none}
           />
@@ -199,7 +200,7 @@ function Orders({
         <h2 id={titleId} className="m-0 text-base font-bold">
           {messages.orders}
         </h2>
-        <Badge>{customer.orderCount.toLocaleString('es-AR')}</Badge>
+        <Badge>{formatNumber(customer.orderCount)}</Badge>
       </div>
       {orders.length === 0 ? (
         <EmptyState title={messages.noOrders}>{messages.noOrdersHint}</EmptyState>

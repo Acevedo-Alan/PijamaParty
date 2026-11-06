@@ -104,7 +104,7 @@ describe('my orders (UC-22, T-E4-07)', () => {
     expect(items[0]).toHaveTextContent('Pedido #1002');
     expect(items[0]).toHaveTextContent(es.tracking.statuses.SHIPPED);
     expect(items[0]).toHaveTextContent('$ 40.500');
-    expect(items[0]).toHaveTextContent(messages.placedOn('14/10/26'));
+    expect(items[0]).toHaveTextContent(messages.placedOn('14/10/2026'));
     expect(items[1]).toHaveTextContent('Pedido #1001');
     expect(items[1]).toHaveTextContent(es.tracking.statuses.AWAITING_PAYMENT);
     expect(screen.queryByRole('button', { name: messages.more })).not.toBeInTheDocument();

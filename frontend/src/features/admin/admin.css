@@ -672,7 +672,7 @@
   max-width: 100%;
   height: auto;
   image-rendering: pixelated;
-  background: #fff;
+  background: var(--surface);
   border-radius: var(--radius-s);
 }
 

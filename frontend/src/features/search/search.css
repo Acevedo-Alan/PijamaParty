@@ -223,18 +223,12 @@ header.site[data-scrolled]::before {
   header.site {
     transition: transform var(--dur-base) var(--ease-standard);
   }
-
-  header.site::before {
-    transition: background-color var(--dur-base) var(--ease-standard);
-  }
 }
 
 /* T-E7-30: the bar and the pill trade places, everything at once. */
 @media (min-width: 860px) and (prefers-reduced-motion: no-preference) {
   header.site::before {
-    transition:
-      opacity var(--dur-slow) var(--ease-out),
-      background-color var(--dur-slow) var(--ease-out);
+    transition: opacity var(--dur-slow) var(--ease-out);
   }
 
   header.site .header-row,
@@ -299,7 +293,6 @@ header.site[data-scrolled]::before {
   color: var(--ink-soft);
   text-decoration: none;
   white-space: nowrap;
-  transition: color var(--dur-fast) var(--ease-standard);
 }
 
 .nav-links a[aria-current='page'] {
@@ -582,7 +575,6 @@ html:has(.menu-panel[open]) {
   background: none;
   color: var(--ink);
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-standard);
 }
 
 .menu-close svg {
@@ -694,7 +686,6 @@ html:has(.menu-panel[open]) {
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-standard);
 }
 
 .menu-drill {
@@ -772,7 +763,6 @@ html:has(.menu-panel[open]) {
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-standard);
 }
 
 .menu-shortcuts svg {
@@ -859,7 +849,6 @@ html:has(.menu-panel[open]) {
   height: 44px;
   border-radius: 50%;
   color: var(--ink);
-  transition: color var(--dur-fast) var(--ease-standard);
 }
 
 .menu-social .footer-icon {
@@ -940,7 +929,7 @@ html:has(.menu-panel[open]) {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-s);
-  box-shadow: 0 12px 24px rgba(194, 80, 106, 0.12);
+  box-shadow: var(--shadow-accent);
   padding: 6px;
   z-index: 50;
 }

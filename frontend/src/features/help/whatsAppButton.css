@@ -18,7 +18,6 @@
   /* It pops in once with the page; `scale`, not `transform`, so it never fights the lift above the add-to-cart bar. */
   animation: whatsapp-in var(--dur-slow) var(--ease-pop) 300ms backwards;
   transition:
-    background-color var(--dur-base) var(--ease-standard),
     scale var(--dur-base) var(--ease-pop),
     transform var(--dur-base) var(--ease-standard);
 }
@@ -78,7 +77,6 @@ body:has(.pdp-sticky-cta) .whatsapp-button {
 @media (prefers-reduced-motion: reduce) {
   .whatsapp-button {
     animation: none;
-    transition: background-color var(--dur-base) var(--ease-standard);
   }
 
   .whatsapp-button:hover,

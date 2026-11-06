@@ -51,7 +51,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-s);
   background: var(--surface);
-  box-shadow: 0 12px 24px rgba(194, 80, 106, 0.12);
+  box-shadow: var(--shadow-accent);
 }
 
 .account-greeting {
@@ -656,7 +656,7 @@
 
 @media (hover: hover) {
   .btn-danger:hover:not(:disabled) {
-    background: #9a3628;
+    background: var(--danger-hover);
   }
 }
 

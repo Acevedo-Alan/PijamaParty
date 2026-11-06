@@ -3,6 +3,7 @@
  * storefront paths (/categoria, /producto: UC-01) are shown to customers (CLAUDE.md "Language"). Keep one entry per
  * text so a future translation tool can take this file as is.
  */
+import { formatNumber } from './formatNumber.ts';
 export const es = {
   store: {
     name: 'Pijama Party Santa Fe',
@@ -39,11 +40,11 @@ export const es = {
       `${sizes.length === 1 ? 'Talle' : 'Talles'}: ${new Intl.ListFormat('es', { type: 'conjunction' }).format(sizes)}`,
     /** D-11: the number of products that match, e.g. "1 producto" or "1.250 productos". */
     productCount: (count: number) =>
-      `${count.toLocaleString('es-AR')} ${count === 1 ? 'producto' : 'productos'}`,
+      `${formatNumber(count)} ${count === 1 ? 'producto' : 'productos'}`,
     showMore: 'Ver más productos',
     /** How far the visitor got, above "Ver más" (E7), e.g. "Viste 24 de 134". */
     seenOf: (seen: number, total: number) =>
-      `Viste ${seen.toLocaleString('es-AR')} de ${total.toLocaleString('es-AR')}`,
+      `Viste ${formatNumber(seen)} de ${formatNumber(total)}`,
     loading: 'Cargando productos…',
     loadingMore: 'Cargando…',
     emptyShop: 'Todavía no hay productos.',
@@ -236,7 +237,7 @@ export const es = {
       text: 'Contanos qué te pareció (opcional)',
       /** Characters typed of the most allowed, e.g. "120/1000". */
       count: (typed: number, max: number) => `${String(typed)}/${String(max)}`,
-      textTooLong: (max: number) => `El texto puede tener hasta ${max.toLocaleString('es-AR')} caracteres.`,
+      textTooLong: (max: number) => `El texto puede tener hasta ${formatNumber(max)} caracteres.`,
       send: 'Enviar opinión',
       save: 'Guardar cambios',
       sending: 'Enviando…',
@@ -831,7 +832,7 @@ export const es = {
       retry: 'Reintentar',
       empty: 'Todavía no hiciste ningún pedido.',
       goShopping: 'Ir a la tienda',
-      /** The order's date, already formatted, e.g. "Hecho el 13/10/26". */
+      /** The order's date, already formatted, e.g. "Hecho el 13/10/2026". */
       placedOn: (date: string) => `Hecho el ${date}`,
       more: 'Ver más',
       loadingMore: 'Cargando…',

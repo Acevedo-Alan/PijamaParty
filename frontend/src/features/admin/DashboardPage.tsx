@@ -41,6 +41,7 @@ import type { OrderStatus } from './ordersApi.ts';
 import { rise } from './rise.ts';
 import { SalesChart } from './SalesChart.tsx';
 import { useStoreDay } from './useStoreDay.ts';
+import { formatNumber } from '../../i18n/formatNumber.ts';
 
 const messages = esAdmin.dashboard;
 
@@ -150,7 +151,7 @@ function TodoLevel({ level, icon: Icon, entries, dashboard }: {
           const count = countOf(dashboard);
           const content = (
             <>
-              <span className="min-w-7 text-xl font-bold tabular-nums">{count.toLocaleString('es-AR')}</span>{' '}
+              <span className="min-w-7 text-xl font-bold tabular-nums">{formatNumber(count)}</span>{' '}
               <span className="font-medium">{label(dashboard)}</span>
             </>
           );
@@ -654,11 +655,11 @@ function Totals({ totals, order }: { totals: Dashboard['totals']; order: number 
       {/* UC-33: the published products and the registered customers, with how many joined this month. */}
       <CardContent className="grid grid-cols-2 gap-4">
         <div className="flex min-w-0 flex-col gap-1">
-          <Figure value={totals.publishedProducts.toLocaleString('es-AR')} />
+          <Figure value={formatNumber(totals.publishedProducts)} />
           <p className="m-0 text-[13px] text-muted-foreground">{messages.totals.publishedProducts}</p>
         </div>
         <div className="flex min-w-0 flex-col gap-1">
-          <Figure value={totals.customers.toLocaleString('es-AR')} />
+          <Figure value={formatNumber(totals.customers)} />
           <p className="m-0 text-[13px] text-muted-foreground">{messages.totals.customers}</p>
           <p className="m-0 text-[13px] text-muted-foreground">
             {messages.totals.newCustomers(totals.newCustomersThisMonth)}

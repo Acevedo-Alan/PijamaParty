@@ -16,7 +16,7 @@
   justify-content: center;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 10px;
   font-weight: 600;
 }
@@ -148,6 +148,7 @@ html:has(.cart-panel[open]) {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Quantity control and warnings of an item (UC-09), from the prototype's .di-qty */

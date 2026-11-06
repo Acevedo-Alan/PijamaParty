@@ -2,6 +2,8 @@
  * The back office's texts (Spanish), apart from es.ts so that only the back office's chunk carries them: a shopper's
  * first load never downloads them (T-E6-27, RNF-11). Same rules as es.ts: one entry per text.
  */
+import { formatNumber } from './formatNumber.ts';
+
 export const esAdmin = {
   title: 'Backoffice',
   nav: 'Secciones del backoffice',
@@ -37,7 +39,7 @@ export const esAdmin = {
       emailAlerts: 'Pedidos con email rebotado',
       soldOutVariants: 'Variantes agotadas',
       /** E.g. "Con stock bajo (3 o menos)". */
-      lowStock: (units: number) => `Con stock bajo (${units.toLocaleString('es-AR')} o menos)`,
+      lowStock: (units: number) => `Con stock bajo (${formatNumber(units)} o menos)`,
     },
     sales: {
       title: 'Ventas',
@@ -55,19 +57,19 @@ export const esAdmin = {
         tooLong: 'Elegí un período de hasta 366 días.',
       },
       /** E.g. "3 pedidos". */
-      orders: (count: number) => (count === 1 ? '1 pedido' : `${count.toLocaleString('es-AR')} pedidos`),
+      orders: (count: number) => (count === 1 ? '1 pedido' : `${formatNumber(count)} pedidos`),
       /** The variation against the period before, e.g. "+50 %" or "−12 %"; "—" without sales before. */
       variation: (percent: number | null) =>
         percent === null
           ? '—'
-          : `${percent > 0 ? '+' : percent < 0 ? '−' : ''}${Math.abs(percent).toLocaleString('es-AR')}\u00a0%`,
+          : `${percent > 0 ? '+' : percent < 0 ? '−' : ''}${formatNumber(Math.abs(percent))}\u00a0%`,
       /** A figure there is none of, as an average ticket without orders. */
       none: '—',
       versus: {
         TODAY: 'vs. ayer',
         LAST_7_DAYS: 'vs. 7 días anteriores',
         MONTH: 'vs. mismos días del mes pasado',
-        CUSTOM: (days: number) => (days === 1 ? 'vs. el día anterior' : `vs. ${days.toLocaleString('es-AR')} días anteriores`),
+        CUSTOM: (days: number) => (days === 1 ? 'vs. el día anterior' : `vs. ${formatNumber(days)} días anteriores`),
       },
       noVariation: 'Sin ventas en el período anterior',
     },
@@ -88,10 +90,10 @@ export const esAdmin = {
       title: 'Stock bajo',
       /** E.g. "Con 3 unidades o menos". */
       threshold: (units: number) =>
-        `Con ${units.toLocaleString('es-AR')} ${units === 1 ? 'unidad' : 'unidades'} o menos`,
+        `Con ${formatNumber(units)} ${units === 1 ? 'unidad' : 'unidades'} o menos`,
       none: 'Sin productos con stock bajo',
       soldOut: 'Agotado',
-      available: (units: number) => (units === 1 ? '1 disponible' : `${units.toLocaleString('es-AR')} disponibles`),
+      available: (units: number) => (units === 1 ? '1 disponible' : `${formatNumber(units)} disponibles`),
       /** No count: the block counts variants of published products, sold-out ones included (decided on 2026-11-04). */
       seeAll: 'Ver en Stock',
     },
@@ -99,7 +101,7 @@ export const esAdmin = {
       title: 'Más vendidos',
       subtitle: 'Últimos 30 días',
       none: 'Todavía no hay ventas en los últimos 30 días.',
-      units: (count: number) => (count === 1 ? '1 unidad' : `${count.toLocaleString('es-AR')} unidades`),
+      units: (count: number) => (count === 1 ? '1 unidad' : `${formatNumber(count)} unidades`),
     },
     recentOrders: {
       title: 'Pedidos recientes',
@@ -117,7 +119,7 @@ export const esAdmin = {
       publishedProducts: 'Productos publicados',
       customers: 'Clientes registrados',
       /** Under the customers, e.g. "3 nuevos este mes". */
-      newCustomers: (count: number) => (count === 1 ? '1 nuevo este mes' : `${count.toLocaleString('es-AR')} nuevos este mes`),
+      newCustomers: (count: number) => (count === 1 ? '1 nuevo este mes' : `${formatNumber(count)} nuevos este mes`),
     },
   },
   /** What the badge on "Pedidos" says to screen readers (T-E8-05). */
@@ -456,7 +458,7 @@ export const esAdmin = {
     emptyFiltered: 'No encontramos clientes con esa búsqueda.',
     /** The registration date, as formatDate writes it. */
     registered: (date: string) => `Registrado el ${date}`,
-    orders: (count: number) => (count === 1 ? '1 pedido' : `${count.toLocaleString('es-AR')} pedidos`),
+    orders: (count: number) => (count === 1 ? '1 pedido' : `${formatNumber(count)} pedidos`),
   },
   /** T-E8-11, UC-34: a customer's profile. */
   customerProfile: {
@@ -470,7 +472,7 @@ export const esAdmin = {
     lastPurchase: 'Última compra',
     noPurchases: 'Sin compras',
     /** Under "Compras": all the orders, e.g. "de 3 pedidos". */
-    ofOrders: (count: number) => (count === 1 ? 'de 1 pedido' : `de ${count.toLocaleString('es-AR')} pedidos`),
+    ofOrders: (count: number) => (count === 1 ? 'de 1 pedido' : `de ${formatNumber(count)} pedidos`),
     purchasesHint: 'Cuentan los pedidos pagados que no se cancelaron.',
     orders: 'Pedidos',
     noOrders: 'Todavía no hizo pedidos con su cuenta.',
@@ -507,7 +509,7 @@ export const esAdmin = {
     /** The order it is for, e.g. "Pedido #1001". */
     order: (number: number) => `Pedido #${String(number)}`,
     outOfTerm: 'Fuera de término',
-    /** Who and when, e.g. "Ana Pérez · pedida el 13/10/26, 15:00". */
+    /** Who and when, e.g. "Ana Pérez · pedida el 13/10/2026, 15:00". */
     requested: (buyerName: string, dateTime: string) => `${buyerName} · pedida el ${dateTime}`,
     resolvedAt: (dateTime: string) => `Resuelta el ${dateTime}`,
     resolve: 'Marcar resuelta',
@@ -661,7 +663,7 @@ export const esAdmin = {
     productGone: 'Producto eliminado',
     /** The accessible name of a rating, e.g. "4 de 5 estrellas". */
     rating: (count: number) => `${String(count)} de 5 estrellas`,
-    /** Who and when it was last submitted, e.g. "Ana · enviada el 13/10/26, 15:00". */
+    /** Who and when it was last submitted, e.g. "Ana · enviada el 13/10/2026, 15:00". */
     submitted: (authorName: string, dateTime: string) => `${authorName} · enviada el ${dateTime}`,
     noText: 'Sin comentario.',
     approve: 'Aprobar',
@@ -681,7 +683,7 @@ export const esAdmin = {
     backToOrder: 'Volver al pedido',
     printAgain: 'Imprimir',
     notPrintable: 'Este pedido todavía no se pagó o ya se cerró: no tiene remito.',
-    /** When it was placed, already formatted, e.g. "Pedido del 13/10/26". */
+    /** When it was placed, already formatted, e.g. "Pedido del 13/10/2026". */
     placedOn: (date: string) => `Pedido del ${date}`,
     recipient: 'Destinatario',
     items: 'Productos',
@@ -699,7 +701,7 @@ export const esAdmin = {
     notFound: 'No encontramos este pedido.',
     /** The order number, e.g. "Pedido #1001". */
     title: (number: number) => `Pedido #${String(number)}`,
-    /** When it was placed, already formatted, e.g. "Hecho el 13/10/26, 15:00". */
+    /** When it was placed, already formatted, e.g. "Hecho el 13/10/2026, 15:00". */
     placedAt: (dateTime: string) => `Hecho el ${dateTime}`,
     deliveredAt: (dateTime: string) => `Entregado el ${dateTime}`,
     alerts: {
@@ -983,6 +985,6 @@ export const esAdmin = {
     /** Leaving the screen, or changing its filters, with a row not saved yet. */
     unsavedChanges: 'Hay cambios sin guardar en el stock. ¿Salir igual?',
     /** UC-07: adds back the units of the last saved subtraction. */
-    undo: (units: number) => `Deshacer (sumar ${units.toLocaleString('es-AR')})`,
+    undo: (units: number) => `Deshacer (sumar ${formatNumber(units)})`,
   },
 } as const;

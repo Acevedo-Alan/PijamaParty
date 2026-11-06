@@ -45,7 +45,6 @@
 
 .card .ph {
   border-radius: var(--radius-m);
-  transition: box-shadow var(--dur-base) var(--ease-out);
 }
 
 @media (hover: hover) {
@@ -54,7 +53,7 @@
   }
 
   .card:hover .ph {
-    box-shadow: 0 12px 24px rgba(194, 80, 106, 0.12);
+    box-shadow: var(--shadow-accent);
   }
 }
 
@@ -370,9 +369,7 @@
   color: var(--accent-text);
   font-size: 15px;
   font-weight: 600;
-  transition:
-    background-color var(--dur-fast) var(--ease-standard),
-    transform var(--dur-fast) var(--ease-standard);
+  transition: transform var(--dur-fast) var(--ease-standard);
 }
 
 .load-more-btn:active:not(:disabled) {
@@ -464,9 +461,6 @@
   background: var(--peach-soft);
   color: var(--ink);
   font-size: 13px;
-  transition:
-    border-color var(--dur-fast) var(--ease-standard),
-    background-color var(--dur-fast) var(--ease-standard);
 }
 
 /* The chevron says the button opens something */
@@ -483,7 +477,7 @@
 .filter-btn.active {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* Sort and view (UC-02, T-E7-06) */
@@ -510,7 +504,6 @@
   width: 44px;
   height: 44px;
   color: var(--ink);
-  transition: background-color var(--dur-fast) var(--ease-standard);
 }
 
 .view-toggle button + button {
@@ -519,7 +512,7 @@
 
 .view-toggle button[aria-pressed='true'] {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .view-toggle svg {
@@ -803,7 +796,7 @@ html:has(.filters-panel[open]) {
 .chip:has(input:checked) {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .chip:has(input:focus-visible) {
@@ -882,7 +875,6 @@ html:has(.filters-panel[open]) {
   background: var(--peach-soft);
   color: var(--ink);
   font-size: 13px;
-  transition: background-color var(--dur-fast) var(--ease-standard);
 }
 
 /* 36 px tall, the chip reaches 44 px of touch target with its invisible margin box */

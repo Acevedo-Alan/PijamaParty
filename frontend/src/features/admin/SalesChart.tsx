@@ -5,6 +5,7 @@ import { formatDayMonth, formatMonthYear } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { cn } from '../../components/ui/cn.ts';
 import type { Chart, ChartPoint } from './dashboardApi.ts';
+import { formatNumber } from '../../i18n/formatNumber.ts';
 
 const messages = esAdmin.dashboard.chart;
 
@@ -81,7 +82,7 @@ export function SalesChart({ kind, points }: { kind: Chart; points: ChartPoint[]
             <tr key={point.period}>
               <th scope="row">{periodLabel(kind, point.period)}</th>
               <td>{formatMoney(point.amountCents)}</td>
-              <td>{point.orders.toLocaleString('es-AR')}</td>
+              <td>{formatNumber(point.orders)}</td>
             </tr>
           ))}
         </tbody>

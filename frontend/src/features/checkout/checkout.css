@@ -91,7 +91,7 @@
 .checkout-steps li.active .checkout-step-mark {
   border-color: var(--ink);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .checkout-steps li.done {
@@ -101,7 +101,7 @@
 .checkout-steps li.done .checkout-step-mark {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .checkout-layout {
@@ -421,6 +421,7 @@
 
 .checkout-summary-amount {
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .checkout-coupon {
@@ -454,6 +455,7 @@
 
 .checkout-amounts dd {
   margin: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 /* T-E7-38: the total after a line, the strongest amount of the card. */

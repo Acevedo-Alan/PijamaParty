@@ -202,7 +202,6 @@
   position: relative;
   isolation: isolate;
   border-radius: 50%;
-  transition: color var(--dur-base) var(--ease-standard);
 }
 
 .social-link::before {

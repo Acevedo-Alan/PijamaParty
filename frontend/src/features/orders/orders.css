@@ -176,10 +176,12 @@
 
 .tracking-amounts dd {
   margin: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .tracking-total {
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 /* UC-17 (T-E3-23): correcting the buyer's email, below the summary. */

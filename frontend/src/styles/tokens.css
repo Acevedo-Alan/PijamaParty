@@ -53,6 +53,21 @@
   --rainbow-across: linear-gradient(to right, #ffc9c9, #ffe0bd, #fff3b8, #cdf0cb, #c4e4ff, #dccdff);
   --danger-soft: linear-gradient(to right, #fbd3cd, #f4aaa0);
 
+  /*
+   * Colors the stylesheets used to write by hand (T-E8-25). Same values as before, now named:
+   * text on --accent and on dark planes, the hover of a destructive button, the shadow of a lifted card, the dark
+   * veil and the frosted bar over photos, and the gradients shown until a banner photo arrives (D-15).
+   */
+  --on-accent: #ffffff;
+  --danger-hover: #9a3628;
+  --shadow-accent: 0 12px 24px rgb(194 80 106 / 0.12);
+  --scrim: rgb(58 50 45 / 0.72);
+  --glass: rgb(255 255 255 / 0.94);
+  --tone-hero: linear-gradient(120deg, #fce4e8 0%, #ffd9c7 55%, #c98782 100%);
+  --tone-rose: linear-gradient(135deg, #f7c6cf, #e5a9b6);
+  --tone-peach: linear-gradient(135deg, #ffd9c7, #dfaf9e);
+  --tone-cream: linear-gradient(135deg, #fff1e8, #e7d5c8);
+
   /* Shape and layout (prototype) */
   --radius-s: 12px;
   --radius-m: 16px;

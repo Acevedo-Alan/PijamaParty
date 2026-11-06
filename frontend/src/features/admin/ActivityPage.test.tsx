@@ -43,7 +43,7 @@ describe('the activity log in the back office (UC-37)', () => {
     await screen.findByText(messages.actions.VARIANT_UPDATED);
     const entry = card(messages.actions.VARIANT_UPDATED);
     expect(entry.getByText(messages.areas.CATALOG)).toBeInTheDocument();
-    expect(entry.getByText('15/10/26, 15:30')).toHaveAttribute('datetime', '2026-10-15T18:30:00.000Z');
+    expect(entry.getByText('15/10/2026, 15:30')).toHaveAttribute('datetime', '2026-10-15T18:30:00.000Z');
     expect(entry.getByText('PP-AB12CD34')).toBeInTheDocument();
     expect(entry.queryByRole('link', { name: 'PP-AB12CD34' })).not.toBeInTheDocument();
     expect(entry.getByText('Precio: $20.000 → $22.000')).toBeInTheDocument();
