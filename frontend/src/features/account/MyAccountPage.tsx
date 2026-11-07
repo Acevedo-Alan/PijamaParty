@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 import { es } from '../../i18n/es.ts';
-import { AccountDataSection, type AccountDeletedState } from './AccountDataSection.tsx';
+import type { AccountDeletedState } from './AccountDeletedNotice.tsx';
+import { AccountDataSection } from './AccountDataSection.tsx';
 import { SIGN_IN_PATH } from './AccountLink.tsx';
 import { signInWithProviderUrl, type SignInProvider } from './accountApi.ts';
 import {
