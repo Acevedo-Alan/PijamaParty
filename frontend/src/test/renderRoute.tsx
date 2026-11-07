@@ -3,6 +3,8 @@ import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router';
 import { MotionProvider } from '../components/motion/MotionProvider.tsx';
 import { routes } from '../routes.tsx';
+// The store's cart panel is downloaded on demand; loaded here, the first test to open it does not wait for it.
+import '../features/cart/CartPanel.tsx';
 
 /** A route with its on-demand page already loaded, and the same for its children. */
 async function loaded(route: RouteObject): Promise<RouteObject> {
@@ -25,7 +27,7 @@ const loadedRoutes = await Promise.all(routes.map(loaded));
  * navigate(path, { state }) of the app leaves it.
  */
 export function renderRoute(path: string, { motion = false, state }: { motion?: boolean; state?: unknown } = {}) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 60_000 } } });
   const router = createMemoryRouter(loadedRoutes, {
     initialEntries: [state === undefined ? path : { pathname: path, state }],
   });

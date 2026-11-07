@@ -42,9 +42,11 @@ describe('add to cart motion (E7, D-16)', () => {
 
     await addPinkM();
 
-    // Read while moving: the panel is still sliding in and the counter still bumping.
+    // Read while moving: the counter is still bumping, and the panel (downloaded on its first opening) slides in as it appears.
+    await waitFor(() => {
+      expect(badge(1)?.style.transform).toMatch(/^scale\(/);
+    });
     expect((await screen.findByRole('dialog', { name: es.cart.title })).style.transform).toMatch(/^translateX\(/);
-    expect(badge(1)?.style.transform).toMatch(/^scale\(/);
     expect(screen.getByRole('button', { name: es.product.added, hidden: true })).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByRole('button', { name: es.product.addToCart, hidden: true })).toBeInTheDocument();

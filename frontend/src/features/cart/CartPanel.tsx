@@ -307,7 +307,8 @@ const NOTICE_MS = 4000;
  */
 function useAddedNotice(added: number, panelOpen: boolean) {
   const [shown, setShown] = useState(false);
-  const [seenAdds, setSeenAdds] = useState(added);
+  // From zero, not from the adds so far: the panel loads on its first opening (CartPanelOnDemand), after the add that opened it.
+  const [seenAdds, setSeenAdds] = useState(0);
   if (added !== seenAdds) {
     setSeenAdds(added);
     setShown(true);

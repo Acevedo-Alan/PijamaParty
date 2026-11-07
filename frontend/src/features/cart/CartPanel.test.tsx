@@ -197,6 +197,8 @@ async function openWith(...carts: unknown[]) {
   }));
   renderRoute('/producto/luna');
   await userEvent.click(await screen.findByRole('button', { name: /^Carrito/ }));
+  // The panel is downloaded the first time it opens (CartPanelOnDemand).
+  await screen.findByRole('dialog', { name: es.cart.title });
   return get;
 }
 
@@ -520,6 +522,7 @@ describe('cart side panel free shipping and notice (UC-08, E7)', () => {
     }));
     renderRoute('/producto/luna');
     await userEvent.click(await screen.findByRole('button', { name: /^Carrito/ }));
+    await screen.findByRole('dialog', { name: es.cart.title });
   }
 
   const freeFrom50000 = answer(200, { zones: [], freeShippingThresholdCents: 5_000_000 });

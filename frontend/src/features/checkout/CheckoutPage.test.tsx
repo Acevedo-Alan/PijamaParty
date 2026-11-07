@@ -253,7 +253,8 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
 
     await userEvent.click(screen.getByRole('button', { name: es.checkout.reviewCart }));
 
-    expect(screen.getByRole('dialog', { name: es.cart.title })).toHaveAttribute('open');
+    // The cart panel is downloaded the first time it opens.
+    expect(await screen.findByRole('dialog', { name: es.cart.title })).toHaveAttribute('open');
   });
 
   it('given a province without a cost, when the buyer picks it, then it is told there is no shipping to that zone', async () => {

@@ -5,7 +5,7 @@ import { es } from '../../i18n/es.ts';
 import { useEntranceMotion } from '../../components/motion/useActionMotion.ts';
 import { Analytics } from '../analytics/ConsentBanner.tsx';
 import { AccountDeletedNotice } from '../account/AccountDeletedNotice.tsx';
-import { CartPanel } from '../cart/CartPanel.tsx';
+import { CartPanelOnDemand } from '../cart/CartPanelOnDemand.tsx';
 import { CartPanelProvider } from '../cart/CartPanelContext.tsx';
 import { WhatsAppButton } from '../help/WhatsAppButton.tsx';
 import { NoIndex } from '../seo/NoIndex.tsx';
@@ -87,7 +87,7 @@ export function StoreLayout() {
       {pathname === '/' && <BenefitsBar />}
       <SiteFooter />
       <WhatsAppButton />
-      <CartPanel />
+      <CartPanelOnDemand />
     </CartPanelProvider>
   );
 }
