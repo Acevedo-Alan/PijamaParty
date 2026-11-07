@@ -18,6 +18,8 @@ interface BlurredImageProps {
   loading?: 'lazy' | 'eager';
   /** 'high' for the photos that are likely the largest paint of the page (T-E6-02, RNF-11). */
   fetchPriority?: 'high' | 'auto';
+  /** The photo is visible from the start instead of fading in: the largest paint of the page must not wait for a fade (RNF-11). */
+  instant?: boolean;
 }
 
 function placeholderStyle(placeholder: PlaceholderDataUrl | undefined): CSSProperties | undefined {
@@ -37,9 +39,10 @@ export function BlurredImage({
   className,
   loading = 'lazy',
   fetchPriority = 'auto',
+  instant = false,
 }: BlurredImageProps) {
   const [loaded, setLoaded] = useState(false);
-  const classes = ['ph', loaded ? 'loaded' : '', className ?? ''].filter(Boolean).join(' ');
+  const classes = ['ph', loaded ? 'loaded' : '', instant ? 'instant' : '', className ?? ''].filter(Boolean).join(' ');
 
   return (
     <div className={classes} style={placeholderStyle(placeholder)} data-testid="blurred-image">

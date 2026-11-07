@@ -89,6 +89,7 @@ export function ProductGallery({ name, images }: ProductGalleryProps) {
                 // The shown photo and its neighbours, so a swipe never reveals an empty placeholder.
                 loading={Math.abs(index - active) <= 1 ? 'eager' : 'lazy'}
                 fetchPriority={index === 0 ? 'high' : 'auto'}
+                instant={index === 0}
                 {...(image.placeholder === undefined ? {} : { placeholder: image.placeholder })}
               />
             </div>

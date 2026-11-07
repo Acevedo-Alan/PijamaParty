@@ -34,3 +34,9 @@
 .ph.loaded img {
   opacity: 1;
 }
+
+/* The photo that is the page's largest paint: shown as it arrives, over the placeholder, with no fade. */
+.ph.instant img {
+  opacity: 1;
+  transition: none;
+}
