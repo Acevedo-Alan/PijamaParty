@@ -17,7 +17,7 @@ declare global {
 }
 
 /** The `sizes` of the gallery's main photo, the same as ProductGallery.tsx (a test keeps them equal). */
-export const MAIN_PHOTO_SIZES = '(min-width: 1180px) 534px, (min-width: 860px) calc(52vw - 76px), calc(100vw - 40px)';
+export const MAIN_PHOTO_SIZES = '(min-width: 1180px) 534px, (min-width: 860px) calc(52vw - 76px), calc(100vw - 72px)';
 
 interface PhotoFile {
   width?: number;

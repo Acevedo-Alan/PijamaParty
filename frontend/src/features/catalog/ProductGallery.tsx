@@ -9,7 +9,7 @@ import { useSwipe } from './useSwipe.ts';
  * One column on mobile; from 860 px the gallery takes about half of the 1180 px content width, less the strip of
  * thumbnails on its left.
  */
-const MAIN_IMAGE_SIZES = '(min-width: 1180px) 534px, (min-width: 860px) calc(52vw - 76px), calc(100vw - 40px)';
+const MAIN_IMAGE_SIZES = '(min-width: 1180px) 534px, (min-width: 860px) calc(52vw - 76px), calc(100vw - 72px)';
 const THUMB_SIZES = '64px';
 
 interface ProductGalleryProps {
