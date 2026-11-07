@@ -5,6 +5,7 @@ import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.ordering.api.WithdrawalNotices;
 import com.pijamaparty.store.ordering.api.WithdrawalNotices.WithdrawalNotice;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,10 +19,12 @@ class WithdrawalCustomerComposer implements EmailComposer {
 
     private final WithdrawalNotices notices;
     private final MessageSource messages;
+    private final URI publicUrl;
 
-    WithdrawalCustomerComposer(WithdrawalNotices notices, MessageSource messages) {
+    WithdrawalCustomerComposer(WithdrawalNotices notices, MessageSource messages, URI publicUrl) {
         this.notices = notices;
         this.messages = messages;
+        this.publicUrl = publicUrl;
     }
 
     @Override
@@ -37,7 +40,7 @@ class WithdrawalCustomerComposer implements EmailComposer {
         }
         WithdrawalNotice notice = found.get();
         String number = Long.toString(notice.orderNumber());
-        var writer = new OrderEmailWriter(messages);
+        var writer = new OrderEmailWriter(messages, publicUrl);
         String subject = writer.message("notifications.withdrawal.customer.subject", number);
         writer.heading(writer.message("notifications.withdrawal.customer.greeting", number, notice.buyerFirstName()))
             .paragraph(writer.message("notifications.withdrawal.customer.intro", number))

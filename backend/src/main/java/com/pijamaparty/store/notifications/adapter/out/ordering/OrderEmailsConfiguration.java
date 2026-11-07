@@ -28,19 +28,21 @@ class OrderEmailsConfiguration {
 
     @Bean
     OrderPaidAdminComposer orderPaidAdminComposer(
-        PaidOrders orders, MessageSource messages, @Value("${store.notifications.admin-recipient}") String recipient) {
-        return new OrderPaidAdminComposer(orders, messages, recipient);
+        PaidOrders orders, MessageSource messages, @Value("${store.public-url}") URI publicUrl,
+        @Value("${store.notifications.admin-recipient}") String recipient) {
+        return new OrderPaidAdminComposer(orders, messages, publicUrl, recipient);
     }
 
     @Bean
-    WithdrawalCustomerComposer withdrawalCustomerComposer(WithdrawalNotices notices, MessageSource messages) {
-        return new WithdrawalCustomerComposer(notices, messages);
+    WithdrawalCustomerComposer withdrawalCustomerComposer(
+        WithdrawalNotices notices, MessageSource messages, @Value("${store.public-url}") URI publicUrl) {
+        return new WithdrawalCustomerComposer(notices, messages, publicUrl);
     }
 
     @Bean
     WithdrawalAdminComposer withdrawalAdminComposer(
-        WithdrawalNotices notices, MessageSource messages,
+        WithdrawalNotices notices, MessageSource messages, @Value("${store.public-url}") URI publicUrl,
         @Value("${store.notifications.admin-recipient}") String recipient) {
-        return new WithdrawalAdminComposer(notices, messages, recipient);
+        return new WithdrawalAdminComposer(notices, messages, publicUrl, recipient);
     }
 }

@@ -44,7 +44,7 @@ class LinkConfirmationComposer implements EmailComposer {
         LinkConfirmationLink link = found.get();
         String url = publicUrl + CONFIRMATION_PATH + link.token().value();
         String provider = providerName(link.provider());
-        var writer = new AccountEmailWriter(messages);
+        var writer = new AccountEmailWriter(messages, URI.create(publicUrl));
         String subject = writer.message("notifications.link-confirmation.subject", provider);
         writer.heading(writer.message("notifications.link-confirmation.greeting", EmailWriter.firstName(link.name())))
             .paragraph(writer.message("notifications.link-confirmation.intro", provider))

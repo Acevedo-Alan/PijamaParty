@@ -6,6 +6,7 @@ import com.pijamaparty.store.notifications.application.EmailComposer.Composition
 import com.pijamaparty.store.notifications.application.EmailComposerContractTest;
 import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
+import java.net.URI;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +22,7 @@ class OrderPaidAdminComposerContractTest extends EmailComposerContractTest<Order
     @Override
     protected OrderPaidAdminComposer createSubject() {
         return new OrderPaidAdminComposer(orders, OrderPaidCustomerComposerContractTest.messages(),
+            URI.create("https://pijamaparty.example/"),
             "admin@pijamaparty.example");
     }
 
@@ -53,7 +55,8 @@ class OrderPaidAdminComposerContractTest extends EmailComposerContractTest<Order
     @Test
     void givenNoAdministratorConfigured_whenComposed_thenItIsGoneWithAWarning(CapturedOutput output) {
         UUID order = orders.paid().orderId();
-        var unconfigured = new OrderPaidAdminComposer(orders, OrderPaidCustomerComposerContractTest.messages(), " ");
+        var unconfigured = new OrderPaidAdminComposer(orders, OrderPaidCustomerComposerContractTest.messages(),
+            URI.create("https://pijamaparty.example/"), " ");
 
         assertThat(unconfigured.compose(order)).isInstanceOf(Composition.Gone.class);
         assertThat(output.getAll()).contains("No administrator to tell about paid order " + order);

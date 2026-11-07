@@ -43,6 +43,15 @@ class OrderPaidCustomerComposerContractTest extends EmailComposerContractTest<Or
     }
 
     @Test
+    void givenAPaidOrder_whenComposed_thenTheHtmlHasTheBrandedLayoutAndTheTextTheFooter() {
+        EmailMessage message = compose(orders.paid());
+
+        assertThat(message.html()).contains("src=\"https://pijamaparty.example/email/logo.png\"",
+            "alt=\"Pijama Party\"", "Pijama Party · Santa Fe", "lang=\"es\"").doesNotContain("<style");
+        assertThat(message.text()).endsWith("Pijama Party · Santa Fe\nhttps://pijamaparty.example\n");
+    }
+
+    @Test
     void givenAPaidOrder_whenComposed_thenItGoesToTheBuyerWithTheOrderNumberInTheSubject() {
         EmailMessage message = compose(orders.paid());
 

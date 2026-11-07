@@ -5,6 +5,7 @@ import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.ordering.api.PaidOrders;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,11 +23,13 @@ class OrderPaidAdminComposer implements EmailComposer {
 
     private final PaidOrders orders;
     private final MessageSource messages;
+    private final URI publicUrl;
     private final String recipient;
 
-    OrderPaidAdminComposer(PaidOrders orders, MessageSource messages, String recipient) {
+    OrderPaidAdminComposer(PaidOrders orders, MessageSource messages, URI publicUrl, String recipient) {
         this.orders = orders;
         this.messages = messages;
+        this.publicUrl = publicUrl;
         this.recipient = recipient.strip();
     }
 
@@ -48,7 +51,7 @@ class OrderPaidAdminComposer implements EmailComposer {
         }
         PaidOrder order = found.get();
         String number = Long.toString(order.number());
-        var writer = new OrderEmailWriter(messages);
+        var writer = new OrderEmailWriter(messages, publicUrl);
         String subject = writer.message("notifications.order-paid.admin.subject", number);
         writer.heading(subject)
             .paragraph(writer.message("notifications.order-paid.admin.intro", number))

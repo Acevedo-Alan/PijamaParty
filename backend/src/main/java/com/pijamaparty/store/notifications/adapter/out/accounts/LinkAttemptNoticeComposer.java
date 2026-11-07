@@ -42,7 +42,7 @@ class LinkAttemptNoticeComposer implements EmailComposer {
             return new Composition.Gone();
         }
         Recipient recipient = found.get();
-        var writer = new AccountEmailWriter(messages);
+        var writer = new AccountEmailWriter(messages, URI.create(publicUrl));
         String subject = writer.message("notifications.link-attempt.subject");
         writer.heading(writer.message("notifications.link-attempt.greeting", EmailWriter.firstName(recipient.name())))
             .paragraph(writer.message("notifications.link-attempt.intro"))

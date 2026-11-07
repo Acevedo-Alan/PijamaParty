@@ -6,6 +6,7 @@ import com.pijamaparty.store.notifications.application.EmailComposer.Composition
 import com.pijamaparty.store.notifications.application.EmailComposerContractTest;
 import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
+import java.net.URI;
 import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,8 @@ class WithdrawalComposersContractTest {
 
         @Override
         protected WithdrawalCustomerComposer createSubject() {
-            return new WithdrawalCustomerComposer(notices, OrderPaidCustomerComposerContractTest.messages());
+            return new WithdrawalCustomerComposer(notices, OrderPaidCustomerComposerContractTest.messages(),
+                URI.create("https://pijamaparty.example/"));
         }
 
         @Override
@@ -60,6 +62,7 @@ class WithdrawalComposersContractTest {
         @Override
         protected WithdrawalAdminComposer createSubject() {
             return new WithdrawalAdminComposer(notices, OrderPaidCustomerComposerContractTest.messages(),
+                URI.create("https://pijamaparty.example/"),
                 "admin@pijamaparty.example");
         }
 
@@ -100,6 +103,7 @@ class WithdrawalComposersContractTest {
         void givenNoAdministratorConfigured_whenComposed_thenItIsGoneWithAWarning(CapturedOutput output) {
             UUID request = notices.requested(false).requestId();
             var unconfigured = new WithdrawalAdminComposer(notices, OrderPaidCustomerComposerContractTest.messages(),
+                URI.create("https://pijamaparty.example/"),
                 " ");
 
             assertThat(unconfigured.compose(request)).isInstanceOf(Composition.Gone.class);

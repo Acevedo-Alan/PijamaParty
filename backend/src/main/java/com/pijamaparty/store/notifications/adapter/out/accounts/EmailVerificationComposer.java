@@ -46,7 +46,7 @@ class EmailVerificationComposer implements EmailComposer {
         }
         EmailVerificationLink link = found.get();
         String url = publicUrl + VERIFICATION_PATH + link.token().value();
-        var writer = new AccountEmailWriter(messages);
+        var writer = new AccountEmailWriter(messages, URI.create(publicUrl));
         String subject = writer.message("notifications.email-verification.subject");
         writer.heading(writer.message("notifications.email-verification.greeting", EmailWriter.firstName(link.name())))
             .paragraph(writer.message("notifications.email-verification.intro"))

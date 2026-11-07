@@ -5,6 +5,7 @@ import com.pijamaparty.store.ordering.api.PaidOrders.Address;
 import com.pijamaparty.store.ordering.api.PaidOrders.Line;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
 import com.pijamaparty.store.platform.domain.Money;
+import java.net.URI;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
@@ -15,8 +16,8 @@ import org.springframework.context.MessageSource;
 /** An email about an order: the parts of every email, plus the order's summary, amounts and address. */
 final class OrderEmailWriter extends EmailWriter<OrderEmailWriter> {
 
-    OrderEmailWriter(MessageSource messages) {
-        super(messages);
+    OrderEmailWriter(MessageSource messages, URI publicUrl) {
+        super(messages, publicUrl);
     }
 
     @Override
@@ -39,7 +40,8 @@ final class OrderEmailWriter extends EmailWriter<OrderEmailWriter> {
 
     /** The lines with their totals, then subtotal, discount (only with a coupon), shipping and total. */
     OrderEmailWriter summary(PaidOrder order) {
-        appendHtml("<table role=\"presentation\" style=\"border-collapse:collapse;width:100%;margin:0 0 16px\">\n");
+        appendHtml("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
+            + "style=\"border-collapse:collapse;margin:0 0 16px\">\n");
         for (Line line : order.lines()) {
             row(message("notifications.order.line", line.productName(), line.size(), line.color(),
                 Integer.toString(line.quantity())), pesos(line.amount()), false);
@@ -70,9 +72,11 @@ final class OrderEmailWriter extends EmailWriter<OrderEmailWriter> {
     }
 
     private void row(String label, String amount, boolean strong) {
-        String weight = strong ? "font-weight:bold;" : "";
-        appendHtml("<tr><td style=\"" + weight + "padding:4px 0\">" + escape(label)
-            + "</td><td style=\"" + weight + "padding:4px 0;text-align:right;white-space:nowrap\">"
+        String style = strong
+            ? "font-weight:bold;font-size:17px;color:" + ACCENT + ";border-top:2px solid " + LINE + ";padding:10px 0 0"
+            : "border-bottom:1px solid " + LINE + ";padding:8px 0";
+        appendHtml("<tr><td style=\"" + style + "\">" + escape(label)
+            + "</td><td style=\"" + style + ";text-align:right;white-space:nowrap;padding-left:12px\">"
             + escape(amount) + "</td></tr>\n");
         appendText(label + ": " + amount + "\n");
     }

@@ -48,7 +48,7 @@ class OrderPaidCustomerComposer implements EmailComposer {
         PaidOrder order = found.get();
         String link = publicUrl + TRACKING_PATH + trackingLinks.issue(order.orderId()).value();
         String number = Long.toString(order.number());
-        var writer = new OrderEmailWriter(messages);
+        var writer = new OrderEmailWriter(messages, URI.create(publicUrl));
         String subject = writer.message("notifications.order-paid.customer.subject", number);
         writer.heading(writer.message("notifications.order-paid.customer.greeting", number, order.buyerFirstName()))
             .paragraph(writer.message("notifications.order-paid.customer.intro", number))

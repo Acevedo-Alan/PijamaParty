@@ -43,7 +43,7 @@ class PasswordResetComposer implements EmailComposer {
         }
         PasswordResetLink link = found.get();
         String url = publicUrl + RESET_PATH + link.token().value();
-        var writer = new AccountEmailWriter(messages);
+        var writer = new AccountEmailWriter(messages, URI.create(publicUrl));
         String subject = writer.message("notifications.password-reset.subject");
         writer.heading(writer.message("notifications.password-reset.greeting", EmailWriter.firstName(link.name())))
             .paragraph(writer.message("notifications.password-reset.intro"))
