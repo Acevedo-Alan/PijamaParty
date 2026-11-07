@@ -113,8 +113,36 @@ function toDetail(data: DetailResponse): ProductDetail {
   };
 }
 
+/**
+ * The answer that index.html asked for before the app loaded (earlyProduct.ts), once and only for that product. A
+ * failed or unusable early request returns undefined and the caller asks again.
+ */
+async function takeEarlyAnswer(slug: string): Promise<ProductDetailAnswer | undefined> {
+  const early = window.earlyProduct;
+  if (early?.slug !== slug) {
+    return undefined;
+  }
+  window.earlyProduct = undefined;
+  try {
+    const response = await early.response;
+    if (response.status === 404 || response.status === 400) {
+      return { status: 'notFound' };
+    }
+    if (!response.ok) {
+      return undefined;
+    }
+    return { status: 'found', product: toDetail((await response.json()) as DetailResponse) };
+  } catch {
+    return undefined;
+  }
+}
+
 /** A listed product by slug. A slug the API rejects as too long finds nothing either, so it is not found too. */
 export async function fetchProductDetail(slug: string, signal?: AbortSignal): Promise<ProductDetailAnswer> {
+  const early = await takeEarlyAnswer(slug);
+  if (early !== undefined) {
+    return early;
+  }
   const { data, response } = await api.GET('/api/catalog/products/{slug}', {
     params: { path: { slug } },
     signal: signal ?? null,

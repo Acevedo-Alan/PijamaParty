@@ -36,6 +36,40 @@ function preloadBodyFont(): Plugin {
 }
 
 /**
+ * T-E6-02 (RNF-11): the product request that starts while the app's bundle downloads (src/earlyProduct.ts). It has to
+ * be a file of its own: left as a second script of index.html the build folds it into the main bundle, where it would
+ * run only after that downloads. In dev the module is served as it is.
+ */
+function earlyProduct(): Plugin {
+  const source = resolve(import.meta.dirname, 'src/earlyProduct.ts');
+  return {
+    name: 'early-product',
+    buildStart() {
+      if (this.environment.mode === 'build') {
+        this.emitFile({ type: 'chunk', id: source, name: 'earlyProduct', preserveSignature: false });
+      }
+    },
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, { server, bundle }) {
+        const built = Object.values(bundle ?? {}).find((chunk) => chunk.type === 'chunk' && chunk.name === 'earlyProduct');
+        const src = server === undefined ? built && `/${built.fileName}` : '/src/earlyProduct.ts';
+        if (src === undefined) {
+          throw new Error('The early product script is not in the build');
+        }
+        return [
+          {
+            tag: 'script',
+            attrs: { type: 'module', async: true, src },
+            injectTo: 'head-prepend',
+          },
+        ];
+      },
+    },
+  };
+}
+
+/**
  * UC-06, dev only: the uploaded photos at /uploads/*, as Caddy serves them in production (deploy/caddy/Caddyfile):
  * WebP files only, from the backend's UPLOADS_DIR (its default /srv/uploads resolves to the same folder for Node and
  * Java). Only the file name is used, so a request never leaves that folder.
@@ -65,7 +99,7 @@ function serveUploads(): Plugin {
 // no CORS and cookies stay first-party. In dev, Vite proxies /api to the local backend and serves the uploads.
 export default defineConfig({
   // Tailwind only builds what the back office stylesheet imports (D-E8-12): the storefront's CSS stays as it is.
-  plugins: [react(), tailwindcss(), preloadBodyFont(), serveUploads()],
+  plugins: [react(), tailwindcss(), preloadBodyFont(), earlyProduct(), serveUploads()],
   build: {
     // Fonts are always files: the CSP's font-src allows 'self' only (T-E6-03), and a small subset inlined as a data:
     // URL (Open Sans greek-ext is under the 4 KB default) would be blocked and weigh on the render-blocking CSS.
