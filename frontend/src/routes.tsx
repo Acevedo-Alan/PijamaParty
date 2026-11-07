@@ -17,7 +17,16 @@ import { ProductDetailPage } from './features/catalog/ProductDetailPage.tsx';
 import { NotFoundPage } from './features/errors/NotFoundPage.tsx';
 import { RootLayout, RouteLoadingFallback } from './features/errors/RootLayout.tsx';
 import { RouteErrorPage } from './features/errors/RouteErrorPage.tsx';
-import { FAQ_PATH, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, SIZE_GUIDES_PATH, TERMS_PATH } from './features/help/FaqLink.tsx';
+import {
+  COOKIES_PATH,
+  DATA_DELETION_PATH,
+  FAQ_PATH,
+  HOW_TO_BUY_PATH,
+  PRIVACY_PATH,
+  RETURNS_POLICY_PATH,
+  SIZE_GUIDES_PATH,
+  TERMS_PATH,
+} from './features/help/FaqLink.tsx';
 import { SearchPage } from './features/search/SearchPage.tsx';
 import { StoreLayout } from './features/search/StoreLayout.tsx';
 import { WITHDRAWAL_PATH } from './features/withdrawal/WithdrawalLink.tsx';
@@ -29,6 +38,7 @@ import { WITHDRAWAL_PATH } from './features/withdrawal/WithdrawalLink.tsx';
 const account = () => import('./features/account/accountPages.ts');
 const checkout = () => import('./features/checkout/checkoutPages.ts');
 const helpPages = () => import('./features/help/HelpPages.tsx');
+const legalPages = () => import('./features/help/LegalPages.tsx');
 
 /** Feature folders add their routes here (catalog, cart, checkout, account, admin: ARCHITECTURE.md section 11). */
 export const routes: RouteObject[] = [
@@ -53,6 +63,9 @@ export const routes: RouteObject[] = [
       { path: HOW_TO_BUY_PATH, lazy: async () => ({ Component: (await helpPages()).HowToBuyPage }) },
       { path: RETURNS_POLICY_PATH, lazy: async () => ({ Component: (await helpPages()).ReturnsPolicyPage }) },
       { path: TERMS_PATH, lazy: async () => ({ Component: (await helpPages()).TermsPage }) },
+      { path: PRIVACY_PATH, lazy: async () => ({ Component: (await legalPages()).PrivacyPage }) },
+      { path: COOKIES_PATH, lazy: async () => ({ Component: (await legalPages()).CookiesPolicyPage }) },
+      { path: DATA_DELETION_PATH, lazy: async () => ({ Component: (await legalPages()).DataDeletionPage }) },
       {
         path: SIZE_GUIDES_PATH,
         lazy: async () => ({ Component: (await import('./features/catalog/SizeGuidesPage.tsx')).SizeGuidesPage }),

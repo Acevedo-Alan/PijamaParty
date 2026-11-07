@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { COOKIES_PATH } from '../help/FaqLink.tsx';
 import {
   analyticsIds,
   analyticsLoaded,
@@ -94,7 +95,8 @@ export function Analytics() {
       <div className="wrap consent-inner">
         <p>
           {messages.text}
-          {choice !== null && <span className="consent-current"> {messages.current[choice]}</span>}
+          {choice !== null && <span className="consent-current"> {messages.current[choice]}</span>}{' '}
+          <Link to={COOKIES_PATH}>{messages.policyLink}</Link>
         </p>
         <div className="consent-actions">
           <button

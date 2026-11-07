@@ -45,6 +45,14 @@ describe('analytics consent (RNF-25, T-E1-23)', () => {
     expect(window.dataLayer).toBeUndefined();
   });
 
+  it('given the banner, when it shows, then it links the cookies policy (T-E6-06)', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/');
+
+    const region = await screen.findByRole('region', { name: consent.title });
+    expect(within(region).getByRole('link', { name: consent.policyLink })).toHaveAttribute('href', '/cookies');
+  });
+
   it('given the banner, when accepted, then both tools load, the choice is kept and the page view has no query', async () => {
     stubCatalogApi({ listings: [listed([])] });
     renderRoute('/buscar?q=pijama');

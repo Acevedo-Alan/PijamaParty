@@ -18,6 +18,9 @@ export const es = {
     howToBuyDescription: 'Cómo comprar en Pijama Party Santa Fe: elegí tus pijamas, pagá y seguí tu pedido en pocos pasos.',
     returnsDescription: 'Cambios por talle o color dentro de los 30 días y arrepentimiento de compra en Pijama Party Santa Fe.',
     termsDescription: 'Términos y condiciones de compra en la tienda online de Pijama Party Santa Fe.',
+    privacyDescription: 'Política de privacidad de Pijama Party Santa Fe: qué datos recogemos, para qué y cómo ejercer tus derechos.',
+    cookiesDescription: 'Qué cookies usa la tienda de Pijama Party Santa Fe, cuáles son opcionales y cómo cambiar tu elección.',
+    dataDeletionDescription: 'Cómo eliminar tu cuenta y tus datos personales de Pijama Party Santa Fe.',
     sizeGuidesDescription: 'Guía de talles de los pijamas de Pijama Party Santa Fe, con las medidas de cada categoría.',
     withdrawalDescription:
       'Botón de arrepentimiento de Pijama Party Santa Fe: revocá tu compra dentro de los 10 días corridos, sin costo.',
@@ -451,6 +454,7 @@ export const es = {
     reject: 'Rechazar',
     current: { accepted: 'Ahora están aceptadas.', rejected: 'Ahora están rechazadas.' },
     footerLink: 'Cookies',
+    policyLink: 'Política de cookies',
   },
   search: {
     label: 'Buscar productos',
@@ -510,6 +514,9 @@ export const es = {
     sizeGuides: 'Guía de talles',
     returns: 'Cambios y devoluciones',
     terms: 'Términos y condiciones',
+    /** T-E6-06 (RNF-30.5, RNF-25). */
+    privacy: 'Política de privacidad',
+    cookiesPolicy: 'Política de cookies',
     contact: 'Contacto',
     social: 'Redes sociales',
     instagram: 'Instagram',
@@ -1024,6 +1031,94 @@ export const es = {
     exchangesBefore: 'Podés cambiar tu compra según la',
     policyLink: 'política de cambios y devoluciones',
     exchangesBetween: 'y arrepentirte dentro de los 10 días corridos desde que la recibiste con el',
+  },
+  /**
+   * T-E6-06 (RNF-30.5): the privacy policy, a draft until T-E6-21 validates it. It names no legal name, CUIT or address:
+   * the seller is identified in the footer and in the contact data.
+   */
+  privacy: {
+    title: 'Política de privacidad',
+    intro:
+      'En Pijama Party Santa Fe cuidamos tus datos personales y los tratamos según la Ley 25.326 de Protección de los Datos Personales. Acá te contamos qué recogemos, para qué y cómo ejercer tus derechos.',
+    sections: {
+      controller: {
+        title: 'Quién es responsable',
+        text: 'El responsable del tratamiento es el vendedor que figura al pie de la página, con los datos de contacto que ahí se indican.',
+      },
+      collected: {
+        title: 'Qué datos recogemos',
+        text: 'Cuando comprás: nombre y apellido, email, teléfono, DNI y dirección de entrega. Si creás una cuenta: tu email y tu contraseña, que guardamos cifrada, y las direcciones que guardes. Si ingresás con Google o Facebook: el nombre y el email que esos servicios nos comparten. No guardamos los datos de tu tarjeta: los recibe directamente el medio de pago.',
+      },
+      purpose: {
+        title: 'Para qué los usamos',
+        text: 'Para procesar y entregar tu pedido, avisarte de su estado por email, darte acceso a tu cuenta, atender tus consultas y cumplir nuestras obligaciones contables e impositivas. No vendemos tus datos ni los usamos para otros fines.',
+      },
+      sharing: {
+        title: 'Con quién los compartimos',
+        text: 'Con MercadoPago y MODO, para cobrar tu compra; con nuestro proveedor de envío de emails, para enviarte los avisos del pedido; y con Correo Argentino, para entregarlo. Google y Meta solo reciben datos de uso anónimos de la tienda si aceptás las cookies de medición, y los datos de tu cuenta de Google o Facebook solo si ingresás con ellos.',
+      },
+      retention: {
+        title: 'Cuánto tiempo los guardamos',
+        text: 'Guardamos tu cuenta mientras la tengas. Los pedidos los conservamos el plazo que exige la ley contable e impositiva, sin vínculo con tu cuenta si la eliminás.',
+      },
+      rights: {
+        title: 'Tus derechos',
+        text: 'Podés acceder a tus datos, rectificarlos y suprimirlos. Desde Mi cuenta descargás tus datos y corregís tu perfil y tus direcciones. También podés escribirnos a los datos de contacto del pie de la página.',
+      },
+      authority: {
+        title: 'Autoridad de control',
+        text: 'La Agencia de Acceso a la Información Pública es el órgano de control de la Ley 25.326 y atiende las denuncias y reclamos por incumplimientos de las normas de protección de datos personales.',
+      },
+    },
+    moreBefore: 'Para más información, mirá la',
+    cookiesLink: 'política de cookies',
+    moreBetween: 'y cómo',
+    deletionLink: 'eliminar tus datos',
+  },
+  /** T-E6-06 (RNF-25): the cookies and analytics policy, a draft until T-E6-21. */
+  cookiesPolicy: {
+    title: 'Política de cookies',
+    intro: 'Usamos cookies para que la tienda funcione y, si aceptás, para medir las visitas y mejorar la tienda.',
+    necessaryTitle: 'Cookies necesarias',
+    necessaryIntro: 'No necesitan tu consentimiento porque sin ellas la tienda no funciona:',
+    necessary: [
+      'Tu sesión, para mantenerte con la cuenta iniciada.',
+      'Una cookie de seguridad (XSRF-TOKEN), que protege tus acciones contra pedidos falsificados.',
+      'El carrito (__Host-cart_token), que recuerda tu carrito aunque no tengas cuenta.',
+    ],
+    optionalTitle: 'Cookies de medición',
+    optionalIntro: 'Solo se activan si aceptás el aviso de cookies. Antes de eso no se carga nada de Google ni de Meta:',
+    optional: [
+      'Google Analytics (_ga y _ga_*): cuenta las visitas y muestra qué páginas se miran.',
+      'Meta Pixel (_fbp): mide el resultado de nuestros anuncios.',
+    ],
+    noPersonalData: 'No enviamos a estas herramientas tu email, tu DNI ni tu dirección.',
+    choiceTitle: 'Tu elección',
+    choiceText:
+      'Guardamos tu elección en tu navegador durante 12 meses. Podés cambiarla cuando quieras desde "Cookies", al pie de la página; si rechazás, borramos las cookies de medición.',
+    privacyBefore: 'Más sobre tus datos en la',
+    privacyLink: 'política de privacidad',
+  },
+  /** T-E6-06 (T-E4-12, UC-28): the data deletion instructions Meta requires, a draft until T-E6-21. */
+  dataDeletion: {
+    title: 'Eliminación de datos',
+    intro: 'Podés pedir que eliminemos tu cuenta y tus datos personales cuando quieras.',
+    stepsTitle: 'Cómo hacerlo desde la tienda',
+    steps: [
+      'Ingresá a tu cuenta, con tu email o con Google o Facebook.',
+      'Entrá a Mi cuenta y, en "Tus datos", elegí "Eliminar mi cuenta".',
+      'Confirmá con tu contraseña o volviendo a ingresar con Google o Facebook.',
+    ],
+    withoutAccessTitle: 'Si no podés ingresar',
+    withoutAccess:
+      'Escribinos desde el email de tu cuenta, a los datos de contacto del pie de la página, y la eliminamos nosotros.',
+    whatTitle: 'Qué se elimina y qué se conserva',
+    what: 'Eliminamos tu cuenta, tus direcciones, tus cuentas de Google o Facebook vinculadas, tu carrito y tus reseñas, y cerramos todas tus sesiones. Los pedidos los conservamos el plazo que exige la ley, sin vínculo con tu cuenta.',
+    downloadTitle: 'Antes de eliminar',
+    download:
+      'Desde Mi cuenta, con "Descargar mis datos", podés guardar un archivo con tu perfil, direcciones, pedidos y reseñas.',
+    privacyBefore: 'Más sobre tus datos en la',
+    privacyLink: 'política de privacidad',
   },
   /** UC-31 (T-E7-29, RNF-31.5): the size guide page, with the guides of the back office. */
   sizeGuides: {

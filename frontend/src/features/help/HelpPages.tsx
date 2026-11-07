@@ -7,7 +7,7 @@ import { FAQ_PATH, RETURNS_POLICY_PATH } from './FaqLink.tsx';
 import './help.css';
 
 /** One help page (T-E7-28): its title in the tab, its description and canonical link (T-E6-23), and its heading. */
-function HelpPage({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+export function HelpPage({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
     <main className="wrap help-page">
       <title>{`${title} | ${es.store.name}`}</title>

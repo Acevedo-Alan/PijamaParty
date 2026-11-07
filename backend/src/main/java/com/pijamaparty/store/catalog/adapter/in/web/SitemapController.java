@@ -30,7 +30,7 @@ class SitemapController {
 
     /** The storefront's pages outside the catalog that search engines may index. */
     static final List<String> FIXED_PATHS = List.of("/", "/preguntas-frecuentes", "/como-comprar",
-        "/cambios-y-devoluciones", "/terminos", "/guia-de-talles");
+        "/cambios-y-devoluciones", "/terminos", "/privacidad", "/cookies", "/eliminacion-de-datos", "/guia-de-talles");
 
     private static final MediaType XML = new MediaType(MediaType.APPLICATION_XML, StandardCharsets.UTF_8);
 

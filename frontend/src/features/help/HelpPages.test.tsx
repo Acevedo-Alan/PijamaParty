@@ -24,6 +24,8 @@ describe('help pages (UC-31, T-E7-28)', () => {
       [es.footer.sizeGuides, '/guia-de-talles'],
       [es.footer.returns, '/cambios-y-devoluciones'],
       [es.footer.terms, '/terminos'],
+      [es.footer.privacy, '/privacidad'],
+      [es.footer.cookiesPolicy, '/cookies'],
       [es.withdrawal.link, '/arrepentimiento'],
     ]);
   });

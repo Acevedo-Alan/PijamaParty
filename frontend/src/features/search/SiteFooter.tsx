@@ -4,7 +4,15 @@ import { es } from '../../i18n/es.ts';
 import { ConsentFooterLink } from '../analytics/ConsentBanner.tsx';
 import type { PaymentProvider } from '../checkout/checkoutForm.ts';
 import { usePaymentProviders } from '../checkout/useCheckout.ts';
-import { FaqLink, HOW_TO_BUY_PATH, RETURNS_POLICY_PATH, SIZE_GUIDES_PATH, TERMS_PATH } from '../help/FaqLink.tsx';
+import {
+  COOKIES_PATH,
+  FaqLink,
+  HOW_TO_BUY_PATH,
+  PRIVACY_PATH,
+  RETURNS_POLICY_PATH,
+  SIZE_GUIDES_PATH,
+  TERMS_PATH,
+} from '../help/FaqLink.tsx';
 import { mapsUrl, whatsAppUrl } from '../help/storeContact.ts';
 import { useStoreContact } from '../help/useStoreContact.ts';
 import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
@@ -285,6 +293,12 @@ export function SiteFooter() {
             </li>
             <li>
               <Link to={TERMS_PATH}>{messages.terms}</Link>
+            </li>
+            <li>
+              <Link to={PRIVACY_PATH}>{messages.privacy}</Link>
+            </li>
+            <li>
+              <Link to={COOKIES_PATH}>{messages.cookiesPolicy}</Link>
             </li>
             <li>
               <WithdrawalLink />
