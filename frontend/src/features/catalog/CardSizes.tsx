@@ -2,15 +2,10 @@ import { useRef } from 'react';
 import { es } from '../../i18n/es.ts';
 import { useCardSizesFont } from './cardSizesFont.ts';
 import type { SizeOffer } from './catalogApi.ts';
+import { sortBySize } from './sizeGroups.ts';
 
 /** T-E7-35 on the card: at most 4 sizes, then "+N", so they keep to the swatches' row on a phone. */
 const CARD_SIZES = 4;
-
-/** Children's sizes ("4", "12", "14") ascending as numbers; letter sizes keep the order of the catalog. */
-function sortSizes(sizes: readonly SizeOffer[]): readonly SizeOffer[] {
-  const numeric = sizes.every((offer) => /^\d+$/.test(offer.size));
-  return numeric ? [...sizes].sort((a, b) => Number(a.size) - Number(b.size)) : sizes;
-}
 
 /**
  * The sizes of a product on its card, "S · M · L" (T-E7-35), those without stock struck through. Screen readers hear
@@ -23,7 +18,7 @@ export function CardSizes({ sizes }: { sizes: readonly SizeOffer[] }) {
   if (sizes.length === 0) {
     return null;
   }
-  const ordered = sortSizes(sizes);
+  const ordered = sortBySize(sizes, (offer) => offer.size);
   const inStock = ordered.filter((offer) => offer.inStock).map((offer) => offer.size);
   const shown = ordered.slice(0, CARD_SIZES);
   const more = ordered.length - shown.length;

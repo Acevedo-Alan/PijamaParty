@@ -254,6 +254,23 @@ describe('catalog grid (UC-01)', () => {
     expect(within(single).queryByTestId('second-photo')).not.toBeInTheDocument();
   });
 
+  it('given letter sizes loaded as XL, S, M and L, when listed, then the card shows them as S, M, L, XL', async () => {
+    const sizes = [
+      { size: 'XL', inStock: true },
+      { size: 'S', inStock: true },
+      { size: 'M', inStock: true },
+      { size: 'L', inStock: true },
+    ];
+    stubCatalogApi({ listings: [listed([product('rosa', { sizes })])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const shown = card.querySelectorAll('.card-sizes span[aria-hidden]:not(.card-sizes-label)');
+    expect([...shown].map((size) => size.textContent)).toEqual(['S', 'M', 'L', 'XL']);
+    expect(card).toHaveAccessibleName(expect.stringContaining(es.catalog.sizes(['S', 'M', 'L', 'XL'])) as string);
+  });
+
   it('given sizes S, M and L with M out of stock, when listed, then the card shows all three with M struck through (T-E7-35)', async () => {
     const sizes = [
       { size: 'S', inStock: true },
