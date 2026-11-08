@@ -4,13 +4,19 @@ interface CartPanelState {
   isOpen: boolean;
   /** How many products were added on this page view; the cart button bounces each time it grows. */
   added: number;
+  /** The same count, 100 ms earlier: the bag and the counter bounce while the add button's tick is drawn. */
+  bumped: number;
   open: () => void;
   close: () => void;
   /** The dialog closed (also with Escape): the focus goes back to what opened it, if it is still on the page. */
   closed: () => void;
-  /** UC-08: after a successful add the panel opens by itself, the counter bounces and the phone vibrates. */
+  /** UC-08: after a successful add the phone vibrates, the bag and the counter bounce, and the panel opens by itself. */
   showAdded: () => void;
 }
+
+/** E7 motion: when, after a successful add, the cart icon bounces and when the panel opens. */
+const BUMP_AFTER_MS = 350;
+const PANEL_AFTER_MS = 450;
 
 const CartPanelContext = createContext<CartPanelState | null>(null);
 
@@ -25,6 +31,7 @@ function vibrate() {
 export function CartPanelProvider({ children }: { children: ReactNode }) {
   const [isOpen, setOpen] = useState(false);
   const [added, setAdded] = useState(0);
+  const [bumped, setBumped] = useState(0);
   const opener = useRef<HTMLElement | null>(null);
 
   const state = useMemo<CartPanelState>(() => {
@@ -35,6 +42,7 @@ export function CartPanelProvider({ children }: { children: ReactNode }) {
     return {
       isOpen,
       added,
+      bumped,
       open,
       close() {
         setOpen(false);
@@ -49,12 +57,18 @@ export function CartPanelProvider({ children }: { children: ReactNode }) {
         }
       },
       showAdded() {
-        open();
-        setAdded((count) => count + 1);
         vibrate();
+        // The add button's tick draws first: the bag and the counter bounce at 350 ms, the panel opens at 450 ms.
+        setTimeout(() => {
+          setBumped((count) => count + 1);
+        }, BUMP_AFTER_MS);
+        setTimeout(() => {
+          open();
+          setAdded((count) => count + 1);
+        }, PANEL_AFTER_MS);
       },
     };
-  }, [isOpen, added]);
+  }, [isOpen, added, bumped]);
 
   return <CartPanelContext value={state}>{children}</CartPanelContext>;
 }

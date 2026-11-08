@@ -68,7 +68,7 @@ function AddProblem({ answer, failed }: { answer: AddAnswer | undefined; failed:
   return null;
 }
 
-/** How long the add button says "Agregado" after a successful add (E7 motion). */
+/** How long the add button says "¡Listo! En tu bolsa" after a successful add (E7 motion). */
 const ADDED_FOR_MS = 1500;
 
 function Price({ price }: { price: { cents: number; from: boolean } }) {
@@ -180,13 +180,17 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
   const addState = addButtonState(add, confirmed > 0);
   const addButtonProps = {
     type: 'button',
-    className: 'btn add-cart btn-progress',
+    className: 'btn add-cart',
     'data-state': addState,
     'aria-disabled': add.isPending ? true : undefined,
     disabled: missingPick ? !hasStockFor(product.variants, selection) : !canAdd,
     onClick: addPicked,
   } as const;
-  const addLabel = <AddButtonLabel state={addState} />;
+  // The subtotal of the units picked, shown once a variant is chosen (display only: the cart prices every add).
+  const total = variant === undefined ? undefined : formatMoney(variant.priceCents * units);
+  const addLabel = <AddButtonLabel state={addState} total={total} />;
+  // With one unit left there is nothing to choose: the button takes the whole row.
+  const lastUnit = variant?.available === 1;
   // E7: the fixed bar says what its button adds, as the picker is off screen by then.
   const picked = es.product.pickedSummary(selection.size, selection.color);
   const pickedId = useId();
@@ -203,7 +207,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         <AdminEditLink productId={product.id} />
         {REVIEWS_SHOWN && <RatingSummary slug={product.slug} />}
         <Price price={price} />
-        {product.description !== '' && <p className="pdp-desc">{product.description}</p>}
+        {product.description !== '' &&<p className="pdp-desc">{product.description}</p>}
         <VariantPicker
           ref={picker}
           sizes={product.sizes}
@@ -225,8 +229,8 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
             soldOutColor={missingPick && selection.color !== null && !hasStockFor(product.variants, selection)}
           />
         </p>
-        <div className="pdp-purchase-row">
-          <QuantityInput value={units} max={variant?.available ?? 0} onChange={setQuantity} />
+        <div className={lastUnit ? 'pdp-purchase-row single' : 'pdp-purchase-row'}>
+          {!lastUnit && <QuantityInput value={units} max={variant?.available ?? 0} onChange={setQuantity} />}
           <button ref={addButton} {...addButtonProps}>
             {addLabel}
           </button>
@@ -249,7 +253,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         </div>
         {/* Its name stays the main button's; the picks describe it, as the picker is off screen. */}
         <button {...addButtonProps} aria-describedby={picked === null ? undefined : pickedId}>
-          {addLabel}
+          <AddButtonLabel state={addState} />
         </button>
       </StickyAddToCart>
     </div>

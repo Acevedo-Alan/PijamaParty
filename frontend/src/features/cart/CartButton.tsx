@@ -26,6 +26,12 @@ export function CartButton() {
     shown: { scale: 1 },
     transition: { duration: duration.base, ease: ease.pop },
   });
+  // The bag itself hops once: a little larger and tilted back, then settling.
+  const hop = useActionMotion({
+    hidden: { scale: 1.25, rotate: -8 },
+    shown: { scale: 1, rotate: 0 },
+    transition: { duration: duration.base, ease: ease.pop },
+  });
 
   return (
     <button
@@ -35,10 +41,12 @@ export function CartButton() {
       aria-label={es.cart.open(count)}
       onClick={panel.open}
     >
-      <BagIcon />
+      <m.span key={`bag-${String(panel.bumped)}`} className="cart-bag" {...(panel.bumped > 0 ? hop : {})}>
+        <BagIcon />
+      </m.span>
       {count > 0 && (
         // A new key after each add mounts the counter again, so it bumps once.
-        <m.span key={panel.added} className="cart-badge" aria-hidden="true" {...(panel.added > 0 ? bump : {})}>
+        <m.span key={panel.bumped} className="cart-badge" aria-hidden="true" {...(panel.bumped > 0 ? bump : {})}>
           {count}
         </m.span>
       )}

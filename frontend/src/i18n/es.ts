@@ -184,7 +184,7 @@ export const es = {
     addToCart: 'Agregar al carrito',
     adding: 'Agregando…',
     /** E7 motion: the add button confirms a successful add for a moment. */
-    added: 'Agregado',
+    added: '¡Listo! En tu bolsa',
     /** UC-08: an add above the available stock, e.g. "Solo quedan 3". */
     onlyLeft: (count: number) =>
       count === 0 ? 'Sin stock' : count === 1 ? 'Solo queda 1' : `Solo quedan ${String(count)}`,

@@ -4,6 +4,10 @@
   flex: none;
 }
 
+.cart-bag {
+  display: flex;
+}
+
 .cart-badge {
   position: absolute;
   top: 2px;

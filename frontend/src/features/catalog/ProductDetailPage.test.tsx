@@ -179,11 +179,13 @@ describe('product detail (UC-03)', () => {
     renderRoute('/producto/luna');
 
     await userEvent.click(await screen.findByRole('radio', { name: 'Rosa' }));
-    expect(screen.getByText(/^\$\s25\.000$/)).toBeInTheDocument();
+    // The button repeats the price as its subtotal, so the price is read where the page shows it.
+    const shownPrice = () => document.querySelector('.pdp-info > .pdp-price');
+    expect(shownPrice()).toHaveTextContent(/^\$\s25\.000$/);
     expect(screen.getByRole('img', { name: 'Pijama Luna, Rosa, foto 1' })).toHaveAttribute('src', '/media/rosa-400.webp');
 
     await userEvent.click(screen.getByRole('radio', { name: 'Celeste' }));
-    expect(screen.getByText(/^\$\s28\.000$/)).toBeInTheDocument();
+    expect(shownPrice()).toHaveTextContent(/^\$\s28\.000$/);
     expect(screen.getByRole('img', { name: 'Pijama Luna, Celeste, foto 1' }))
       .toHaveAttribute('src', '/media/celeste-400.webp');
   });

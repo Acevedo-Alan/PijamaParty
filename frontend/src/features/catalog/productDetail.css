@@ -1,5 +1,7 @@
 /* The prototype's product page (.pdp): gallery with thumbnails, info and the size and color picker (UC-03). */
 .pdp {
+  /* Clear of the floating header, also when the page scrolls to the title or the keyboard focus lands on it. */
+  scroll-margin-top: 96px;
   padding-top: 24px;
   padding-bottom: 70px;
 }
@@ -111,6 +113,7 @@
 
 /* E7: the largest text of the page without filling the phone's screen; balanced lines avoid a lone last word. */
 .pdp-info h1 {
+  scroll-margin-top: 96px;
   font-family: var(--ff-display);
   font-weight: 500;
   font-size: 24px;
@@ -191,37 +194,70 @@
   color: var(--ink-soft);
 }
 
+/*
+ * The add button (E7 motion): a pill of 52 px with a faint light edge on top and a soft shadow. Pressed, it sinks to
+ * 0.97 (120 ms). Done (120 to 350 ms), its first face slides up and away while the second comes up from below with a
+ * springy ease, the background turns sage and the tick draws itself. Only transform and opacity move.
+ */
 .add-cart {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 8px;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 20%),
+    0 4px 12px color-mix(in srgb, var(--accent) 22%, transparent);
+  transition:
+    transform 120ms var(--ease-out),
+    background-color 230ms var(--ease-standard);
+}
+
+.add-cart:disabled {
+  box-shadow: none;
+}
+
+.add-cart:active:not(:disabled),
+.add-cart[data-state='loading'] {
+  transform: scale(0.97);
+}
+
+.add-cart-face {
+  grid-area: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  margin-top: 8px;
+  padding: 0 4px;
+  transition:
+    transform 160ms var(--ease-standard),
+    opacity 160ms var(--ease-standard);
 }
 
-/* The sparkles of a completed add fly from the middle of the button, over it, without taking clicks. */
-.add-cart-sparkles {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
+.add-cart-done {
+  transform: translateY(100%);
+  opacity: 0;
 }
 
-.add-cart-spark {
-  grid-area: 1 / 1;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--spark-pink);
+.add-cart-bag svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
 }
 
-.add-cart-spark:nth-child(3n + 2) {
-  color: var(--spark-blue);
-}
-
-.add-cart-spark:nth-child(3n) {
-  color: var(--spark-gold);
+.add-cart-total {
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  font-variant-numeric: tabular-nums;
 }
 
 .add-cart-check {
@@ -234,6 +270,78 @@
   stroke-linejoin: round;
 }
 
+.add-cart-check path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.btn.add-cart[data-state='done'],
+.btn.add-cart[data-state='done']:hover:not(:disabled) {
+  background: var(--success);
+}
+
+.add-cart[data-state='done'] .add-cart-idle {
+  transform: translateY(-100%);
+  opacity: 0;
+  transition-delay: 120ms;
+}
+
+.add-cart[data-state='done'] .add-cart-done {
+  transform: translateY(0);
+  opacity: 1;
+  transition:
+    transform 230ms var(--ease-pop) 120ms,
+    opacity 160ms var(--ease-standard) 120ms;
+}
+
+.add-cart[data-state='done'] .add-cart-check path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 260ms var(--ease-out) 300ms;
+}
+
+/* Refused or failed: a short shake, and the button keeps saying what it does. */
+.add-cart[data-state='failed'] {
+  animation: add-cart-shake 320ms var(--ease-standard);
+}
+
+@keyframes add-cart-shake {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+/* Under reduced motion the two faces only trade places: no sliding, no sinking, no drawing. */
+@media (prefers-reduced-motion: reduce) {
+  .add-cart,
+  .add-cart-face,
+  .add-cart[data-state='done'] .add-cart-done,
+  .add-cart[data-state='done'] .add-cart-idle,
+  .add-cart[data-state='done'] .add-cart-check path {
+    transition-duration: 1ms;
+    transition-delay: 0s;
+  }
+
+  .add-cart:active:not(:disabled),
+  .add-cart[data-state='loading'] {
+    transform: none;
+  }
+
+  .add-cart-done,
+  .add-cart[data-state='done'] .add-cart-done,
+  .add-cart[data-state='done'] .add-cart-idle {
+    transform: none;
+  }
+
+  .add-cart[data-state='failed'] {
+    animation: none;
+  }
+}
 @media (min-width: 860px) {
   .add-cart {
     max-width: 360px;
@@ -737,6 +845,11 @@
   max-width: none;
 }
 
+/* One unit left: no quantity to pick, the button takes the whole row. */
+.pdp-purchase-row.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (min-width: 860px) {
   .pdp-purchase-row {
     max-width: 420px;
@@ -747,20 +860,21 @@
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
-  min-height: 48px;
+  min-height: 52px;
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius-s);
+  border-radius: 999px;
   background: var(--surface);
 }
 
 .quantity-control button {
   height: 100%;
+  border-radius: 999px;
   font-size: 18px;
   color: var(--ink);
 }
 
 .quantity-control button:disabled {
-  color: var(--ink-soft);
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
@@ -842,9 +956,8 @@
 /* T-E7-22: the label and the province on one row, the cost below; no box around them. */
 .shipping-estimator {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0 12px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
   margin-top: 10px;
   font-size: 13px;
 }
@@ -855,7 +968,7 @@
 
 .shipping-estimator select {
   width: 100%;
-  max-width: 260px;
+  max-width: 320px;
   min-height: 44px;
   padding: 0 11px;
   border: 1px solid var(--line-strong);
