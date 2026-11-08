@@ -503,6 +503,18 @@ describe('checkout in 3 steps (UC-13, T-E3-11)', { timeout: 30_000 }, () => {
     expect(box?.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
   });
 
+  it('given an unexpected answer the page cannot read, when confirming, then the buyer still sees a message', async () => {
+    stubGets();
+    stubPost(answer(418));
+    renderRoute('/checkout');
+    await goToReview();
+
+    await acceptAndConfirm();
+
+    expect(await screen.findByText(es.checkout.refused.unknown)).toBeInTheDocument();
+    expect(confirmButton()).toHaveAttribute('data-state', 'failed');
+  });
+
   it('given a confirmation without an answer, when retried, then the same Idempotency-Key is repeated', async () => {
     stubGets();
     const post = stubPost(answer(503), answer(409, { problem: 'CART_NOT_READY' }), placed(PAYMENT_URL));

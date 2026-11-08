@@ -532,6 +532,9 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
 
   function toReview() {
     // RNF-25: the first time in the visit only.
+    } else if (ready) {
+      // The quote is still coming or failed: the shipping note and its retry sit by the province, so the press answers.
+      setFocusTarget({ kind: 'field', field: 'province' });
     if (!paymentInfoSent.current) {
       paymentInfoSent.current = true;
       trackAddPaymentInfo(forAnalytics(cart), PAYMENT_TYPES[provider]);
@@ -600,7 +603,10 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
     const current = attempt.current?.body === json ? attempt.current : { body: json, key: crypto.randomUUID() };
     attempt.current = current;
     setRefusal(null);
-    place.mutate({ key: current.key, body }, { onSuccess: settle });
+    // An unexpected answer or a network failure throws: the buyer still gets a message (the attempt keeps its key).
+    place.mutate({ key: current.key, body }, { onSuccess: settle, onError: () => {
+      setRefusal(es.checkout.refused.unknown);
+    } });
   }
 
   const quoted = shipping.data?.status === 'quoted' ? shipping.data.cost : null;

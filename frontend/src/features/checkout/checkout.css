@@ -261,6 +261,7 @@
 /* MODO's wordmark stands in for its logo until the brand kit arrives (T-E3b-04). */
 .checkout-pay-modo {
   font-weight: 800;
+  overflow-wrap: anywhere;
   letter-spacing: 0.04em;
 }
 
@@ -273,6 +274,7 @@
 /* UC-21: the saved addresses of a signed-in customer, as options like the payment's. */
 .checkout-addresses {
   display: grid;
+  overflow-wrap: anywhere;
   gap: 10px;
   margin: 0 0 16px;
   padding: 0;
@@ -314,6 +316,7 @@
   justify-content: space-between;
 }
 
+  overflow-wrap: anywhere;
 .checkout-review-head h3 {
   color: var(--ink-soft);
   font-size: 13px;
@@ -402,7 +405,7 @@
 
 .checkout-summary-item {
   display: grid;
-  grid-template-columns: 64px 1fr auto;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   padding: 12px 0;
@@ -434,6 +437,7 @@
   font-size: 13.5px;
 }
 
+  overflow-wrap: anywhere;
 .checkout-coupon-applied {
   display: flex;
   align-items: center;
@@ -453,8 +457,11 @@
 .checkout-amounts div {
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   margin-bottom: 8px;
   color: var(--ink-soft);
+  overflow-wrap: anywhere;
   font-size: 13.5px;
 }
 
@@ -469,6 +476,7 @@
   margin: 14px 0 0;
   padding-top: 14px;
   border-top: 1px solid var(--line);
+  gap: 12px;
   color: var(--ink);
   font-size: 20px;
   font-weight: 700;
