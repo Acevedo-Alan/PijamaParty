@@ -20,7 +20,7 @@ Los identificadores son estables: las tareas nuevas se agregan con el siguiente 
 
 - [ ] **T-E0-07** Servidor: contratar y configurar el servidor, Docker, firewall, acceso por clave SSH.
 - [ ] **T-E0-08** DNS y HTTPS: apuntar el dominio y verificar el certificado.
-- [ ] **T-E0-09** Script de deploy de un solo comando y primer despliegue del "hola mundo".
+- [ ] **T-E0-09** Script de deploy de un solo comando y primer despliegue del "hola mundo". Decidido el 2026-11-07: `deploy/deploy.sh` (revisiones, `git pull --ff-only`, construcción con el sitio arriba, `pg_dump` previo a migrar con las últimas 5 copias, modo mantenimiento, `up -d --wait`, prueba de `/api/health`); si falla después de activar el mantenimiento, lo deja activado y avisa, sin volver atrás solo. Ver `docs/use-cases/E0-foundation.md`. El primer despliegue necesita el servidor (T-E0-07).
 - [ ] **T-E0-10** Backup diario de la base (`pg_dump`) a un almacenamiento fuera del servidor.
 
 **Parte A terminada cuando:** el backend y el frontend arrancan con un solo comando en local, la base migra sola, la API responde `503` bajo saturación y `429` al superar un límite, y pasa la integración continua, que también rechaza SQL concatenado.

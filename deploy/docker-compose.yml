@@ -1,6 +1,7 @@
 # Production (T-E0-06): caddy, api, db and a one-shot migrate step, on the single 4 GB server. From the repository
 # root, with deploy/secrets/ filled (see deploy/secrets/README.md) and DOMAIN in .env:
 #   docker compose -f deploy/docker-compose.yml --env-file .env up -d --build --wait
+# or, on the server, the script that also backs up and turns maintenance mode on (T-E0-09): deploy/deploy.sh
 name: pijamaparty
 
 x-db-connection: &db-connection

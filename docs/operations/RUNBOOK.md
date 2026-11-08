@@ -50,12 +50,16 @@ $COMPOSE down                        # remove the containers; volumes stay. Neve
 
 ## 4. Deploy a new version
 
-There is no deploy script yet (T-E0-09). The manual sequence, until then:
+One command, from any folder of the server: `deploy/deploy.sh` (T-E0-09). `--check` only verifies that `.env`, the secret
+files and the compose file are in place; `--no-pull` deploys the commit already checked out. It pulls the code (`git pull
+--ff-only`), builds the images with the site still up, takes a `pg_dump` into `deploy/backups/` (the last 5 are kept), turns
+maintenance mode on, starts everything (`migrate` runs Flyway first, then `api`, then `caddy`), turns maintenance mode off
+and checks `GET /api/health` through Caddy.
 
-1. `git pull` on the server (a tagged, tested commit).
-2. `$COMPOSE up -d --build --wait`. `migrate` runs Flyway first and `api` starts only after it succeeds; if the deploy
-   fails, read `$COMPOSE logs migrate` and `$COMPOSE logs api` before anything else.
-3. Check `GET /api/health`, open the home page and one product, and sign in to the back office.
+If it fails after maintenance mode went on, it **leaves maintenance mode on**, prints the last lines of the `migrate` and
+`api` logs, the previous commit and the backup file, and does not roll back by itself (Flyway may already have changed the
+schema). Fix it and run the script again, or go back to the previous commit and restore the backup. Afterwards open the
+home page and one product and sign in to the back office.
 
 Schema changes only come through Flyway migrations; never edit the database by hand to "fix" a version.
 
@@ -70,7 +74,7 @@ touch deploy/maintenance/maintenance.on     # on
 rm deploy/maintenance/maintenance.on        # off
 ```
 
-The deploy and restore scripts are meant to do this; until they exist, do it by hand around a restore.
+The deploy script turns it on and off by itself; around a restore (T-E6-04) do it by hand.
 
 ## 6. Secrets and configuration
 
@@ -126,7 +130,7 @@ These have no procedure in the repository yet. Add each one here when its task i
 |---|---|
 | Provisioning the server, Docker, firewall and SSH key access | T-E0-07 |
 | DNS and the HTTPS certificate check | T-E0-08 |
-| One-command deploy script (creates and removes `maintenance.on`) | T-E0-09 |
+| First deploy with the script (T-E0-09 wrote it; it needs the server) | T-E0-07, T-E0-09 |
 | Daily `pg_dump` (with `tienda_backup`) and copy of `uploads` off the server, 14 days of retention | T-E0-10, T-E6-04 |
 | **Restore procedure and a tested restore** (database, photos; with maintenance mode) | T-E6-04 |
 | Resetting the administrator's forgotten password (UC-04 defines none; decide the flow first) | to be assigned |
