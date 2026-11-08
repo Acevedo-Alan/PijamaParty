@@ -31,19 +31,22 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
 **Main flow**
 1. The user taps "Add to cart".
 2. The system adds the variant, or adds the quantity if it was already in the cart.
-3. The cart opens automatically as a side panel, with the background dimmed (overlay).
-4. On a phone there is a light vibration; the cart icon shows the counter with a bounce animation.
+3. The "Add to cart" button confirms in place (T-E7-41): it sinks when pressed, then slides to a sage "¡Listo! En tu bolsa" with a tick that draws itself.
+4. On a phone there is a light vibration; the cart icon hops and its counter pops (about 350 ms after the answer).
+5. The cart opens automatically as a side panel, with the background dimmed (overlay), about 450 ms after the answer, so the confirmation is not cut short.
 
 **Alternative flows**
 - The quantity in the cart would exceed the available stock: rejected, telling how many are left.
 
 **Business rules**
-- No toast: the open panel is the confirmation.
+- No toast: the button's own confirmation and the open panel are the confirmation (the panel's "Agregado al carrito" notice is E7's, see its "Changes to UC-08").
 - The quantity in the cart can never exceed the available stock (on hand − reserved).
 
 **Acceptance criteria**
 - Given a variant with stock 3 and 2 units already in the cart, when 2 more are added, then it is rejected with "Solo quedan 3".
 - Given a successful add, when it finishes, then the side panel opens by itself and the counter updates.
+- Given a successful add, when the answer arrives, then the button shows "¡Listo! En tu bolsa" at once, with no minimum wait; the cart icon hops about 350 ms later and the panel opens about 450 ms later (T-E7-41).
+- Given a rejected or failed add, when the answer arrives, then the button shakes once, keeps its name, and neither the icon nor the panel move (T-E7-41).
 - Given a device without vibration support, when adding, then the rest of the feedback works the same.
 - Given a visitor without a cart, when adding the first product, then a cart tied to their browser is created.
 
@@ -58,7 +61,7 @@ In this stage the cart **does not reserve stock**; the reservation happens when 
 - Each item also has `product`, what the panel shows of its variant (T-E2-07): `name` and `slug` of its product, `size`, `color`, the variant's `sku` (for the checkout's analytics, T-E3-20) and `image`, the first photo of its color or else the first photo of the whole product (`{placeholder, files: [{width, url}]}`, as in the catalog, UC-06), or `null` without one. It is there whether the shop still sells the variant or not, so an unavailable line still shows what it was; `product` is `null` only for a variant the catalog does not have. The cart reaches it through its own port `ItemDescriptions` (`cart.application`), backed by `catalog.api.VariantDescriptions`.
 - **Side panel (T-E2-07):**
   - The header of every public page has the cart button with the counter: the number of units in the cart (the sum of the quantities), hidden when it is 0. It is read with `GET /api/cart` when the page loads, and tapping the button opens the panel.
-  - "Add to cart" on the product page adds 1 unit of the picked variant. While the request runs the button is disabled. On `200` the panel opens by itself, the counter shows the new number with a bounce, and the phone vibrates lightly (`navigator.vibrate`, only where it exists; nothing else depends on it). No toast.
+  - "Add to cart" on the product page adds 1 unit of the picked variant. While the request runs the button says "Agregando…" and ignores further presses (T-E7-41: it no longer waits a minimum time for an animation). On `200` the button morphs to "¡Listo! En tu bolsa" for 1.5 s, the phone vibrates lightly (`navigator.vibrate`, only where it exists; nothing else depends on it), the cart icon hops and the counter pops at 350 ms (`CartPanelContext.bumped`), and the panel opens at 450 ms (`added`, which also starts the panel's notice). The cart query already holds the new cart when the panel opens. No toast.
   - On `409` the product page says how many are left under the button ("Solo quedan 3", "Solo queda 1", or "Sin stock" for 0) and reloads the product, so its stock is current. On `404` it says the product is no longer available and reloads it. Any other failure says the product could not be added and to try again. The panel does not open on a failure.
   - The panel is a dialog over a dimmed page (overlay), sliding in from the right: title "Mi carrito" and a close button; each item with its photo, its product's name (a link to the product), its color and size, its quantity and its line amount (unit price × quantity); and the subtotal, the discount when there is one, and the total, all as the server sent them. Empty, it says the cart is empty, with a button that closes it to keep shopping. Changing quantities and the warnings of UC-09 come with T-E2-08; the coupon field of UC-10 with T-E2-09; the checkout button with E3.
   - It closes with its close button, a tap on the overlay or `Escape`, and gives the focus back to what opened it. While open it keeps the focus inside and the page behind does not scroll. Its motion respects `prefers-reduced-motion`.
