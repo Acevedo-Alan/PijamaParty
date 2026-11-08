@@ -19,7 +19,7 @@ export function CatalogPage() {
     <main className="wrap catalog">
       <title>{`${category?.name ?? title} | ${es.store.name}`}</title>
       {category !== undefined && <PageMeta description={es.seo.categoryDescription(category.name)} />}
-      <CatalogListing category={categorySlug} heading={<h1 className="section-title">{title}</h1>} />
+      <CatalogListing category={categorySlug} heading={<h1 className="section-title">{category?.name ?? title}</h1>} />
     </main>
   );
 }

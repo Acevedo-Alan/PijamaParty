@@ -6,7 +6,7 @@
 
 .pdp-layout {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 32px;
 }
 
@@ -40,7 +40,6 @@
   grid-area: thumbs;
   /* The offsets of the thumbnails count from the strip, which scrolls to keep the picked one in sight. */
   position: relative;
-  scroll-behavior: smooth;
   list-style: none;
   display: flex;
   gap: 8px;
@@ -92,6 +91,18 @@
   outline: 1.5px solid var(--ink);
 }
 
+/* The picked thumbnail has its own outline, which would hide the focus ring */
+.pdp-thumb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pdp-thumbs {
+    scroll-behavior: smooth;
+  }
+}
+
 .pdp-info {
   display: flex;
   flex-direction: column;
@@ -106,6 +117,7 @@
   line-height: 1.25;
   letter-spacing: -0.005em;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 @media (min-width: 860px) {
@@ -128,6 +140,7 @@
   font-size: 14px;
   color: var(--ink-soft);
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .pdp-facts {
@@ -376,6 +389,10 @@
 }
 
 .breadcrumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -14px;
   color: var(--ink-soft);
 }
 
@@ -437,6 +454,7 @@
 }
 
 .product-lightbox {
+  overscroll-behavior: contain;
   max-width: min(92vw, 680px);
   max-height: 92vh;
   margin: auto;

@@ -25,6 +25,8 @@ export function ShippingByProvince() {
       <label htmlFor={selectId}>{es.product.shipping}</label>
       <select
         id={selectId}
+        name="province"
+        autoComplete="off"
         value={province}
         onChange={(event) => {
           setProvince(event.target.value as Province | '');

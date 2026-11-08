@@ -14,19 +14,19 @@
 .product-grid {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px 16px;
 }
 
 @media (min-width: 640px) {
   .product-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 980px) {
   .product-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -139,8 +139,8 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 0 0 1px rgba(58, 50, 45, 0.18);
+    background: var(--card-dot-fill);
+    box-shadow: 0 0 0 1px var(--card-dot-edge);
     transition: transform var(--dur-base) var(--ease-out);
   }
 
@@ -151,6 +151,7 @@
 }
 
 .card-title {
+  overflow-wrap: anywhere;
   font-size: 13px;
   font-weight: 500;
   color: var(--ink);
@@ -235,7 +236,7 @@
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--swatch-edge);
 }
 
 .dot.outlined {
@@ -255,6 +256,7 @@
   margin-left: auto;
   padding-left: 10px;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   white-space: nowrap;
 }
@@ -314,7 +316,7 @@
   color: var(--ink-soft);
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius-m);
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--wash);
 }
 
 .show-more {
@@ -372,11 +374,11 @@
   transition: transform var(--dur-fast) var(--ease-standard);
 }
 
-.load-more-btn:active:not(:disabled) {
+.load-more-btn:active:not([aria-disabled='true']) {
   transform: scale(0.97);
 }
 
-.load-more-btn:disabled {
+.load-more-btn[aria-disabled='true'] {
   cursor: progress;
 }
 
@@ -634,7 +636,7 @@ html:has(.filters-panel[open]) {
 }
 
 .filters-panel::backdrop {
-  background: rgba(74, 58, 58, 0.4);
+  background: var(--scrim-panel);
 }
 
 .filters-form {
@@ -676,6 +678,7 @@ html:has(.filters-panel[open]) {
 }
 
 .filters-body {
+  overscroll-behavior: contain;
   flex: 1;
   overflow-y: auto;
   padding: 8px 20px 20px;
@@ -905,7 +908,7 @@ html:has(.filters-panel[open]) {
   }
 
   /* Hover raises the contrast: the label goes to --ink on the stronger rose (accent text there would fall below 4.5) */
-  .load-more-btn:hover:not(:disabled) {
+  .load-more-btn:hover:not([aria-disabled='true']) {
     background: var(--rose);
     color: var(--ink);
   }

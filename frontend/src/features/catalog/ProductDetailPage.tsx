@@ -74,7 +74,7 @@ const ADDED_FOR_MS = 1500;
 function Price({ price }: { price: { cents: number; from: boolean } }) {
   return (
     <p className="pdp-price">
-      {price.from && `${es.product.fromPrice} `}
+      {price.from && `${es.product.fromPrice}\u00a0`}
       {formatMoney(price.cents)}
     </p>
   );

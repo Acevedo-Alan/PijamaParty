@@ -130,7 +130,7 @@ describe('catalog grid (UC-01)', () => {
     await userEvent.click(screen.getByRole('button', { name: es.catalog.showMore }));
 
     const button = screen.getByRole('button', { name: es.catalog.loadingMore });
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
     expect(button).toHaveAttribute('aria-busy', 'true');
     arrive(listed(products(6, 'q'), false, 30));
     await waitFor(() => {

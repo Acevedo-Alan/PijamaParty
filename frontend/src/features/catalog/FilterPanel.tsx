@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode, type SubmitEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -99,19 +100,23 @@ function FilterSection({ group, legend, summary, expanded, onToggle, children }:
 }
 
 interface ChipsProps<T extends string> {
+  /** The filter's name, as the checkboxes' form name. */
+  name: string;
   values: readonly T[];
   selected: readonly T[];
   label: (value: T) => string;
   onChange: (selected: T[]) => void;
 }
 
-function Chips<T extends string>({ values, selected, label, onChange }: ChipsProps<T>) {
+function Chips<T extends string>({ name, values, selected, label, onChange }: ChipsProps<T>) {
   return (
     <div className="chips">
       {values.map((value) => (
         <label key={value} className="chip">
           <input
             type="checkbox"
+            name={name}
+            value={value}
             checked={selected.includes(value)}
             onChange={(event) => {
               onChange(event.target.checked ? [...selected, value] : selected.filter((other) => other !== value));
@@ -159,7 +164,7 @@ function CheckboxGroup<T extends string>({
       summary={selected.length === 0 ? null : es.filters.chosenSummary(selected.map(label))}
       {...disclosure}
     >
-      <Chips values={values} selected={selected} label={label} onChange={onChange} />
+      <Chips name={group} values={values} selected={selected} label={label} onChange={onChange} />
     </FilterSection>
   );
 }
@@ -189,14 +194,14 @@ function SizeGroup({ options, selected, onChange, ...disclosure }: SizeGroupProp
       {...disclosure}
     >
       {groups.length === 1 ? (
-        <Chips values={groups[0]?.sizes ?? []} selected={selected} label={label} onChange={onChange} />
+        <Chips name="sizes" values={groups[0]?.sizes ?? []} selected={selected} label={label} onChange={onChange} />
       ) : (
         groups.map(({ kind, sizes }) => (
           <div key={kind} className="size-kind" role="group" aria-labelledby={`${id}-${kind}`}>
             <p id={`${id}-${kind}`} className="size-kind-name">
               {es.filters.sizeKinds[kind]}
             </p>
-            <Chips values={sizes} selected={selected} label={label} onChange={onChange} />
+            <Chips name="sizes" values={sizes} selected={selected} label={label} onChange={onChange} />
           </div>
         ))
       )}
@@ -235,6 +240,8 @@ function PriceGroup({ range, draft, problem, onChange, ...disclosure }: PriceGro
           <input
             type="number"
             inputMode="numeric"
+            name="minPrice"
+            autoComplete="off"
             min={0}
             step={1}
             value={draft.minPesos}
@@ -250,6 +257,8 @@ function PriceGroup({ range, draft, problem, onChange, ...disclosure }: PriceGro
           <input
             type="number"
             inputMode="numeric"
+            name="maxPrice"
+            autoComplete="off"
             min={0}
             step={1}
             value={draft.maxPesos}
@@ -340,7 +349,11 @@ export function FilterPanel({ category, filters, onApply, count }: FilterPanelPr
     event.preventDefault();
     const applied = fromDraft(draft);
     if (typeof applied === 'string') {
-      setProblem(applied);
+      // Rendered first, so the price field is marked invalid and described by its error when it takes the focus.
+      flushSync(() => {
+        setProblem(applied);
+      });
+      event.currentTarget.querySelector<HTMLInputElement>('input[aria-invalid="true"]')?.focus();
       return;
     }
     onApply(applied);

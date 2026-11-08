@@ -65,14 +65,12 @@ export function ResultCount({ category, criteria }: { category: string | undefin
   const listing = useProductListing(category, criteria);
   const pages = listing.data?.pages ?? [];
   const products = pages.reduce((count, page) => count + (page.status === 'listed' ? page.items.length : 0), 0);
-  if (products === 0) {
-    return null;
-  }
   // Every page says how many match; the latest one is the freshest.
   const total = pages.findLast((page) => page.status === 'listed')?.total ?? products;
+  // Always mounted, so a screen reader hears the count change when the filters or the sort do.
   return (
     <p className="result-count" role="status">
-      {es.catalog.productCount(total)}
+      {products === 0 ? null : es.catalog.productCount(total)}
     </p>
   );
 }
@@ -134,7 +132,7 @@ export function ProductListing({
   if (products.length === 0 && !unknownCategory && countFilters(criteria.filters) > 0) {
     return (
       <div className="empty-state">
-        <p>{es.catalog.noMatches}</p>
+        <p role="status">{es.catalog.noMatches}</p>
         <button type="button" className="btn" onClick={onClearFilters}>
           {es.catalog.clearFilters}
         </button>

@@ -17,6 +17,12 @@ interface ShowMoreProps {
 export function ShowMore({ seen, total, loading, failed, onMore }: ShowMoreProps) {
   // A page can arrive before the count catches up; the bar never runs past full.
   const share = total > 0 ? Math.min(1, seen / total) : 0;
+  // aria-disabled keeps the keyboard focus on the button while the next page loads.
+  function onClick() {
+    if (!loading) {
+      onMore();
+    }
+  }
   return (
     <div className="show-more">
       {failed && (
@@ -31,7 +37,7 @@ export function ShowMore({ seen, total, loading, failed, onMore }: ShowMoreProps
           <span style={{ transform: `scaleX(${String(share)})` }} />
         </span>
       </p>
-      <button type="button" className="load-more-btn" disabled={loading} aria-busy={loading} onClick={onMore}>
+      <button type="button" className="load-more-btn" aria-disabled={loading} aria-busy={loading} onClick={onClick}>
         {loading ? es.catalog.loadingMore : es.catalog.showMore}
         <span className={loading ? 'show-more-icon spinning' : 'show-more-icon'} aria-hidden="true">
           {loading ? (

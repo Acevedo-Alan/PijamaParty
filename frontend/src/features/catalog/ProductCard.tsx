@@ -26,11 +26,15 @@ export const ProductCard = memo(function ProductCard({
   product,
   photo = 'lazy',
   view = 'grid',
+  headingLevel = 2,
 }: {
   product: ListedProduct;
   photo?: CardPhotoPriority;
   view?: ListingView;
+  /** One level below the title of the section the card sits in (a card in "Completá tu look" is an h3). */
+  headingLevel?: 2 | 3;
 }) {
+  const Heading = headingLevel === 2 ? 'h2' : 'h3';
   const { slug, name, image, secondImage, fromPriceCents, priceVaries, soldOut, colors, sizes, isNew } = product;
   const swipeable = image !== null && secondImage !== null && view === 'grid';
   const [shown, setShown] = useState(0);
@@ -103,10 +107,10 @@ export const ProductCard = memo(function ProductCard({
           <CardSizes sizes={sizes} />
         </div>
       )}
-      <h2 className="card-title">{name}</h2>
+      <Heading className="card-title">{name}</Heading>
       {/* UC-01: "Desde" only when its variants have more than one price. */}
       <p className="price">
-        {priceVaries && <span className="price-from">{es.catalog.fromPrice} </span>}
+        {priceVaries && <span className="price-from">{es.catalog.fromPrice}&nbsp;</span>}
         {formatMoney(fromPriceCents)}
       </p>
     </Link>

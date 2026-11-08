@@ -71,6 +71,10 @@
   --scrim: rgb(58 50 45 / 0.72);
   /* The lighter veil behind the cart panel */
   --scrim-soft: rgb(58 50 45 / 0.35);
+  --scrim-panel: rgb(74 58 58 / 0.4);
+  --card-dot-fill: rgb(255 255 255 / 0.7);
+  --card-dot-edge: rgb(58 50 45 / 0.18);
+  --wash: rgb(255 255 255 / 0.35);
   --glass: rgb(255 255 255 / 0.94);
   --tone-hero: linear-gradient(120deg, #fce4e8 0%, #ffd9c7 55%, #c98782 100%);
   --tone-rose: linear-gradient(135deg, #f7c6cf, #e5a9b6);

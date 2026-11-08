@@ -29,7 +29,7 @@ export function RelatedProducts({ category, slug }: { category: string; slug: st
       <ul className="product-grid">
         {related.map((product) => (
           <li key={product.slug}>
-            <ProductCard product={product} />
+            <ProductCard product={product} headingLevel={3} />
           </li>
         ))}
       </ul>

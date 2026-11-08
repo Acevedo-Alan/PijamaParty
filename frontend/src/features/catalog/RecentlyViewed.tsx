@@ -33,7 +33,7 @@ function toListed(product: ProductDetail): ListedProduct {
 
 /**
  * "Vistos recientemente" (T-E7-33): the last products this browser opened, without the open one, as cards read from
- * their current detail (shared with the product page's cache). Nothing shows while they load or when none is left.
+ * their current detail (shared with the product page's cache). The ones that loaded show without waiting for the slowest; nothing shows when none is left.
  */
 export function RecentlyViewed({ exclude, className }: { exclude?: string; className?: string }) {
   const titleId = useId();
@@ -51,9 +51,6 @@ export function RecentlyViewed({ exclude, className }: { exclude?: string; class
     gone.split(' ').filter(Boolean).forEach(forgetViewed);
   }, [gone]);
 
-  if (details.some((detail) => detail.isPending)) {
-    return null;
-  }
   const viewed = details.flatMap((detail) => (detail.data?.status === 'found' ? [toListed(detail.data.product)] : []));
   if (viewed.length === 0) {
     return null;
@@ -67,7 +64,7 @@ export function RecentlyViewed({ exclude, className }: { exclude?: string; class
       <ul className="product-grid">
         {viewed.map((product) => (
           <li key={product.slug}>
-            <ProductCard product={product} />
+            <ProductCard product={product} headingLevel={3} />
           </li>
         ))}
       </ul>

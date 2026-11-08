@@ -18,7 +18,7 @@ export function QuantityInput({ value, max, onChange }: QuantityInputProps) {
   const settle = (quantity: number) => Math.min(Math.max(1, quantity), Math.max(1, max));
 
   return (
-    <div className="quantity-control" role="group">
+    <div className="quantity-control">
       <button
         type="button"
         aria-label={es.product.lessUnits}
