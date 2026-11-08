@@ -45,8 +45,12 @@ function ChangeProblem({ item, change }: { item: CartItem; change: ReturnType<ty
 /** The quantity of an item with "−" (at 1 it removes the item), "+" up to the available stock, and "Quitar". */
 function QuantityControl({ item, name }: { item: CartItem; name: string }) {
   const change = useChangeItem(item.id);
+  // While a change is saving the buttons stay focusable (aria-disabled) so the focus is not lost; presses are ignored.
+  const busy = change.isPending ? true : undefined;
   function setQuantity(quantity: number) {
-    change.mutate({ quantity });
+    if (!change.isPending) {
+      change.mutate({ quantity });
+    }
   }
   return (
     <>
@@ -56,7 +60,7 @@ function QuantityControl({ item, name }: { item: CartItem; name: string }) {
             type="button"
             className="qty-btn"
             aria-label={es.cart.decrease(name)}
-            disabled={change.isPending}
+            aria-disabled={busy}
             onClick={() => {
               setQuantity(item.quantity - 1);
             }}
@@ -70,7 +74,8 @@ function QuantityControl({ item, name }: { item: CartItem; name: string }) {
             type="button"
             className="qty-btn"
             aria-label={es.cart.increase(name)}
-            disabled={change.isPending || item.quantity >= item.available}
+            aria-disabled={busy}
+            disabled={item.quantity >= item.available}
             onClick={() => {
               setQuantity(item.quantity + 1);
             }}
@@ -82,9 +87,11 @@ function QuantityControl({ item, name }: { item: CartItem; name: string }) {
           type="button"
           className="link-btn cart-remove"
           aria-label={es.cart.removeLabel(name)}
-          disabled={change.isPending}
+          aria-disabled={busy}
           onClick={() => {
-            change.mutate(null);
+            if (!change.isPending) {
+              change.mutate(null);
+            }
           }}
         >
           {es.cart.remove}

@@ -177,7 +177,8 @@ html:has(.cart-panel[open]) {
   font-size: 16px;
 }
 
-.qty-btn:disabled {
+.qty-btn:disabled,
+.qty-btn[aria-disabled='true'] {
   color: var(--ink-soft);
   border-color: var(--line);
   cursor: not-allowed;

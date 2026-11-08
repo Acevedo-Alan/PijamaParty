@@ -594,6 +594,10 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
       setFocusTarget({ kind: 'terms' });
       return;
     }
+    // Kept focusable while confirming (aria-disabled): a second press must not send another order.
+    if (place.isPending) {
+      return;
+    }
     if (!isProvince(form.province)) {
       goTo(1);
       return;
@@ -922,7 +926,8 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 type="button"
                 className="btn checkout-next checkout-pay btn-progress"
                 data-state={payButtonState(place)}
-                disabled={!ready || place.isPending}
+                aria-disabled={place.isPending ? true : undefined}
+                disabled={!ready}
                 onClick={confirm}
               >
                 <ButtonProgress />
@@ -938,6 +943,10 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                   goTo(2);
                 }}
               >
+              {/* Always mounted, so the progress is announced when its text appears. */}
+              <p className="visually-hidden" role="status">
+                {place.isPending ? es.checkout.confirming : ''}
+              </p>
                 {es.checkout.back}
               </button>
             </div>

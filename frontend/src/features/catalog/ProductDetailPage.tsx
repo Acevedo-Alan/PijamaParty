@@ -124,6 +124,10 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
 
   // UC-08 with the chosen quantity (E7). A rejected add reloads the product, so its stock is current.
   function addPicked() {
+    // The button stays focusable while adding (aria-disabled), so the focus is kept and the cart panel gives it back.
+    if (add.isPending) {
+      return;
+    }
     if (missingPick) {
       // Rendered before the focus moves, so the group's description is read with it.
       flushSync(() => {
@@ -178,7 +182,8 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
     type: 'button',
     className: 'btn add-cart btn-progress',
     'data-state': addState,
-    disabled: add.isPending || (missingPick ? !hasStockFor(product.variants, selection) : !canAdd),
+    'aria-disabled': add.isPending ? true : undefined,
+    disabled: missingPick ? !hasStockFor(product.variants, selection) : !canAdd,
     onClick: addPicked,
   } as const;
   const addLabel = <AddButtonLabel state={addState} />;
