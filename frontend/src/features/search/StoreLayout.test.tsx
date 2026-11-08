@@ -45,3 +45,53 @@ describe('the store layout and keyboard users (RNF-31.4, WCAG 2.4.1, 2.4.2, 2.4.
     });
   });
 });
+
+describe('the scroll after a page change (UC-31)', () => {
+  const scrolled = vi.spyOn(window, 'scrollTo');
+
+  afterEach(() => {
+    scrolled.mockClear();
+  });
+
+  async function openPage() {
+    stubCatalogApi({ listings: [listed([])] });
+    const view = renderRoute('/no-existe');
+    await screen.findByRole('heading', { level: 1, name: es.notFound.title });
+    return view.router;
+  }
+
+  it('given a link to another page, when the visitor follows it, then the new page opens at the top', async () => {
+    const router = await openPage();
+    expect(scrolled).not.toHaveBeenCalled();
+
+    await act(() => router.navigate('/tampoco-existe'));
+
+    expect(scrolled).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'instant' });
+  });
+
+  it('given the back button, when the visitor goes back, then the page is left to the browser', async () => {
+    const router = await openPage();
+    await act(() => router.navigate('/tampoco-existe'));
+    scrolled.mockClear();
+
+    await act(() => router.navigate(-1));
+
+    expect(scrolled).not.toHaveBeenCalled();
+  });
+
+  it('given a query change on the same page, when it changes, then the page does not move', async () => {
+    const router = await openPage();
+
+    await act(() => router.navigate('/no-existe?orden=precio'));
+
+    expect(scrolled).not.toHaveBeenCalled();
+  });
+
+  it('given a link with a hash, when it opens, then the page does not jump to the top', async () => {
+    const router = await openPage();
+
+    await act(() => router.navigate('/tampoco-existe#contactanos'));
+
+    expect(scrolled).not.toHaveBeenCalled();
+  });
+});

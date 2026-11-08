@@ -37,6 +37,9 @@ HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
   this.dispatchEvent(new Event('close'));
 };
 
+// jsdom does not implement scrolling the window: a page change scrolls to the top (tests spy on it).
+window.scrollTo = vi.fn();
+
 // jsdom has no layout: scrolling an element into view does nothing (tests spy on it).
 Element.prototype.scrollIntoView = function scrollIntoView() {
   // Nothing to scroll.

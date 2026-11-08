@@ -1,6 +1,6 @@
 import { m } from 'motion/react';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Outlet, useLocation } from 'react-router';
+import { NavigationType, Outlet, useLocation, useNavigationType } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { useEntranceMotion } from '../../components/motion/useActionMotion.ts';
 import { Analytics } from '../analytics/ConsentBanner.tsx';
@@ -48,6 +48,27 @@ function useFocusPageOnNavigation(pathname: string) {
   }, [pathname]);
 }
 
+/**
+ * A link to another page opens it at the top, not where the previous page was scrolled to. Going back or forward (POP)
+ * is left to the browser, a query change on the same page (filters, sort) does not move the page, and a link with a
+ * hash (`/#contactanos`) scrolls to its target instead.
+ */
+function useScrollToTopOnNavigation(pathname: string, hash: string) {
+  const type = useNavigationType();
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (type !== NavigationType.Pop && hash === '') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+    // Only a new path counts: `hash` and `type` are read as they are at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+}
+
 /** WCAG 2.4.1: the first stop of the keyboard, which skips the header and goes to the page. */
 function SkipLink() {
   return (
@@ -70,8 +91,9 @@ function SkipLink() {
  * message after the customer deleted its account (UC-28) and the WhatsApp button (T-E7-27). The account, checkout, tracking and search pages are kept out of search engines (T-E6-23).
  */
 export function StoreLayout() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   useFocusPageOnNavigation(pathname);
+  useScrollToTopOnNavigation(pathname, hash);
   return (
     <CartPanelProvider>
       {isPrivatePath(pathname) && <NoIndex />}
