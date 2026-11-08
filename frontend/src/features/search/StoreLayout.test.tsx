@@ -2,7 +2,8 @@ import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
-import { listed, stubCatalogApi } from '../../test/catalogApi.ts';
+import { SHOW_LISTING } from '../catalog/HomePage.tsx';
+import { listed, product, stubCatalogApi } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 
 describe('the store layout and keyboard users (RNF-31.4, WCAG 2.4.1, 2.4.2, 2.4.3)', () => {
@@ -85,6 +86,22 @@ describe('the scroll after a page change (UC-31)', () => {
     await act(() => router.navigate('/no-existe?orden=precio'));
 
     expect(scrolled).not.toHaveBeenCalled();
+  });
+
+  it('given a header link to the home listing (UC-31), when it opens the home page, then the page scrolls to the listing after going to the top', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+    const view = renderRoute('/no-existe');
+    await screen.findByRole('heading', { level: 1, name: es.notFound.title });
+    const toListing = vi.spyOn(Element.prototype, 'scrollIntoView');
+
+    await act(() => view.router.navigate('/', { state: SHOW_LISTING }));
+
+    await waitFor(() => {
+      expect(toListing).toHaveBeenCalled();
+    });
+    const top = scrolled.mock.invocationCallOrder[0] ?? Infinity;
+    const listing = toListing.mock.invocationCallOrder[0] ?? 0;
+    expect(top).toBeLessThan(listing);
   });
 
   it('given a link with a hash, when it opens, then the page does not jump to the top', async () => {

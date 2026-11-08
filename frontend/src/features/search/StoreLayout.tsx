@@ -1,5 +1,5 @@
 import { m } from 'motion/react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { NavigationType, Outlet, useLocation, useNavigationType } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { useEntranceMotion } from '../../components/motion/useActionMotion.ts';
@@ -56,7 +56,9 @@ function useFocusPageOnNavigation(pathname: string) {
 function useScrollToTopOnNavigation(pathname: string, hash: string) {
   const type = useNavigationType();
   const first = useRef(true);
-  useEffect(() => {
+  // A layout effect, so it runs before the effects of the page itself: a page that scrolls to a place of its own (the
+  // home page to its listing, UC-31) does it after this one and keeps it.
+  useLayoutEffect(() => {
     if (first.current) {
       first.current = false;
       return;
