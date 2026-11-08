@@ -266,12 +266,28 @@ describe('catalog grid (UC-01)', () => {
 
     const card = await screen.findByRole('link', { name: /Pijama rosa/ });
     expect(card).toHaveAccessibleName(expect.stringContaining(es.catalog.sizes(['S', 'L'])) as string);
-    const shown = card.querySelectorAll('.card-sizes span[aria-hidden]');
+    const shown = card.querySelectorAll('.card-sizes span[aria-hidden]:not(.card-sizes-label)');
     expect([...shown].map((size) => [size.textContent, size.classList.contains('out')])).toEqual([
       ['S', false],
       ['M', true],
       ['L', false],
     ]);
+    expect(card.querySelector('.card-sizes-label')).toHaveTextContent(es.catalog.sizesLabel);
+  });
+
+  it('given numeric sizes loaded as 12, 14 and 4, when listed, then the card shows them as 4, 12, 14', async () => {
+    const sizes = [
+      { size: '12', inStock: true },
+      { size: '14', inStock: true },
+      { size: '4', inStock: true },
+    ];
+    stubCatalogApi({ listings: [listed([product('rosa', { sizes })])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const shown = card.querySelectorAll('.card-sizes span[aria-hidden]:not(.card-sizes-label)');
+    expect([...shown].map((size) => size.textContent)).toEqual(['4', '12', '14']);
   });
 
   it('given a phone and a product with two photos, when its photo is swiped, then the second shows and it does not open (T-E7-32)', async () => {

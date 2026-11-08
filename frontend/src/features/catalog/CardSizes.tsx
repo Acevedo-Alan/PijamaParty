@@ -6,6 +6,12 @@ import type { SizeOffer } from './catalogApi.ts';
 /** T-E7-35 on the card: at most 4 sizes, then "+N", so they keep to the swatches' row on a phone. */
 const CARD_SIZES = 4;
 
+/** Children's sizes ("4", "12", "14") ascending as numbers; letter sizes keep the order of the catalog. */
+function sortSizes(sizes: readonly SizeOffer[]): readonly SizeOffer[] {
+  const numeric = sizes.every((offer) => /^\d+$/.test(offer.size));
+  return numeric ? [...sizes].sort((a, b) => Number(a.size) - Number(b.size)) : sizes;
+}
+
 /**
  * The sizes of a product on its card, "S · M · L" (T-E7-35), those without stock struck through. Screen readers hear
  * one sentence with only the sizes in stock, as the swatches say only the colors in stock; none, and "Sold out" says it.
@@ -17,13 +23,17 @@ export function CardSizes({ sizes }: { sizes: readonly SizeOffer[] }) {
   if (sizes.length === 0) {
     return null;
   }
-  const inStock = sizes.filter((offer) => offer.inStock).map((offer) => offer.size);
-  const shown = sizes.slice(0, CARD_SIZES);
-  const more = sizes.length - shown.length;
+  const ordered = sortSizes(sizes);
+  const inStock = ordered.filter((offer) => offer.inStock).map((offer) => offer.size);
+  const shown = ordered.slice(0, CARD_SIZES);
+  const more = ordered.length - shown.length;
 
   return (
     <p ref={row} className="card-sizes">
       {inStock.length > 0 && <span className="visually-hidden">{es.catalog.sizes(inStock)}</span>}
+      <span className="card-sizes-label" aria-hidden="true">
+        {ordered.length === 1 ? es.catalog.sizeLabel : es.catalog.sizesLabel}
+      </span>
       {shown.map(({ size, inStock: stocked }) => (
         <span key={size} className={stocked ? undefined : 'out'} aria-hidden="true">
           {size}

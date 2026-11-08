@@ -43,6 +43,9 @@ export const es = {
     /** T-E7-35: what a screen reader hears for the sizes in stock of a card, e.g. "Talles: S y L". */
     sizes: (sizes: readonly string[]) =>
       `${sizes.length === 1 ? 'Talle' : 'Talles'}: ${new Intl.ListFormat('es', { type: 'conjunction' }).format(sizes)}`,
+    /** The gray word before the sizes of a card, so a lone "4" reads as a size. */
+    sizeLabel: 'Talle',
+    sizesLabel: 'Talles',
     /** D-11: the number of products that match, e.g. "1 producto" or "1.250 productos". */
     productCount: (count: number) =>
       `${formatNumber(count)} ${count === 1 ? 'producto' : 'productos'}`,

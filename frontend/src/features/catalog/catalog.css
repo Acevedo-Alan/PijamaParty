@@ -55,6 +55,10 @@
   .card:hover .ph {
     box-shadow: var(--shadow-accent);
   }
+
+  .card:hover .card-title {
+    color: var(--accent);
+  }
 }
 
 /* T-E7-14: the second photo over the first on hover. display: none elsewhere, so a lazy image is never requested on
@@ -156,6 +160,7 @@
   font-weight: 500;
   color: var(--ink);
   margin-top: 9px;
+  transition: color var(--dur-base) var(--ease-out);
   display: -webkit-box;
   line-clamp: 2;
   -webkit-line-clamp: 2;
@@ -1079,8 +1084,14 @@ html:has(.filters-panel[open]) {
   letter-spacing: 0.02em;
 }
 
-/* Between sizes only: the sentence for screen readers comes first and is a span too, so it never counts. */
-.card-sizes span:not(.visually-hidden) + span::before {
+.card-sizes .card-sizes-label {
+  margin-right: 5px;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+/* Between sizes only: the sentence for screen readers and the label come first and are spans too, so they never count. */
+.card-sizes span:not(.visually-hidden, .card-sizes-label) + span:not(.card-sizes-label)::before {
   content: '·';
   padding: 0 5px;
   color: var(--ink-soft);
