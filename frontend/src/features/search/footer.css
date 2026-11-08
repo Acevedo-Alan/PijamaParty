@@ -30,6 +30,11 @@
   border-left: 1px solid var(--line);
 }
 
+/* The first block starts at the wrap's own edge, the same line as "Contactanos" and the footer's first column. */
+.benefit:first-child {
+  padding-left: 0;
+}
+
 .benefit svg {
   width: 36px;
   height: 36px;
@@ -133,17 +138,12 @@
   overflow-wrap: anywhere;
 }
 
-.footer-links a[aria-current='page'] {
-  color: var(--accent-text);
-  font-weight: 600;
-}
-
+/* The footer's links all share one neutral ink: the current page is not marked here, so a link never reads as a title. */
 .footer-payments {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 2px 14px;
 }
 
 /* T-E7-26: the opening hours, a text with its icon, lined up with the links. */
@@ -266,27 +266,12 @@
   stroke-linejoin: round;
 }
 
-/* T-E7-20: one icon per enabled provider, in a row. */
+/* T-E7-20: the name of each enabled provider and of the carrier, as plain text: not boxes that look like buttons. */
 .footer-payments li {
+  min-height: 32px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 36px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-s);
-  background: var(--surface);
   color: var(--ink);
-}
-
-.footer-payment-icon {
-  width: 32px;
-  height: 24px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .footer-bottom {

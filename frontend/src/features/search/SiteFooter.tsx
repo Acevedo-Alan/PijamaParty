@@ -1,8 +1,6 @@
-import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { ConsentFooterLink } from '../analytics/ConsentBanner.tsx';
-import type { PaymentProvider } from '../checkout/checkoutForm.ts';
 import { usePaymentProviders } from '../checkout/useCheckout.ts';
 import {
   COOKIES_PATH,
@@ -71,30 +69,6 @@ const tiktokIcon = (
     <path d="M13 3.5c.4 2.6 2.3 4.4 5 4.6" />
   </svg>
 );
-
-/** The store's own drawing of a parcel for Correo Argentino, not its logo (T-E7-26). */
-const parcelIcon = (
-  <svg className="footer-payment-icon" viewBox="0 0 32 24" aria-hidden="true">
-    <path d="M16 3 6 7.5v9L16 21l10-4.5v-9L16 3Z" />
-    <path d="M6 7.5 16 12l10-4.5M16 12v9M11 5.3l10 4.5" />
-  </svg>
-);
-
-/** The store's own drawings of the providers, not their logos (T-E7-20): a card and a phone. */
-const paymentIcons: Record<PaymentProvider, ReactNode> = {
-  MERCADOPAGO: (
-    <svg className="footer-payment-icon" viewBox="0 0 32 24" aria-hidden="true">
-      <rect x="2" y="4" width="28" height="16" rx="3" />
-      <path d="M2 9h28M6 15h6" />
-    </svg>
-  ),
-  MODO: (
-    <svg className="footer-payment-icon" viewBox="0 0 32 24" aria-hidden="true">
-      <rect x="10" y="2" width="12" height="20" rx="2.5" />
-      <path d="M14.5 18.5h3" />
-    </svg>
-  ),
-};
 
 /** "5493424000000" as "+54 9 3424000000": the country code and the mobile 9 apart, the rest as the business sent it. */
 function displayWhatsApp(number: string): string {
@@ -224,8 +198,7 @@ function PaymentProviders() {
           const name = es.checkout.providers[provider].name;
           return (
             <li key={provider} title={name} translate="no">
-              {paymentIcons[provider]}
-              <span className="visually-hidden">{name}</span>
+              {name}
             </li>
           );
         })}
@@ -243,8 +216,7 @@ function PaymentsColumn() {
         <h2 id="footer-shipping">{messages.shipping}</h2>
         <ul className="footer-payments">
           <li title={messages.carrier} translate="no">
-            {parcelIcon}
-            <span className="visually-hidden">{messages.carrier}</span>
+            {messages.carrier}
           </li>
         </ul>
       </section>

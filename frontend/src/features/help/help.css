@@ -128,9 +128,12 @@
 /* "Contactanos" at the end of the home page (UC-30, D-09): the email and the WhatsApp link, no form. */
 .contact {
   scroll-margin-top: 40px; /* "Contacto" of the footer lands below the header */
-  padding-top: 48px;
-  padding-bottom: 24px;
-  border-top: 1px solid var(--line);
+  padding-block: 48px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px 32px;
 }
 
 .contact .section-title {
@@ -159,9 +162,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 20px;
+  gap: 10px;
   border-radius: 999px;
   text-decoration: none;
+  color: var(--on-accent);
+}
+
+.contact-whatsapp svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+
+.contact-whatsapp .whatsapp-bubble {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linejoin: round;
+}
+
+.contact-whatsapp .whatsapp-phone {
+  fill: currentColor;
 }
 
 /* UC-31 (T-E7-28): the help pages, "Cómo comprar", "Cambios y devoluciones" and "Términos y condiciones". */

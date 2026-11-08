@@ -62,7 +62,7 @@ describe('store footer (UC-31)', () => {
     const items = payments.getAllByRole('listitem');
     expect(items.map((item) => item.textContent)).toEqual(['MercadoPago', 'MODO']);
     items.forEach((item) => {
-      expect(item.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+      expect(item.querySelector('svg')).toBeNull();
     });
   });
 
@@ -80,7 +80,7 @@ describe('store footer (UC-31)', () => {
     expect(shipping.getByText(messages.carrier)).toBeInTheDocument();
   });
 
-  it('given MercadoPago enabled, when the footer is checked, then Envíos shows the Correo Argentino icon, named after it', async () => {
+  it('given MercadoPago enabled, when the footer is checked, then Envíos names Correo Argentino as plain text', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])], paymentProviders: answer(200, { providers: ['MERCADOPAGO'] }) });
 
     renderRoute('/');
@@ -88,7 +88,7 @@ describe('store footer (UC-31)', () => {
     await screen.findByRole('region', { name: messages.payments });
     const carrier = column(messages.shipping).getByRole('listitem');
     expect(carrier).toHaveTextContent(messages.carrier);
-    expect(carrier.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(carrier.querySelector('svg')).toBeNull();
   });
 
   it('given opening hours and an address, when the footer is checked, then Contacto shows the hours and links the address to Google Maps in a new tab', async () => {
