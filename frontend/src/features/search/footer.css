@@ -2,12 +2,12 @@
    the latter with its two lists side by side), the block over two columns from 640 px and everything in one row from
    960 px; below them, after a line, the Cookies link and the copyright across the whole width. */
 
-/* T-E7-21: the benefits bar right above the footer; a row with dividers from 860 px, stacked below. */
+/* T-E7-21, T-E7-43: the benefits bar right above the footer; three cards in a row from 860 px, stacked below. Each is a
+   white card with a fine border and a pastel rainbow hairline on top, and its icon sits in a soft pink circle (as the
+   footer's networks do): the border and the gap tell the cards apart, so no divider is needed on a phone. */
 .benefits {
   margin-top: 40px;
-  padding: 32px 0;
-  border-top: 1px solid var(--line);
-  background: var(--surface);
+  padding: 8px 0 40px;
 }
 
 .benefits-list {
@@ -15,33 +15,41 @@
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
+  gap: 20px;
 }
 
 .benefit {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 28px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
   color: var(--ink-soft);
   font-size: 14px;
 }
 
-.benefit + .benefit {
-  border-left: 1px solid var(--line);
-}
-
-/* The first block starts at the wrap's own edge, the same line as "Contactanos" and the footer's first column. */
-.benefit:first-child {
-  padding-left: 0;
+.benefit::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--rainbow-across);
 }
 
 .benefit svg {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   flex: none;
+  padding: 12px;
+  border-radius: 50%;
+  background: var(--rose-soft);
   fill: none;
-  stroke: var(--ink);
-  stroke-width: 1.4;
+  stroke: var(--accent-text);
+  stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -54,7 +62,6 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-
 .benefits + .site-footer {
   margin-top: 0;
 }
@@ -323,20 +330,22 @@
 
 @media (max-width: 859px) {
   .benefits {
-    padding: 24px 0;
+    padding: 0 0 32px;
   }
 
   .benefits-list {
     grid-auto-flow: row;
-    gap: 20px;
+    gap: 12px;
   }
 
   .benefit {
-    padding: 0;
+    gap: 14px;
+    padding: 16px;
   }
 
-  .benefit + .benefit {
-    border-left: none;
+  .benefit svg {
+    width: 44px;
+    height: 44px;
+    padding: 11px;
   }
-
 }
