@@ -164,8 +164,11 @@ header.site[data-scrolled]::before {
     pointer-events: none;
   }
 
+  /* The bar gives way to the pill, but its top 6 px (the pill's margin) stay solid, so the cards never peek over it. */
   header.site[data-scrolled]::before {
-    opacity: 0;
+    background: linear-gradient(to bottom, var(--bg) 0 8px, transparent 8px);
+    backdrop-filter: none;
+    border-bottom-color: transparent;
   }
 
   header.site .header-row {
@@ -269,9 +272,10 @@ header.site[data-scrolled]::before {
 .header-nav {
   grid-column: 2;
   grid-row: 1;
-  justify-self: end;
+  /* Beside the logo, not pushed against the tools: the bar reads as one group. */
+  justify-self: start;
   min-width: 0;
-  padding-right: clamp(6px, 1.5vw, 20px);
+  padding-left: clamp(8px, 2.5vw, 32px);
 }
 
 .nav-links {
