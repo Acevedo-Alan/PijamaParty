@@ -9,6 +9,9 @@ const messages = es.contact;
 
 const CONTACT_ID = 'contactanos';
 
+/** Set on `<html>` while the section is on screen; whatsAppButton.css hides the floating button then. */
+const CONTACT_IN_VIEW = 'data-contact-in-view';
+
 /**
  * "Contactanos" at the end of the home page (UC-30, D-09): the email and WhatsApp as links, no form. What the store
  * has not set in "Datos de la tienda" (UC-36) is left out, and without both there is no section. Opened at
@@ -26,7 +29,30 @@ export function ContactSection() {
     }
   }, [hash, key]);
 
-  if (!hasContactSection(contact)) {
+  const shown = hasContactSection(contact);
+
+  // T-E7-42: while this section is on screen the floating WhatsApp button hides (its CSS reads this attribute).
+  useEffect(() => {
+    const element = section.current;
+    if (!shown || element === null || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+    const root = document.documentElement;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting === true) {
+        root.setAttribute(CONTACT_IN_VIEW, '');
+      } else {
+        root.removeAttribute(CONTACT_IN_VIEW);
+      }
+    });
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      root.removeAttribute(CONTACT_IN_VIEW);
+    };
+  }, [shown]);
+
+  if (!shown) {
     return null;
   }
   const { email, whatsAppNumber } = contact;

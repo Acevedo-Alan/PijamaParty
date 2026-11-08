@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
 import { listed, product, stubCatalogApi } from '../../test/catalogApi.ts';
@@ -51,6 +51,44 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
 
     await screen.findByRole('link', { name: /Pijama rosa/ });
     expect(contact()).not.toBeInTheDocument();
+  });
+
+  it('given the section coming on and off the screen, when it does, then the floating WhatsApp button is told to hide and to show again (T-E7-42)', async () => {
+    const callbacks: IntersectionObserverCallback[] = [];
+    vi.stubGlobal('IntersectionObserver', class {
+      constructor(callback: IntersectionObserverCallback) {
+        callbacks.push(callback);
+      }
+
+      observe() {
+        // The test reports what is on screen.
+      }
+
+      disconnect() {
+        // Nothing to release.
+      }
+    });
+    setStoreContact({ email: 'hola@example.com', whatsAppNumber: '5493424000000' });
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+    const { router } = renderRoute('/');
+    await screen.findByRole('region', { name: messages.title });
+    const report = (isIntersecting: boolean) => {
+      act(() => {
+        callbacks.forEach((callback) => {
+          callback([{ isIntersecting }] as never, {} as never);
+        });
+      });
+    };
+
+    report(true);
+    expect(document.documentElement).toHaveAttribute('data-contact-in-view');
+    report(false);
+    expect(document.documentElement).not.toHaveAttribute('data-contact-in-view');
+
+    report(true);
+    await act(() => router.navigate('/categoria/verano'));
+    expect(document.documentElement).not.toHaveAttribute('data-contact-in-view');
+    vi.unstubAllGlobals();
   });
 
   it('given a category page, when it opens, then it shows no contact section', async () => {

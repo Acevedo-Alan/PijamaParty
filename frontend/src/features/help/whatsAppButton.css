@@ -63,6 +63,28 @@ body:has(.pdp-sticky-cta) .whatsapp-button {
   transform: translateY(-68px);
 }
 
+/* T-E7-42: "Contactanos" has its own WhatsApp button, so while it is on screen this one fades out and, being
+   `visibility: hidden`, also leaves the tab order and the screen readers' list. */
+.whatsapp-button {
+  transition:
+    scale var(--dur-base) var(--ease-pop),
+    transform var(--dur-base) var(--ease-standard),
+    opacity var(--dur-base) var(--ease-standard),
+    visibility 0s;
+}
+
+html[data-contact-in-view] .whatsapp-button {
+  opacity: 0;
+  scale: 0.6;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    scale var(--dur-base) var(--ease-standard),
+    transform var(--dur-base) var(--ease-standard),
+    opacity var(--dur-base) var(--ease-standard),
+    visibility 0s var(--dur-base);
+}
+
 @media (hover: hover) {
   .whatsapp-button:hover {
     background-color: var(--accent-hover);
@@ -80,7 +102,8 @@ body:has(.pdp-sticky-cta) .whatsapp-button {
   }
 
   .whatsapp-button:hover,
-  .whatsapp-button:active {
+  .whatsapp-button:active,
+  html[data-contact-in-view] .whatsapp-button {
     scale: none;
   }
 }
