@@ -88,6 +88,9 @@ function payButtonState(place: { isPending: boolean; isError: boolean; data: Pla
   return place.isError || place.data !== undefined ? 'failed' : 'idle';
 }
 
+/** Fields that hold codes or addresses, not words: no red squiggles, no autocorrect. */
+const NO_SPELLCHECK: readonly string[] = ['email', 'nationalId', 'postalCode'];
+
 /** MercadoPago is always enabled: it is the only option while the providers are being read or could not be. */
 const DEFAULT_PROVIDERS: readonly PaymentProvider[] = ['MERCADOPAGO'];
 
@@ -196,6 +199,8 @@ function Field({
         inputMode={inputMode}
         value={form[field]}
         autoComplete={autoComplete}
+        spellCheck={NO_SPELLCHECK.includes(field) ? false : undefined}
+        autoCapitalize={field === 'email' ? 'off' : undefined}
         maxLength={maxLength}
         required={required}
         aria-invalid={isInvalid}
@@ -527,14 +532,14 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
     }
     if (ready && shipping.data?.status === 'quoted') {
       goTo(2);
+    } else if (ready) {
+      // The quote is still coming or failed: the shipping note and its retry sit by the province, so the press answers.
+      setFocusTarget({ kind: 'field', field: 'province' });
     }
   }
 
   function toReview() {
     // RNF-25: the first time in the visit only.
-    } else if (ready) {
-      // The quote is still coming or failed: the shipping note and its retry sit by the province, so the press answers.
-      setFocusTarget({ kind: 'field', field: 'province' });
     if (!paymentInfoSent.current) {
       paymentInfoSent.current = true;
       trackAddPaymentInfo(forAnalytics(cart), PAYMENT_TYPES[provider]);
@@ -589,13 +594,13 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   }
 
   function confirm() {
+    // Kept focusable while confirming (aria-disabled): a second press must not send another order.
+    if (place.isPending) {
+      return;
+    }
     if (!acceptedTerms) {
       setTermsError(true);
       setFocusTarget({ kind: 'terms' });
-      return;
-    }
-    // Kept focusable while confirming (aria-disabled): a second press must not send another order.
-    if (place.isPending) {
       return;
     }
     if (!isProvince(form.province)) {
@@ -624,8 +629,9 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
   const noShipping = form.province !== '' && shipping.data?.status === 'noShipping';
   const provinceId = idOf('province');
   const suggestionId = `${idOf('email')}-suggestion`;
+  // One live region that stays mounted, so the quote's progress and failure are announced when they appear.
   const shippingNotes = (
-    <>
+    <div aria-live="polite">
       {form.province !== '' && shipping.isFetching && <p className="checkout-note">{es.checkout.shippingLoading}</p>}
       <AlertBox
         message={shipping.isError ? es.checkout.shippingError : null}
@@ -635,7 +641,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
           </button>
         }
       />
-    </>
+    </div>
   );
 
   return (
@@ -747,10 +753,10 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 </fieldset>
               )}
               {!typingAddress && (
-                <div aria-live="polite">
+                <>
                   {noShipping && <p className="checkout-field-error">{es.checkout.noShipping}</p>}
                   {shippingNotes}
-                </div>
+                </>
               )}
               {typingAddress && (
                 <>
@@ -907,10 +913,12 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 {es.checkout.termsBefore}
                 <Link to={TERMS_PATH} target="_blank" rel="noopener">
                   {es.checkout.terms}
+                  <span className="visually-hidden">{es.checkout.opensInNewTab}</span>
                 </Link>
                 {es.checkout.termsBetween}
                 <Link to={RETURNS_POLICY_PATH} target="_blank" rel="noopener">
                   {es.checkout.returns}
+                  <span className="visually-hidden">{es.checkout.opensInNewTab}</span>
                 </Link>
               </label>
               {termsError && (
@@ -935,6 +943,10 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                   ? es.checkout.confirming
                   : es.checkout.confirmWithTotal(formatMoney(amounts.totalCents))}
               </button>
+              {/* Always mounted, so the progress is announced when its text appears. */}
+              <p className="visually-hidden" role="status">
+                {place.isPending ? es.checkout.confirming : ''}
+              </p>
               <p className="checkout-pay-at">{es.checkout.payAt(es.checkout.providers[provider].name)}</p>
               <button
                 type="button"
@@ -943,10 +955,6 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                   goTo(2);
                 }}
               >
-              {/* Always mounted, so the progress is announced when its text appears. */}
-              <p className="visually-hidden" role="status">
-                {place.isPending ? es.checkout.confirming : ''}
-              </p>
                 {es.checkout.back}
               </button>
             </div>

@@ -9,6 +9,11 @@
   padding-bottom: 80px;
 }
 
+.checkout h1,
+.checkout h2 {
+  text-wrap: balance;
+}
+
 .checkout h1 {
   font-family: var(--ff-display);
   font-size: 26px;
@@ -35,6 +40,8 @@
 /* T-E7-38: numbered circles joined by a line; current filled and bold, completed with a check, later outlined. */
 .checkout-steps {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px 0;
   align-items: center;
   margin: 0 0 28px;
   padding: 0;
@@ -216,7 +223,7 @@
 
 .checkout-next {
   min-width: 200px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .checkout-actions {
@@ -254,6 +261,7 @@
 
 .checkout-pay-name {
   display: block;
+  overflow-wrap: anywhere;
   font-size: 14px;
   font-weight: 600;
 }
@@ -261,12 +269,12 @@
 /* MODO's wordmark stands in for its logo until the brand kit arrives (T-E3b-04). */
 .checkout-pay-modo {
   font-weight: 800;
-  overflow-wrap: anywhere;
   letter-spacing: 0.04em;
 }
 
 .checkout-pay-hint {
   display: block;
+  overflow-wrap: anywhere;
   color: var(--ink-soft);
   font-size: 13px;
 }
@@ -274,7 +282,6 @@
 /* UC-21: the saved addresses of a signed-in customer, as options like the payment's. */
 .checkout-addresses {
   display: grid;
-  overflow-wrap: anywhere;
   gap: 10px;
   margin: 0 0 16px;
   padding: 0;
@@ -289,10 +296,16 @@
 
 .checkout-save {
   display: flex;
-  gap: 10px;
+  gap: 0;
   align-items: center;
   margin: 4px 0 16px;
   font-size: 14px;
+}
+
+/* The label covers the gap to its box and is a 44 px target. */
+.checkout-save label {
+  flex: 1;
+  padding: 12px 0 12px 10px;
 }
 
 .checkout-save input {
@@ -303,6 +316,7 @@
 
 .checkout-review-block {
   margin-bottom: 14px;
+  overflow-wrap: anywhere;
   padding: 16px 18px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-m);
@@ -316,7 +330,6 @@
   justify-content: space-between;
 }
 
-  overflow-wrap: anywhere;
 .checkout-review-head h3 {
   color: var(--ink-soft);
   font-size: 13px;
@@ -346,10 +359,14 @@
 .checkout-terms {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 4px 10px;
+  gap: 4px 0;
   align-items: start;
   margin: 20px 0 8px;
   font-size: 14px;
+}
+
+.checkout-terms label {
+  padding-left: 10px;
 }
 
 .checkout-terms input {
@@ -420,6 +437,7 @@
 }
 
 .checkout-summary-name {
+  overflow-wrap: anywhere;
   font-weight: 600;
 }
 
@@ -437,11 +455,13 @@
   font-size: 13.5px;
 }
 
-  overflow-wrap: anywhere;
 .checkout-coupon-applied {
   display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   align-items: center;
   justify-content: space-between;
+  overflow-wrap: anywhere;
   font-weight: 600;
 }
 
@@ -456,12 +476,10 @@
 
 .checkout-amounts div {
   display: flex;
+  gap: 12px;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 4px 12px;
   margin-bottom: 8px;
   color: var(--ink-soft);
-  overflow-wrap: anywhere;
   font-size: 13.5px;
 }
 
@@ -476,7 +494,6 @@
   margin: 14px 0 0;
   padding-top: 14px;
   border-top: 1px solid var(--line);
-  gap: 12px;
   color: var(--ink);
   font-size: 20px;
   font-weight: 700;
@@ -504,4 +521,10 @@
   display: inline-flex;
   align-items: center;
   text-decoration: none;
+}
+
+@media (hover: hover) {
+  .checkout-pay-option:hover {
+    background: var(--peach-soft);
+  }
 }

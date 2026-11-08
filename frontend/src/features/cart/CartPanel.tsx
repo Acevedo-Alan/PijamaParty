@@ -67,8 +67,10 @@ function QuantityControl({ item, name }: { item: CartItem; name: string }) {
           >
             −
           </button>
-          <span className="cart-qty-value" aria-live="polite">
-            {item.quantity}
+          <span className="cart-qty-value">{item.quantity}</span>
+          {/* Always mounted: a change is announced with the product's name, not as a bare number. */}
+          <span className="visually-hidden" role="status">
+            {es.cart.quantityOf(name)}: {item.quantity}
           </span>
           <button
             type="button"
@@ -257,7 +259,7 @@ function CouponField({ cart }: { cart: Cart }) {
         <input
           id={inputId}
           value={code}
-          placeholder={es.cart.couponCode}
+          placeholder={es.cart.couponPlaceholder}
           maxLength={20}
           autoComplete="off"
           autoCapitalize="characters"

@@ -300,6 +300,7 @@ export const es = {
     addedNotice: 'Agregado al carrito',
     closeNotice: 'Cerrar aviso',
     couponCode: 'Código de cupón',
+    couponPlaceholder: 'Ej. VERANO10…',
     applyCoupon: 'Aplicar',
     /** The applied coupon, e.g. "Cupón PIJAMA10". */
     coupon: (code: string) => `Cupón ${code}`,
@@ -409,6 +410,8 @@ export const es = {
     termsBefore: 'Acepto los ',
     terms: 'términos y condiciones',
     termsBetween: ' y la ',
+    /** Read by screen readers after a link that opens another tab. */
+    opensInNewTab: ' (se abre en otra pestaña)',
     returns: 'política de cambios y devoluciones',
     termsRequired: 'Aceptá los términos para confirmar la compra.',
     confirm: 'Confirmar y pagar',

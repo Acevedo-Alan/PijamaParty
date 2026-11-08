@@ -18,7 +18,7 @@ export function QuantityInput({ value, max, onChange }: QuantityInputProps) {
   const settle = (quantity: number) => Math.min(Math.max(1, quantity), Math.max(1, max));
 
   return (
-    <div className="quantity-control" role="group" aria-label={es.product.quantity}>
+    <div className="quantity-control" role="group">
       <button
         type="button"
         aria-label={es.product.lessUnits}
@@ -34,6 +34,8 @@ export function QuantityInput({ value, max, onChange }: QuantityInputProps) {
         inputMode="numeric"
         min={1}
         max={Math.max(1, max)}
+        name="quantity"
+        autoComplete="off"
         aria-label={es.product.quantity}
         disabled={disabled}
         value={typed ?? String(value)}

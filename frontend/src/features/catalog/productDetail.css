@@ -200,15 +200,15 @@
   grid-area: 1 / 1;
   font-size: 16px;
   line-height: 1;
-  color: #f2a7c3;
+  color: var(--spark-pink);
 }
 
 .add-cart-spark:nth-child(3n + 2) {
-  color: #a9c8f5;
+  color: var(--spark-blue);
 }
 
 .add-cart-spark:nth-child(3n) {
-  color: #f5cf6b;
+  color: var(--spark-gold);
 }
 
 .add-cart-check {
@@ -585,7 +585,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--swatch-edge);
 }
 
 .swatch.outlined {
@@ -727,7 +727,7 @@
 
 .quantity-control {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   min-height: 48px;
   border: 1px solid var(--line-strong);
@@ -776,7 +776,7 @@
   width: 100%;
   padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--glass);
   backdrop-filter: blur(8px);
 }
 
@@ -885,4 +885,11 @@
 /* T-E8-27: the administrator's shortcut sits under the product name */
 .pdp-admin-edit {
   margin: 0 0 14px;
+}
+
+/* The fixed bar must not hide the element a keyboard user tabs to (phones, while the bar shows). */
+@media (max-width: 859px) {
+  html:has(.pdp-sticky-cta) {
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
 }

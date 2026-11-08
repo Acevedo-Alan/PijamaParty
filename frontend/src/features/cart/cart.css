@@ -40,7 +40,7 @@ html:has(.cart-panel[open]) {
 }
 
 .cart-panel::backdrop {
-  background: rgba(58, 50, 45, 0.35);
+  background: var(--scrim-soft);
 }
 
 .cart-panel-inner {
@@ -64,6 +64,8 @@ html:has(.cart-panel[open]) {
 }
 
 .cart-body {
+  min-height: 120px;
+  overscroll-behavior: contain;
   flex: 1;
   overflow-y: auto;
   padding: 14px 20px;
@@ -180,7 +182,7 @@ html:has(.cart-panel[open]) {
 .qty-btn:disabled,
 .qty-btn[aria-disabled='true'] {
   color: var(--ink-soft);
-  border-color: var(--line);
+  border-color: var(--line-strong);
   cursor: not-allowed;
 }
 
@@ -228,6 +230,9 @@ html:has(.cart-panel[open]) {
 }
 
 .cart-foot {
+  max-height: 55dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 18px 20px 22px;
   border-top: 1px solid var(--line);
 }
