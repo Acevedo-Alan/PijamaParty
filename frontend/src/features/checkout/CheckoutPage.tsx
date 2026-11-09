@@ -245,9 +245,12 @@ function SummaryItem({ item }: { item: CartItem }) {
         {product !== null && (
           <p className="checkout-summary-detail">{es.checkout.itemDetail(product.color, product.size)}</p>
         )}
-        <p className="checkout-summary-detail">{es.checkout.itemQuantity(item.quantity)}</p>
+        {/* T-E7-45: the line amount on the quantity's line, not floating beside the whole item. */}
+        <div className="checkout-summary-line">
+          <p className="checkout-summary-detail">{es.checkout.itemQuantity(item.quantity)}</p>
+          <p className="checkout-summary-amount">{formatMoney(item.unitPriceCents * item.quantity)}</p>
+        </div>
       </div>
-      <p className="checkout-summary-amount">{formatMoney(item.unitPriceCents * item.quantity)}</p>
     </li>
   );
 }
@@ -880,14 +883,28 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
                 goTo(1);
               }}
             >
-              <p>{capitalizeWords(`${form.firstName.trim()} ${form.lastName.trim()}`)}</p>
-              <p>{form.email.trim()}</p>
-              <p>{form.phone.trim()}</p>
-              <p>{es.checkout.nationalIdLine(form.nationalId.trim())}</p>
-              <p>{addressLine(form)}</p>
-              {isProvince(form.province) && (
-                <p>{es.checkout.place(capitalizeWords(form.city.trim()), es.provinces[form.province], form.postalCode.trim().toUpperCase())}</p>
-              )}
+              {/* T-E7-45: who buys, then where and how it goes, under faint subtitles. */}
+              <div className="checkout-review-group">
+                <h4>{es.checkout.contactGroup}</h4>
+                <p>{capitalizeWords(`${form.firstName.trim()} ${form.lastName.trim()}`)}</p>
+                <p>{form.email.trim()}</p>
+                <p>{form.phone.trim()}</p>
+                <p>{es.checkout.nationalIdLine(form.nationalId.trim())}</p>
+              </div>
+              <div className="checkout-review-group">
+                <h4>{es.checkout.deliveryGroup}</h4>
+                <p>{addressLine(form)}</p>
+                {isProvince(form.province) && (
+                  <p>{es.checkout.place(capitalizeWords(form.city.trim()), es.provinces[form.province], form.postalCode.trim().toUpperCase())}</p>
+                )}
+                {amounts.shippingCents !== null && (
+                  <p>
+                    {es.checkout.deliveryMethod(
+                      amounts.shippingCents === 0 ? es.checkout.free : formatMoney(amounts.shippingCents),
+                    )}
+                  </p>
+                )}
+              </div>
             </ReviewBlock>
             <ReviewBlock
               title={es.checkout.paymentMethod}
@@ -896,6 +913,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
               }}
             >
               <p>{es.checkout.providers[provider].name}</p>
+              <p className="checkout-review-hint">{es.checkout.providers[provider].hint}</p>
             </ReviewBlock>
             <div className={termsError ? 'checkout-terms error' : 'checkout-terms'}>
               <input

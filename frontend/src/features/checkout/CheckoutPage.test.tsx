@@ -603,6 +603,75 @@ describe('checkout layout and final action (T-E7-38)', { timeout: 30_000 }, () =
     expect(screen.getByText(es.checkout.payAt('MercadoPago'))).toBeInTheDocument();
   });
 
+  const reviewBlock = (title: string) => screen.getByRole('heading', { level: 3, name: title }).closest('section');
+
+  it('given the review with a shipping of $4.500, when it shows, then contact and delivery are grouped and delivery names Correo Argentino with its cost (T-E7-45)', async () => {
+    stubGets();
+    renderRoute('/checkout');
+
+    await goToReview();
+
+    const block = reviewBlock(es.checkout.contactAndShipping);
+    if (block === null) {
+      throw new Error('No "Contacto y envío" block');
+    }
+    const groups = within(block).getAllByRole('heading', { level: 4 }).map((heading) => heading.closest('div'));
+    expect(groups.map((group) => group?.querySelector('h4')?.textContent)).toEqual([
+      es.checkout.contactGroup,
+      es.checkout.deliveryGroup,
+    ]);
+    const [contact, delivery] = groups;
+    if (contact == null || delivery == null) {
+      throw new Error('Missing a review group');
+    }
+    expect(within(delivery).getByText(/^Correo Argentino a domicilio · \$\s4\.500$/)).toBeInTheDocument();
+    expect(contact).not.toHaveTextContent(/Correo Argentino/);
+  });
+
+  it('given free shipping, when the review shows, then delivery reads "Correo Argentino a domicilio · Gratis" (T-E7-45)', async () => {
+    const paid = SHIPPING.SANTA_FE;
+    SHIPPING.SANTA_FE = quote('SANTA_FE', 0);
+    try {
+      stubGets();
+      renderRoute('/checkout');
+
+      await screen.findByRole('heading', { name: es.checkout.shippingTitle });
+      await fillShipping({});
+      await chooseProvince('SANTA_FE');
+      await waitFor(() => {
+        expect(totalOfSummary()).toHaveTextContent(/^\$\s25\.000$/);
+      });
+      await userEvent.click(next());
+      await userEvent.click(await screen.findByRole('button', { name: es.checkout.toReview }));
+      await screen.findByRole('heading', { name: es.checkout.reviewTitle });
+
+      expect(screen.getByText(es.checkout.deliveryMethod(es.checkout.free))).toBeInTheDocument();
+    } finally {
+      SHIPPING.SANTA_FE = paid;
+    }
+  });
+
+  it('given MercadoPago chosen, when the review shows, then the payment block has its name and the hint of step 2 (T-E7-45)', async () => {
+    stubGets();
+    renderRoute('/checkout');
+
+    await goToReview();
+
+    const block = reviewBlock(es.checkout.paymentMethod);
+    expect(block).toHaveTextContent(es.checkout.providers.MERCADOPAGO.name);
+    expect(block).toHaveTextContent(es.checkout.providers.MERCADOPAGO.hint);
+  });
+
+  it('given the review, when the buyer taps the terms sentence, then the checkbox is ticked (T-E7-45)', async () => {
+    stubGets();
+    renderRoute('/checkout');
+    await goToReview();
+
+    await userEvent.click(screen.getByText(es.checkout.termsBefore.trim(), { exact: false }));
+
+    expect(screen.getByRole('checkbox')).toBeChecked();
+  });
+
   it('given the review without the terms accepted, when the button is pressed, then nothing is sent and the checkbox says why', async () => {
     stubGets();
     const post = stubPost(placed(PAYMENT_URL));

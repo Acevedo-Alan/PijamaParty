@@ -400,6 +400,11 @@ export const es = {
     back: 'Volver',
     reviewTitle: 'Revisá tu compra',
     contactAndShipping: 'Contacto y envío',
+    /** T-E7-45: the two groups inside "Contacto y envío". */
+    contactGroup: 'Contacto',
+    deliveryGroup: 'Entrega',
+    /** The only carrier (UC-21) and the summary's shipping cost, e.g. "Correo Argentino a domicilio · $ 5.000". */
+    deliveryMethod: (cost: string) => `Correo Argentino a domicilio · ${cost}`,
     paymentMethod: 'Medio de pago',
     edit: 'Editar',
     /** The edit links of the review, named after their block, e.g. "Editar contacto y envío". */

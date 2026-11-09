@@ -335,6 +335,31 @@
   font-size: 13px;
 }
 
+/* T-E7-45: "Contacto" and "Entrega" inside their block, each under a faint subtitle. */
+.checkout-review-group {
+  margin-top: 10px;
+}
+
+.checkout-review-group + .checkout-review-group {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.checkout-review-group h4 {
+  margin: 0 0 4px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.checkout-review-hint {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
 /* T-E7-38: the final action, as wide as the form, with the provider's note under it and "Volver" last. */
 .checkout-final {
   display: flex;
@@ -422,7 +447,7 @@
 
 .checkout-summary-item {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns: 64px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
   padding: 12px 0;
@@ -443,6 +468,13 @@
 
 .checkout-summary-detail {
   color: var(--ink-soft);
+}
+
+.checkout-summary-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .checkout-summary-amount {

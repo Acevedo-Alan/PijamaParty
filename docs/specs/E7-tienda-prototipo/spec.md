@@ -279,10 +279,16 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Pasos (T-E7-38): cada paso es un círculo con su número y su nombre ("Envío", "Pago", "Revisión"), unidos por una línea. El actual va relleno y en negrita; el completado muestra un tilde; el que falta va apagado.
 - Resumen (T-E7-38): fotos más grandes; debajo del nombre, el color y el talle y, en otra línea, "Cantidad: 4"; el importe de la línea a la derecha. Debajo del título, "Volver al carrito" abre el carrito para cambiar cantidades o el cupón, sin perder lo cargado. El total va separado por una línea, más grande y en negrita; el envío gratis dice "Gratis".
 - Botón final (T-E7-38): en la revisión, "Confirmar y pagar · $219.600" con el total del resumen, a todo el ancho del formulario, y "Volver" debajo. Debajo del botón, en letra chica, "Vas a completar el pago en MercadoPago." (o el medio elegido): describe el paso siguiente, no promete seguridad. El botón no se deshabilita antes de aceptar los términos: si se toca, marca la casilla con su mensaje y lleva el foco ahí, para que el comprador sepa qué falta. Mientras confirma, dice "Confirmando…" y no se puede volver a tocar.
+- Revisión (T-E7-45): "Contacto y envío" mantiene un solo "Editar", pero separa sus datos en "Contacto" (nombre, email, teléfono y DNI) y "Entrega" (la dirección, la ciudad con la provincia y el código postal, y "Correo Argentino a domicilio · $5.000" o "· Gratis"). "Medio de pago" muestra el nombre y, debajo, la descripción del paso 2 ("Tarjetas de crédito y débito, dinero en cuenta"). Sin logos de marcas ni sellos de seguridad.
+- Resumen (T-E7-45): el importe de cada producto va en la línea de "Cantidad", a la derecha.
+- Términos (T-E7-45): la casilla se mantiene (RNF-30.6) y toda la frase la marca al tocarla, salvo los enlaces.
 
 **Criterios de aceptación**
 - Dada la revisión con un total de $219.600 y MercadoPago elegido, cuando se ve, entonces el botón dice "Confirmar y pagar · $219.600" y debajo "Vas a completar el pago en MercadoPago." (T-E7-38).
 - Dado el paso 2, cuando se leen los pasos, entonces "Envío" está completado y "Pago" es el actual (T-E7-38).
+- Dada la revisión con un envío de $5.000, cuando se ve, entonces "Contacto y envío" separa "Contacto" y "Entrega", y "Entrega" dice "Correo Argentino a domicilio · $5.000"; con envío gratis, "· Gratis" (T-E7-45).
+- Dado MercadoPago elegido, cuando se ve la revisión, entonces "Medio de pago" dice "MercadoPago" y "Tarjetas de crédito y débito, dinero en cuenta" (T-E7-45).
+- Dada la revisión, cuando se toca la frase de los términos, entonces se marca la casilla (T-E7-45).
 - Dado el checkout con datos cargados, cuando se toca "Volver al carrito", entonces se abre el carrito y, al cerrarlo, los datos siguen ahí (T-E7-38).
 - Dado un invitado en el paso 1, cuando toca "Iniciar sesión" e ingresa, entonces vuelve al checkout con su carrito.
 - Dado un comprador "María José" "Pérez", cuando paga, entonces el correo lo saluda "Hola, María José".
