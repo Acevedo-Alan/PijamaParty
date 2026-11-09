@@ -42,6 +42,7 @@
 - [x] **T-E7-41** Ficha: el botón de agregar y la cantidad pasan a píldoras de 52 px, el botón lleva la bolsa y el subtotal, y con una sola unidad ocupa todo el ancho; la animación de agregar se reemplaza por la transformación en tres tiempos (apretar, "¡Listo! En tu bolsa" con tilde, salto de la bolsa y panel a los 450 ms) y ya no espera 0,6 s; "Calculá el envío" con la provincia debajo (cambios a CU-03 y CU-08).
 - [x] **T-E7-42** Portada: el botón flotante de WhatsApp se esconde mientras "Contactanos" está a la vista (cambios a CU-31).
 - [x] **T-E7-43** Barra de beneficios: cada bloque pasa a una tarjeta blanca con borde fino, hilo de arcoíris arriba y el ícono en un círculo rosa; en el celular quedan separadas por su borde y 12 px de espacio (cambios a CU-31).
+- [x] **T-E7-44** Página del pedido como confirmación de la compra: con el pedido pagado, "¡Gracias por tu compra!" con un tilde que se dibuja, el número con "Copiar", el avance en cuatro pasos, el bloque "Entrega" con el plazo de las preguntas frecuentes, WhatsApp con el número del pedido en el mensaje, "Volver a la tienda" e Instagram (cambios a CU-14).
 - [x] **T-E7-11** Cierre: Lighthouse y accesibilidad sobre el diseño nuevo, e2e actualizados y capturas comparativas contra el prototipo.
 
 **Orden:** T-E7-01 primero (sus decisiones cambian T-E7-02, T-E7-05, T-E7-07, T-E7-09 y T-E7-12), después T-E7-12 (las pantallas usan sus tokens). T-E7-13 va antes de T-E7-04 (la portada muestra el banner). T-E7-02 a T-E7-04 no esperan las fotos: usan los fondos degradados hasta que lleguen.

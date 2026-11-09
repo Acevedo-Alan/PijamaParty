@@ -6,6 +6,7 @@ import type { components } from '../../api/schema.d.ts';
 import { es } from '../../i18n/es.ts';
 import { answer, headerRead, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
+import { clearStoreContact, setStoreContact } from '../../test/storeContact.ts';
 import { goToPayment } from './redirect.ts';
 
 vi.mock('./redirect.ts', () => ({ goToPayment: vi.fn() }));
@@ -313,6 +314,128 @@ describe('tracking link (UC-14, T-E3-08)', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: es.tracking.notFoundTitle })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: es.tracking.backToStore })).toHaveAttribute('href', '/');
+  });
+});
+
+describe('the purchase confirmation (T-E7-44)', () => {
+  const paidOrder = (overrides: Partial<TrackedOrderResponse> = {}) =>
+    trackedOrder({ status: 'PAID', canRetryPayment: false, buyerFirstName: 'alan', city: 'santa fe', ...overrides });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    clearStoreContact();
+    Reflect.deleteProperty(navigator, 'clipboard');
+  });
+
+  const step = (name: string) => screen.getByText(name).closest('li');
+
+  it('given a paid order of "alan", when the page opens, then it thanks the buyer with the order number and "Pagado" as the current step', async () => {
+    stubOrder(answer(200, paidOrder()));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    expect(await screen.findByRole('heading', { level: 1, name: es.tracking.paid.thanks('Alan') })).toBeInTheDocument();
+    expect(screen.getByText(es.tracking.paid.lines.PAID)).toBeInTheDocument();
+    expect(screen.getByText(es.tracking.title(1001))).toBeInTheDocument();
+    expect(screen.queryByText(es.tracking.greeting('Alan'))).not.toBeInTheDocument();
+    expect(step(es.tracking.statuses.PAID)).toHaveAttribute('aria-current', 'step');
+    expect(step(es.tracking.statuses.PREPARING)).not.toHaveAttribute('aria-current');
+  });
+
+  it('given a pending, cancelled or expired order, when the page opens, then it does not thank the buyer', async () => {
+    stubOrder(answer(200, trackedOrder({ status: 'EXPIRED', canRetryPayment: false })));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    expect(await screen.findByRole('heading', { level: 1, name: es.tracking.title(1001) })).toBeInTheDocument();
+    expect(screen.queryByText(/Gracias por tu compra/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: es.tracking.paid.progress })).not.toBeInTheDocument();
+  });
+
+  it('given a shipped order, when the progress is read, then paid and preparing are completed and shipped is current', async () => {
+    stubOrder(answer(200, paidOrder({ status: 'SHIPPED', shipmentTrackingNumber: 'CA123456789AR' })));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await screen.findByRole('list', { name: es.tracking.paid.progress });
+    expect(step(es.tracking.statuses.PAID)).toHaveTextContent(es.tracking.paid.completed);
+    expect(step(es.tracking.statuses.PREPARING)).toHaveTextContent(es.tracking.paid.completed);
+    expect(step(es.tracking.statuses.SHIPPED)).toHaveAttribute('aria-current', 'step');
+    expect(step(es.tracking.statuses.DELIVERED)).not.toHaveAttribute('aria-current');
+    expect(step(es.tracking.statuses.DELIVERED)).not.toHaveTextContent(es.tracking.paid.completed);
+    expect(screen.getByText(es.tracking.paid.lines.SHIPPED)).toBeInTheDocument();
+    expect(screen.queryByText(es.tracking.paid.arrivesInSantaFe)).not.toBeInTheDocument();
+  });
+
+  it('given a paid order to Santa Fe, when the page opens, then delivery is by Correo Argentino in 1 to 3 working days', async () => {
+    stubOrder(answer(200, paidOrder()));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    expect(await screen.findByText(es.tracking.paid.shipsTo('Santa Fe', 'Santa Fe'))).toBeInTheDocument();
+    expect(screen.getByText(es.tracking.paid.arrivesInSantaFe)).toBeInTheDocument();
+    expect(screen.getByText(es.tracking.paid.emailSent)).toBeInTheDocument();
+    expect(screen.queryByText(es.tracking.shipTo('Santa Fe', 'Santa Fe'))).not.toBeInTheDocument();
+  });
+
+  it('given a paid order to Córdoba, when the page opens, then delivery takes 3 to 7 working days', async () => {
+    stubOrder(answer(200, paidOrder({ city: 'córdoba', province: 'CORDOBA' })));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    expect(await screen.findByText(es.tracking.paid.arrivesElsewhere)).toBeInTheDocument();
+    expect(screen.queryByText(es.tracking.paid.arrivesInSantaFe)).not.toBeInTheDocument();
+  });
+
+  it('given the clipboard, when "Copiar" is pressed, then the order number is copied and the button says so', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    stubOrder(answer(200, paidOrder()));
+
+    renderRoute(`/pedido/${TOKEN}`);
+    await userEvent.click(await screen.findByRole('button', { name: es.tracking.paid.copyLabel(1001) }));
+
+    expect(writeText).toHaveBeenCalledWith('#1001');
+    expect(await screen.findByRole('button', { name: es.tracking.paid.copied })).toBeInTheDocument();
+  });
+
+  it('given a browser without the clipboard, when the page opens, then there is no "Copiar"', async () => {
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+    stubOrder(answer(200, paidOrder()));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await screen.findByText(es.tracking.title(1001));
+    expect(screen.queryByRole('button', { name: es.tracking.paid.copyLabel(1001) })).not.toBeInTheDocument();
+  });
+
+  it('given the store WhatsApp and Instagram, when the page opens, then WhatsApp carries the order number and the closing links the store and Instagram', async () => {
+    setStoreContact({ whatsAppNumber: '5493425304507', instagramUrl: 'https://www.instagram.com/pijamaparty.zzz/' });
+    stubOrder(answer(200, paidOrder()));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    const whatsApp = await screen.findByRole('link', { name: es.tracking.whatsApp });
+    expect(whatsApp).toHaveAttribute(
+      'href',
+      `https://wa.me/5493425304507?text=${encodeURIComponent(es.tracking.whatsAppMessage(1001))}`,
+    );
+    expect(whatsApp).toHaveAttribute('target', '_blank');
+    expect(screen.getByRole('link', { name: es.tracking.instagram })).toHaveAttribute(
+      'href',
+      'https://www.instagram.com/pijamaparty.zzz/',
+    );
+    expect(screen.getAllByRole('link', { name: es.tracking.backToStore })[0]).toHaveAttribute('href', '/');
+  });
+
+  it('given a store without WhatsApp or Instagram, when the page opens, then neither link shows', async () => {
+    stubOrder(answer(200, paidOrder()));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await screen.findByText(es.tracking.title(1001));
+    expect(screen.queryByRole('link', { name: es.tracking.whatsApp })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: es.tracking.instagram })).not.toBeInTheDocument();
   });
 });
 

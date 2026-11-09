@@ -39,7 +39,7 @@ test('a guest buys with an approved card and gets one confirmation email', async
   await expect(page).toHaveURL(/\/pedido\//);
   await expect(page.getByText('Pagado', { exact: true })).toBeVisible();
   // D-13: the first name as typed, never the last name, since the link can be forwarded.
-  await expect(page.getByText('Hola, María José', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '¡Gracias por tu compra, María José!' })).toBeVisible();
   const orderNumber = await trackedOrderNumber(page);
   const payments = await paymentsOf(orderNumber);
   expect(payments.map((payment) => payment.status)).toEqual(['approved']);

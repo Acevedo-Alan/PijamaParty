@@ -660,6 +660,32 @@ export const es = {
     total: 'Total',
     /** Where the order goes: the city and province only, e.g. "Envío a Santa Fe, Santa Fe". */
     shipTo: (city: string, province: string) => `Envío a ${city}, ${province}`,
+    /** T-E7-44: the purchase's confirmation, only once the order is paid (the webhook confirms it, UC-15). */
+    paid: {
+      thanks: (firstName: string) => `¡Gracias por tu compra, ${firstName}!`,
+      lines: {
+        PAID: 'Recibimos tu pago y vamos a preparar tu pedido.',
+        PREPARING: 'Ya estamos preparando tu pedido.',
+        SHIPPED: 'Tu pedido está en camino.',
+        DELIVERED: 'Tu pedido fue entregado.',
+      },
+      copy: 'Copiar',
+      copyLabel: (number: number) => `Copiar el número del pedido #${String(number)}`,
+      copied: 'Copiado',
+      copyFailed: 'No se pudo copiar',
+      progress: 'Avance del pedido',
+      completed: 'completado',
+      delivery: 'Entrega',
+      shipsTo: (city: string, province: string) => `Correo Argentino a domicilio en ${city}, ${province}`,
+      /** The delivery times of the FAQ (T-E5-12): Santa Fe, then the rest of the country. */
+      arrivesInSantaFe: 'Llega en 1 a 3 días hábiles desde que se acreditó el pago.',
+      arrivesElsewhere: 'Llega en 3 a 7 días hábiles desde que se acreditó el pago.',
+      emailSent: 'Te enviamos la confirmación y el enlace de este pedido por email.',
+    },
+    /** Only the order number goes in the message, never the buyer's data (T-E7-44). */
+    whatsApp: '¿Tenés alguna duda sobre tu pedido? Escribinos por WhatsApp',
+    whatsAppMessage: (number: number) => `¡Hola! Hice el pedido #${String(number)} y quería consultar…`,
+    instagram: 'Seguinos en Instagram',
     /** UC-17 (T-E3-23): the buyer corrects its email; the page never shows the one the order has. */
     emailCorrection: {
       open: '¿Escribiste mal tu email?',

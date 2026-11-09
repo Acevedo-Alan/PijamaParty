@@ -1,6 +1,6 @@
 # E7 – La tienda como el prototipo
 
-**Estado:** Borrador · **Casos de uso:** CU-30, CU-31 y CU-32, y cambios a CU-01, CU-02, CU-03, CU-08, CU-13 y CU-19
+**Estado:** Borrador · **Casos de uso:** CU-30, CU-31 y CU-32, y cambios a CU-01, CU-02, CU-03, CU-08, CU-13, CU-14 y CU-19
 
 ## Objetivo
 
@@ -290,3 +290,26 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Dado un cliente con la cuenta a nombre de "Ana María Gómez", cuando abre el checkout, entonces "Nombre" dice "Ana" y "Apellido" "María Gómez".
 - Dado el checkout con un producto, cuando se mide con Lighthouse, entonces el "Cumulative Layout Shift" queda debajo de 0,1: mientras carga el carrito, el pie no aparece en la primera pantalla ni salta cuando llega el formulario.
 - Dado un enlace de ingreso con una dirección de vuelta fuera de la tienda (otro dominio o `//host`), cuando el cliente ingresa, entonces va a `/`.
+
+## Cambios a CU-14 (página del pedido)
+
+Al volver del pago se abre la página del pedido, así que también es la confirmación de la compra (T-E7-44). No cambia lo que el servidor manda: la página no muestra el email, el teléfono, el DNI ni la calle, porque el enlace se puede reenviar.
+
+**Reglas nuevas**
+- Solo un pedido pagado (Pagado, En preparación, Enviado o Entregado) agradece la compra. Al volver del medio de pago no alcanza: el pago lo confirma el aviso del medio de pago, así que hasta entonces sigue "Estamos confirmando tu pago". Un pedido pendiente, cancelado o expirado se ve como hoy.
+- Encabezado del pedido pagado: un círculo verde suave con un tilde que se dibuja una vez (sin movimiento para quien lo pidió reducir), "¡Gracias por tu compra, Alan!" y una línea según el estado: "Recibimos tu pago y vamos a preparar tu pedido.", "Ya estamos preparando tu pedido.", "Tu pedido está en camino." o "Tu pedido fue entregado.".
+- Número: "Pedido #1001" con un botón "Copiar" que copia "#1001" y dice "Copiado" por 2 segundos. Si el navegador no permite copiar, no hay botón.
+- Avance del pedido: cuatro pasos en fila, "Pagado", "En preparación", "Enviado" y "Entregado", con los anteriores marcados con un tilde, el actual relleno y en negrita (con un pulso suave, salvo con movimiento reducido) y los que faltan apagados.
+- Bloque "Entrega": "Correo Argentino a domicilio en {ciudad}, {provincia}" y, mientras está pagado o en preparación, el plazo de las preguntas frecuentes: de 1 a 3 días hábiles a Santa Fe y de 3 a 7 al resto, desde que se acreditó el pago. Después, "Te enviamos la confirmación y el enlace de este pedido por email." sin mostrar la dirección, y la corrección del email de CU-17.
+- Con el WhatsApp de la tienda, "¿Tenés alguna duda sobre tu pedido? Escribinos por WhatsApp" abre el chat con el mensaje "¡Hola! Hice el pedido #1001 y quería consultar…" (solo el número del pedido, ningún dato del comprador).
+- Al final, "Volver a la tienda" y, con el enlace de Instagram, "Seguinos en Instagram".
+- No se agrega un sello de "pago seguro" ni un plazo distinto del de las preguntas frecuentes.
+
+**Criterios de aceptación**
+- Dado un pedido pagado de "alan", cuando se abre, entonces dice "¡Gracias por tu compra, Alan!", "Pedido #1001" y "Pagado" es el paso actual (T-E7-44).
+- Dado un pedido pendiente al volver de un pago aprobado, cuando se abre, entonces no agradece y dice que se está confirmando el pago; cuando pasa a pagado, agradece (T-E7-44).
+- Dado un pedido enviado, cuando se leen los pasos, entonces "Pagado" y "En preparación" están completados y "Enviado" es el actual (T-E7-44).
+- Dado un pedido pagado a Santa Fe, cuando se abre, entonces el plazo es de 1 a 3 días hábiles; a Córdoba, de 3 a 7; enviado, sin plazo (T-E7-44).
+- Dado "Copiar", cuando se toca, entonces "#1001" queda copiado y el botón dice "Copiado" (T-E7-44).
+- Dado el WhatsApp de la tienda, cuando se abre el pedido, entonces el enlace lleva el número del pedido en el mensaje; sin WhatsApp, no hay enlace (T-E7-44).
+- Dado cualquier pedido, cuando se abre, entonces no se ve el email, el teléfono, el DNI ni la calle (T-E7-44).

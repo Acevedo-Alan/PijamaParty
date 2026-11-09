@@ -1,6 +1,6 @@
 # E7 – The storefront as in the prototype
 
-**Status:** Draft · **Use cases:** UC-30, UC-31 and UC-32, and changes to UC-01, UC-02, UC-03, UC-08 and UC-13 · **Spanish counterpart:** `docs/specs/E7-tienda-prototipo` (spec, plan and tasks)
+**Status:** Draft · **Use cases:** UC-30, UC-31 and UC-32, and changes to UC-01, UC-02, UC-03, UC-08, UC-13 and UC-14 · **Spanish counterpart:** `docs/specs/E7-tienda-prototipo` (spec, plan and tasks)
 
 **Modules involved:** `catalog` (three read changes and the home banner, UC-32), `ordering` and `notifications` (first and last name, D-13), `shipping` (read only, unchanged); the rest is the frontend.
 
@@ -411,6 +411,32 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - `ordering.domain.BuyerDetails(firstName, lastName, email, phone, nationalId)`; `BuyerDetails.firstNameOf` and `OrderEmailWriter.firstName` (the first-word guess) are removed: the emails use the stored first name.
 - API: `POST /api/checkout` takes `firstName` and `lastName` instead of `name`; tracking keeps `buyerFirstName` (now the stored first name, never the last name); `ordering.api` (`PaidOrders`, `WithdrawalNotices`, `AdminOrderDetails`) and the account data export (UC-28) carry both. OpenAPI and the typed client are updated; the e2e `fillCheckout` helper fills both fields.
 - Analytics and logs never carry either name (RNF-25, CLAUDE.md).
+
+---
+
+## Changes to UC-14 (order page)
+
+The return from the payment (`/checkout/result`) opens the order page, `/pedido/{token}`, so this page is also the purchase's confirmation (T-E7-44). Nothing here changes the API: the page shows only what `GET /api/orders/{token}` sends, which leaves out the email, the phone, the national ID and the street because the link can be forwarded (UC-14, UC-17).
+
+**Business rules (new)**
+- A paid order is one in `PAID`, `PREPARING`, `SHIPPED` or `DELIVERED`. Only a paid order thanks the buyer: the celebration never shows on the return from the provider alone, since only the webhook confirms the payment (UC-15). While the order is `AWAITING_PAYMENT`, `CANCELLED` or `EXPIRED`, the page keeps "Hola, {Nombre}", "Pedido #{number}" and the status label of UC-14.
+- Paid header: a soft `--success-bg` circle with a check drawn in `--success` (the stroke draws itself once in `--dur-slow` with `--ease-out`; under reduced motion it shows drawn), the heading "¡Gracias por tu compra, {Nombre}!" (the "Nombre" capitalized, as UC-14 greets) and below it one line by status: `PAID` "Recibimos tu pago y vamos a preparar tu pedido.", `PREPARING` "Ya estamos preparando tu pedido.", `SHIPPED` "Tu pedido está en camino.", `DELIVERED` "Tu pedido fue entregado.".
+- Order number: "Pedido #{number}" in a badge, with a "Copiar" button that copies `#{number}` and then reads "Copiado" for 2 seconds (announced to screen readers). Without the browser's clipboard (`navigator.clipboard`), there is no button; a copy that fails says "No se pudo copiar".
+- Progress, on a paid order instead of the status label: four steps in a row, "Pagado", "En preparación", "Enviado" and "Entregado" (the glossary states, as UC-14 names them). The steps before the order's state show a check in an `--accent` circle and say "completado" to screen readers; the current one is a filled `--ink` circle with its name in bold (`aria-current="step"`) and, under `prefers-reduced-motion: no-preference`, a soft pulse while it is not the last; the later ones are outlined in `--ink-soft`. Not by color alone: the check and the bold name tell them apart, as the checkout's steps (T-E7-38).
+- Delivery, on a paid order, in its own block "Entrega" in the main column (the summary then leaves out the ship-to line): "Correo Argentino a domicilio en {city}, {province}" and, while `PAID` or `PREPARING`, the delivery time of the FAQ for the order's province: "Llega en 1 a 3 días hábiles desde que se acreditó el pago." for Santa Fe, "Llega en 3 a 7 días hábiles desde que se acreditó el pago." for the rest. Then "Te enviamos la confirmación y el enlace de este pedido por email." without the address (UC-17), followed by the email correction of UC-17 as today.
+- WhatsApp, on any order the page finds, with the store's number (UC-36): a link "¿Tenés alguna duda sobre tu pedido? Escribinos por WhatsApp" to `https://wa.me/{number}?text=…` in a new tab, the message prefilled with "¡Hola! Hice el pedido #{number} y quería consultar…". Only the order number goes in the message, never the buyer's data. Without the number, no link.
+- Closing, on any order the page finds: "Volver a la tienda" (to `/`) and, with the Instagram link (UC-36), "Seguinos en Instagram" to it in a new tab.
+- Layout: one column on a phone (header, progress, payment, delivery, WhatsApp, then the summary, the email correction and the closing); from 900 px the main column on the left and the summary sticky on the right, as today.
+
+**Acceptance criteria**
+- Given a `PAID` order of "alan", when the page opens, then it reads "¡Gracias por tu compra, Alan!", "Recibimos tu pago y vamos a preparar tu pedido." and "Pedido #1001", and the progress has "Pagado" as the current step (T-E7-44).
+- Given an order `AWAITING_PAYMENT` after an approved return, when the page opens, then there is no thanks and it says the payment is being confirmed; when the order turns `PAID`, then the thanks shows (T-E7-44).
+- Given a `SHIPPED` order, when the progress is read, then "Pagado" and "En preparación" are completed, "Enviado" is current and "Entregado" is neither (T-E7-44).
+- Given a `PAID` order to Santa Fe, when the page opens, then "Entrega" reads "Correo Argentino a domicilio en Santa Fe, Santa Fe" and "Llega en 1 a 3 días hábiles…"; to Córdoba, "Llega en 3 a 7 días hábiles…"; given a `SHIPPED` order, no delivery time (T-E7-44).
+- Given "Copiar", when it is pressed, then `#1001` is in the clipboard and the button reads "Copiado" (T-E7-44).
+- Given the store's WhatsApp number, when the page opens, then the WhatsApp link opens `https://wa.me/{number}` with the order number in its message; without the number, no link (T-E7-44).
+- Given the Instagram link, when the page opens, then "Seguinos en Instagram" links to it in a new tab, and "Volver a la tienda" to `/` (T-E7-44).
+- Given any order, when the page opens, then it shows no email, phone, national ID or street (T-E7-44).
 
 ---
 

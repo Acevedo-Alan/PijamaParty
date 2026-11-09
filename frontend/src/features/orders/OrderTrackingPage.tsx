@@ -5,6 +5,7 @@ import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
 import { trackPurchase } from '../analytics/checkoutEvents.ts';
+import { DeliveryBlock, isPaid, OrderClosing, OrderProgress, OrderWhatsApp, PaidHeader } from './OrderConfirmation.tsx';
 import { OrderItemsAndAmounts } from './OrderItemsAndAmounts.tsx';
 import type { CardDetails, CardPaymentAnswer } from './cardPaymentApi.ts';
 import type { EmailCorrectionAnswer, OrderStatus, RetryAnswer, TrackedOrder } from './orderTrackingApi.ts';
@@ -324,12 +325,9 @@ function EmailCorrection({ token, order }: { token: string; order: TrackedOrder 
   );
 }
 
-/** The statuses of an order already paid (UC-14): its purchase counts from PAID on, never if it was not paid. */
-const PAID: ReadonlySet<OrderStatus> = new Set(['PAID', 'PREPARING', 'SHIPPED', 'DELIVERED']);
-
 /** RNF-25: purchase once the order is paid, also when it becomes paid while the page polls. */
 function usePurchaseEvent(order: TrackedOrder) {
-  const paid = PAID.has(order.status);
+  const paid = isPaid(order.status);
   useEffect(() => {
     if (paid) {
       trackPurchase({
@@ -354,17 +352,29 @@ function usePurchaseEvent(order: TrackedOrder) {
 
 /**
  * One column on a phone; from 900 px the order and what can be done with it on the left, the summary on the right
- * (E7). The name and the city show capitalized, as the buyer may have typed them in lowercase.
+ * (E7). The name and the city show capitalized, as the buyer may have typed them in lowercase. A paid order is also
+ * the purchase's confirmation (T-E7-44): the thanks, its progress and its delivery.
  */
 function TrackedOrderView({ token, order, confirming }: { token: string; order: TrackedOrder; confirming: boolean }) {
   usePurchaseEvent(order);
+  const { status } = order;
+  const paid = isPaid(status);
   return (
     <div className="tracking-layout">
       <title>{`${es.tracking.title(order.number)} | ${es.store.name}`}</title>
       <div className="tracking-main">
-        <p className="tracking-greeting">{es.tracking.greeting(capitalizeWords(order.buyerFirstName))}</p>
-        <h1>{es.tracking.title(order.number)}</h1>
-        <p className={`tracking-status status-${order.status.toLowerCase()}`}>{es.tracking.statuses[order.status]}</p>
+        {isPaid(status) ? (
+          <>
+            <PaidHeader order={order} status={status} />
+            <OrderProgress status={status} />
+          </>
+        ) : (
+          <>
+            <p className="tracking-greeting">{es.tracking.greeting(capitalizeWords(order.buyerFirstName))}</p>
+            <h1>{es.tracking.title(order.number)}</h1>
+            <p className={`tracking-status status-${status.toLowerCase()}`}>{es.tracking.statuses[status]}</p>
+          </>
+        )}
         <PaymentPanel token={token} order={order} confirming={confirming} />
         {order.shipmentTrackingNumber !== null && (
           <dl className="tracking-shipment">
@@ -372,15 +382,20 @@ function TrackedOrderView({ token, order, confirming }: { token: string; order: 
             <dd>{order.shipmentTrackingNumber}</dd>
           </dl>
         )}
+        {isPaid(status) && <DeliveryBlock order={order} status={status} />}
+        <OrderWhatsApp number={order.number} />
       </div>
       <section className="tracking-summary" aria-labelledby="tracking-items">
         <h2 id="tracking-items">{es.tracking.items}</h2>
         <OrderItemsAndAmounts {...order} />
-        <p className="tracking-ship-to">
-          {es.tracking.shipTo(capitalizeWords(order.city), es.provinces[order.province])}
-        </p>
+        {!paid && (
+          <p className="tracking-ship-to">
+            {es.tracking.shipTo(capitalizeWords(order.city), es.provinces[order.province])}
+          </p>
+        )}
       </section>
       <EmailCorrection token={token} order={order} />
+      <OrderClosing />
     </div>
   );
 }

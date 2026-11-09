@@ -72,11 +72,14 @@ describe('return from MercadoPago (UC-14, T-E3-11)', () => {
 
     expect(await screen.findByText(es.tracking.confirmingPayment)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: es.tracking.pay })).not.toBeInTheDocument();
+    // T-E7-44: the return alone never thanks the buyer; only the webhook's PAID does.
+    expect(screen.queryByRole('heading', { level: 1, name: /Gracias por tu compra/ })).not.toBeInTheDocument();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(CONFIRMING_EVERY_MS);
     });
 
     expect(await screen.findByText(es.tracking.statuses.PAID)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Gracias por tu compra/ })).toBeInTheDocument();
     expect(screen.queryByText(es.tracking.confirmingPayment)).not.toBeInTheDocument();
     const calls = orderCalls(get);
     await act(async () => {

@@ -9,7 +9,11 @@
 .tracking-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'main' 'summary' 'email';
+  grid-template-areas: 'main' 'summary' 'email' 'closing';
+}
+
+.tracking-closing {
+  grid-area: closing;
 }
 
 .tracking-main {
@@ -31,8 +35,8 @@
 
   .tracking-layout {
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
-    grid-template-rows: auto 1fr;
-    grid-template-areas: 'main summary' 'email summary';
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: 'main summary' 'email summary' 'closing summary';
     column-gap: 36px;
   }
 
@@ -222,4 +226,244 @@
 
 .tracking-email-form .btn {
   width: 100%;
+}
+
+/* T-E7-44: a paid order is the purchase's confirmation. A check that draws itself, the thanks and the number. */
+.tracking-paid h1 {
+  margin: 12px 0 4px;
+}
+
+.tracking-paid-check {
+  display: block;
+  width: 56px;
+  height: 56px;
+}
+
+.tracking-paid-check circle {
+  fill: var(--success-bg);
+}
+
+.tracking-paid-check path {
+  fill: none;
+  stroke: var(--success);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tracking-paid-check circle {
+    animation: tracking-check-pop var(--dur-slow) var(--ease-pop) both;
+  }
+
+  .tracking-paid-check path {
+    stroke-dasharray: 1;
+    animation: tracking-check-draw var(--dur-slow) var(--ease-out) 200ms both;
+  }
+}
+
+@keyframes tracking-check-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+@keyframes tracking-check-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.tracking-paid-check circle {
+  transform-origin: center;
+}
+
+.tracking-paid-line {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+}
+
+.tracking-number {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.tracking-number-badge {
+  padding: 4px 12px;
+  border-radius: var(--radius-s);
+  background: var(--rose-soft);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tracking-copy {
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tracking-copy:hover {
+  border-color: var(--ink);
+}
+
+/* Four paid states: a circle per step over its name, joined by a line; as the checkout's steps (T-E7-38). */
+.tracking-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 24px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.tracking-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  text-align: center;
+}
+
+.tracking-step + .tracking-step::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  right: calc(50% + 18px);
+  left: calc(-50% + 18px);
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.tracking-step.is-done + .tracking-step::before {
+  background: var(--accent);
+}
+
+.tracking-step-mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tracking-step-mark svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tracking-step.is-done {
+  color: var(--ink);
+}
+
+.tracking-step.is-done .tracking-step-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.tracking-step.is-current {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.tracking-step.is-current .tracking-step-mark {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-accent);
+}
+
+/* The step the order is in, while it is not the last, breathes: a ring that grows and fades (transform, opacity). */
+@media (prefers-reduced-motion: no-preference) {
+  .tracking-step.is-pulsing .tracking-step-mark::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    animation: tracking-step-pulse 1.8s var(--ease-out) infinite;
+  }
+}
+
+@keyframes tracking-step-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.tracking-delivery {
+  margin: 24px 0 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+}
+
+.tracking-delivery h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.tracking-delivery p {
+  margin: 4px 0 0;
+}
+
+.tracking-whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 16px;
+  padding: 10px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--accent-text);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.tracking-whatsapp:hover {
+  border-color: var(--accent);
+}
+
+.tracking-closing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-top: 24px;
 }

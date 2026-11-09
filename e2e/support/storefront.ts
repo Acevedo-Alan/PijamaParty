@@ -103,11 +103,14 @@ export async function payAtMercadoPago(page: Page, outcome: 'approved' | 'reject
   }
 }
 
-/** The order number of the tracking page, "Pedido #1001". */
+/**
+ * The order number of the tracking page, "Pedido #1001": its heading while unpaid, the badge under the thanks once
+ * paid (T-E7-44).
+ */
 export async function trackedOrderNumber(page: Page): Promise<number> {
-  const heading = page.getByRole('heading', { name: /^Pedido #\d+$/ });
-  await expect(heading).toBeVisible();
-  return Number((await heading.innerText()).replace('Pedido #', ''));
+  const number = page.getByText(/^Pedido #\d+$/);
+  await expect(number).toBeVisible();
+  return Number((await number.innerText()).replace('Pedido #', ''));
 }
 
 /**
