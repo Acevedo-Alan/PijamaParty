@@ -393,8 +393,16 @@ export const es = {
     paymentTitle: 'Medio de pago',
     /** The options of step 2 (T-E3b-04); MODO's name stands in for its logo until the brand kit arrives. */
     providers: {
-      MERCADOPAGO: { name: 'MercadoPago', hint: 'Tarjetas de crédito y débito, dinero en cuenta' },
-      MODO: { name: 'MODO', hint: 'Pagá con la app de tu banco' },
+      /**
+       * `payAt` goes under "Confirmar y pagar" (T-E7-38, T-E7-46): MercadoPago's card is typed on the store's order
+       * page (T-E3-29), so it offers cards only; MODO takes the buyer to its own page.
+       */
+      MERCADOPAGO: {
+        name: 'MercadoPago',
+        hint: 'Tarjetas de crédito y débito',
+        payAt: 'Vas a ingresar los datos de tu tarjeta en el paso siguiente, sin salir de la tienda.',
+      },
+      MODO: { name: 'MODO', hint: 'Pagá con la app de tu banco', payAt: 'Vas a completar el pago en MODO.' },
     },
     toReview: 'Revisar compra',
     back: 'Volver',
@@ -425,8 +433,6 @@ export const es = {
     confirm: 'Confirmar y pagar',
     /** T-E7-38: the final button with the total the summary shows, e.g. "Confirmar y pagar · $ 219.600". */
     confirmWithTotal: (total: string) => `Confirmar y pagar · ${total}`,
-    /** T-E7-38: under the final button; where the buyer pays, not a security promise. */
-    payAt: (provider: string) => `Vas a completar el pago en ${provider}.`,
     confirming: 'Confirmando…',
     openingPayment: 'Abriendo el pago…',
     /** Why the confirmation did not place the order. */

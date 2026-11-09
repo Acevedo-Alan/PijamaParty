@@ -965,7 +965,7 @@ function CheckoutWizard({ cart, onLeave }: { cart: Cart; onLeave: () => void }) 
               <p className="visually-hidden" role="status">
                 {place.isPending ? es.checkout.confirming : ''}
               </p>
-              <p className="checkout-pay-at">{es.checkout.payAt(es.checkout.providers[provider].name)}</p>
+              <p className="checkout-pay-at">{es.checkout.providers[provider].payAt}</p>
               <button
                 type="button"
                 className="link-btn"

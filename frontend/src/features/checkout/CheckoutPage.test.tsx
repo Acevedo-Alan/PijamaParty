@@ -600,7 +600,18 @@ describe('checkout layout and final action (T-E7-38)', { timeout: 30_000 }, () =
     expect(
       screen.getByRole('button', { name: es.checkout.confirmWithTotal(formatMoney(2_950_000)) }),
     ).toBeEnabled();
-    expect(screen.getByText(es.checkout.payAt('MercadoPago'))).toBeInTheDocument();
+    expect(
+      screen.getByText('Vas a ingresar los datos de tu tarjeta en el paso siguiente, sin salir de la tienda.'),
+    ).toBeInTheDocument();
+  });
+
+  it('given the review with MODO, when it shows, then the note says the payment is completed at MODO (T-E7-46)', async () => {
+    stubGets(cart([cartItem()]), MODO_ON);
+    renderRoute('/checkout');
+
+    await goToReview('MODO');
+
+    expect(screen.getByText('Vas a completar el pago en MODO.')).toBeInTheDocument();
   });
 
   const reviewBlock = (title: string) => screen.getByRole('heading', { level: 3, name: title }).closest('section');
