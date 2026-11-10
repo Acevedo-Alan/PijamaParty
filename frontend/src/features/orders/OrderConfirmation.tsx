@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
+import { Chibi } from '../../components/chibi/Chibi.tsx';
 import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
 import { es } from '../../i18n/es.ts';
 import { whatsAppUrl } from '../help/storeContact.ts';
@@ -73,16 +74,20 @@ function CopyNumber({ number }: { number: number }) {
 }
 
 /**
- * T-E7-44: a paid order thanks the buyer. The check draws itself once (CSS, not under reduced motion); the line under
- * the heading follows the order's state.
+ * T-E7-44: a paid order thanks the buyer; the line under the heading follows the order's state. T-E7-48: the store's
+ * chibi celebrates it, with the check as a seal at its side; the check draws itself once (CSS, not under reduced
+ * motion). Both are decorative: the heading says it.
  */
 export function PaidHeader({ order, status }: { order: TrackedOrder; status: PaidStatus }) {
   return (
     <header className="tracking-paid">
-      <svg className="tracking-paid-check" viewBox="0 0 48 48" aria-hidden="true">
-        <circle cx="24" cy="24" r="24" />
-        <path d="M14 24.5l7 7 13-14" pathLength={1} />
-      </svg>
+      <div className="tracking-paid-chibi">
+        <Chibi mood="success" pose="paid" />
+        <svg className="tracking-paid-check" viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="24" />
+          <path d="M14 24.5l7 7 13-14" pathLength={1} />
+        </svg>
+      </div>
       <h1>{es.tracking.paid.thanks(capitalizeWords(order.buyerFirstName))}</h1>
       <p className="tracking-paid-line">{es.tracking.paid.lines[status]}</p>
       <p className="tracking-number">

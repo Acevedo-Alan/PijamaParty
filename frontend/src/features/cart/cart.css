@@ -79,8 +79,8 @@ html:has(.cart-panel[open]) {
   list-style: none;
 }
 
-/* T-E7-19: the icon, the texts and a full-width button at the top; the rest of the height waits for "Productos
-   sugeridos". */
+/* T-E7-19: the chibi (T-E7-48), the texts and a full-width button at the top; the rest of the height waits for
+   "Productos sugeridos". */
 .cart-empty {
   display: flex;
   flex-direction: column;
@@ -91,15 +91,12 @@ html:has(.cart-panel[open]) {
   font-size: 13px;
 }
 
-.cart-empty-icon {
-  width: 56px;
-  height: 56px;
+/* T-E7-48: the store's chibi asleep with its pillow, centered above the texts. */
+.cart-empty-chibi {
+  flex: none;
+  width: 120px;
+  height: 120px;
   align-self: center;
-  fill: none;
-  stroke: var(--ink-soft);
-  stroke-width: 1.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .cart-empty-title {

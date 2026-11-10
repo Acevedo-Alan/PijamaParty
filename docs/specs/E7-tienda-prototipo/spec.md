@@ -44,7 +44,7 @@ Decididas con el dueño el 2026-10-19 y anotadas en `00-dominio-y-reglas.md`, sa
 El prototipo se siente amable porque responde a lo que hace el comprador: el carrito "salta" al agregar, los paneles se deslizan, los avisos suben. La tienda adopta ese mismo lenguaje como un sistema, no efecto por efecto.
 
 **Principios**
-- **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14) y el cielo de las páginas de la cuenta: la chibi respira y parpadea despacio mientras espera, y las estrellas se prenden y se apagan (T-E7-47).
+- **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14), el cielo de las páginas de la cuenta (la chibi respira y parpadea despacio mientras espera, y las estrellas se prenden y se apagan; T-E7-47) y la chibi dormida del carrito vacío, que respira (T-E7-48).
 - **Entradas:** el texto de bienvenida de la portada aparece una vez al cargar; las tarjetas de producto aparecen cuando se suman a la grilla (la primera tanda, "Ver más", un filtro u orden nuevo), nunca por bajar hasta ellas; al cambiar de página, el contenido nuevo entra, pero no en la primera carga de la tienda. Las secciones no aparecen de a una al bajar.
 - **Rápido y suave:** entre 120 y 450 ms (la entrada de la portada, hasta 700 ms; la espera del botón de pagar, al menos 600 ms), con curvas que frenan al llegar.
 - **Accesible:** con `prefers-reduced-motion` no hay desplazamientos ni escalas, solo cambios de opacidad cortos; los efectos de hover solo con `@media (hover: hover)`.
@@ -71,6 +71,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 | Pasos del checkout | El contenido del paso nuevo sube y aparece. |
 | Cargando | Las tarjetas y textos en espera laten suavemente (esqueletos). |
 | Cambio de página | El contenido nuevo sube un poco y aparece con un fundido; no en la primera carga. |
+| Chibi en el pedido pagado y el carrito vacío (T-E7-48) | La misma chibi de la cuenta, sin cielo. **Pedido pagado:** al abrirse salta feliz, con corazoncitos y unas estrellitas que caen a su alrededor, una vez; después queda sonriendo. **Carrito vacío:** duerme abrazando una almohada, respira despacio y le salen "zZz". Con movimiento reducido, quedan quietas en su gesto. |
 | Chibi de la cuenta (T-E7-47) | La chibi en pijama de "Confirmar y pagar" acompaña el formulario de Ingresar, Crear cuenta, Recuperar contraseña y Elegir contraseña nueva. **En reposo:** respira (sube y baja apenas), parpadea cada pocos segundos y le salen "zZz". **Siempre:** las estrellas del cielo se prenden y se apagan, cada una a su ritmo, y cada tanto cruza una estrella fugaz. **Según la página:** en Crear cuenta saluda con la mano mientras espera; en Recuperar contraseña tiene un "?" sobre la cabeza; en Elegir contraseña nueva sostiene una llavecita. **El cartel** acompaña: rebota cuando la chibi salta y se balancea cuando niega. **Al terminar** (cuenta creada, email de recuperación enviado) caen estrellitas sobre el cielo. **En un campo de texto** (email, nombre): abre bien los ojos y se inclina hacia el formulario. **En una contraseña:** se tapa los ojos con las manos; con la contraseña a la vista, espía entre los dedos. **Esperando al servidor:** mira hacia arriba. **Error** (datos incorrectos, email ya usado, demasiados intentos, enlace vencido): mueve la cabeza que no y pone carita triste, una vez. **Listo** (cuenta creada, email de recuperación enviado): salta feliz con corazoncitos. Al ingresar, la tienda pasa a la página siguiente sin esperar a la chibi. Con movimiento reducido no respira, no parpadea, no niega, no salta ni saluda, las estrellas quedan prendidas, no hay estrella fugaz ni lluvia de estrellitas, y el cartel queda quieto: cambia de gesto de golpe, sin animar (como el resto de la tienda con movimiento reducido). |
 
 **Criterios de aceptación**
@@ -270,13 +271,13 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 **Reglas nuevas**
 - Con umbral de envío gratis, una barra muestra cuánto falta ("Te faltan $X para envío gratis") o "¡Tenés envío gratis!". Se calcula sobre el subtotal con descuento que manda el servidor. El costo final lo sigue decidiendo el checkout (CU-12).
 - Al agregar desde la ficha, un aviso breve dice "Agregado al carrito".
-- Vacío, el panel muestra arriba un ícono de bolsa de compras sobre "Tu carrito está vacío.", y "Empezar a comprar" ocupa todo el ancho del panel. Debajo queda reservado el lugar de "Productos sugeridos", que llega en una tarea futura; mientras tanto no muestra nada.
+- Vacío, el panel muestra arriba la chibi de la cuenta dormida, abrazando una almohada (T-E7-48), sobre "Tu carrito está vacío.", y "Empezar a comprar" ocupa todo el ancho del panel. Debajo queda reservado el lugar de "Productos sugeridos", que llega en una tarea futura; mientras tanto no muestra nada.
 
 **Criterios de aceptación**
 - Dado un umbral de $50.000 y un subtotal con descuento de $24.999, cuando se abre el panel, entonces dice "Te faltan $25.001 para envío gratis".
 - Dado un subtotal con descuento de $50.000 o más, cuando se abre el panel, entonces dice "¡Tenés envío gratis!".
 - Sin umbral, el panel no muestra la barra.
-- Dado un carrito vacío, cuando se abre el panel, entonces se ve el ícono, "Tu carrito está vacío." y "Empezar a comprar" a todo el ancho, que cierra el panel.
+- Dado un carrito vacío, cuando se abre el panel, entonces se ve la chibi dormida con su almohada (que los lectores de pantalla no leen), "Tu carrito está vacío." y "Empezar a comprar" a todo el ancho, que cierra el panel.
 
 ## Cambios a CU-13 (checkout)
 
@@ -314,7 +315,7 @@ Al volver del pago se abre la página del pedido, así que también es la confir
 
 **Reglas nuevas**
 - Solo un pedido pagado (Pagado, En preparación, Enviado o Entregado) agradece la compra. Al volver del medio de pago no alcanza: el pago lo confirma el aviso del medio de pago, así que hasta entonces sigue "Estamos confirmando tu pago". Un pedido pendiente, cancelado o expirado se ve como hoy.
-- Encabezado del pedido pagado: un círculo verde suave con un tilde que se dibuja una vez (sin movimiento para quien lo pidió reducir), "¡Gracias por tu compra, Alan!" y una línea según el estado: "Recibimos tu pago y vamos a preparar tu pedido.", "Ya estamos preparando tu pedido.", "Tu pedido está en camino." o "Tu pedido fue entregado.".
+- Encabezado del pedido pagado: la chibi de la cuenta festejando (T-E7-48), con un sello verde suave con un tilde que se dibuja una vez a su costado (sin movimiento para quien lo pidió reducir), "¡Gracias por tu compra, Alan!" y una línea según el estado: "Recibimos tu pago y vamos a preparar tu pedido.", "Ya estamos preparando tu pedido.", "Tu pedido está en camino." o "Tu pedido fue entregado.".
 - Número: "Pedido #1001" con un botón "Copiar" que copia "#1001" y dice "Copiado" por 2 segundos. Si el navegador no permite copiar, no hay botón.
 - Avance del pedido: cuatro pasos en fila, "Pagado", "En preparación", "Enviado" y "Entregado", con los anteriores marcados con un tilde, el actual relleno y en negrita (con un pulso suave, salvo con movimiento reducido) y los que faltan apagados.
 - Bloque "Entrega": "Correo Argentino a domicilio en {ciudad}, {provincia}" y, mientras está pagado o en preparación, el plazo de las preguntas frecuentes: de 1 a 3 días hábiles a Santa Fe y de 3 a 7 al resto, desde que se acreditó el pago. Después, "Te enviamos la confirmación y el enlace de este pedido por email." sin mostrar la dirección, y la corrección del email de CU-17.
@@ -324,6 +325,7 @@ Al volver del pago se abre la página del pedido, así que también es la confir
 
 **Criterios de aceptación**
 - Dado un pedido pagado de "alan", cuando se abre, entonces dice "¡Gracias por tu compra, Alan!", "Pedido #1001" y "Pagado" es el paso actual (T-E7-44).
+- Dado un pedido pagado, cuando se abre, entonces la chibi festeja con el sello del tilde a su costado, y los lectores de pantalla no leen ninguno de los dos; un pedido pendiente, cancelado o expirado no tiene chibi (T-E7-48).
 - Dado un pedido pendiente al volver de un pago aprobado, cuando se abre, entonces no agradece y dice que se está confirmando el pago; cuando pasa a pagado, agradece (T-E7-44).
 - Dado un pedido enviado, cuando se leen los pasos, entonces "Pagado" y "En preparación" están completados y "Enviado" es el actual (T-E7-44).
 - Dado un pedido pagado a Santa Fe, cuando se abre, entonces el plazo es de 1 a 3 días hábiles; a Córdoba, de 3 a 7; enviado, sin plazo (T-E7-44).

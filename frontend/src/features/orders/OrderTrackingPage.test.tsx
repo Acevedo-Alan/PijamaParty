@@ -137,6 +137,14 @@ describe('tracking link (UC-14, T-E3-08)', () => {
     expect(screen.getByText(es.tracking.shipTo('Rosario', 'Santa Fe'))).toBeInTheDocument();
   });
 
+  it('given a pending order, when the page opens, then there is no chibi: only a paid order celebrates (T-E7-48)', async () => {
+    stubOrder(answer(200, trackedOrder()));
+    renderRoute(`/pedido/${TOKEN}`);
+
+    await screen.findByRole('button', { name: es.tracking.pay });
+    expect(document.querySelector('svg.chibi')).toBeNull();
+  });
+
   it('given a pending order, when the buyer taps pay, then it is sent to the payment provider', async () => {
     stubOrder(answer(200, trackedOrder()));
     const post = vi.spyOn(api, 'POST').mockResolvedValue(answer(200, { paymentUrl: PAYMENT_URL }));
@@ -328,6 +336,21 @@ describe('the purchase confirmation (T-E7-44)', () => {
   });
 
   const step = (name: string) => screen.getByText(name).closest('li');
+
+  it('given a paid order, when the page opens, then the chibi celebrates with the check as a seal, both hidden from screen readers (T-E7-48)', async () => {
+    stubOrder(answer(200, paidOrder()));
+
+    renderRoute(`/pedido/${TOKEN}`);
+
+    const heading = await screen.findByRole('heading', { level: 1, name: es.tracking.paid.thanks('Alan') });
+    const stage = heading.parentElement?.querySelector('.tracking-paid-chibi');
+    const chibi = stage?.querySelector('svg.chibi');
+    expect(chibi).toHaveAttribute('data-mood', 'success');
+    expect(chibi).toHaveAttribute('data-pose', 'paid');
+    expect(chibi).toHaveAttribute('aria-hidden', 'true');
+    expect(chibi?.querySelectorAll('.chibi-confetti path')).toHaveLength(6);
+    expect(stage?.querySelector('.tracking-paid-check')).toHaveAttribute('aria-hidden', 'true');
+  });
 
   it('given a paid order of "alan", when the page opens, then it thanks the buyer with the order number and "Pagado" as the current step', async () => {
     stubOrder(answer(200, paidOrder()));

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
+import { Chibi } from '../../components/chibi/Chibi.tsx';
 import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { Toast } from '../../components/motion/Toast.tsx';
 import { es } from '../../i18n/es.ts';
@@ -407,10 +408,8 @@ export function CartPanel() {
         )}
         {cart.data !== undefined && cart.data.items.length === 0 && (
           <div className="cart-body cart-empty">
-            <svg className="cart-empty-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 8h14l-1.2 12H6.2L5 8z" />
-              <path d="M9 10V7a3 3 0 0 1 6 0v3" />
-            </svg>
+            {/* T-E7-48: the store's chibi asleep, hugging a pillow; decorative, the text says the cart is empty. */}
+            <Chibi mood="asleep" pose="cart" className="cart-empty-chibi" />
             <p className="cart-empty-title">{es.cart.empty}</p>
             <p>{es.cart.emptyHint}</p>
             <button type="button" className="btn" onClick={panel.close}>

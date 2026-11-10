@@ -134,15 +134,19 @@ describe('cart side panel (UC-08)', () => {
     expect(button).toHaveFocus();
   });
 
-  it('given an empty cart, when the panel opens, then it shows the icon, says so and offers to keep shopping', async () => {
+  it('given an empty cart, when the panel opens, then the chibi sleeps with its pillow, it says so and offers to keep shopping (T-E7-48)', async () => {
     stubStore();
     renderRoute('/producto/luna');
 
     await userEvent.click(await screen.findByRole('button', { name: es.cart.open(0) }));
 
     const empty = within(panel()).getByText(es.cart.empty);
-    expect(empty.previousElementSibling).toHaveAttribute('aria-hidden', 'true');
-    expect(empty.previousElementSibling?.tagName.toLowerCase()).toBe('svg');
+    const chibi = empty.previousElementSibling;
+    expect(chibi).toHaveClass('chibi');
+    expect(chibi).toHaveAttribute('aria-hidden', 'true');
+    expect(chibi).toHaveAttribute('data-mood', 'asleep');
+    expect(chibi).toHaveAttribute('data-pose', 'cart');
+    expect(chibi?.querySelector('.chibi-pillow')).not.toBeNull();
     await userEvent.click(within(panel()).getByRole('button', { name: es.cart.keepShopping }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

@@ -228,15 +228,32 @@
   width: 100%;
 }
 
-/* T-E7-44: a paid order is the purchase's confirmation. A check that draws itself, the thanks and the number. */
+/*
+ * T-E7-44: a paid order is the purchase's confirmation: the thanks and the number. T-E7-48: above them the store's
+ * chibi celebrates, 120 px, with the check that draws itself as a 40 px seal at its lower right.
+ */
 .tracking-paid h1 {
   margin: 12px 0 4px;
 }
 
+.tracking-paid-chibi {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.tracking-paid-chibi .chibi {
+  width: 100%;
+  height: 100%;
+}
+
 .tracking-paid-check {
+  position: absolute;
+  right: -6px;
+  bottom: 4px;
   display: block;
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
 }
 
 .tracking-paid-check circle {
