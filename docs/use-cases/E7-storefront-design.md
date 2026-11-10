@@ -44,7 +44,7 @@ Decided with the owner on 2026-10-19 and written into `docs/specs/00-dominio-y-r
 The prototype feels friendly because it answers the shopper: the cart icon bumps on add, panels slide, notices rise. E7 makes that one system with shared tokens instead of one-off effects. Part of it exists already (the cart bump and slide-in in `cart.css`, the skeleton pulse and filter slide-in in `catalog.css`); those move onto the tokens.
 
 **Rules**
-- **Motion answers an action** (add, open, choose, go to the next step) and shows what changed. Nothing moves by itself except the carousel (D-14), the account pages' sky, where the chibi breathes and blinks slowly while idle and the stars turn on and off (T-E7-47), the empty cart's sleeping chibi, which breathes (T-E7-48), and the empty states' chibi, which breathes, blinks or bobs its "?" (T-E7-49), and the little stars that orbit while a payment is awaited (T-E7-50).
+- **Motion answers an action** (add, open, choose, go to the next step) and shows what changed. Nothing moves by itself except the carousel (D-14), the account pages' sky, where the chibi breathes and blinks slowly while idle and the stars turn on and off (T-E7-47), the empty cart's sleeping chibi, which breathes (T-E7-48), and the empty states' chibi, which breathes, blinks or bobs its "?" (T-E7-49), the little stars that orbit while a payment is awaited (T-E7-50), the stars of the footer's night strip, which twinkle (T-E7-54), its clouds, which drift, and its moon rabbit, which blinks (T-E7-55), the moon of the big loading states, whose "z" rise while they wait (T-E7-54), and the home's sakura petals in spring (T-E7-56).
 - **Entrances:** the home welcome text enters once on load; product cards enter when they join the grid (its first page, "Ver más", a new filter or sort), never because the page scrolled to them; a new page enters on a route change, never on the first load of the store. Sections do not fade in on scroll (T-E7-17).
 - **Short and soft:** 120 to 450 ms (the home entrance up to 700 ms, the wait of the add and pay buttons at least 600 ms), easing that slows on arrival.
 - **Accessible:** movement and scaling only under `@media (prefers-reduced-motion: no-preference)`; under `reduce`, at most a short opacity change. Hover effects only under `@media (hover: hover)`.
@@ -71,6 +71,11 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 | Product page sections | Expand and collapse (`grid-template-rows: 0fr → 1fr`) | `--dur-base`, `--ease-standard` |
 | Checkout steps | The new step rises 12 px and fades in | `--dur-base`, `--ease-out` |
 | Loading | Skeletons pulse | 1.2 s loop |
+| Add to cart: sparkles (T-E7-53) | When the button reaches its done face, six little four-pointed stars (✦) burst around the tick: each grows from 0, drifts about 14 px outward and fades, 40 ms apart, once. Under reduced motion there are none | 600 ms once, `--ease-out` |
+| Footer night strip (T-E7-54) | Its stars twinkle (opacity down to 0.25 and back), each at its own pace (2.6–4.2 s) and delay. Under reduced motion they stay lit | 2.6–4.2 s loop |
+| Footer clouds and moon rabbit (T-E7-55) | Each lucky cloud drifts 6 px sideways and back; the rabbit in the moon blinks (eyes `scaleY` to 0.1 and back) every 6 s. Under reduced motion both stay still | clouds 9 s and 12 s loop, `--ease-standard`; blink about 180 ms every 6 s |
+| Sakura petals (T-E7-56) | Eight petals fall across the home carousel from above its top to below its bottom, swaying (`translateX` ±18 px) and turning (`rotate`), each at its own pace and delay. Under reduced motion there are none | 9–14 s loop, linear |
+| Night loader (T-E7-54) | The moon rocks gently (`rotate` ±6°) and three "z" rise 8 px and fade, one after the other, while it waits. Under reduced motion the moon and its "z" stay still | rock 3.2 s loop; "z" 2.4 s loop, 0.8 s apart |
 | Route change | New page content rises 12 px and fades in; not on the first load (T-E7-17) | `--dur-base`, `--ease-out` |
 | Chibi while paying (T-E7-50) | **`waiting` + `paying`:** eyes up, "o" mouth, and three little gold stars orbit over its head for as long as it waits. **`error`:** one head shake and the sad face. Under reduced motion the stars stay still and there is no shake | orbit 2.4 s linear loop; shake as T-E7-47 |
 | Chibi in empty states (T-E7-49) | **`puzzled`** (search without results, 404): the head tilts −7°, the eyes look to the side and the "?" bobs over the head. **`orders`** (no orders yet): it breathes and blinks as when idle, with no "zZz". Under reduced motion, still in its pose | "?" 2.4 s loop; breath 3.2 s; blink as T-E7-47 |
@@ -94,6 +99,49 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 - Exits run inside `AnimatePresence`; a `dialog` closes only on `onExitComplete`, so focus returns after the animation.
 - Motion writes styles through the CSSOM (`element.style`), which the CSP of T-E6-03 allows; the CSP check of `npm run lighthouse` confirms no violation.
 - `tokens.test.ts` checks the token values; component tests check the classes under both `prefers-reduced-motion` values (`matchMedia` mocked).
+
+---
+
+## Kawaii touches (T-E7-52 to T-E7-56)
+
+The chibi gave the store a sleepover-in-Japan voice; these three touches carry it into moments the chibi does not reach. They stay at the edges of the purchase (notices, empty states, the confirmation, the footer, the waits). The grid, the product page's info column and the checkout form get none, so the photo and the price still lead. Everything is decorative: screen readers never hear it, and no text sits on it.
+
+**Business rules**
+- **Kaomoji (T-E7-52):** a Japanese emoticon follows six texts, on the same line after a space, in `--accent-text`, never wrapping inside itself:
+
+  | Text | Kaomoji |
+  |---|---|
+  | "Agregado al carrito" (the notice, UC-08) | `(｡•ᴗ•｡)♡` |
+  | "¡Tenés envío gratis!" (the free-shipping bar) | `＼(^o^)／` |
+  | "Tu carrito está vacío." (the cart panel) | `(－ω－) zzZ` |
+  | The search without results (UC-26) | `(・・?)` |
+  | "No encontramos esta página" (404) | `` (´・ω・`) `` |
+  | "¡Gracias por tu compra, {name}!" (the paid order, UC-14) | `(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧` |
+
+  Each kaomoji is generated content with empty alternative text (`content: … / ""`), so it is not part of the text, a heading's name or what screen readers read. A browser without that syntax shows the text alone.
+- **Sparkles on add (T-E7-53):** a successful add from the product page (`200`, the done face of T-E7-41) bursts six little stars around the tick (see "Motion"). A refused or failed add has none. The sticky add bar of the product page shows them too, since it uses the same button.
+- **The night (T-E7-54):**
+  - **Footer night strip:** a 44 px band across the top of the footer, inside its pink, with a crescent moon at the right end of the page width and nine little stars spread along it in `--accent` and `--chibi-key` (gold), some ✦ and some dots. No text sits on it.
+- **The moon rabbit and the lucky clouds (T-E7-55):** in China, Japan and Korea a rabbit lives in the moon. The footer's crescent moon (40 px) holds the store's own moon rabbit, sitting in its hollow: an original drawing in the chibi's style (the chibi's brown outline, tall dark oval eyes with a highlight, blush, pink inner ears, one ear up and one floppy), "Mochi" of the sketch of 2026-11-10. Two lucky clouds (祥云, *xiangyun*, the curling clouds of Chinese art) sit in the strip, one near its left end and one near its middle, white with a lilac (`--chibi-doze` at 45 %) outline and curls. Stars that the clouds would cover move clear of them.
+- **Sakura in spring (T-E7-56):** from 1 September to 30 November, by the date in Argentina (`America/Argentina/Buenos_Aires`, whatever the device's time zone), eight cherry-blossom petals (pink with a `--chibi-cap-dark` edge, each with its notch) fall across the home carousel, over its slides and veil and under its text, dots and pause button; they never catch a tap. The dates are fixed in the code; outside them, and under reduced motion, no petal is rendered. The carousel's photo is not animated and the petals are not an LCP candidate (RNF-11).
+  - **Night loader:** the five big waits of the store show a little crescent moon (`--chibi-doze` outline, `--moon` fill) with three "z" before their loading text: the cart panel ("Cargando carrito…"), the checkout ("Cargando tu compra…"), the order page (UC-14), "Mis pedidos" (UC-22) and the first visit to a page whose code is still loading. The text and its status region stay as they were. The skeletons of the listing and the product page stay: they hold the layout, so nothing jumps when the content arrives (CLS, RNF-11). Smaller inline waits (filters, reviews, FAQ, size guides) keep their text only.
+
+**Acceptance criteria**
+- Given the cart panel with no items, when it shows, then "Tu carrito está vacío." carries `(－ω－) zzZ`, and the text a screen reader reads is "Tu carrito está vacío." only (T-E7-52).
+- Given a paid order, when its page shows, then the heading reads "¡Gracias por tu compra, Ana!" for screen readers and carries `(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧` on screen (T-E7-52).
+- Given a product added from the product page, when the API answers `200`, then six stars burst around the tick; given a `409`, then there are none; given reduced motion, then none show (T-E7-53).
+- Given any public page, when the footer shows, then its night strip has a moon and nine stars, hidden from screen readers; given reduced motion, then the stars do not twinkle (T-E7-54).
+- Given the cart panel while the cart loads, when it shows, then the moon with its "z" is before "Cargando carrito…", and screen readers read "Cargando carrito…" only (T-E7-54).
+- Given any public page, when the footer shows, then its moon holds the rabbit and the strip has two lucky clouds, all hidden from screen readers (T-E7-55).
+- Given 15 October in Argentina, when the home opens, then eight petals fall over the carousel, hidden from screen readers; given 1 December, or 31 August, then there are none; given 30 November at 23:30 in Argentina (02:30 on 1 December UTC), then they still fall (T-E7-56).
+- Given reduced motion in spring, when the home opens, then no petal is rendered (T-E7-56).
+
+**Design notes**
+- Kaomoji: the six faces are entries of `es.kaomoji` (the i18n bundle; they are user-facing). The text's element carries them as `data-kaomoji`, and one rule of `base.css` draws them: `[data-kaomoji]::after { content: " " attr(data-kaomoji) / ""; }`. Tests check the attribute and that the element's text is unchanged.
+- Sparkles: six `aria-hidden` spans inside the done face of `AddButtonLabel`, each a CSS ✦ placed around the tick by a custom property (its angle); the keyframes move `transform` and `opacity` only, under `@media (prefers-reduced-motion: no-preference)`; under `reduce` they are not displayed.
+- Footer night strip: `FooterNight` in `features/search`, an `aria-hidden` block of spans (stars as generated content) and an inline SVG moon, positioned in percentages of the page width; the twinkle keyframes are `opacity` only. T-E7-55 adds the two clouds (inline SVG) and draws the rabbit inside the moon's SVG; the blink is a `scaleY` of the eyes' group.
+- Sakura: `SakuraPetals` in `features/catalog`, rendered by `HeroCarousel`. `isSakuraSeason(now)` reads the month in `America/Argentina/Buenos_Aires` with `Intl.DateTimeFormat` (September, October or November) and is unit tested on the edges; the component also renders nothing when `matchMedia('(prefers-reduced-motion: reduce)')` matches. Petals are small inline SVGs in one `aria-hidden` layer with `pointer-events: none`, each placed and paced by an `nth-child` rule.
+- Night loader: `NightLoader` (`components/NightLoader.tsx`), a `<p role="status">` that takes the class and the text of the place it replaces; the moon is an inline SVG and the "z" are three empty spans whose letter is generated content with empty alternative text, so the element's text stays the loading text.
 
 ---
 

@@ -44,7 +44,7 @@ Decididas con el dueño el 2026-10-19 y anotadas en `00-dominio-y-reglas.md`, sa
 El prototipo se siente amable porque responde a lo que hace el comprador: el carrito "salta" al agregar, los paneles se deslizan, los avisos suben. La tienda adopta ese mismo lenguaje como un sistema, no efecto por efecto.
 
 **Principios**
-- **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14), el cielo de las páginas de la cuenta (la chibi respira y parpadea despacio mientras espera, y las estrellas se prenden y se apagan; T-E7-47) la chibi dormida del carrito vacío, que respira (T-E7-48), la de los estados vacíos, que respira, parpadea o mece su "?" (T-E7-49), y las estrellitas que giran mientras se espera un pago (T-E7-50).
+- **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14), el cielo de las páginas de la cuenta (la chibi respira y parpadea despacio mientras espera, y las estrellas se prenden y se apagan; T-E7-47) la chibi dormida del carrito vacío, que respira (T-E7-48), la de los estados vacíos, que respira, parpadea o mece su "?" (T-E7-49), las estrellitas que giran mientras se espera un pago (T-E7-50), las estrellas de la franja de noche del pie, que titilan, sus nubes, que flotan, y su conejo de la luna, que parpadea (T-E7-55), los pétalos de sakura de la portada en primavera (T-E7-56), y la luna de las esperas grandes, a la que le salen "z" mientras espera (T-E7-54).
 - **Entradas:** el texto de bienvenida de la portada aparece una vez al cargar; las tarjetas de producto aparecen cuando se suman a la grilla (la primera tanda, "Ver más", un filtro u orden nuevo), nunca por bajar hasta ellas; al cambiar de página, el contenido nuevo entra, pero no en la primera carga de la tienda. Las secciones no aparecen de a una al bajar.
 - **Rápido y suave:** entre 120 y 450 ms (la entrada de la portada, hasta 700 ms; la espera del botón de pagar, al menos 600 ms), con curvas que frenan al llegar.
 - **Accesible:** con `prefers-reduced-motion` no hay desplazamientos ni escalas, solo cambios de opacidad cortos; los efectos de hover solo con `@media (hover: hover)`.
@@ -70,6 +70,11 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 | Secciones desplegables de la ficha | Se abren y cierran deslizando su altura. |
 | Pasos del checkout | El contenido del paso nuevo sube y aparece. |
 | Cargando | Las tarjetas y textos en espera laten suavemente (esqueletos). |
+| Agregar al carrito: destellos (T-E7-53) | Cuando el botón llega a "¡Listo! En tu bolsa", seis estrellitas (✦) saltan alrededor del tilde: crecen, se alejan un poco y se desvanecen, una tras otra, una sola vez. Con movimiento reducido no aparecen. |
+| Franja de noche del pie (T-E7-54) | Sus estrellas titilan, cada una a su ritmo. Con movimiento reducido quedan prendidas. |
+| Nubes y conejo del pie (T-E7-55) | Las nubes de la suerte flotan apenas de costado y el conejo de la luna parpadea cada pocos segundos. Con movimiento reducido quedan quietos. |
+| Sakura (T-E7-56) | En primavera, ocho pétalos caen despacio sobre el carrusel de la portada, meciéndose y girando, cada uno a su ritmo. Con movimiento reducido no aparecen. |
+| Luna de las esperas (T-E7-54) | La luna se mece apenas y le salen tres "z" que suben y se desvanecen, una tras otra, mientras espera. Con movimiento reducido queda quieta. |
 | Cambio de página | El contenido nuevo sube un poco y aparece con un fundido; no en la primera carga. |
 | Chibi en el pago del pedido (T-E7-50) | **Esperando** (cobrando la tarjeta, pago en proceso, confirmando el pago de MODO): mira hacia arriba con la boquita en "o" y tres estrellitas giran despacio sobre su cabeza, mientras dure. **Rechazo:** niega con la cabeza una vez y queda triste. Con movimiento reducido, las estrellitas quedan quietas y no niega. |
 | Chibi en los estados vacíos (T-E7-49) | **Búsqueda sin resultados y 404:** la cabeza inclinada, mirando de costado con la boquita en "o", y el "?" que se mece despacio sobre su cabeza. **"Mis pedidos" sin pedidos:** respira y parpadea como en reposo, sin "zZz". Con movimiento reducido, quietas en su gesto. |
@@ -86,6 +91,40 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Dado "Confirmar y pagar", cuando espera la respuesta, entonces el botón muestra la barra de arcoíris con la chibi corriendo encima; un rechazo la vacía en rojo suave.
 - Dada la portada, cuando se mide con Lighthouse, entonces el LCP sigue debajo de 3 s y el "Cumulative Layout Shift" debajo de 0,1.
 - Dado un teléfono, cuando se toca una tarjeta, entonces no queda trabado ningún efecto de hover.
+
+## Toques kawaii (T-E7-52 a T-E7-56)
+
+La chibi le dio a la tienda una voz de pijamada japonesa; estos tres toques la llevan a momentos a los que la chibi no llega. Van en los bordes de la compra (avisos, estados vacíos, la confirmación, el pie, las esperas): la grilla, la columna de la ficha y el formulario del checkout no llevan ninguno, para que manden la foto y el precio. Todo es decorativo: los lectores de pantalla no lo leen y ningún texto va encima.
+
+**Reglas**
+- **Kaomoji (T-E7-52):** una carita japonesa sigue a seis textos, en la misma línea, en el rosa de los textos de la tienda:
+
+  | Texto | Kaomoji |
+  |---|---|
+  | "Agregado al carrito" (el aviso) | `(｡•ᴗ•｡)♡` |
+  | "¡Tenés envío gratis!" | `＼(^o^)／` |
+  | "Tu carrito está vacío." | `(－ω－) zzZ` |
+  | La búsqueda sin resultados | `(・・?)` |
+  | "No encontramos esta página" (404) | `` (´・ω・`) `` |
+  | "¡Gracias por tu compra, {nombre}!" | `(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧` |
+
+  Los lectores de pantalla leen solo el texto. Un navegador que no sabe dibujarlas muestra el texto solo.
+- **Destellos al agregar (T-E7-53):** un agregado exitoso desde la ficha (también desde la barra fija de abajo) hace saltar seis estrellitas alrededor del tilde. Un agregado rechazado o con error no tiene destellos.
+- **La noche (T-E7-54):**
+  - **Franja de noche del pie:** una franja arriba del pie, dentro de su rosa, con una luna en cuarto creciente a la derecha y nueve estrellitas en rosa y dorado.
+  - **El conejo de la luna y las nubes de la suerte (T-E7-55):** en China, Japón y Corea se cuenta que en la luna vive un conejo. La luna del pie tiene al conejo de la tienda sentado adentro: un dibujo propio en el estilo de la chibi, redondo como un mochi, con una oreja parada y otra caída (el "Mochi" del boceto del 10/11/2026). En la franja hay dos nubes de la suerte (祥云, las nubes enruladas del arte chino), blancas con borde lila.
+  - **Sakura en primavera (T-E7-56):** del 1 de septiembre al 30 de noviembre, según la fecha de Argentina, ocho pétalos de cerezo caen sobre el carrusel de la portada, por encima de las fotos y debajo de los textos y botones, sin estorbar los toques. Las fechas son fijas; cambiarlas es un cambio en la tienda. Fuera de esas fechas, y con movimiento reducido, no hay pétalos.
+  - **Luna de las esperas:** las cinco esperas grandes de la tienda muestran una lunita con tres "z" antes del texto de carga: el carrito, el checkout, la página del pedido, "Mis pedidos" y la primera visita a una página que todavía se está descargando. Los esqueletos del listado y de la ficha siguen igual, porque guardan el lugar del contenido y evitan saltos. Las esperas chicas (filtros, opiniones, preguntas frecuentes, guía de talles) siguen solo con su texto.
+
+**Criterios de aceptación**
+- Dado el carrito vacío, cuando se muestra, entonces "Tu carrito está vacío." lleva `(－ω－) zzZ` y el lector de pantalla lee solo "Tu carrito está vacío." (T-E7-52).
+- Dado un pedido pagado, cuando se abre su página, entonces el título dice "¡Gracias por tu compra, Ana!" para los lectores de pantalla y lleva `(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧` en pantalla (T-E7-52).
+- Dado un producto agregado desde la ficha, cuando el servidor contesta bien, entonces saltan seis estrellitas alrededor del tilde; si lo rechaza, no; con movimiento reducido, no aparecen (T-E7-53).
+- Dada cualquier página pública, cuando se ve el pie, entonces su franja de noche tiene una luna y nueve estrellas, ocultas a los lectores de pantalla; con movimiento reducido no titilan (T-E7-54).
+- Dado el carrito mientras carga, cuando se muestra, entonces la lunita con sus "z" está antes de "Cargando carrito…" y el lector de pantalla lee solo "Cargando carrito…" (T-E7-54).
+- Dada cualquier página pública, cuando se ve el pie, entonces su luna tiene al conejo y la franja dos nubes, ocultos a los lectores de pantalla (T-E7-55).
+- Dado el 15 de octubre en Argentina, cuando se abre la portada, entonces caen ocho pétalos sobre el carrusel; dado el 1 de diciembre o el 31 de agosto, no; dado el 30 de noviembre a las 23:30 de Argentina, todavía caen (T-E7-56).
+- Dado un visitante con movimiento reducido en primavera, cuando abre la portada, entonces no hay pétalos (T-E7-56).
 
 ## CU-30 Portada
 
