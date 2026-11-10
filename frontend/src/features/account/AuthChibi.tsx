@@ -214,9 +214,10 @@ export function AuthChibi({ mood, pose = 'signIn' }: AuthChibiProps) {
                 <path
                   className="chibi-cap"
                   fill={`url(#${cap})`}
-                  d="M40 66C42 28 74 10 108 12c32 2 58 20 74 48l-12 6c-20-22-44-28-70-28-22 0-44 10-60 28z"
+                  d="M36 74C38 30 74 10 108 12c32 2 58 20 74 48l-16 6C144 42 56 46 36 74z"
                 />
                 <path className="chibi-cap-fold" d="M122 18q14 14 18 30M154 30q8 10 10 22" />
+                {/* The cap's lower edge runs under the band, so no face shows between them. */}
                 <path className="chibi-cap-band" d="M36 72c20-28 108-32 128-10l-2 12c-18-18-104-14-124 12z" />
                 <circle className="chibi-pompom" cx="182" cy="66" r="12" />
                 <path className="chibi-pompom-fluff" d="M176 60q3-2 6 0M180 72q3 2 6 0M186 64q2 2 1 5" />
