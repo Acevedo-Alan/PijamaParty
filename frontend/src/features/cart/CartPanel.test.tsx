@@ -141,8 +141,11 @@ describe('cart side panel (UC-08)', () => {
     await userEvent.click(await screen.findByRole('button', { name: es.cart.open(0) }));
 
     const empty = within(panel()).getByText(es.cart.empty);
+    // Loaded when the empty cart shows (T-E6-28); its box holds the place until then.
+    await waitFor(() => {
+      expect(empty.previousElementSibling).toHaveClass('chibi');
+    });
     const chibi = empty.previousElementSibling;
-    expect(chibi).toHaveClass('chibi');
     expect(chibi).toHaveAttribute('aria-hidden', 'true');
     expect(chibi).toHaveAttribute('data-mood', 'asleep');
     expect(chibi).toHaveAttribute('data-pose', 'cart');

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
-import { Chibi } from '../../components/chibi/Chibi.tsx';
+import { LazyChibi } from '../../components/chibi/LazyChibi.tsx';
 import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { Toast } from '../../components/motion/Toast.tsx';
 import { NightLoader } from '../../components/NightLoader.tsx';
@@ -409,8 +409,9 @@ export function CartPanel() {
         )}
         {cart.data !== undefined && cart.data.items.length === 0 && (
           <div className="cart-body cart-empty">
-            {/* T-E7-48: the store's chibi asleep, hugging a pillow; decorative, the text says the cart is empty. */}
-            <Chibi mood="asleep" pose="cart" className="cart-empty-chibi" />
+            {/* T-E7-48: the store's chibi asleep, hugging a pillow; decorative, the text says the cart is empty. Loaded
+                when it shows, so prefetching the panel does not bring the chibi (T-E6-28). */}
+            <LazyChibi mood="asleep" pose="cart" className="cart-empty-chibi" />
             <p className="cart-empty-title" data-kaomoji={es.kaomoji.emptyCart}>
               {es.cart.empty}
             </p>
