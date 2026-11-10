@@ -42,8 +42,22 @@ describe('store footer (UC-31)', () => {
     expect(strip).toHaveTextContent(/^$/);
   });
 
-  it('given the footer styles, when read, then the stars twinkle only without reduced motion (T-E7-54)', () => {
-    expect(footerCss).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{\s*\.footer-star \{\s*animation: footer-twinkle/);
+  it('given any public page, when the footer shows, then the moon holds the rabbit and the strip has two lucky clouds (T-E7-55)', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+
+    renderRoute('/categoria/verano');
+
+    await screen.findByRole('link', { name: /Pijama rosa/ });
+    const strip = screen.getByRole('contentinfo').querySelector('.footer-night');
+    expect(strip?.querySelector('svg.footer-moon .footer-rabbit-eyes')).not.toBeNull();
+    expect(strip?.querySelectorAll('svg.footer-cloud')).toHaveLength(2);
+  });
+
+  it('given the footer styles, when read, then the stars, clouds and rabbit move only without reduced motion (T-E7-54, T-E7-55)', () => {
+    const block = /@media \(prefers-reduced-motion: no-preference\) \{\s*\.footer-star \{[\s\S]*?\n\}/.exec(footerCss)?.[0] ?? '';
+    expect(block).toMatch(/\.footer-star \{\s*animation: footer-twinkle/);
+    expect(block).toMatch(/\.footer-cloud \{\s*animation: footer-drift/);
+    expect(block).toMatch(/\.footer-rabbit-eyes \{\s*animation: footer-blink/);
   });
 
   it('given any public page, when the footer is checked, then it shows the tagline without the store name in large letters, and Tienda has the header navigation', async () => {

@@ -77,12 +77,13 @@
   color: var(--ink);
 }
 
-/* T-E7-54: the night strip across the top of the footer, inside its pink: a crescent moon at the right end of the page
-   width and nine little stars in --accent and gold that twinkle (opacity only), each at its own pace. Decorative: no
-   text sits on it. Under reduced motion the stars stay lit. */
+/* T-E7-54, T-E7-55: the night strip across the top of the footer, inside its pink: the crescent moon with the moon
+   rabbit at the right end of the page width, two lucky clouds and nine little stars in --accent and gold. The stars
+   twinkle (opacity), the clouds drift and the rabbit blinks (transform), each at its own pace. Decorative: no text sits
+   on it. Under reduced motion everything stays still, the stars lit. */
 .footer-night-inner {
   position: relative;
-  height: 32px;
+  height: 44px;
   max-width: var(--maxw);
   margin: 0 auto;
   padding: 0 20px;
@@ -109,31 +110,140 @@
   background: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
-.footer-star:nth-child(1) { left: 4%; top: 10px; --pace: 3.4s; --delay: 0s; }
-.footer-star:nth-child(2) { left: 13%; top: 18px; --pace: 2.8s; --delay: 1.1s; }
-.footer-star:nth-child(3) { left: 24%; top: 6px; --pace: 4.2s; --delay: 0.6s; }
-.footer-star:nth-child(4) { left: 36%; top: 20px; --pace: 3s; --delay: 2s; }
-.footer-star:nth-child(5) { left: 47%; top: 9px; --pace: 3.8s; --delay: 1.5s; }
-.footer-star:nth-child(6) { left: 58%; top: 17px; --pace: 2.6s; --delay: 0.3s; }
-.footer-star:nth-child(7) { left: 69%; top: 5px; --pace: 4s; --delay: 2.4s; }
-.footer-star:nth-child(8) { left: 79%; top: 19px; --pace: 3.2s; --delay: 0.9s; }
-.footer-star:nth-child(9) { left: 87%; top: 12px; --pace: 3.6s; --delay: 1.8s; }
+/* Clear of the clouds (2–10 % and 42–49 % of the width) and of the moon at the right end. */
+.footer-star:nth-child(1) { left: 12%; top: 12px; --pace: 3.4s; --delay: 0s; }
+.footer-star:nth-child(2) { left: 19%; top: 26px; --pace: 2.8s; --delay: 1.1s; }
+.footer-star:nth-child(3) { left: 27%; top: 8px; --pace: 4.2s; --delay: 0.6s; }
+.footer-star:nth-child(4) { left: 36%; top: 28px; --pace: 3s; --delay: 2s; }
+.footer-star:nth-child(5) { left: 53%; top: 11px; --pace: 3.8s; --delay: 1.5s; }
+.footer-star:nth-child(6) { left: 61%; top: 25px; --pace: 2.6s; --delay: 0.3s; }
+.footer-star:nth-child(7) { left: 70%; top: 7px; --pace: 4s; --delay: 2.4s; }
+.footer-star:nth-child(8) { left: 79%; top: 27px; --pace: 3.2s; --delay: 0.9s; }
+.footer-star:nth-child(9) { left: 87%; top: 14px; --pace: 3.6s; --delay: 1.8s; }
 
+/* T-E7-55: the lucky clouds (祥云), white with a lilac outline and curls. */
+.footer-cloud {
+  position: absolute;
+  height: auto;
+}
+
+.footer-cloud-left {
+  left: 2%;
+  top: 10px;
+  width: 88px;
+  --drift: 9s;
+}
+
+.footer-cloud-middle {
+  left: 42%;
+  top: 14px;
+  width: 70px;
+  --drift: 12s;
+}
+
+.footer-cloud-body {
+  fill: rgb(255 255 255 / 0.85);
+}
+
+.footer-cloud-body,
+.footer-cloud-curl {
+  stroke: color-mix(in srgb, var(--chibi-doze) 45%, transparent);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.footer-cloud-curl {
+  fill: none;
+}
+
+/* The crescent moon with the moon rabbit sitting in its hollow (T-E7-55). */
 .footer-moon {
   position: absolute;
-  top: 6px;
+  top: 2px;
   right: 20px;
-  width: 22px;
-  height: 22px;
+  width: 50px;
+  height: 40px;
+}
+
+.footer-moon-crescent {
   fill: var(--moon);
   stroke: var(--chibi-doze);
-  stroke-width: 1.4;
+  stroke-width: 1.6;
   stroke-linejoin: round;
+}
+
+.footer-rabbit-line {
+  stroke: var(--chibi-line);
+  stroke-width: 3.2;
+  stroke-linejoin: round;
+}
+
+.footer-rabbit-fur {
+  fill: var(--moon-rabbit);
+}
+
+.footer-rabbit-ear {
+  fill: var(--rose);
+  stroke: none;
+}
+
+.footer-rabbit-blush {
+  fill: var(--chibi-blush);
+}
+
+.footer-rabbit-pupil {
+  fill: var(--chibi-pupil);
+}
+
+.footer-rabbit-shine {
+  fill: #fff;
+}
+
+.footer-rabbit-mouth {
+  fill: none;
+  stroke: var(--chibi-line);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.footer-rabbit-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .footer-star {
     animation: footer-twinkle var(--pace) var(--ease-standard) var(--delay) infinite;
+  }
+
+  .footer-cloud {
+    animation: footer-drift var(--drift) var(--ease-standard) infinite alternate;
+  }
+
+  .footer-rabbit-eyes {
+    animation: footer-blink 6s linear infinite;
+  }
+}
+
+@keyframes footer-drift {
+  from {
+    transform: translateX(-3px);
+  }
+  to {
+    transform: translateX(3px);
+  }
+}
+
+/* Open for almost the whole 6 s, then a blink of about 180 ms. */
+@keyframes footer-blink {
+  0%,
+  97%,
+  100% {
+    transform: scaleY(1);
+  }
+  98.5% {
+    transform: scaleY(0.1);
   }
 }
 

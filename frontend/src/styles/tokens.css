@@ -120,6 +120,8 @@
   --chibi-mouth: #e0607e;
   --chibi-doze: #8a77c4;
   --chibi-heart: #f2879f;
+  /* The footer's moon rabbit (T-E7-55): a warm white, so it reads against the --moon it sits in */
+  --moon-rabbit: #fffaf6;
 
   /* Shape and layout (prototype) */
   --radius-s: 12px;
