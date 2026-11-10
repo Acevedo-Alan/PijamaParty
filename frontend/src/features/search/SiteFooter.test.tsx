@@ -4,6 +4,7 @@ import { es } from '../../i18n/es.ts';
 import { answer, listed, product, stubCatalogApi } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { clearStoreContact, setStoreContact } from '../../test/storeContact.ts';
+import footerCss from './footer.css?raw';
 
 const messages = es.footer;
 
@@ -26,6 +27,23 @@ describe('store footer (UC-31)', () => {
     expect(column(messages.help).getByRole('link', { name: es.faq.title })).toHaveAttribute('href', '/preguntas-frecuentes');
     expect(column(messages.help).getByRole('link', { name: es.withdrawal.link })).toHaveAttribute('href', '/arrepentimiento');
     expect(footer().getByText(messages.copyright(new Date().getFullYear(), es.store.name))).toBeInTheDocument();
+  });
+
+  it('given any public page, when the footer shows, then its night strip has a moon and nine stars, hidden from screen readers (T-E7-54)', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+
+    renderRoute('/categoria/verano');
+
+    await screen.findByRole('link', { name: /Pijama rosa/ });
+    const strip = screen.getByRole('contentinfo').querySelector('.footer-night');
+    expect(strip).toHaveAttribute('aria-hidden', 'true');
+    expect(strip?.querySelector('svg.footer-moon')).not.toBeNull();
+    expect(strip?.querySelectorAll('.footer-star')).toHaveLength(9);
+    expect(strip).toHaveTextContent(/^$/);
+  });
+
+  it('given the footer styles, when read, then the stars twinkle only without reduced motion (T-E7-54)', () => {
+    expect(footerCss).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{\s*\.footer-star \{\s*animation: footer-twinkle/);
   });
 
   it('given any public page, when the footer is checked, then it shows the tagline without the store name in large letters, and Tienda has the header navigation', async () => {

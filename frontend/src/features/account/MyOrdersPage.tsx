@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router';
 import { Chibi } from '../../components/chibi/Chibi.tsx';
+import { NightLoader } from '../../components/NightLoader.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatDate } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -35,7 +36,7 @@ export function MyOrdersPage() {
     <main className="wrap account-page my-orders">
       <title>{`${messages.title} | ${es.store.name}`}</title>
       <h1>{messages.title}</h1>
-      {orders.isPending && <p role="status">{messages.loading}</p>}
+      {orders.isPending && <NightLoader>{messages.loading}</NightLoader>}
       {orders.isError && list === undefined && (
         <div className="address-load-error" role="alert">
           <p>{messages.loadError}</p>

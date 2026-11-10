@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useId, useRef, useState, type ReactNode, typ
 import { Link, useLocation, useParams } from 'react-router';
 import { AlertBox } from '../../components/AlertBox.tsx';
 import { Chibi } from '../../components/chibi/Chibi.tsx';
+import { NightLoader } from '../../components/NightLoader.tsx';
 import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
@@ -432,11 +433,7 @@ export function OrderTrackingPage() {
 
   return (
     <main className="wrap tracking">
-      {tracked.isPending && (
-        <p className="tracking-note" role="status">
-          {es.tracking.loading}
-        </p>
-      )}
+      {tracked.isPending && <NightLoader className="tracking-note">{es.tracking.loading}</NightLoader>}
       {tracked.isError && (
         <div className="empty-state" role="alert">
           <p>{es.tracking.loadError}</p>

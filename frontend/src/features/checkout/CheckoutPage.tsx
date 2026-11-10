@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { AlertBox } from '../../components/AlertBox.tsx';
 import { ButtonProgress, type ProgressState } from '../../components/ButtonProgress.tsx';
+import { NightLoader } from '../../components/NightLoader.tsx';
 import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -1033,9 +1034,7 @@ export function CheckoutPage() {
       </Link>
       <h1>{es.checkout.title}</h1>
       {cart.isPending && (
-        <p className="checkout-note" role="status">
-          {es.checkout.loading}
-        </p>
+        <NightLoader className="checkout-note">{es.checkout.loading}</NightLoader>
       )}
       {cart.isError && (
         <div className="empty-state" role="alert">

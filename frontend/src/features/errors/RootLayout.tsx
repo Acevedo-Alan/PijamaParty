@@ -1,4 +1,5 @@
 import { Outlet, useNavigation } from 'react-router';
+import { NightLoader } from '../../components/NightLoader.tsx';
 import { es } from '../../i18n/es.ts';
 import './routeStates.css';
 
@@ -20,7 +21,7 @@ export function RootLayout() {
 export function RouteLoadingFallback() {
   return (
     <main className="wrap route-loading" aria-busy="true">
-      <p role="status">{es.routeError.loading}</p>
+      <NightLoader>{es.routeError.loading}</NightLoader>
     </main>
   );
 }

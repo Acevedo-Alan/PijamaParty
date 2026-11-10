@@ -14,6 +14,7 @@ import {
 import { mapsUrl, whatsAppUrl } from '../help/storeContact.ts';
 import { useStoreContact } from '../help/useStoreContact.ts';
 import { WithdrawalLink } from '../withdrawal/WithdrawalLink.tsx';
+import { FooterNight } from './FooterNight.tsx';
 import { StoreNavigation } from './StoreNavigation.tsx';
 import './footer.css';
 
@@ -242,6 +243,7 @@ function StoreBlock() {
 export function SiteFooter() {
   return (
     <footer className="site-footer">
+      <FooterNight />
       <div className="site-footer-inner">
         <StoreBlock />
         <section className="footer-column" aria-labelledby="footer-shop">

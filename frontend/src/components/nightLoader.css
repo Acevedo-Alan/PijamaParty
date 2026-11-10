@@ -1,0 +1,97 @@
+/* T-E7-54: the big waits' crescent moon before the loading text. It rocks gently and its three "z" rise and fade, one
+   after the other; only transform and opacity move, and under reduced motion everything stays still and visible. */
+.night-loader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.night-loader-moon {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 28px;
+  height: 28px;
+}
+
+.night-loader-moon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: var(--moon);
+  stroke: var(--chibi-doze);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  transform-origin: 50% 60%;
+}
+
+.night-loader-z {
+  position: absolute;
+  color: var(--chibi-doze);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.night-loader-z::before {
+  content: 'z' / '';
+}
+
+.night-loader-z:nth-child(2) {
+  top: 2px;
+  right: -6px;
+}
+
+.night-loader-z:nth-child(3) {
+  top: -5px;
+  right: -11px;
+  font-size: 11px;
+}
+
+.night-loader-z:nth-child(4) {
+  top: -12px;
+  right: -16px;
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .night-loader-moon svg {
+    animation: night-loader-rock 3.2s var(--ease-standard) infinite;
+  }
+
+  .night-loader-z {
+    animation: night-loader-z 2.4s var(--ease-out) infinite both;
+  }
+
+  .night-loader-z:nth-child(3) {
+    animation-delay: 0.8s;
+  }
+
+  .night-loader-z:nth-child(4) {
+    animation-delay: 1.6s;
+  }
+}
+
+@keyframes night-loader-rock {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes night-loader-z {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}

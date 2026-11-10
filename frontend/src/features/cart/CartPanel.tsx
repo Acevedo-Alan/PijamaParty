@@ -4,6 +4,7 @@ import { BlurredImage } from '../../components/BlurredImage.tsx';
 import { Chibi } from '../../components/chibi/Chibi.tsx';
 import { PanelDialog } from '../../components/motion/PanelDialog.tsx';
 import { Toast } from '../../components/motion/Toast.tsx';
+import { NightLoader } from '../../components/NightLoader.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { NewestProducts } from '../catalog/NewestProducts.tsx';
@@ -397,7 +398,7 @@ export function CartPanel() {
         <Toast open={notice.shown} closeLabel={es.cart.closeNotice} onClose={notice.hide}>
           <span data-kaomoji={es.kaomoji.added}>{es.cart.addedNotice}</span>
         </Toast>
-        {cart.isPending && <p className="cart-body" role="status">{es.cart.loading}</p>}
+        {cart.isPending && <NightLoader className="cart-body">{es.cart.loading}</NightLoader>}
         {cart.isError && (
           <div className="cart-body" role="alert">
             <p>{es.cart.loadError}</p>

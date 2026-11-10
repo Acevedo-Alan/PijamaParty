@@ -77,13 +77,84 @@
   color: var(--ink);
 }
 
+/* T-E7-54: the night strip across the top of the footer, inside its pink: a crescent moon at the right end of the page
+   width and nine little stars in --accent and gold that twinkle (opacity only), each at its own pace. Decorative: no
+   text sits on it. Under reduced motion the stars stay lit. */
+.footer-night-inner {
+  position: relative;
+  height: 32px;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.footer-star {
+  position: absolute;
+  line-height: 1;
+}
+
+.footer-star-spark {
+  color: var(--chibi-key);
+  font-size: 11px;
+}
+
+.footer-star-spark::before {
+  content: '✦' / '';
+}
+
+.footer-star-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.footer-star:nth-child(1) { left: 4%; top: 10px; --pace: 3.4s; --delay: 0s; }
+.footer-star:nth-child(2) { left: 13%; top: 18px; --pace: 2.8s; --delay: 1.1s; }
+.footer-star:nth-child(3) { left: 24%; top: 6px; --pace: 4.2s; --delay: 0.6s; }
+.footer-star:nth-child(4) { left: 36%; top: 20px; --pace: 3s; --delay: 2s; }
+.footer-star:nth-child(5) { left: 47%; top: 9px; --pace: 3.8s; --delay: 1.5s; }
+.footer-star:nth-child(6) { left: 58%; top: 17px; --pace: 2.6s; --delay: 0.3s; }
+.footer-star:nth-child(7) { left: 69%; top: 5px; --pace: 4s; --delay: 2.4s; }
+.footer-star:nth-child(8) { left: 79%; top: 19px; --pace: 3.2s; --delay: 0.9s; }
+.footer-star:nth-child(9) { left: 87%; top: 12px; --pace: 3.6s; --delay: 1.8s; }
+
+.footer-moon {
+  position: absolute;
+  top: 6px;
+  right: 20px;
+  width: 22px;
+  height: 22px;
+  fill: var(--moon);
+  stroke: var(--chibi-doze);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .footer-star {
+    animation: footer-twinkle var(--pace) var(--ease-standard) var(--delay) infinite;
+  }
+}
+
+@keyframes footer-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
 .site-footer-inner {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px 16px;
   max-width: var(--maxw);
   margin: 0 auto;
-  padding: 32px 20px 20px;
+  /* The night strip above gives the top its air (T-E7-54). */
+  padding: 12px 20px 20px;
 }
 
 .footer-brand {
@@ -299,7 +370,7 @@
 @media (min-width: 640px) {
   .site-footer-inner {
     gap: 32px;
-    padding: 40px 20px 24px;
+    padding: 16px 20px 24px;
   }
 
   .footer-bottom p {

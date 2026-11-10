@@ -151,6 +151,19 @@ describe('cart side panel (UC-08)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('given a cart still loading, when the panel opens, then the sleepy moon is before "Cargando carrito…" and only the text is read (T-E7-54)', async () => {
+    vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string) =>
+      path === '/api/cart' ? new Promise<never>(() => undefined) : Promise.resolve(detailOrNoReviews(path))));
+    renderRoute('/producto/luna');
+
+    await userEvent.click(await screen.findByRole('button', { name: /^Carrito/ }));
+
+    const status = within(await screen.findByRole('dialog', { name: es.cart.title })).getByText(es.cart.loading);
+    expect(status).toHaveAttribute('role', 'status');
+    expect(status).toHaveTextContent(new RegExp(`^${es.cart.loading}$`));
+    expect(status.querySelector('.night-loader-moon')).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('given an empty cart, when the panel opens, then its text carries the sleepy kaomoji outside what is read (T-E7-52)', async () => {
     stubStore();
     renderRoute('/producto/luna');
