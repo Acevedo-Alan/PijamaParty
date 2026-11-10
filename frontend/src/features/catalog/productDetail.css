@@ -308,6 +308,60 @@
   transition: stroke-dashoffset 260ms var(--ease-out) 300ms;
 }
 
+/* T-E7-53: six little stars burst around the tick once the add is done: each grows from 0, drifts outward along its
+   own angle and fades, 40 ms apart, once. Only transform and opacity move; under reduced motion there are none. */
+.add-cart-tick {
+  position: relative;
+  display: inline-flex;
+}
+
+.add-cart-sparkle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: none;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  color: var(--moon);
+  font-size: 8px;
+  line-height: 8px;
+  pointer-events: none;
+}
+
+.add-cart-sparkle::before {
+  content: '✦' / '';
+}
+
+.add-cart-sparkle:nth-child(1) { --angle: 0deg; --i: 0; }
+.add-cart-sparkle:nth-child(2) { --angle: 60deg; --i: 1; }
+.add-cart-sparkle:nth-child(3) { --angle: 120deg; --i: 2; }
+.add-cart-sparkle:nth-child(4) { --angle: 180deg; --i: 3; }
+.add-cart-sparkle:nth-child(5) { --angle: 240deg; --i: 4; }
+.add-cart-sparkle:nth-child(6) { --angle: 300deg; --i: 5; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .add-cart[data-state='done'] .add-cart-sparkle {
+    display: block;
+    animation: add-cart-sparkle 600ms var(--ease-out) calc(300ms + var(--i) * 40ms) both;
+  }
+}
+
+@keyframes add-cart-sparkle {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(-6px) scale(0);
+  }
+  40% {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateY(-14px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(-18px) scale(0.4);
+  }
+}
+
 /* Refused or failed: a short shake, and the button keeps saying what it does. */
 .add-cart[data-state='failed'] {
   animation: add-cart-shake 320ms var(--ease-standard);

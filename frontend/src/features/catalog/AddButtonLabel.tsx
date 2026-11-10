@@ -3,6 +3,8 @@ import { es } from '../../i18n/es.ts';
 import type { AddAnswer } from '../cart/cartApi.ts';
 import { BagIcon } from '../cart/CartButton.tsx';
 
+const SPARKLES = [0, 1, 2, 3, 4, 5];
+
 /** Where the add button is: adding, added for a moment, or rejected or failed (E7 motion). */
 export function addButtonState(add: {
   isPending: boolean;
@@ -44,9 +46,17 @@ export function AddButtonLabel({ state, total }: { state: ProgressState; total?:
         )}
       </span>
       <span className="add-cart-face add-cart-done" aria-hidden={done ? undefined : true}>
-        <svg className="add-cart-check" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M5 12.5l4.5 4.5L19 7.5" pathLength={1} />
-        </svg>
+        <span className="add-cart-tick">
+          <svg className="add-cart-check" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12.5l4.5 4.5L19 7.5" pathLength={1} />
+          </svg>
+          {/* T-E7-53: six little stars that burst around the tick once the add is done; drawn by the CSS. */}
+          <span className="add-cart-sparkles" aria-hidden="true">
+            {SPARKLES.map((sparkle) => (
+              <span key={sparkle} className="add-cart-sparkle" />
+            ))}
+          </span>
+        </span>
         {es.product.added}
       </span>
     </>

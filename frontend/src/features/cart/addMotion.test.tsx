@@ -7,6 +7,7 @@ import { cart, cartItem } from '../../test/cartApi.ts';
 import { answer, detailOrNoReviews, NO_CART, SHIPPING_RATES_PATH, withHeader } from '../../test/catalogApi.ts';
 import { forgetMotionPreference, preferReducedMotion } from '../../test/reducedMotion.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
+import productDetailCss from '../catalog/productDetail.css?raw';
 
 // Loaded up front, so the app's MotionProvider is ready before the first tap, as after the first paint.
 await import('../../components/motion/motionFeatures.ts');
@@ -106,6 +107,26 @@ describe('add button morph (E7, D-16)', () => {
     // Only the face that shows is read.
     expect(added.querySelector('.add-cart-idle')).toHaveAttribute('aria-hidden', 'true');
     expect(added.querySelector('.add-cart-done')).not.toHaveAttribute('aria-hidden');
+  });
+
+  it('given a successful add, when the button is done, then six stars burst around the tick, hidden from screen readers (T-E7-53)', async () => {
+    preferReducedMotion(false);
+    stubStore();
+    vi.spyOn(api, 'POST').mockResolvedValue(cart([cartItem()]));
+    renderRoute('/producto/luna', { motion: true });
+
+    await addPinkM();
+
+    const added = await screen.findByRole('button', { name: es.product.added, hidden: true });
+    const sparkles = added.querySelector('.add-cart-tick .add-cart-sparkles');
+    expect(sparkles).toHaveAttribute('aria-hidden', 'true');
+    expect(sparkles?.querySelectorAll('.add-cart-sparkle')).toHaveLength(6);
+  });
+
+  it('given the add button styles, when read, then the stars show only without reduced motion and only on a done add (T-E7-53)', () => {
+    const shown = /@media \(prefers-reduced-motion: no-preference\) \{\s*\.add-cart\[data-state='done'\] \.add-cart-sparkle \{\s*display: block;/;
+    expect(productDetailCss).toMatch(shown);
+    expect(/\.add-cart-sparkle \{[^}]*display: none;/.test(productDetailCss)).toBe(true);
   });
 
   it('given an add, when the button is idle, then it shows the bag, its name and the subtotal, and the subtotal is not part of its name', async () => {
