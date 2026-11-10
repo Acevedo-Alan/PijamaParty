@@ -42,8 +42,10 @@ export function RecoverPasswordPage() {
 
   const emailId = `${id}-email`;
   const emailError = fields.isMissing('email') ? es.account.missing.email : null;
+  const problem = problemOf(attempt.data, attempt.isError);
+  const outcome = attempt.isPending ? 'waiting' : requested ? 'success' : problem === null ? undefined : 'error';
   return (
-    <AuthCard title={messages.title} intro={requested ? undefined : messages.intro}>
+    <AuthCard title={messages.title} intro={requested ? undefined : messages.intro} outcome={outcome} pose="recover">
       {requested ? (
         <div className="account-done" ref={done} tabIndex={-1} role="status">
           <p>{messages.done(email.trim())}</p>
@@ -54,7 +56,7 @@ export function RecoverPasswordPage() {
       ) : (
         <>
           <form className="account-form" onSubmit={send} noValidate>
-            <AuthField id={emailId} label={es.account.email} error={emailError}>
+            <AuthField id={emailId} label={es.account.email} error={emailError} icon="email">
               <input
                 id={emailId}
                 name="email"
@@ -77,7 +79,7 @@ export function RecoverPasswordPage() {
               {attempt.isPending ? messages.sending : messages.send}
             </button>
             <p className="account-error" role="alert">
-              {problemOf(attempt.data, attempt.isError)}
+              {problem}
             </p>
           </form>
           <AuthSwitch question={messages.remembered} to={SIGN_IN_PATH}>

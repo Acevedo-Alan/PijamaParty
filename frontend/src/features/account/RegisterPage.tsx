@@ -78,8 +78,17 @@ export function RegisterPage() {
   const nameError = fields.isMissing('name') ? es.account.missing.name : null;
   const emailError = fields.isMissing('email') ? es.account.missing.email : null;
   const passwordError = fields.isMissing('password') ? es.account.missing.password : null;
+  const emailTaken = attempt.data?.status === 'emailTaken';
+  const problem = problemOf(attempt.data, attempt.isError);
+  const outcome = attempt.isPending
+    ? 'waiting'
+    : registered
+      ? 'success'
+      : emailTaken || problem !== null
+        ? 'error'
+        : undefined;
   return (
-    <AuthCard title={messages.title} intro={registered ? undefined : messages.intro}>
+    <AuthCard title={messages.title} intro={registered ? undefined : messages.intro} outcome={outcome} pose="register">
       {registered ? (
         <div className="account-done" ref={done} tabIndex={-1} role="status">
           <p>{messages.done(form.email.trim())}</p>
@@ -88,7 +97,7 @@ export function RegisterPage() {
         <>
           <SocialSignIn />
           <form className="account-form" onSubmit={send} noValidate>
-            <AuthField id={nameId} label={messages.name} error={nameError}>
+            <AuthField id={nameId} label={messages.name} error={nameError} icon="name">
               <input
                 id={nameId}
                 name="name"
@@ -102,7 +111,7 @@ export function RegisterPage() {
                 }}
               />
             </AuthField>
-            <AuthField id={emailId} label={es.account.email} error={emailError}>
+            <AuthField id={emailId} label={es.account.email} error={emailError} icon="email">
               <input
                 id={emailId}
                 name="email"
@@ -120,7 +129,7 @@ export function RegisterPage() {
                 }}
               />
             </AuthField>
-            <AuthField id={passwordId} label={es.account.password} error={passwordError}>
+            <AuthField id={passwordId} label={es.account.password} error={passwordError} icon="password">
               <PasswordInput
                 id={passwordId}
                 name="password"
@@ -140,12 +149,12 @@ export function RegisterPage() {
               {attempt.isPending ? messages.sending : messages.send}
             </button>
             <p className="account-error" role="alert">
-              {attempt.data?.status === 'emailTaken' ? (
+              {emailTaken ? (
                 <>
                   {messages.emailTaken} <Link to={SIGN_IN_PATH}>{messages.emailTakenAction}</Link>
                 </>
               ) : (
-                problemOf(attempt.data, attempt.isError)
+                problem
               )}
             </p>
           </form>

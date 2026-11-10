@@ -42,6 +42,18 @@ describe('sign-in and registration with Google and Facebook (UC-27, T-E4-14)', (
     expect(screen.getByText(messages.or)).toBeInTheDocument();
   });
 
+  it("given both providers enabled, when the sign-in page opens, then each button starts with its provider's mark, which is not read (T-E7-47)", async () => {
+    stubStore();
+    renderRoute('/cuenta/ingresar');
+
+    for (const name of ['Google', 'Facebook']) {
+      const button = await screen.findByRole('link', { name: messages.continueWith(name) });
+      const mark = button.querySelector('svg.social-mark');
+      expect(button.firstElementChild).toBe(mark);
+      expect(mark).toHaveAttribute('aria-hidden', 'true');
+    }
+  });
+
   it('given only Google enabled, when the registration page opens, then only its button shows', async () => {
     stubStore(['GOOGLE']);
     renderRoute('/cuenta/registro');

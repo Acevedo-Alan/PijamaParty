@@ -81,8 +81,11 @@ export function SignInPage() {
 
   const emailError = fields.isMissing('email') ? es.account.missing.email : null;
   const passwordError = fields.isMissing('password') ? es.account.missing.password : null;
+  const problem = problemOf(attempt.data, attempt.isError);
+  // Signed in, the next page opens at once: nothing waits for the chibi (T-E7-47).
+  const outcome = attempt.isPending ? 'waiting' : problem === null ? undefined : 'error';
   return (
-    <AuthCard title={messages.title} intro={messages.intro}>
+    <AuthCard title={messages.title} intro={messages.intro} outcome={outcome} pose="signIn">
       {verified && (
         <p className="account-done" role="status">
           {messages.verified}
@@ -103,7 +106,7 @@ export function SignInPage() {
       )}
       <SocialSignIn />
       <form className="account-form" onSubmit={send} noValidate>
-        <AuthField id={emailId} label={es.account.email} error={emailError}>
+        <AuthField id={emailId} label={es.account.email} error={emailError} icon="email">
           <input
             id={emailId}
             name="email"
@@ -125,6 +128,7 @@ export function SignInPage() {
         <AuthField
           id={passwordId}
           label={es.account.password}
+          icon="password"
           aside={
             <Link to={RECOVER_PATH} className="auth-aside-link">
               {messages.forgotPassword}
@@ -149,7 +153,7 @@ export function SignInPage() {
           {attempt.isPending ? messages.sending : messages.send}
         </button>
         <p className="account-error" role="alert">
-          {problemOf(attempt.data, attempt.isError)}
+          {problem}
         </p>
       </form>
       <AuthSwitch question={messages.firstTime} to={REGISTER_PATH}>

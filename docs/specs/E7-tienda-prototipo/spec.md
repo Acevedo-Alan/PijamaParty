@@ -44,7 +44,7 @@ Decididas con el dueño el 2026-10-19 y anotadas en `00-dominio-y-reglas.md`, sa
 El prototipo se siente amable porque responde a lo que hace el comprador: el carrito "salta" al agregar, los paneles se deslizan, los avisos suben. La tienda adopta ese mismo lenguaje como un sistema, no efecto por efecto.
 
 **Principios**
-- **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14).
+- **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14) y el cielo de las páginas de la cuenta: la chibi respira y parpadea despacio mientras espera, y las estrellas se prenden y se apagan (T-E7-47).
 - **Entradas:** el texto de bienvenida de la portada aparece una vez al cargar; las tarjetas de producto aparecen cuando se suman a la grilla (la primera tanda, "Ver más", un filtro u orden nuevo), nunca por bajar hasta ellas; al cambiar de página, el contenido nuevo entra, pero no en la primera carga de la tienda. Las secciones no aparecen de a una al bajar.
 - **Rápido y suave:** entre 120 y 450 ms (la entrada de la portada, hasta 700 ms; la espera del botón de pagar, al menos 600 ms), con curvas que frenan al llegar.
 - **Accesible:** con `prefers-reduced-motion` no hay desplazamientos ni escalas, solo cambios de opacidad cortos; los efectos de hover solo con `@media (hover: hover)`.
@@ -71,6 +71,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 | Pasos del checkout | El contenido del paso nuevo sube y aparece. |
 | Cargando | Las tarjetas y textos en espera laten suavemente (esqueletos). |
 | Cambio de página | El contenido nuevo sube un poco y aparece con un fundido; no en la primera carga. |
+| Chibi de la cuenta (T-E7-47) | La chibi en pijama de "Confirmar y pagar" acompaña el formulario de Ingresar, Crear cuenta, Recuperar contraseña y Elegir contraseña nueva. **En reposo:** respira (sube y baja apenas), parpadea cada pocos segundos y le salen "zZz". **Siempre:** las estrellas del cielo se prenden y se apagan, cada una a su ritmo, y cada tanto cruza una estrella fugaz. **Según la página:** en Crear cuenta saluda con la mano mientras espera; en Recuperar contraseña tiene un "?" sobre la cabeza; en Elegir contraseña nueva sostiene una llavecita. **El cartel** acompaña: rebota cuando la chibi salta y se balancea cuando niega. **Al terminar** (cuenta creada, email de recuperación enviado) caen estrellitas sobre el cielo. **En un campo de texto** (email, nombre): abre bien los ojos y se inclina hacia el formulario. **En una contraseña:** se tapa los ojos con las manos; con la contraseña a la vista, espía entre los dedos. **Esperando al servidor:** mira hacia arriba. **Error** (datos incorrectos, email ya usado, demasiados intentos, enlace vencido): mueve la cabeza que no y pone carita triste, una vez. **Listo** (cuenta creada, email de recuperación enviado): salta feliz con corazoncitos. Al ingresar, la tienda pasa a la página siguiente sin esperar a la chibi. Con movimiento reducido no respira, no parpadea, no niega, no salta ni saluda, las estrellas quedan prendidas, no hay estrella fugaz ni lluvia de estrellitas, y el cartel queda quieto: cambia de gesto de golpe, sin animar (como el resto de la tienda con movimiento reducido). |
 
 **Criterios de aceptación**
 - Dado un visitante con movimiento reducido, cuando agrega un producto, abre el carrito o cambia de paso, entonces nada se desplaza ni cambia de escala.
@@ -169,18 +170,28 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 ## Cambios a CU-19 (ingresar y crear cuenta)
 
 **Reglas nuevas**
-- Ingresar, Crear cuenta, Recuperar contraseña y Elegir contraseña nueva van en una tarjeta blanca centrada, con el título y una frase de introducción adentro. Ingresar dice "Ingresá para ver tus pedidos y comprar más rápido."; Elegir contraseña nueva, "Elegí la contraseña con la que vas a ingresar de ahora en más.".
+- Ingresar, Crear cuenta, Recuperar contraseña y Elegir contraseña nueva van en una tarjeta blanca, con el título y una frase de introducción adentro. Ingresar dice "Ingresá para ver tus pedidos y comprar más rápido."; Elegir contraseña nueva, "Elegí la contraseña con la que vas a ingresar de ahora en más.".
+- Junto a la tarjeta, la chibi en pijama (dibujo propio, la de "Confirmar y pagar", más grande y en el estilo chibi "super deformed": cabeza enorme y cuerpo chiquito, ojos como óvalos altos oscuros con brillo, contorno grueso, colores planos, pelo largo y un mechón que sale del gorro; inspirado en el estilo, sin copiar ningún personaje) en un cielo pastel de noche, con luna, estrellas, nubes y el cartel "Pijama Party" del logo de la tienda (T-E7-47). En la computadora (desde 860 px), el cielo y el formulario forman una sola tarjeta partida, con un único marco, el cielo a la izquierda y del mismo alto que el formulario; el cartel va en primer plano en la parte de abajo del cielo y la chibi se asoma por arriba de su marco, con la cara y las manos sobre el borde. En el celular, el cielo es una franja baja arriba, con el cartel a la izquierda y la chibi asomándose sobre el borde de la tarjeta; en un teléfono de 667 px de alto, el título y el primer campo se ven sin bajar. El dibujo es decorativo: los lectores de pantalla no lo leen y no tapa ni corre nada del formulario. Sus gestos están en "Animaciones".
 - Recuperar contraseña termina con "¿Te acordaste de tu contraseña?" y "Volver a ingresar"; la contraseña nueva también tiene el ojo.
 - En Ingresar, "¿Olvidaste tu contraseña?" va a la derecha de "Contraseña". Abajo, separado por una línea, "¿Primera vez acá?" y un botón "Crear cuenta" a todo el ancho. Crear cuenta termina igual, con "¿Ya tenés cuenta?" e "Ingresar".
+- Los campos empiezan con un ícono de línea fina: un sobre en el email, un candado en la contraseña y una personita en el nombre; con el foco, el ícono y el borde toman el color de la tienda y un anillo rosado suave rodea el campo (T-E7-47).
 - La contraseña tiene un botón con un ojo dentro del campo ("Mostrar contraseña" para lectores de pantalla), que la muestra u oculta.
 - El botón de enviar no se apaga mientras falten datos: si se envía con un campo vacío, no se consulta al servidor, el campo muestra debajo qué falta ("Escribí tu email.") y el cursor va al primero que falta.
-- Los mensajes, los pasos y el ingreso con Google o Facebook no cambian.
+- Los mensajes, los pasos y el ingreso con Google o Facebook no cambian; sus botones llevan delante el logo de cada uno ("G" de colores de Google, "f" azul de Facebook), como piden sus guías de marca (T-E7-47).
 
 **Criterios de aceptación**
 - Dado Ingresar sin email, cuando se toca "Ingresar", entonces no se envía nada, el email dice "Escribí tu email." y tiene el cursor.
 - Dada una contraseña escrita, cuando se toca "Mostrar contraseña", entonces se lee; tocándolo otra vez, se oculta.
 - Dado Ingresar, cuando se abre, entonces "Crear cuenta" lleva a la página de registro.
 - Dado Recuperar contraseña sin email, o Elegir contraseña nueva sin contraseña, cuando se envía, entonces no se envía nada y el campo dice qué falta y tiene el cursor.
+- Dada una computadora, cuando se abre Ingresar, Crear cuenta, Recuperar contraseña o Elegir contraseña nueva, entonces el cielo con el cartel y la chibi está a la izquierda, del mismo alto que la tarjeta, y la tarjeta a la derecha; en un celular, la chibi se asoma en una franja arriba de la tarjeta (T-E7-47).
+- Dada cualquiera de esas páginas, cuando se abre, entonces el cartel "Pijama Party" está en el cielo, sin texto para lectores de pantalla y con su tamaño reservado, así nada se corre al cargar (T-E7-47).
+- Dado Ingresar, cuando el cursor entra a la contraseña, entonces la chibi se tapa los ojos; al tocar "Mostrar contraseña", espía entre los dedos; al volver al email, lo mira (T-E7-47).
+- Dado Ingresar con una contraseña incorrecta, cuando el servidor la rechaza, entonces la chibi mueve la cabeza que no una vez y queda triste hasta que se vuelve a escribir (T-E7-47).
+- Dado Crear cuenta, cuando la cuenta se crea, entonces la chibi salta feliz con corazoncitos; dado Ingresar, cuando el ingreso funciona, entonces la página siguiente se abre sin esperar a la chibi (T-E7-47).
+- Dado un visitante con movimiento reducido, cuando abre Ingresar y escribe, entonces la chibi no respira, no parpadea, no niega ni salta: solo cambia de gesto, sin animar (T-E7-47).
+- Dado un lector de pantalla, cuando recorre Ingresar, entonces no lee nada de la chibi ni de su cielo (T-E7-47).
+- Dadas Crear cuenta, Recuperar contraseña y Elegir contraseña nueva, cuando se abren, entonces la chibi saluda, tiene el "?" o sostiene la llave, respectivamente; en Ingresar, ninguna de esas cosas (T-E7-47).
 
 ## CU-32 Editar el banner de personajes
 

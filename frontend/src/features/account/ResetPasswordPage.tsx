@@ -55,8 +55,11 @@ export function ResetPasswordPage() {
   const passwordId = `${id}-password`;
   const hintId = `${id}-password-hint`;
   const passwordError = fields.isMissing('password') ? es.account.missing.password : null;
+  const problem = problemOf(attempt.data, attempt.isError);
+  // Reset, the sign-in page opens at once: nothing waits for the chibi (T-E7-47).
+  const outcome = attempt.isPending ? 'waiting' : invalid || problem !== null ? 'error' : undefined;
   return (
-    <AuthCard title={messages.title} intro={invalid ? undefined : messages.intro}>
+    <AuthCard title={messages.title} intro={invalid ? undefined : messages.intro} outcome={outcome} pose="reset">
       {invalid ? (
         <div className="account-done" role="alert">
           <p>{messages.invalidLink}</p>
@@ -66,7 +69,7 @@ export function ResetPasswordPage() {
         </div>
       ) : (
         <form className="account-form" onSubmit={send} noValidate>
-          <AuthField id={passwordId} label={messages.newPassword} error={passwordError}>
+          <AuthField id={passwordId} label={messages.newPassword} error={passwordError} icon="password">
             <PasswordInput
               id={passwordId}
               name="password"
@@ -87,7 +90,7 @@ export function ResetPasswordPage() {
             {attempt.isPending ? messages.sending : messages.send}
           </button>
           <p className="account-error" role="alert">
-            {problemOf(attempt.data, attempt.isError)}
+            {problem}
           </p>
         </form>
       )}

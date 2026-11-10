@@ -187,12 +187,70 @@
 
 
 
-/* T-E7-23: the sign-in and registration pages, a centered card on the page background. */
+/*
+ * T-E7-23, T-E7-47: the sign-in, registration and password pages, a card beside the chibi's sky. On a phone the sky
+ * is a low band and the card rises over its bottom edge, so the chibi peeks over the card. From 860 px the page is one
+ * split card: the sky fills its left part and the form its right one, inside a single frame, so the sky's colors sit
+ * within the card instead of beside it, and both halves are always the same height (at least 520 px). The band's height
+ * is fixed and the sign has its size, so nothing shifts.
+ */
 
 .auth-page {
+  max-width: none;
+  padding: 0 0 56px;
+}
+
+.auth-page .auth-sky {
+  height: 132px;
+}
+
+.auth-page .chibi {
+  width: 118px;
+  height: 118px; /* its feet behind the card's top 28 px: the head, the hands and the belly show above it */
+}
+
+.auth-panel {
+  position: relative;
+  z-index: 1;
   max-width: 488px; /* a 440 px card plus the page's side padding */
-  padding-top: 32px;
-  padding-bottom: 56px;
+  margin-top: -28px;
+}
+
+@media (min-width: 860px) {
+  /* The split card: its frame, radius and shadow are the form card's, around both halves. */
+  .auth-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+    width: calc(100% - 40px);
+    max-width: 960px;
+    margin: 40px auto 56px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Stretched by the grid row: as tall as the form next to it. */
+  .auth-page .auth-sky {
+    height: auto;
+    min-height: 520px;
+  }
+
+  .auth-panel {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .auth-panel .auth-card {
+    height: 100%;
+    padding: 40px 36px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 
 .auth-card {
@@ -200,7 +258,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-m);
   background: var(--surface);
-  box-shadow: 0 12px 32px rgba(194, 80, 106, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 @media (min-width: 640px) {
@@ -274,6 +332,52 @@
   color: var(--danger);
   font-size: 13px;
   font-weight: 600;
+}
+
+/*
+ * T-E7-47: a thin line icon at the start of a field (envelope, padlock, person), centered on the 46 px control even
+ * when a hint follows it. It takes the accent while the field has the focus.
+ */
+.auth-control {
+  position: relative;
+}
+
+.auth-control-icon {
+  position: absolute;
+  top: 23px;
+  left: 14px;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.auth-control:focus-within .auth-control-icon {
+  stroke: var(--accent-text);
+}
+
+.account-form .auth-field-icon input {
+  padding-left: 42px;
+}
+
+/*
+ * The fields' focus (T-E7-47): the border turns the accent and a soft ring of it surrounds the field, in place of the
+ * page's outline. The ring is a shadow, so nothing moves; the 1 px accent edge inside it keeps 4.29:1 on the page.
+ * The outline stays, transparent: forced colors (Windows high contrast) drop shadows but paint it, so the focus shows.
+ */
+.account-form .auth-field input:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 0;
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 0 4px var(--focus-ring);
 }
 
 .password-field {
@@ -593,6 +697,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   min-height: 46px;
   padding: 10px 16px;
   border: 1px solid var(--line-strong);
@@ -601,6 +706,13 @@
   color: var(--ink);
   font-weight: 600;
   text-decoration: none;
+}
+
+/* The provider's mark before its name (T-E7-47), 18 px as Google's sign-in guidelines draw it. */
+.social-mark {
+  flex: none;
+  width: 18px;
+  height: 18px;
 }
 
 .social-button:focus-visible {

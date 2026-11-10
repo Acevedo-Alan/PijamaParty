@@ -30,6 +30,11 @@
    */
   --accent-text: var(--accent-hover);
   --line-strong: #958178;
+  /*
+   * The focus of an account page's field (T-E7-47): a soft ring of the accent around a 1 px --accent edge, which is
+   * what carries the 4.29:1; the ring only softens it.
+   */
+  --focus-ring: rgb(194 80 106 / 0.2);
 
   /*
    * The back office's calmer planes and status tones (D-E8-12; T-E8-14 moved them here from the theme): each text tone
@@ -61,6 +66,8 @@
   --on-accent: #ffffff;
   --danger-hover: #9a3628;
   --shadow-accent: 0 12px 24px rgb(194 80 106 / 0.12);
+  /* The account pages' card, softer and wider than a lifted product card */
+  --shadow-card: 0 12px 32px rgb(194 80 106 / 0.08);
   --shadow-toast: 0 10px 24px rgb(74 58 58 / 0.18);
   /* The disabled button, the edge of a color swatch and the add button sparkles */
   --disabled-bg: #d9d2c4;
@@ -80,6 +87,34 @@
   --tone-rose: linear-gradient(135deg, #f7c6cf, #e5a9b6);
   --tone-peach: linear-gradient(135deg, #ffd9c7, #dfaf9e);
   --tone-cream: linear-gradient(135deg, #fff1e8, #e7d5c8);
+
+  /*
+   * The account pages' chibi and its night sky (T-E7-47), in the colors of the pay button's chibi. Decorative only:
+   * no text sits on them. The pajamas and the sky are stops of --rainbow; the cap is --rose.
+   */
+  --night-sky: linear-gradient(180deg, #dccdff 0%, #f3cbe0 55%, #ffe0bd 100%);
+  --moon: #fff7d6;
+  --cloud: rgb(255 255 255 / 0.75);
+  --chibi-line: #5a3b33;
+  --chibi-lash: #3a2730;
+  --chibi-skin: #ffe8dc;
+  --chibi-skin-shade: #f7cfc0;
+  --chibi-hand: #ffdccb;
+  --chibi-hair: #7a5240;
+  --chibi-hair-light: #9a664c;
+  --chibi-hair-back: #553326;
+  --chibi-hair-shine: #d3a487;
+  --chibi-pupil: #3a2324;
+  --chibi-ground: rgb(150 120 220 / 0.35);
+  --chibi-key: #e8c46a;
+  --chibi-cap-dark: #ee9fb4;
+  --chibi-pajama: #c4e4ff;
+  --chibi-pajama-dark: #a3cdf3;
+  --chibi-foot: #9cc8f2;
+  --chibi-blush: #f7a8b8;
+  --chibi-mouth: #e0607e;
+  --chibi-doze: #8a77c4;
+  --chibi-heart: #f2879f;
 
   /* Shape and layout (prototype) */
   --radius-s: 12px;

@@ -1,0 +1,703 @@
+/*
+ * T-E7-47: the chibi of the account pages in its pastel night sky. Each gesture is a state of `data-mood` on the sky;
+ * only transform and opacity move (D-16). The groups turn around fixed points of the 200 × 200 drawing, so their
+ * transform-box is the view box. Under reduced motion nothing loops, hops or shakes, and the poses change at once.
+ * The scene (sky, stars, moon, clouds and the store's sign) is clipped to its own box; the chibi is not, so it can
+ * stand out of the frame. The moon keeps to the top right corner and the clouds to the bottom edge, so the low band of
+ * a phone shows them too.
+ */
+
+.auth-sky {
+  position: relative;
+}
+
+.auth-sky-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--night-sky);
+}
+
+.auth-sky-stars,
+.auth-sky-moon,
+.auth-sky-clouds,
+.auth-logo {
+  position: absolute;
+}
+
+/*
+ * The stage holds the chibi and, in front of it, the store's sign. On a phone it makes no box of its own, so the sign
+ * sits at the left of the band and the chibi in its middle, over the card. From 860 px it is one box in the lower part
+ * of the sky, as wide as the sign: the sign is in the foreground and the chibi peeks over its frame, its head and
+ * hands above it. Both are sized from the stage's width, so they keep fitting whatever the height of the sky.
+ */
+.auth-stage {
+  display: contents;
+}
+
+.auth-logo {
+  left: max(12px, calc(50% - 170px));
+  top: 10px;
+  width: auto;
+  height: 76px;
+  user-select: none;
+}
+
+@media (min-width: 860px) {
+  .auth-stage {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 6%;
+    display: block;
+    /*
+     * 76% of the sky wide, but never so wide that the stage outgrows the shortest sky (its 520 px minimum, on the short
+     * pages): the sign (0.85 of the width), the chibi above it (0.38) and the 6% below add up to 0.06 H + 1.23 W, and
+     * at 380 px that leaves 22 px above the chibi for the "zZz".
+     */
+    width: min(76%, 380px);
+    margin-inline: auto;
+  }
+
+  .auth-stage .auth-logo {
+    position: relative;
+    top: auto;
+    left: auto;
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /*
+   * 60% of the stage wide; its bottom sits 26% of the stage's height below the stage's top, so the top of the sign's
+   * frame passes just under its mouth and its resting hands hold on to it.
+   */
+  .auth-sky .auth-stage .chibi {
+    bottom: 74%;
+    width: 60%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+}
+
+.auth-sky-stars {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.auth-sky-moon {
+  top: 12%;
+  right: 10%;
+  width: clamp(36px, 12vw, 104px);
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.auth-sky-moon path {
+  fill: var(--moon);
+}
+
+.auth-sky-clouds {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: clamp(24px, 14%, 96px);
+}
+
+.auth-sky-clouds ellipse,
+.auth-sky-clouds path {
+  fill: var(--cloud);
+}
+
+.auth-sky-star {
+  fill: var(--surface);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.chibi {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  overflow: visible;
+  transform: translateX(-50%);
+}
+
+.chibi * {
+  transform-box: view-box;
+}
+
+/*
+ * The drawing, in the colors of the pay button's chibi, in the super-deformed chibi style: every shape has a thick
+ * dark outline, the shadows are flat (cel) shapes, and the eyes are tall dark ovals with a highlight.
+ */
+.chibi-skin,
+.chibi-hair-back,
+.chibi-hair,
+.chibi-cap,
+.chibi-cap-band,
+.chibi-pompom,
+.chibi-pajama,
+.chibi-collar,
+.chibi-foot,
+.chibi-mitten,
+.chibi-key-bow {
+  stroke: var(--chibi-line);
+  stroke-width: 2.8;
+  stroke-linejoin: round;
+}
+
+.chibi-skin {
+  fill: var(--chibi-skin);
+}
+
+.chibi-ground {
+  fill: var(--chibi-ground);
+}
+
+/* The key of "Elegir contraseña nueva", gold like the sign's frame. */
+.chibi-key-shaft {
+  fill: none;
+  stroke: var(--chibi-key);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.chibi-key-bow {
+  fill: var(--chibi-key);
+  stroke-width: 2;
+}
+
+.chibi-key-hole {
+  fill: var(--chibi-line);
+}
+
+/* The question mark of "Recuperar contraseña", over its head. */
+.chibi-wonder {
+  fill: var(--chibi-doze);
+  font-family: var(--ff-display);
+  font-size: 30px;
+  font-weight: 700;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.chibi-skin-shade {
+  fill: var(--chibi-skin-shade);
+}
+
+.chibi-hair-back {
+  fill: var(--chibi-hair-back);
+}
+
+.chibi-hair-light {
+  stop-color: var(--chibi-hair-light);
+}
+
+.chibi-hair-dark {
+  stop-color: var(--chibi-hair);
+}
+
+.chibi-hair-shine,
+.chibi-pompom-fluff {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.chibi-hair-shine {
+  stroke: var(--chibi-hair-shine);
+  stroke-width: 3;
+}
+
+.chibi-cap-light {
+  stop-color: var(--rose);
+}
+
+.chibi-cap-dark {
+  stop-color: var(--chibi-cap-dark);
+}
+
+.chibi-cap-fold {
+  fill: none;
+  stroke: var(--chibi-line);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  opacity: 0.45;
+}
+
+.chibi-cap-band,
+.chibi-pompom,
+.chibi-collar,
+.chibi-dot,
+.chibi-shine {
+  fill: var(--surface);
+}
+
+.chibi-pompom-fluff {
+  stroke: var(--spark-pink);
+  stroke-width: 1.6;
+}
+
+.chibi-pajama-light {
+  stop-color: var(--chibi-pajama);
+}
+
+.chibi-pajama-dark {
+  stop-color: var(--chibi-pajama-dark);
+}
+
+.chibi-button {
+  fill: var(--chibi-line);
+}
+
+.chibi-foot {
+  fill: var(--chibi-foot);
+}
+
+/* A shade deeper than the face, so the hands read as hands when they cover the eyes. */
+.chibi-mitten {
+  fill: var(--chibi-hand);
+}
+
+.chibi-pupil {
+  fill: var(--chibi-pupil);
+}
+
+.chibi-blush {
+  fill: var(--chibi-blush);
+  opacity: 0.7;
+}
+
+.chibi-blush-lines {
+  fill: none;
+  stroke: var(--chibi-heart);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.chibi-brows path,
+.chibi-eyes-happy,
+.chibi-mouth-smile,
+.chibi-mouth-sad {
+  fill: none;
+  stroke: var(--chibi-lash);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chibi-eyes-happy {
+  stroke-width: 3.4;
+}
+
+.chibi-mouth-o {
+  fill: var(--chibi-mouth);
+  stroke: var(--chibi-lash);
+  stroke-width: 1.6;
+}
+
+.chibi-mouth-happy {
+  fill: var(--chibi-mouth);
+  stroke: var(--chibi-lash);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.chibi-sleep {
+  fill: var(--chibi-doze);
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.chibi-heart {
+  fill: var(--chibi-heart);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* The faces: one shows at a time and they fade into each other. */
+.chibi-brows,
+.chibi-eyes-happy,
+.chibi-mouth,
+.chibi-sleep {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+
+.chibi-eyes-open {
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+
+[data-mood='idle'] .chibi-mouth-smile,
+[data-mood='text'] .chibi-mouth-smile,
+[data-mood='password'] .chibi-mouth-smile,
+[data-mood='peek'] .chibi-mouth-o,
+[data-mood='waiting'] .chibi-mouth-o,
+[data-mood='error'] .chibi-mouth-sad,
+[data-mood='error'] .chibi-brows,
+[data-mood='success'] .chibi-mouth-happy,
+[data-mood='success'] .chibi-eyes-happy,
+[data-mood='idle'] .chibi-sleep {
+  opacity: 1;
+}
+
+[data-mood='success'] .chibi-eyes-open {
+  opacity: 0;
+}
+
+/* The poses: where the eyes look, how the head leans and where the hands are. */
+.chibi-head,
+.chibi-eyes,
+.chibi-hand {
+  transition: transform var(--dur-base) var(--ease-pop);
+}
+
+.chibi-head {
+  transform-origin: 100px 132px;
+}
+
+/* Toward the form: on its right on a computer, below the band on a phone. */
+[data-mood='text'] .chibi-head {
+  transform: rotate(6deg);
+}
+
+[data-mood='text'] .chibi-eyes {
+  transform: translate(4px, 3px) scale(1.08);
+  transform-origin: 100px 92px;
+}
+
+[data-mood='waiting'] .chibi-eyes {
+  transform: translateY(-5px);
+}
+
+/* Each hand grows around its own center when it rises, so over the eyes it reads as a hand and not as a lens. */
+.chibi-hand-left {
+  transform-origin: 66px 152px;
+}
+
+.chibi-hand-right {
+  transform-origin: 134px 152px;
+}
+
+[data-mood='password'] .chibi-hand-left {
+  transform: translate(12px, -60px) scale(1.3);
+}
+
+[data-mood='password'] .chibi-hand-right {
+  transform: translate(-12px, -60px) scale(1.3);
+}
+
+/* Between the fingers: the hands part toward the outside and the inner half of each eye shows. */
+[data-mood='peek'] .chibi-hand-left {
+  transform: translate(-4px, -58px) scale(1.2);
+}
+
+[data-mood='peek'] .chibi-hand-right {
+  transform: translate(4px, -58px) scale(1.2);
+}
+
+/* The question mark takes the place of the "zZz": the chibi is thinking, not dozing. */
+[data-pose='recover'] .chibi-sleep {
+  display: none;
+}
+
+/* The sign takes part: it hops with the chibi and sways when it shakes its head. */
+.auth-logo {
+  transform-origin: center bottom;
+}
+
+/* A shooting star now and then, and the rain of little stars when it is done: only with motion. */
+.auth-shooting-star,
+.auth-star-rain {
+  display: none;
+}
+
+.auth-star-rain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.auth-rain-star {
+  fill: var(--moon);
+  opacity: 0;
+}
+
+.auth-shooting-star {
+  position: absolute;
+  top: 14%;
+  left: 8%;
+  width: 90px;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to left, var(--surface), transparent);
+  opacity: 0;
+}
+
+/*
+ * The moves of their own, only when the visitor did not ask for less motion: the stars turn on and off all the time,
+ * each at the pace and delay its markup gives; the chibi breathes, blinks and dozes only while idle.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .auth-sky-star {
+    animation: auth-star-twinkle 3s ease-in-out infinite;
+  }
+
+  [data-mood='idle'] .chibi-breath {
+    animation: chibi-breathe 3.2s ease-in-out infinite;
+  }
+
+  [data-mood='idle'] .chibi-eyes-open {
+    transform-origin: 100px 92px;
+    animation: chibi-blink 5s infinite;
+  }
+
+  [data-mood='idle'] .chibi-sleep text {
+    transform-box: fill-box;
+    animation: chibi-doze 2.4s ease-out infinite;
+  }
+
+  [data-mood='idle'] .chibi-sleep text:nth-child(2) {
+    animation-delay: 0.4s;
+  }
+
+  [data-mood='idle'] .chibi-sleep text:nth-child(3) {
+    animation-delay: 0.8s;
+  }
+
+  [data-mood='error'] .chibi-head {
+    animation: chibi-shake var(--dur-slow) var(--ease-standard);
+  }
+
+  [data-mood='success'] .chibi-figure {
+    animation: chibi-hop var(--dur-slow) var(--ease-pop);
+  }
+
+  [data-mood='success'] .auth-logo {
+    animation: sign-bounce var(--dur-slow) var(--ease-pop) 120ms;
+  }
+
+  [data-mood='error'] .auth-logo {
+    animation: sign-sway var(--dur-slow) var(--ease-standard);
+  }
+
+  /* "Crear cuenta": while idle, the right hand waves hello every few seconds. */
+  [data-pose='register'][data-mood='idle'] .chibi-hand-right {
+    animation: chibi-wave 3s ease-in-out infinite;
+  }
+
+  [data-pose='recover'] .chibi-wonder {
+    animation: chibi-wonder 2.4s ease-in-out infinite;
+  }
+
+  .auth-shooting-star {
+    display: block;
+    animation: shooting-star 13s linear 2s infinite;
+  }
+
+  .auth-star-rain {
+    display: block;
+  }
+
+  [data-mood='success'] .auth-rain-star {
+    animation: star-rain 1.8s ease-in both;
+  }
+
+  [data-mood='success'] .chibi-heart {
+    animation: chibi-heart 900ms var(--ease-out) both;
+  }
+}
+
+/* Reduced motion: still, with the hearts simply shown when it is done. */
+@media (prefers-reduced-motion: reduce) {
+  [data-mood='success'] .chibi-heart {
+    opacity: 1;
+  }
+}
+
+/* On, a quick fade nearly to nothing, a moment off, and back on with a small sparkle. */
+@keyframes auth-star-twinkle {
+  0%,
+  35%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50%,
+  62% {
+    opacity: 0.08;
+    transform: scale(0.5);
+  }
+
+  78% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes chibi-breathe {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Open almost all the time, closed for about 140 ms near the end of each 5 s. */
+@keyframes chibi-blink {
+  0%,
+  96.6%,
+  99.4%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  98% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes chibi-doze {
+  0% {
+    opacity: 0;
+    transform: translate(0, 6px);
+  }
+
+  40% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(6px, -10px);
+  }
+}
+
+@keyframes chibi-shake {
+  20% {
+    transform: rotate(-8deg);
+  }
+
+  40% {
+    transform: rotate(7deg);
+  }
+
+  60% {
+    transform: rotate(-5deg);
+  }
+
+  80% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes sign-bounce {
+  40% {
+    transform: translateY(-8px) scale(1.02);
+  }
+
+  70% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes sign-sway {
+  25% {
+    transform: rotate(-2deg);
+  }
+
+  60% {
+    transform: rotate(1.5deg);
+  }
+}
+
+/* Two quick waves near the start of each 3 s, then the hand rests. */
+@keyframes chibi-wave {
+  0%,
+  45%,
+  100% {
+    transform: rotate(0);
+  }
+
+  10%,
+  30% {
+    transform: translateY(-6px) rotate(-18deg);
+  }
+
+  20%,
+  40% {
+    transform: translateY(-6px) rotate(12deg);
+  }
+}
+
+@keyframes chibi-wonder {
+  50% {
+    transform: translateY(-4px) rotate(8deg);
+  }
+}
+
+/* Mostly waiting out of sight; for about a second it crosses the top of the sky, down and to the right, and fades. */
+@keyframes shooting-star {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(24deg);
+  }
+
+  2% {
+    opacity: 1;
+  }
+
+  8% {
+    opacity: 0;
+    transform: translate(240px, 106px) rotate(24deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(240px, 106px) rotate(24deg);
+  }
+}
+
+@keyframes star-rain {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0);
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(330px) rotate(180deg);
+  }
+}
+
+@keyframes chibi-hop {
+  45% {
+    transform: translateY(-18px);
+  }
+}
+
+@keyframes chibi-heart {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.4);
+  }
+
+  35% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-22px) scale(1);
+  }
+}
