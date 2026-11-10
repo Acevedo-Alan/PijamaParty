@@ -124,6 +124,47 @@ describe('home page (UC-30)', () => {
   });
 });
 
+describe('sakura on the carousel (T-E7-56)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    forgetMotionPreference();
+  });
+
+  /** The carousel on this date and time in Argentina, with or without reduced motion. */
+  function renderOn(instant: string, reduce = false) {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(instant));
+    preferReducedMotion(reduce);
+    render(<HeroCarousel onDiscover={vi.fn()} />);
+    return screen.getByRole('region', { name: carousel.label }).querySelector('.sakura');
+  }
+
+  it('given 15 October in Argentina, when the home opens, then eight petals fall over the carousel, hidden from screen readers', () => {
+    const petals = renderOn('2026-10-15T12:00:00-03:00');
+
+    expect(petals).toHaveAttribute('aria-hidden', 'true');
+    expect(petals?.querySelectorAll('.sakura-petal svg')).toHaveLength(8);
+    // Over the slides, under the text.
+    const copy = screen.getByRole('region', { name: carousel.label }).querySelector('.hero-copy');
+    expect(petals?.nextElementSibling).toBe(copy);
+  });
+
+  it('given 30 November at 23:30 in Argentina, when the home opens, then the petals still fall', () => {
+    expect(renderOn('2026-11-30T23:30:00-03:00')).not.toBeNull();
+  });
+
+  it.each([['1 December', '2026-12-01T00:00:00-03:00'], ['31 August', '2026-08-31T12:00:00-03:00']])(
+    'given %s, when the home opens, then there are no petals',
+    (_, instant) => {
+      expect(renderOn(instant)).toBeNull();
+    },
+  );
+
+  it('given reduced motion in spring, when the home opens, then no petal is rendered', () => {
+    expect(renderOn('2026-10-15T12:00:00-03:00', true)).toBeNull();
+  });
+});
+
 describe('welcome carousel (UC-30, D-14)', () => {
   afterEach(() => {
     vi.useRealTimers();

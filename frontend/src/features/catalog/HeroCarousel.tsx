@@ -6,6 +6,7 @@ import { usePrefersReducedMotion } from '../../components/motion/usePrefersReduc
 import { es } from '../../i18n/es.ts';
 import { duration, ease } from '../../styles/motion.ts';
 import { HERO_SLIDES, type HeroSlide } from './homeContent.ts';
+import { SakuraPetals } from './SakuraPetals.tsx';
 import { useSwipe } from './useSwipe.ts';
 
 /** D-14: a slide stays 4 seconds. */
@@ -225,6 +226,7 @@ export function HeroCarousel({ onDiscover, slides = HERO_SLIDES }: HeroCarouselP
           ))}
         </div>
       )}
+      <SakuraPetals />
       <div className="hero-copy">
         <m.div {...entrance[0]}>
           <p className="hero-eyebrow">{es.home.eyebrow}</p>
