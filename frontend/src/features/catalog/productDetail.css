@@ -211,9 +211,21 @@
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 20%),
     0 4px 12px color-mix(in srgb, var(--accent) 22%, transparent);
-  transition:
-    transform 120ms var(--ease-out),
-    background-color 230ms var(--ease-standard);
+  transition: transform 120ms var(--ease-out);
+}
+
+/* The sage background of "done" is a layer that fades in (D-16: opacity, not background-color). */
+.add-cart::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--success);
+  opacity: 0;
+  transition: opacity 230ms var(--ease-standard);
+}
+
+.add-cart[data-state='done']::before {
+  opacity: 1;
 }
 
 .add-cart:disabled {
@@ -226,6 +238,8 @@
 }
 
 .add-cart-face {
+  position: relative;
+  z-index: 1;
   grid-area: 1 / 1;
   display: flex;
   align-items: center;
@@ -273,11 +287,6 @@
 .add-cart-check path {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-}
-
-.btn.add-cart[data-state='done'],
-.btn.add-cart[data-state='done']:hover:not(:disabled) {
-  background: var(--success);
 }
 
 .add-cart[data-state='done'] .add-cart-idle {

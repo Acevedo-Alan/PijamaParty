@@ -3,7 +3,15 @@ import { describe, expect, it } from 'vitest';
 const stylesheets = import.meta.glob<string>('../**/*.css', { query: '?raw', import: 'default', eager: true });
 
 /** D-16 (T-E8-25): only transform and opacity move. `visibility` rides along to hide a panel after it fades. */
-const ALLOWED = new Set(['transform', 'opacity', 'scale', 'visibility', 'none']);
+const ALLOWED = new Set([
+  'transform',
+  'opacity',
+  'scale',
+  'visibility',
+  'none',
+  // The tick that draws itself in the add button (E7 "Motion", T-E7-41): an 18 px SVG stroke, named in the use case.
+  'stroke-dashoffset',
+]);
 /** The one exception: the collapsible section grows its row, which no transform can do. */
 const EXCEPTIONS = new Set(['../components/Collapsible.css']);
 
