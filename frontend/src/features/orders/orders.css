@@ -247,6 +247,32 @@
   height: 100%;
 }
 
+/*
+ * T-E7-50: the payment's message, with a 72 px chibi on its left while something is under way (waiting with its
+ * stars, or sad after a refusal); without it, the message alone as before.
+ */
+.tracking-pay-feedback {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tracking-pay-chibi {
+  flex: none;
+  width: 72px;
+  height: 72px;
+}
+
+/* Room above for its stray lock and the little stars, which go a little past the top of its box. */
+.tracking-pay-feedback.has-chibi {
+  padding-top: 14px;
+}
+
+.tracking-pay-message {
+  flex: 1;
+  min-width: 0;
+}
+
 .tracking-paid-check {
   position: absolute;
   right: -6px;

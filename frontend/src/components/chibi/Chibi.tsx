@@ -1,35 +1,69 @@
 import { useId } from 'react';
 import './chibi.css';
+import './chibiBox.css';
 
 /**
  * What the chibi is doing: on the account pages (T-E7-47) waiting, looking at a text field, hiding its eyes from a
  * password (or peeking at one shown), waiting for the server, sad after a refusal or happy when it is done; asleep in
- * the empty cart (T-E7-48).
+ * the empty cart (T-E7-48); puzzled where there is nothing to show (T-E7-49).
  */
-export type ChibiMood = 'idle' | 'text' | 'password' | 'peek' | 'waiting' | 'error' | 'success' | 'asleep';
+export type ChibiMood = 'idle' | 'text' | 'password' | 'peek' | 'waiting' | 'error' | 'success' | 'asleep' | 'puzzled';
 
 /**
  * Where the chibi is, which gives it a touch of its own: on the account pages (T-E7-47) it waves on "Crear cuenta",
  * wonders with a question mark on "Recuperar contraseña" and holds a key on "Elegir contraseña nueva"; on the paid
- * order little stars fall around it, and in the empty cart it hugs a pillow (T-E7-48).
+ * order little stars fall around it, and in the empty cart it hugs a pillow (T-E7-48); a search without results gives
+ * it a magnifier, the 404 page an open map, and "Mis pedidos" without orders an empty little bag (T-E7-49); while a
+ * payment is awaited, three little stars orbit over its head (T-E7-50).
  */
-export type ChibiPose = 'signIn' | 'register' | 'recover' | 'reset' | 'paid' | 'cart';
+export type ChibiPose =
+  'signIn' | 'register' | 'recover' | 'reset' | 'paid' | 'cart' | 'search' | 'lost' | 'orders' | 'paying';
 
-/**
- * One little mitten hand, its three fingers bumps along the top and its thumb toward the body; it rests at the side of
- * the small body and rises over an eye, fingers up. The left hand is drawn and the right one is its mirror around
- * x = 100. On "Elegir contraseña nueva" the right hand holds a key, which moves with it.
- */
-function Hand({ side, withKey = false }: { side: 'left' | 'right'; withKey?: boolean }) {
-  return (
-    <g className={`chibi-hand chibi-hand-${side}`}>
-      {withKey && (
+/** The poses with a "?" over its head. */
+const WONDERING: readonly ChibiPose[] = ['recover', 'search', 'lost'];
+
+/** What the right hand holds, drawn before the mitten so the hand grips it, and moving with the hand. */
+type Held = 'key' | 'magnifier' | 'bag';
+
+const HELD_BY_POSE: Partial<Record<ChibiPose, Held>> = { reset: 'key', search: 'magnifier', orders: 'bag' };
+
+function HeldThing({ held }: { held: Held }) {
+  switch (held) {
+    case 'key':
+      return (
         <g className="chibi-key">
           <path className="chibi-key-shaft" d="M150 122 134 154M140 143l-7-4M137 149l-7-4" />
           <circle className="chibi-key-bow" cx="155" cy="113" r="10" />
           <circle className="chibi-key-hole" cx="155" cy="113" r="3.2" />
         </g>
-      )}
+      );
+    case 'magnifier':
+      return (
+        <g className="chibi-magnifier">
+          <path className="chibi-magnifier-handle" d="M148 128 134 152" />
+          <circle className="chibi-magnifier-lens" cx="156" cy="115" r="14" />
+          <path className="chibi-magnifier-shine" d="M148 110q3-5 8-6" />
+        </g>
+      );
+    case 'bag':
+      return (
+        <g className="chibi-bag">
+          <path className="chibi-bag-handle" d="M142 158c0-14 20-14 20 0" />
+          <path className="chibi-bag-body" d="M130 158h44l-4 34h-36z" />
+        </g>
+      );
+  }
+}
+
+/**
+ * One little mitten hand, its three fingers bumps along the top and its thumb toward the body; it rests at the side of
+ * the small body and rises over an eye, fingers up. The left hand is drawn and the right one is its mirror around
+ * x = 100. The right hand may hold something (a key, a magnifier, a bag), which moves with it.
+ */
+function Hand({ side, held }: { side: 'left' | 'right'; held?: Held | undefined }) {
+  return (
+    <g className={`chibi-hand chibi-hand-${side}`}>
+      {held !== undefined && <HeldThing held={held} />}
       <g transform={side === 'left' ? 'translate(14 10)' : 'matrix(-1 0 0 1 186 10)'}>
         <ellipse className="chibi-mitten" cx="65" cy="147" rx="6" ry="5" />
         <path
@@ -181,14 +215,37 @@ export function Chibi({ mood, pose = 'signIn', className }: ChibiProps) {
               <path className="chibi-pillow-seam" d="M76 150h48" />
             </g>
           )}
+          {/* The 404's map, open in front of it, held by both hands: three folds and a dotted way to a cross. */}
+          {pose === 'lost' && (
+            <g className="chibi-map">
+              <path className="chibi-map-paper" d="M54 128l30-6 32 6 30-6v44l-30 6-32-6-30 6z" />
+              <path className="chibi-map-fold" d="M84 122v44M116 128v44" />
+              <path className="chibi-map-way" d="M68 158q12-16 26-6t26-12" />
+              <path className="chibi-map-cross" d="M122 134l8 8M130 134l-8 8" />
+            </g>
+          )}
           <Hand side="left" />
-          <Hand side="right" withKey={pose === 'reset'} />
+          <Hand side="right" held={HELD_BY_POSE[pose]} />
         </g>
       </g>
-      {pose === 'recover' && (
+      {WONDERING.includes(pose) && (
         <text className="chibi-wonder" x="158" y="36">
           ?
         </text>
+      )}
+      {/* While a payment is awaited: three little stars orbiting over its head, 40 units around (100, 20). */}
+      {pose === 'paying' && (
+        <g className="chibi-orbit">
+          {[
+            [140, 20],
+            [80, 54.6],
+            [80, -14.6],
+          ].map(([x = 0, y = 0]) => (
+            <g key={`${String(x)},${String(y)}`} transform={`translate(${String(x)} ${String(y)}) scale(1.1)`}>
+              <path d={STAR_PATH} />
+            </g>
+          ))}
+        </g>
       )}
       {pose === 'paid' && (
         <g className="chibi-confetti">

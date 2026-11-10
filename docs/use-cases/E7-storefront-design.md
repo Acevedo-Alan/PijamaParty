@@ -44,7 +44,7 @@ Decided with the owner on 2026-10-19 and written into `docs/specs/00-dominio-y-r
 The prototype feels friendly because it answers the shopper: the cart icon bumps on add, panels slide, notices rise. E7 makes that one system with shared tokens instead of one-off effects. Part of it exists already (the cart bump and slide-in in `cart.css`, the skeleton pulse and filter slide-in in `catalog.css`); those move onto the tokens.
 
 **Rules**
-- **Motion answers an action** (add, open, choose, go to the next step) and shows what changed. Nothing moves by itself except the carousel (D-14), the account pages' sky, where the chibi breathes and blinks slowly while idle and the stars turn on and off (T-E7-47), and the empty cart's sleeping chibi, which breathes (T-E7-48).
+- **Motion answers an action** (add, open, choose, go to the next step) and shows what changed. Nothing moves by itself except the carousel (D-14), the account pages' sky, where the chibi breathes and blinks slowly while idle and the stars turn on and off (T-E7-47), the empty cart's sleeping chibi, which breathes (T-E7-48), and the empty states' chibi, which breathes, blinks or bobs its "?" (T-E7-49), and the little stars that orbit while a payment is awaited (T-E7-50).
 - **Entrances:** the home welcome text enters once on load; product cards enter when they join the grid (its first page, "Ver más", a new filter or sort), never because the page scrolled to them; a new page enters on a route change, never on the first load of the store. Sections do not fade in on scroll (T-E7-17).
 - **Short and soft:** 120 to 450 ms (the home entrance up to 700 ms, the wait of the add and pay buttons at least 600 ms), easing that slows on arrival.
 - **Accessible:** movement and scaling only under `@media (prefers-reduced-motion: no-preference)`; under `reduce`, at most a short opacity change. Hover effects only under `@media (hover: hover)`.
@@ -72,6 +72,8 @@ The prototype feels friendly because it answers the shopper: the cart icon bumps
 | Checkout steps | The new step rises 12 px and fades in | `--dur-base`, `--ease-out` |
 | Loading | Skeletons pulse | 1.2 s loop |
 | Route change | New page content rises 12 px and fades in; not on the first load (T-E7-17) | `--dur-base`, `--ease-out` |
+| Chibi while paying (T-E7-50) | **`waiting` + `paying`:** eyes up, "o" mouth, and three little gold stars orbit over its head for as long as it waits. **`error`:** one head shake and the sad face. Under reduced motion the stars stay still and there is no shake | orbit 2.4 s linear loop; shake as T-E7-47 |
+| Chibi in empty states (T-E7-49) | **`puzzled`** (search without results, 404): the head tilts −7°, the eyes look to the side and the "?" bobs over the head. **`orders`** (no orders yet): it breathes and blinks as when idle, with no "zZz". Under reduced motion, still in its pose | "?" 2.4 s loop; breath 3.2 s; blink as T-E7-47 |
 | Chibi on the paid order and the empty cart (T-E7-48) | The shared `Chibi` (`components/chibi`, the drawing and gestures of T-E7-47 without the sky), each moment a `mood` and a `pose`. **Paid order** (`success`, `paid`): on mount it hops with its hearts and six little stars fall around it, once; then it keeps smiling. **Empty cart** (`asleep`, `cart`): eyes closed, hugging a pillow, it breathes and its "zZz" rise. Under reduced motion both keep their face and pose, still | hop and hearts as T-E7-47; stars 1.4 s once; breath 3.2 s loop |
 | Account chibi (T-E7-47) | The pay button's chibi (the same original character, drawn larger as layered inline SVG in the super-deformed chibi style: a head about two thirds of its height on a tiny body, tall dark oval eyes with a highlight, a thick outline, flat colors and cel shadows, long hair and a stray lock out of the cap, mitten hands, a lilac shadow on the ground; the style only, no existing character) beside the card of the four account pages reacts to the form through one state: `idle`, `text`, `password`, `peek`, `waiting`, `error`, `success`. **idle:** breathes (`translateY` 2 px), blinks every few seconds (eyelids `scaleY`), "zZz" rise and fade. **Always:** the sky's 15 stars turn on and off (opacity down to 0.08 and back with a small sparkle, `scale`), each at its own pace (2.5–4.6 s) and delay, and a shooting star crosses the top of the sky for about a second every 13 s. **Per page** (`data-pose`, from `AuthCard`'s `pose`): on registration the right hand waves while idle; on recovery a "?" bobs over the head in place of the "zZz"; on the reset page the right hand holds a gold key. **The sign** hops after the chibi on **success** and sways once on **error**; on **success** ten little stars rain over the sky. **text** (focus in the email or name): eyes open wide, the head tilts toward the form. **password:** both hands rise over the eyes. **peek** (password field focused while shown): the hands part a little. **waiting** (request in flight): eyes look up. **error** (the server refused: wrong credentials, email taken, too many attempts, invalid link): one head shake and a sad face until a field is typed in again. **success** (account created, recovery email sent): a hop with a few hearts. A signed-in or reset page navigates away at once; nothing waits for the chibi. The gestures are CSS states of `data-mood` on the sky (`AuthChibi`), like the pay button's chibi, so they need no Motion load. Under reduced motion there is no loop (breath, blink, "zZz", stars, wave, "?" bob), shooting star, rain, shake or hop, and the sign stays still: the poses and faces change at once, as every transition of the store does under the base reduced-motion rule; the hearts simply show | breath 3.2 s loop; blink about 140 ms every 5 s; stars 3 s loop; poses `--dur-base`, `--ease-pop`; faces `--dur-fast`; shake and hop `--dur-slow`; hearts 900 ms |
 
@@ -435,10 +437,15 @@ The return from the payment (`/checkout/result`) opens the order page, `/pedido/
 - WhatsApp, on any order the page finds, with the store's number (UC-36): a link "¿Tenés alguna duda sobre tu pedido? Escribinos por WhatsApp" to `https://wa.me/{number}?text=…` in a new tab, the message prefilled with "¡Hola! Hice el pedido #{number} y quería consultar…". Only the order number goes in the message, never the buyer's data. Without the number, no link.
 - Closing, on any order the page finds: "Volver a la tienda" (to `/`) and, with the Instagram link (UC-36), "Seguinos en Instagram" to it in a new tab.
 - Layout: one column on a phone (header, progress, payment, delivery, WhatsApp, then the summary, the email correction and the closing); from 900 px the main column on the left and the summary sticky on the right, as today.
+- Paying (T-E7-50): a 72 px shared `Chibi` sits left of the payment message, in a row with it (`.tracking-pay-feedback`). Mood `waiting` with the `paying` pose (three little stars orbiting over its head) while the card is being charged (`POST /api/orders/{token}/card-payment` pending, with the status message "Procesando tu pago…"), while the answer is `inProcess` and in "Estamos confirmando tu pago" after an approved MODO return; mood `error` next to the alert when the card answer is a refusal (`rejected`, `chargeInProgress`, `providerUnavailable`, `tooManyAttempts`) or the request fails, with the card form still above it. No chibi while nothing is under way, nor on an `approved` answer: the order is read again and turns paid, and the header's chibi celebrates. `aria-hidden`; the message keeps its `role="status"` or alert.
 
 **Acceptance criteria**
 - Given a `PAID` order of "alan", when the page opens, then it reads "¡Gracias por tu compra, Alan!", "Recibimos tu pago y vamos a preparar tu pedido." and "Pedido #1001", and the progress has "Pagado" as the current step (T-E7-44).
-- Given a paid order, when the page opens, then the header has the chibi in `success` with the `paid` pose and the check seal, both `aria-hidden`; a pending, cancelled or expired order has no chibi (T-E7-48).
+- Given a paid order, when the page opens, then the header has the chibi in `success` with the `paid` pose and the check seal, both `aria-hidden`; a pending, cancelled or expired order has no celebrating chibi (T-E7-48).
+- Given a pending order with the card form, when the card is sent and until the API answers, then a `waiting` chibi with the `paying` pose is beside the message; on an `inProcess` answer it stays (T-E7-50).
+- Given a rejected card, when the API answers, then an `error` chibi is beside the refusal's alert and the card form is still there (T-E7-50).
+- Given an approved MODO return, when the page opens on the pending order, then a `waiting` chibi with the `paying` pose is beside "Estamos confirmando tu pago" (T-E7-50).
+- Given a pending order with nothing under way, when the page opens, then there is no chibi (T-E7-50).
 - Given an order `AWAITING_PAYMENT` after an approved return, when the page opens, then there is no thanks and it says the payment is being confirmed; when the order turns `PAID`, then the thanks shows (T-E7-44).
 - Given a `SHIPPED` order, when the progress is read, then "Pagado" and "En preparación" are completed, "Enviado" is current and "Entregado" is neither (T-E7-44).
 - Given a `PAID` order to Santa Fe, when the page opens, then "Entrega" reads "Correo Argentino a domicilio en Santa Fe, Santa Fe" and "Llega en 1 a 3 días hábiles…"; to Córdoba, "Llega en 3 a 7 días hábiles…"; given a `SHIPPED` order, no delivery time (T-E7-44).
@@ -446,6 +453,23 @@ The return from the payment (`/checkout/result`) opens the order page, `/pedido/
 - Given the store's WhatsApp number, when the page opens, then the WhatsApp link opens `https://wa.me/{number}` with the order number in its message; without the number, no link (T-E7-44).
 - Given the Instagram link, when the page opens, then "Seguinos en Instagram" links to it in a new tab, and "Volver a la tienda" to `/` (T-E7-44).
 - Given any order, when the page opens, then it shows no email, phone, national ID or street (T-E7-44).
+
+---
+
+## The chibi in empty states (T-E7-49)
+
+The shared `Chibi` (T-E7-48) joins three screens with nothing to show, 120 px and centered above their text. Their texts, links and buttons do not change; `.empty-state`, which error and filter states share too, is not restyled: the chibi is its own element (`.empty-state-chibi`).
+
+**Business rules (new)**
+- Search without results (UC-26): mood `puzzled` (head tilted, eyes to the side, "o" mouth), pose `search`: a magnifier in the right hand and a "?" over the head.
+- The 404 page (RNF-31.7): mood `puzzled`, pose `lost`: an open map held in both hands and the "?". The page's heading, text and link sit in the same centered column as the other empty states.
+- "Mis pedidos" without orders (UC-22): mood `idle`, pose `orders`: a small empty shopping bag in the right hand, no "zZz".
+- Decorative (`aria-hidden`, `focusable="false"`); inline SVG with a fixed box, so no request and no shift.
+
+**Acceptance criteria**
+- Given a search with no results, when it shows, then a `puzzled` chibi with the `search` pose (magnifier and "?") is above the message, hidden from screen readers (T-E7-49).
+- Given an unknown path, when it opens, then a `puzzled` chibi with the `lost` pose (map and "?") is above "No encontramos esta página" (T-E7-49).
+- Given a customer without orders, when "Mis pedidos" opens, then an `idle` chibi with the `orders` pose (the bag) is above "Todavía no hiciste ningún pedido." (T-E7-49).
 
 ---
 

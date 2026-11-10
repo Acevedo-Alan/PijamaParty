@@ -1,0 +1,11 @@
+/*
+ * T-E7-49: the chibi's box above the text of an empty state (search without results, 404, no orders), centered. Kept
+ * apart from chibi.css so a lazy chibi's placeholder already has this size while the drawing loads.
+ */
+.empty-state-chibi {
+  display: block;
+  flex: none;
+  width: 120px;
+  height: 120px;
+  align-self: center;
+}

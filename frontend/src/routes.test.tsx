@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, matchRoutes, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from './api/client.ts';
@@ -26,6 +26,23 @@ describe('routes', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(es.notFound.title);
     expect(screen.getByRole('link', { name: es.notFound.backToStore })).toHaveAttribute('href', '/');
+  });
+
+  it('given an unknown path, when the 404 page opens, then the chibi wonders over its map above the heading, hidden from screen readers (T-E7-49)', async () => {
+    renderRoute('/no/such/page');
+
+    // Lazy: its place is kept, with the same box, until it arrives.
+    const heading = screen.getByRole('heading', { level: 1 });
+    await waitFor(() => {
+      expect(heading.previousElementSibling).toHaveClass('chibi');
+    });
+    const chibi = heading.previousElementSibling;
+    expect(chibi).toHaveClass('chibi');
+    expect(chibi).toHaveAttribute('aria-hidden', 'true');
+    expect(chibi).toHaveAttribute('data-mood', 'puzzled');
+    expect(chibi).toHaveAttribute('data-pose', 'lost');
+    expect(chibi?.querySelector('.chibi-map')).not.toBeNull();
+    expect(chibi?.querySelector('.chibi-wonder')).not.toBeNull();
   });
 
   it.each([

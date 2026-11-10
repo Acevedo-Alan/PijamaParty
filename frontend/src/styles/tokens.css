@@ -109,6 +109,9 @@
   --chibi-key: #e8c46a;
   /* The empty cart's pillow (T-E7-48), the lilac of the account pages' sky */
   --chibi-pillow: #efe6ff;
+  /* The magnifier's glass and the 404's map (T-E7-49) */
+  --chibi-lens: rgb(220 236 255 / 0.85);
+  --chibi-map: #fff3d6;
   --chibi-cap-dark: #ee9fb4;
   --chibi-pajama: #c4e4ff;
   --chibi-pajama-dark: #a3cdf3;

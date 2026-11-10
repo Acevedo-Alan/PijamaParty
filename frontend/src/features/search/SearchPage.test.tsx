@@ -54,7 +54,18 @@ describe('search results page (UC-26)', () => {
 
     renderRoute('/buscar?q=zzz');
 
-    expect(await screen.findByText(es.search.noResults('zzz'))).toBeInTheDocument();
+    const message = await screen.findByText(es.search.noResults('zzz'));
+    expect(message).toBeInTheDocument();
+    // T-E7-49: the chibi wonders with its magnifier above the message, hidden from screen readers. It is lazy: its
+    // place is kept until it arrives.
+    await waitFor(() => {
+      expect(message.previousElementSibling).toHaveClass('chibi');
+    });
+    const chibi = message.previousElementSibling;
+    expect(chibi).toHaveAttribute('aria-hidden', 'true');
+    expect(chibi).toHaveAttribute('data-mood', 'puzzled');
+    expect(chibi).toHaveAttribute('data-pose', 'search');
+    expect(chibi?.querySelector('.chibi-magnifier')).not.toBeNull();
     const links = within(screen.getByRole('navigation', { name: es.search.categories }));
     expect(await links.findByRole('link', { name: 'Verano' })).toHaveAttribute('href', '/categoria/verano');
     expect(links.getByRole('link', { name: 'Invierno' })).toHaveAttribute('href', '/categoria/invierno');

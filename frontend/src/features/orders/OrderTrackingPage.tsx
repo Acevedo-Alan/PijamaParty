@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState, type ReactNode, type SyntheticEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import { AlertBox } from '../../components/AlertBox.tsx';
+import { Chibi } from '../../components/chibi/Chibi.tsx';
 import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
 import { es } from '../../i18n/es.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
@@ -117,6 +118,10 @@ function CardPanel({ token, order }: { token: string; order: TrackedOrder }) {
 
   const { problem, note } = cardOutcome(payment.data, payment.isError);
   const unavailable = key.isError || key.data === null;
+  // T-E7-50: the chibi waits while the card is charged or the payment is in process, and is sad on a refusal.
+  const charging = payment.isPending;
+  const waiting = charging || payment.data?.status === 'inProcess';
+  const mood = waiting ? 'waiting' : problem !== null ? 'error' : undefined;
   return (
     <section className="tracking-card-payment" aria-labelledby={titleId}>
       <h2 id={titleId}>{es.tracking.card.title}</h2>
@@ -146,15 +151,32 @@ function CardPanel({ token, order }: { token: string; order: TrackedOrder }) {
               />
             </Suspense>
           )}
-          {note !== null && (
+          <PayFeedback mood={mood}>
+            {/* One status region, always on the page, so each new text in it is announced (T-E7-50). */}
             <p className="tracking-note" role="status">
-              {note}
+              {charging ? es.tracking.card.charging : (note ?? '')}
             </p>
-          )}
-          <AlertBox message={problem} />
+            <AlertBox message={problem} />
+          </PayFeedback>
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * T-E7-50: the message about the payment, with the store's chibi on its left while something is under way: waiting
+ * with its little stars, or sad after a refusal. Decorative: the message is what is read. The message keeps its place
+ * in the page whether the chibi is there or not, so its live region is never replaced.
+ */
+function PayFeedback({ mood, children }: { mood: 'waiting' | 'error' | undefined; children: ReactNode }) {
+  return (
+    <div className={mood === undefined ? 'tracking-pay-feedback' : 'tracking-pay-feedback has-chibi'}>
+      {mood !== undefined && (
+        <Chibi mood={mood} pose={mood === 'waiting' ? 'paying' : 'signIn'} className="tracking-pay-chibi" />
+      )}
+      <div className="tracking-pay-message">{children}</div>
+    </div>
   );
 }
 
@@ -185,9 +207,11 @@ function PaymentPanel({ token, order, confirming }: { token: string; order: Trac
   }
   if (confirming) {
     return (
-      <p className="tracking-note tracking-confirming" role="status">
-        {es.tracking.confirmingPayment}
-      </p>
+      <PayFeedback mood="waiting">
+        <p className="tracking-note tracking-confirming" role="status">
+          {es.tracking.confirmingPayment}
+        </p>
+      </PayFeedback>
     );
   }
   if (!order.canRetryPayment) {

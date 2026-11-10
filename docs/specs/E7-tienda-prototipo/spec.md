@@ -44,7 +44,7 @@ Decididas con el dueño el 2026-10-19 y anotadas en `00-dominio-y-reglas.md`, sa
 El prototipo se siente amable porque responde a lo que hace el comprador: el carrito "salta" al agregar, los paneles se deslizan, los avisos suben. La tienda adopta ese mismo lenguaje como un sistema, no efecto por efecto.
 
 **Principios**
-- **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14), el cielo de las páginas de la cuenta (la chibi respira y parpadea despacio mientras espera, y las estrellas se prenden y se apagan; T-E7-47) y la chibi dormida del carrito vacío, que respira (T-E7-48).
+- **El movimiento responde a una acción** (agregar, abrir, elegir, avanzar de paso) y muestra qué cambió. Nada se mueve solo, salvo el carrusel (D-14), el cielo de las páginas de la cuenta (la chibi respira y parpadea despacio mientras espera, y las estrellas se prenden y se apagan; T-E7-47) la chibi dormida del carrito vacío, que respira (T-E7-48), la de los estados vacíos, que respira, parpadea o mece su "?" (T-E7-49), y las estrellitas que giran mientras se espera un pago (T-E7-50).
 - **Entradas:** el texto de bienvenida de la portada aparece una vez al cargar; las tarjetas de producto aparecen cuando se suman a la grilla (la primera tanda, "Ver más", un filtro u orden nuevo), nunca por bajar hasta ellas; al cambiar de página, el contenido nuevo entra, pero no en la primera carga de la tienda. Las secciones no aparecen de a una al bajar.
 - **Rápido y suave:** entre 120 y 450 ms (la entrada de la portada, hasta 700 ms; la espera del botón de pagar, al menos 600 ms), con curvas que frenan al llegar.
 - **Accesible:** con `prefers-reduced-motion` no hay desplazamientos ni escalas, solo cambios de opacidad cortos; los efectos de hover solo con `@media (hover: hover)`.
@@ -71,6 +71,8 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 | Pasos del checkout | El contenido del paso nuevo sube y aparece. |
 | Cargando | Las tarjetas y textos en espera laten suavemente (esqueletos). |
 | Cambio de página | El contenido nuevo sube un poco y aparece con un fundido; no en la primera carga. |
+| Chibi en el pago del pedido (T-E7-50) | **Esperando** (cobrando la tarjeta, pago en proceso, confirmando el pago de MODO): mira hacia arriba con la boquita en "o" y tres estrellitas giran despacio sobre su cabeza, mientras dure. **Rechazo:** niega con la cabeza una vez y queda triste. Con movimiento reducido, las estrellitas quedan quietas y no niega. |
+| Chibi en los estados vacíos (T-E7-49) | **Búsqueda sin resultados y 404:** la cabeza inclinada, mirando de costado con la boquita en "o", y el "?" que se mece despacio sobre su cabeza. **"Mis pedidos" sin pedidos:** respira y parpadea como en reposo, sin "zZz". Con movimiento reducido, quietas en su gesto. |
 | Chibi en el pedido pagado y el carrito vacío (T-E7-48) | La misma chibi de la cuenta, sin cielo. **Pedido pagado:** al abrirse salta feliz, con corazoncitos y unas estrellitas que caen a su alrededor, una vez; después queda sonriendo. **Carrito vacío:** duerme abrazando una almohada, respira despacio y le salen "zZz". Con movimiento reducido, quedan quietas en su gesto. |
 | Chibi de la cuenta (T-E7-47) | La chibi en pijama de "Confirmar y pagar" acompaña el formulario de Ingresar, Crear cuenta, Recuperar contraseña y Elegir contraseña nueva. **En reposo:** respira (sube y baja apenas), parpadea cada pocos segundos y le salen "zZz". **Siempre:** las estrellas del cielo se prenden y se apagan, cada una a su ritmo, y cada tanto cruza una estrella fugaz. **Según la página:** en Crear cuenta saluda con la mano mientras espera; en Recuperar contraseña tiene un "?" sobre la cabeza; en Elegir contraseña nueva sostiene una llavecita. **El cartel** acompaña: rebota cuando la chibi salta y se balancea cuando niega. **Al terminar** (cuenta creada, email de recuperación enviado) caen estrellitas sobre el cielo. **En un campo de texto** (email, nombre): abre bien los ojos y se inclina hacia el formulario. **En una contraseña:** se tapa los ojos con las manos; con la contraseña a la vista, espía entre los dedos. **Esperando al servidor:** mira hacia arriba. **Error** (datos incorrectos, email ya usado, demasiados intentos, enlace vencido): mueve la cabeza que no y pone carita triste, una vez. **Listo** (cuenta creada, email de recuperación enviado): salta feliz con corazoncitos. Al ingresar, la tienda pasa a la página siguiente sin esperar a la chibi. Con movimiento reducido no respira, no parpadea, no niega, no salta ni saluda, las estrellas quedan prendidas, no hay estrella fugaz ni lluvia de estrellitas, y el cartel queda quieto: cambia de gesto de golpe, sin animar (como el resto de la tienda con movimiento reducido). |
 
@@ -167,6 +169,17 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 - Dado el número de WhatsApp, cuando se abre la portada, una ficha o las preguntas frecuentes, entonces el botón flotante abre el chat en otra pestaña; en el checkout y en la cuenta no aparece; sin número, no aparece en ninguna página.
 - Dados MercadoPago y MODO habilitados, cuando se abre la portada, entonces arriba del pie se ven "Enviamos tu compra", "Todas las formas de pago" con "Pagá con MercadoPago o MODO" y "Comprá con seguridad"; si los medios de pago no se pueden leer, se ven solo el primero y el último. En cualquier otra página, como "Ingresar", no hay barra de beneficios.
 - Dado un visitante en la computadora o en el celular, cuando se ve el encabezado, entonces el ícono de usuario lleva a "Ingresar" y no hay "Crear cuenta" (T-E7-39 en el celular).
+
+## La chibi en los estados vacíos (T-E7-49)
+
+**Reglas nuevas**
+- La chibi de la cuenta acompaña tres pantallas sin contenido, arriba de su texto: la búsqueda sin resultados (CU-26) sostiene una lupa y tiene un "?" sobre la cabeza, con la carita de duda; la página que no existe (404) sostiene un mapa abierto con el "?" y la misma carita; "Mis pedidos" sin pedidos (CU-22) sostiene una bolsita de compras vacía y sonríe. Los textos, los enlaces y los botones de cada pantalla no cambian.
+- Es decorativa: los lectores de pantalla no la leen. No agrega fotos ni carga nada aparte, y ocupa su lugar desde el principio, así nada se corre.
+
+**Criterios de aceptación**
+- Dada una búsqueda sin resultados, cuando se muestra, entonces la chibi tiene la lupa y el "?" arriba de "No encontramos productos para…", y los lectores de pantalla no la leen (T-E7-49).
+- Dada una dirección que no existe, cuando se abre, entonces la chibi tiene el mapa y el "?" arriba de "No encontramos esta página" (T-E7-49).
+- Dado un cliente sin pedidos, cuando abre "Mis pedidos", entonces la chibi tiene la bolsita vacía arriba de "Todavía no hiciste ningún pedido." (T-E7-49).
 
 ## Cambios a CU-19 (ingresar y crear cuenta)
 
@@ -322,10 +335,15 @@ Al volver del pago se abre la página del pedido, así que también es la confir
 - Con el WhatsApp de la tienda, "¿Tenés alguna duda sobre tu pedido? Escribinos por WhatsApp" abre el chat con el mensaje "¡Hola! Hice el pedido #1001 y quería consultar…" (solo el número del pedido, ningún dato del comprador).
 - Al final, "Volver a la tienda" y, con el enlace de Instagram, "Seguinos en Instagram".
 - No se agrega un sello de "pago seguro" ni un plazo distinto del de las preguntas frecuentes.
+- Mientras se paga (T-E7-50), una chibi chica acompaña el mensaje, a su izquierda: mira hacia arriba con tres estrellitas que giran sobre su cabeza desde que se toca "Pagar" en el formulario de la tarjeta hasta que el servidor contesta (con el mensaje "Procesando tu pago…"), mientras el pago queda "en proceso" y en "Estamos confirmando tu pago" al volver de MODO; si la tarjeta se rechaza o el cobro falla, niega una vez y queda triste junto al mensaje que dice por qué, con el formulario a la vista para probar otra. Cuando el pago se aprueba, el pedido pasa a pagado y festeja la chibi del encabezado. Es decorativa: el mensaje es lo que se lee.
 
 **Criterios de aceptación**
 - Dado un pedido pagado de "alan", cuando se abre, entonces dice "¡Gracias por tu compra, Alan!", "Pedido #1001" y "Pagado" es el paso actual (T-E7-44).
-- Dado un pedido pagado, cuando se abre, entonces la chibi festeja con el sello del tilde a su costado, y los lectores de pantalla no leen ninguno de los dos; un pedido pendiente, cancelado o expirado no tiene chibi (T-E7-48).
+- Dado un pedido pagado, cuando se abre, entonces la chibi festeja con el sello del tilde a su costado, y los lectores de pantalla no leen ninguno de los dos; un pedido pendiente, cancelado o expirado no tiene la chibi que festeja (T-E7-48).
+- Dado un pedido pendiente con el formulario de la tarjeta, cuando se toca "Pagar" y mientras el servidor no contesta, entonces la chibi mira hacia arriba con sus estrellitas junto al mensaje; si el pago queda en proceso, sigue así (T-E7-50).
+- Dada una tarjeta rechazada, cuando el servidor contesta, entonces la chibi queda triste junto al motivo del rechazo y el formulario sigue a la vista (T-E7-50).
+- Dado un pedido pendiente al volver de un pago aprobado de MODO, cuando se abre, entonces la chibi mira hacia arriba con sus estrellitas junto a "Estamos confirmando tu pago" (T-E7-50).
+- Dado un pedido pendiente sin pago en curso, cuando se abre, entonces no hay chibi (T-E7-50).
 - Dado un pedido pendiente al volver de un pago aprobado, cuando se abre, entonces no agradece y dice que se está confirmando el pago; cuando pasa a pagado, agradece (T-E7-44).
 - Dado un pedido enviado, cuando se leen los pasos, entonces "Pagado" y "En preparación" están completados y "Enviado" es el actual (T-E7-44).
 - Dado un pedido pagado a Santa Fe, cuando se abre, entonces el plazo es de 1 a 3 días hábiles; a Córdoba, de 3 a 7; enviado, sin plazo (T-E7-44).

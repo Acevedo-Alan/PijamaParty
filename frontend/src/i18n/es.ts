@@ -643,6 +643,8 @@ export const es = {
       loading: 'Cargando el formulario de pago…',
       loadError: 'No pudimos cargar el formulario de pago. Recargá la página y probá de nuevo.',
       unavailable: 'El pago con tarjeta no está disponible en este momento. Probá de nuevo más tarde.',
+      /** T-E7-50: while the card is being charged, beside the waiting chibi. */
+      charging: 'Procesando tu pago…',
       approved: '¡Listo! Tu pago fue aprobado.',
       inProcess: 'Tu pago quedó en revisión en Mercado Pago. Te avisamos por email cuando se confirme.',
       rejections: {

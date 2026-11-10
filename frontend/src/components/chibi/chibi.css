@@ -9,6 +9,7 @@
   display: block;
   overflow: visible;
 }
+
 .chibi * {
   transform-box: view-box;
 }
@@ -58,7 +59,73 @@
   fill: var(--chibi-line);
 }
 
-/* The question mark of "Recuperar contraseña", over its head. */
+/* T-E7-49: the magnifier of a search without results, the 404's map and the empty bag of "Mis pedidos". */
+.chibi-magnifier-handle {
+  fill: none;
+  stroke: var(--chibi-hair);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.chibi-magnifier-lens {
+  fill: var(--chibi-lens);
+  stroke: var(--chibi-line);
+  stroke-width: 3.4;
+}
+
+.chibi-magnifier-shine,
+.chibi-map-fold,
+.chibi-map-way,
+.chibi-map-cross,
+.chibi-bag-handle {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chibi-magnifier-shine {
+  stroke: var(--surface);
+  stroke-width: 2.4;
+}
+
+.chibi-map-paper,
+.chibi-bag-body {
+  stroke: var(--chibi-line);
+  stroke-width: 2.8;
+  stroke-linejoin: round;
+}
+
+.chibi-map-paper {
+  fill: var(--chibi-map);
+}
+
+.chibi-map-fold {
+  stroke: var(--chibi-line);
+  stroke-width: 1.4;
+  opacity: 0.35;
+}
+
+.chibi-map-way {
+  stroke: var(--chibi-heart);
+  stroke-width: 2.2;
+  stroke-dasharray: 3 4;
+}
+
+.chibi-map-cross {
+  stroke: var(--accent);
+  stroke-width: 2.6;
+}
+
+.chibi-bag-body {
+  fill: var(--rose);
+}
+
+.chibi-bag-handle {
+  stroke: var(--chibi-line);
+  stroke-width: 2.4;
+}
+
+/* The question mark of "Recuperar contraseña", a search without results and the 404, over its head. */
 .chibi-wonder {
   fill: var(--chibi-doze);
   font-family: var(--ff-display);
@@ -221,6 +288,7 @@
 [data-mood='password'] .chibi-mouth-smile,
 [data-mood='peek'] .chibi-mouth-o,
 [data-mood='waiting'] .chibi-mouth-o,
+[data-mood='puzzled'] .chibi-mouth-o,
 [data-mood='error'] .chibi-mouth-sad,
 [data-mood='error'] .chibi-brows,
 [data-mood='success'] .chibi-mouth-happy,
@@ -284,9 +352,24 @@
   transform: translate(4px, -58px) scale(1.2);
 }
 
-/* The question mark takes the place of the "zZz": the chibi is thinking, not dozing. */
-[data-pose='recover'] .chibi-sleep {
+/*
+ * The question mark takes the place of the "zZz": the chibi is thinking, not dozing. "Mis pedidos" has no "zZz"
+ * either: there it is awake, holding its empty bag (T-E7-49).
+ */
+[data-pose='recover'] .chibi-sleep,
+[data-pose='search'] .chibi-sleep,
+[data-pose='lost'] .chibi-sleep,
+[data-pose='orders'] .chibi-sleep {
   display: none;
+}
+
+/* Puzzled (T-E7-49): the head tilts away and the eyes look to the side, as if wondering where things went. */
+[data-mood='puzzled'] .chibi-head {
+  transform: rotate(-7deg);
+}
+
+[data-mood='puzzled'] .chibi-eyes {
+  transform: translate(-4px, -2px);
 }
 
 /* T-E7-48: asleep, its eyes closed and its "zZz" rising; in the empty cart it hugs a pillow. */
@@ -323,6 +406,15 @@
 [data-mood='asleep'] .chibi-mouth-smile,
 [data-mood='asleep'] .chibi-sleep {
   opacity: 1;
+}
+
+/* T-E7-50: the little stars that orbit over its head while a payment is awaited. */
+.chibi-orbit {
+  transform-origin: 100px 20px;
+}
+
+.chibi-orbit path {
+  fill: var(--chibi-key);
 }
 
 /* T-E7-48: the little stars that fall around it on the paid order, once. */
@@ -386,8 +478,18 @@
     animation: chibi-wave 3s ease-in-out infinite;
   }
 
-  [data-pose='recover'] .chibi-wonder {
+  .chibi-wonder {
     animation: chibi-wonder 2.4s ease-in-out infinite;
+  }
+
+  .chibi-orbit {
+    animation: chibi-orbit 2.4s linear infinite;
+  }
+}
+
+@keyframes chibi-orbit {
+  to {
+    transform: rotate(360deg);
   }
 }
 

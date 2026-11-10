@@ -100,6 +100,9 @@ function stubPayOnSite(cardAnswer: unknown) {
       : cardAnswer)) as never);
 }
 
+/** T-E7-50: the chibi beside the payment's message, if any. */
+const payChibi = () => document.querySelector('.tracking-pay-feedback svg.chibi');
+
 const sendCard = async () => {
   await userEvent.click(await screen.findByRole('button', { name: 'Pagar con la tarjeta de prueba' }));
 };
@@ -217,6 +220,62 @@ describe('tracking link (UC-14, T-E3-08)', () => {
     await sendCard();
 
     expect(await screen.findByText(es.tracking.card.inProcess)).toBeInTheDocument();
+  });
+
+  it('given the card form open, when nothing is under way, then there is no chibi beside it (T-E7-50)', async () => {
+    stubOrderAndKey('TEST-key', answer(200, trackedOrder()));
+    renderRoute(`/pedido/${TOKEN}`, { state: { payOnSite: true } });
+
+    await screen.findByRole('button', { name: 'Pagar con la tarjeta de prueba' });
+    expect(payChibi()).toBeNull();
+  });
+
+  it('given a card sent, when the API has not answered yet, then the chibi waits with its stars beside "Procesando tu pago…" (T-E7-50)', async () => {
+    stubOrderAndKey('TEST-key', answer(200, trackedOrder()));
+    vi.spyOn(api, 'POST').mockImplementation((() => new Promise(() => undefined)) as never);
+    renderRoute(`/pedido/${TOKEN}`, { state: { payOnSite: true } });
+
+    await sendCard();
+
+    const charging = await screen.findByText(es.tracking.card.charging);
+    expect(charging).toHaveAttribute('role', 'status');
+    expect(payChibi()).toHaveAttribute('data-mood', 'waiting');
+    expect(payChibi()).toHaveAttribute('data-pose', 'paying');
+    expect(payChibi()).toHaveAttribute('aria-hidden', 'true');
+    expect(payChibi()?.querySelectorAll('.chibi-orbit path')).toHaveLength(3);
+  });
+
+  it('given a card left in review, when the API answers, then the chibi keeps waiting beside the message (T-E7-50)', async () => {
+    stubOrderAndKey('TEST-key', answer(200, trackedOrder()));
+    stubPayOnSite(answer(200, { status: 'IN_PROCESS', rejection: null }));
+    renderRoute(`/pedido/${TOKEN}`, { state: { payOnSite: true } });
+
+    await sendCard();
+
+    await screen.findByText(es.tracking.card.inProcess);
+    expect(payChibi()).toHaveAttribute('data-mood', 'waiting');
+  });
+
+  it('given a rejected card, when the API answers, then the chibi is sad beside the reason and the form stays (T-E7-50)', async () => {
+    stubOrderAndKey('TEST-key', answer(200, trackedOrder()));
+    stubPayOnSite(answer(200, { status: 'REJECTED', rejection: 'INSUFFICIENT_FUNDS' }));
+    renderRoute(`/pedido/${TOKEN}`, { state: { payOnSite: true } });
+
+    await sendCard();
+
+    await screen.findByText(es.tracking.card.rejections.INSUFFICIENT_FUNDS);
+    expect(payChibi()).toHaveAttribute('data-mood', 'error');
+    expect(payChibi()?.querySelector('.chibi-orbit')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Pagar con la tarjeta de prueba' })).toBeInTheDocument();
+  });
+
+  it('given an approved return, when the pending order opens, then the chibi waits beside "Estamos confirmando tu pago" (T-E7-50)', async () => {
+    stubOrder(answer(200, trackedOrder()));
+    renderRoute(`/pedido/${TOKEN}`, { state: { paymentApproved: true } });
+
+    await screen.findByText(es.tracking.confirmingPayment);
+    expect(payChibi()).toHaveAttribute('data-mood', 'waiting');
+    expect(payChibi()).toHaveAttribute('data-pose', 'paying');
   });
 
   it('given a store without the card form configured, when it should open, then the page says card payment is unavailable', async () => {

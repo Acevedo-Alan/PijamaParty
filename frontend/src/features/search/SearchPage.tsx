@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router';
+import { LazyChibi } from '../../components/chibi/LazyChibi.tsx';
 import { es } from '../../i18n/es.ts';
 import { trackSearch } from '../analytics/catalogEvents.ts';
 import { FilterPanel } from '../catalog/FilterPanel.tsx';
@@ -19,6 +20,9 @@ function NoResults({ text }: { text: string }) {
   const categories = useShopCategories();
   return (
     <div className="empty-state">
+      {/* T-E7-49: the store's chibi, puzzled, with a magnifier; decorative, the text says nothing matched. Lazy: the
+          search page is part of the first load. */}
+      <LazyChibi mood="puzzled" pose="search" className="empty-state-chibi" />
       <p>{es.search.noResults(text)}</p>
       <nav aria-label={es.search.categories}>
         <ul className="category-links">

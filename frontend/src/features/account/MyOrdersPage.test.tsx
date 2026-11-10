@@ -136,6 +136,18 @@ describe('my orders (UC-22, T-E4-07)', () => {
     expect(screen.getByRole('link', { name: messages.goShopping })).toHaveAttribute('href', '/');
   });
 
+  it('given a customer without orders, when it opens my orders, then the chibi holds an empty bag above the text, hidden from screen readers (T-E7-49)', async () => {
+    stubOrders(() => answer(200, { orders: [], hasMore: false }));
+    renderRoute('/cuenta/pedidos');
+
+    const chibi = (await screen.findByText(messages.empty)).previousElementSibling;
+    expect(chibi).toHaveClass('chibi');
+    expect(chibi).toHaveAttribute('aria-hidden', 'true');
+    expect(chibi).toHaveAttribute('data-mood', 'idle');
+    expect(chibi).toHaveAttribute('data-pose', 'orders');
+    expect(chibi?.querySelector('.chibi-bag')).not.toBeNull();
+  });
+
   it('given a shipped order, when the customer opens it, then it sees items, address, status, tracking number and a link to Correo Argentino', async () => {
     stubOrders(
       () => answer(200, { orders: [summary(SECOND, 1002, '2026-10-14T15:00:00Z', 'SHIPPED', 4_050_000)], hasMore: false }),

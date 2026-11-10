@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router';
+import { Chibi } from '../../components/chibi/Chibi.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatDate } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -45,6 +46,8 @@ export function MyOrdersPage() {
       )}
       {list?.length === 0 && (
         <div className="empty-state">
+          {/* T-E7-49: the store's chibi with an empty little bag; decorative, the text says there are no orders. */}
+          <Chibi mood="idle" pose="orders" className="empty-state-chibi" />
           <p>{messages.empty}</p>
           <Link to="/">{messages.goShopping}</Link>
         </div>
