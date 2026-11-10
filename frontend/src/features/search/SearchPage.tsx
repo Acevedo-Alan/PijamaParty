@@ -23,7 +23,7 @@ function NoResults({ text }: { text: string }) {
       {/* T-E7-49: the store's chibi, puzzled, with a magnifier; decorative, the text says nothing matched. Lazy: the
           search page is part of the first load. */}
       <LazyChibi mood="puzzled" pose="search" className="empty-state-chibi" />
-      <p>{es.search.noResults(text)}</p>
+      <p data-kaomoji={es.kaomoji.noResults}>{es.search.noResults(text)}</p>
       <nav aria-label={es.search.categories}>
         <ul className="category-links">
           {(categories.data ?? []).map((category) => (

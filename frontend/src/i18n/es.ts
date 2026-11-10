@@ -1224,6 +1224,18 @@ export const es = {
       link: 'Envíos, pagos y cambios',
     },
   },
+  /**
+   * T-E7-52: the faces that follow six texts, drawn as generated content with empty alternative text (base.css), so
+   * screen readers never read them.
+   */
+  kaomoji: {
+    added: '(｡•ᴗ•｡)♡',
+    freeShipping: '＼(^o^)／',
+    emptyCart: '(－ω－) zzZ',
+    noResults: '(・・?)',
+    notFound: '(´・ω・`)',
+    paid: '(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
+  },
   notFound: {
     title: 'No encontramos esta página',
     body: 'Puede que el enlace esté mal escrito o que la página ya no exista.',

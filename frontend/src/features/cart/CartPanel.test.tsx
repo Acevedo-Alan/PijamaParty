@@ -151,6 +151,17 @@ describe('cart side panel (UC-08)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('given an empty cart, when the panel opens, then its text carries the sleepy kaomoji outside what is read (T-E7-52)', async () => {
+    stubStore();
+    renderRoute('/producto/luna');
+
+    await userEvent.click(await screen.findByRole('button', { name: es.cart.open(0) }));
+
+    const empty = within(panel()).getByText(es.cart.empty);
+    expect(empty).toHaveAttribute('data-kaomoji', es.kaomoji.emptyCart);
+    expect(empty).toHaveTextContent(new RegExp(`^${es.cart.empty}$`));
+  });
+
   it('given an empty cart, when the panel opens, then "Lo más nuevo" shows the 4 newest not sold out and opening one closes it (T-E7-34)', async () => {
     const newest = listed([
       product('a'),

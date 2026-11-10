@@ -123,6 +123,15 @@
     white-space: nowrap;
   }
 
+  /* T-E7-52: a kaomoji after the text, on the same line. Its alternative text is empty, so it is not part of what
+     screen readers read; a browser without the "/ alt" syntax drops the declaration and shows the text alone. */
+  [data-kaomoji]::after {
+    content: ' ' attr(data-kaomoji) / '';
+    color: var(--accent-text);
+    font-weight: 500;
+    white-space: pre;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;

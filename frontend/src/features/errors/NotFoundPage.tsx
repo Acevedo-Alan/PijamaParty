@@ -15,7 +15,7 @@ export function NotFoundPage() {
       <title>{`${es.notFound.title} | ${es.store.name}`}</title>
       <NoIndex />
       <LazyChibi mood="puzzled" pose="lost" className="empty-state-chibi" />
-      <h1>{es.notFound.title}</h1>
+      <h1 data-kaomoji={es.kaomoji.notFound}>{es.notFound.title}</h1>
       <p>{es.notFound.body}</p>
       <Link to="/">{es.notFound.backToStore}</Link>
     </main>

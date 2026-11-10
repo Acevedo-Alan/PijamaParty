@@ -88,7 +88,7 @@ export function PaidHeader({ order, status }: { order: TrackedOrder; status: Pai
           <path d="M14 24.5l7 7 13-14" pathLength={1} />
         </svg>
       </div>
-      <h1>{es.tracking.paid.thanks(capitalizeWords(order.buyerFirstName))}</h1>
+      <h1 data-kaomoji={es.kaomoji.paid}>{es.tracking.paid.thanks(capitalizeWords(order.buyerFirstName))}</h1>
       <p className="tracking-paid-line">{es.tracking.paid.lines[status]}</p>
       <p className="tracking-number">
         <span className="tracking-number-badge">{es.tracking.title(order.number)}</span>

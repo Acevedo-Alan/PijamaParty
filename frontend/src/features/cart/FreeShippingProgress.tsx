@@ -34,7 +34,12 @@ export function FreeShippingProgress({ totalCents }: { totalCents: number }) {
   const filled = reached ? 1 : Math.max(0, totalCents) / threshold;
   return (
     <div className="ship-progress">
-      <m.p key={String(reached)} {...motion} initial={pops ? motion.initial : false}>
+      <m.p
+        key={String(reached)}
+        {...motion}
+        initial={pops ? motion.initial : false}
+        data-kaomoji={reached ? es.kaomoji.freeShipping : undefined}
+      >
         {reached ? es.cart.freeShippingReached : es.cart.freeShippingMissing(formatMoney(missing))}
       </m.p>
       <div className="ship-bar" aria-hidden="true">

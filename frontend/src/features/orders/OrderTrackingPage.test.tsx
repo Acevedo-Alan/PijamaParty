@@ -416,7 +416,9 @@ describe('the purchase confirmation (T-E7-44)', () => {
 
     renderRoute(`/pedido/${TOKEN}`);
 
-    expect(await screen.findByRole('heading', { level: 1, name: es.tracking.paid.thanks('Alan') })).toBeInTheDocument();
+    const heading = await screen.findByRole('heading', { level: 1, name: es.tracking.paid.thanks('Alan') });
+    // T-E7-52: the celebrating kaomoji is drawn after the heading, outside its name.
+    expect(heading).toHaveAttribute('data-kaomoji', es.kaomoji.paid);
     expect(screen.getByText(es.tracking.paid.lines.PAID)).toBeInTheDocument();
     expect(screen.getByText(es.tracking.title(1001))).toBeInTheDocument();
     expect(screen.queryByText(es.tracking.greeting('Alan'))).not.toBeInTheDocument();

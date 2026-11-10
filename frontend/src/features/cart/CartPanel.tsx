@@ -395,7 +395,7 @@ export function CartPanel() {
         </header>
         {/* Inside the panel, over its title (cart.css): the modal dialog leaves the page inert. */}
         <Toast open={notice.shown} closeLabel={es.cart.closeNotice} onClose={notice.hide}>
-          {es.cart.addedNotice}
+          <span data-kaomoji={es.kaomoji.added}>{es.cart.addedNotice}</span>
         </Toast>
         {cart.isPending && <p className="cart-body" role="status">{es.cart.loading}</p>}
         {cart.isError && (
@@ -410,7 +410,9 @@ export function CartPanel() {
           <div className="cart-body cart-empty">
             {/* T-E7-48: the store's chibi asleep, hugging a pillow; decorative, the text says the cart is empty. */}
             <Chibi mood="asleep" pose="cart" className="cart-empty-chibi" />
-            <p className="cart-empty-title">{es.cart.empty}</p>
+            <p className="cart-empty-title" data-kaomoji={es.kaomoji.emptyCart}>
+              {es.cart.empty}
+            </p>
             <p>{es.cart.emptyHint}</p>
             <button type="button" className="btn" onClick={panel.close}>
               {es.cart.keepShopping}
