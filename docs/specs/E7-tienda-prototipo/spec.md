@@ -255,6 +255,7 @@ El prototipo se siente amable porque responde a lo que hace el comprador: el car
 
 **Reglas nuevas**
 - Migas de pan: Inicio / categoría / producto. Sin un enlace aparte "Volver al catálogo": las migas ya llevan de vuelta.
+- En el celular (T-E7-51), las migas son píldoras pastel en una sola línea: Inicio es una casita en una píldora blanca, la categoría va en una píldora rosada y el producto en negrita, cortado con "…" si es largo; entre ellas, en lugar de "/", una estrellita rosa. Si no entran, la línea se desliza de costado y nunca se parte en renglones. Los lectores de pantalla siguen leyendo "Inicio", la categoría y el producto. En la computadora quedan como están.
 - Galería: foto principal con miniaturas y una vista ampliada al tocar la foto. En la computadora las miniaturas van en una columna a la izquierda de la foto; en el celular, en una fila debajo.
 - Color con círculos (D-04) y el nombre del color elegido; talle con botones cuadrados; selector de cantidad en píldora, de la misma altura que el botón de agregar (52 px); con una sola unidad disponible no se muestra y el botón ocupa todo el ancho. El botón de agregar lleva la bolsa del encabezado, "Agregar al carrito" y, con una variante elegida, el subtotal (T-E7-41).
 - En el celular, cuando el botón de agregar sale de la pantalla, una barra fija abajo muestra el precio y el botón.

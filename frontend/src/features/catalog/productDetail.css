@@ -508,6 +508,129 @@
   color: var(--ink);
 }
 
+/* The house of Inicio shows only on a phone; from 860 px the word does, as before. */
+.breadcrumbs-home-icon {
+  display: none;
+}
+
+/*
+ * T-E7-51: on a phone, pastel pills on one line: a white pill with a house for Inicio, a rose one for the category and
+ * the product in bold, cut with "…"; a small pink sparkle between them instead of "/". A trail too long for the screen
+ * scrolls sideways (its scrollbar hidden) and never wraps. The pills are 36 px tall; each link's tap area reaches 44 px.
+ */
+@media (max-width: 859px) {
+  .breadcrumbs {
+    margin-bottom: 14px;
+    font-size: 13px;
+  }
+
+  .breadcrumbs ol {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    /* Room for the 5 px focus ring around each pill, which the scrolling line would cut; the negative margin keeps
+       the pills aligned with the page. */
+    margin-inline: -6px;
+    padding: 6px;
+    scrollbar-width: none;
+  }
+
+  .breadcrumbs ol::-webkit-scrollbar {
+    display: none;
+  }
+
+  .breadcrumbs li {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .breadcrumbs li + li::before {
+    content: '';
+    flex: none;
+    width: 7px;
+    height: 7px;
+    margin: 0;
+    background: var(--spark-pink);
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  }
+
+  .breadcrumbs a {
+    position: relative;
+    min-height: 36px;
+    margin-block: 0;
+    padding: 0 14px;
+    border-radius: var(--radius-pill);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  /* The tap area: 4 px above and below the 36 px pill (and around the house's, below), so each reaches 44 px. */
+  .breadcrumbs a::after {
+    content: '';
+    position: absolute;
+    inset: -4px 0;
+  }
+
+  .breadcrumbs .breadcrumbs-home::after {
+    inset: -4px;
+  }
+
+  .breadcrumbs-home {
+    justify-content: center;
+    width: 36px;
+    padding: 0;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .breadcrumbs-home-icon {
+    display: block;
+    flex: none;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--ink-soft);
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Kept for screen readers: the link's name stays "Inicio". */
+  .breadcrumbs-home-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .breadcrumbs li:nth-child(2) a {
+    background: var(--rose-soft);
+    color: var(--accent-text);
+    font-weight: 600;
+  }
+
+  /* The product gives way first: its line shrinks to what is left and ends in "…", so the pills stay whole. */
+  .breadcrumbs [aria-current='page'] {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .breadcrumbs-current {
+    min-width: 0;
+    max-width: 60vw;
+    overflow: hidden;
+    color: var(--ink);
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 /* E7: the main photo opens the enlarged view; the icon sits in its corner. */
 .pdp-image-frame {
   position: relative;

@@ -418,9 +418,21 @@ describe('product page as in the prototype (E7, changes to UC-03)', () => {
     const crumbs = within(await screen.findByRole('navigation', { name: es.product.breadcrumbs }));
     expect(crumbs.getByRole('link', { name: es.product.home })).toHaveAttribute('href', '/');
     expect(crumbs.getByRole('link', { name: 'Pijamas largos' })).toHaveAttribute('href', '/categoria/pijamas-largos');
-    expect(crumbs.getByText('Pijama Luna')).toHaveAttribute('aria-current', 'page');
+    expect(crumbs.getByText('Pijama Luna').closest('li')).toHaveAttribute('aria-current', 'page');
     // The breadcrumbs are the only way back (UC-03).
     expect(screen.queryByRole('link', { name: 'Volver al catálogo' })).not.toBeInTheDocument();
+  });
+
+  it('given the breadcrumbs, when read, then Inicio carries a hidden house and its word, and no separator is text (T-E7-51)', async () => {
+    stubPage();
+
+    renderRoute('/producto/luna');
+
+    const crumbs = await screen.findByRole('navigation', { name: es.product.breadcrumbs });
+    const home = within(crumbs).getByRole('link', { name: es.product.home });
+    expect(home.querySelector('svg.breadcrumbs-home-icon')).toHaveAttribute('aria-hidden', 'true');
+    expect(home.querySelector('.breadcrumbs-home-text')).toHaveTextContent(es.product.home);
+    expect(crumbs).toHaveTextContent(`${es.product.home}Pijamas largosPijama Luna`);
   });
 
   it('given the main photo, when pressed, then the enlarged view shows its 1200 px file and closes again', async () => {
