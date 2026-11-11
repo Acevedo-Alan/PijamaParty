@@ -150,7 +150,11 @@ describe('cart side panel (UC-08)', () => {
     expect(chibi).toHaveAttribute('data-mood', 'asleep');
     expect(chibi).toHaveAttribute('data-pose', 'cart');
     expect(chibi?.querySelector('.chibi-pillow')).not.toBeNull();
-    await userEvent.click(within(panel()).getByRole('button', { name: es.cart.keepShopping }));
+    // T-E7-59: the stitched button in rose, named by its text alone.
+    const keepShopping = within(panel()).getByRole('button', { name: es.cart.keepShopping });
+    expect(keepShopping).toHaveClass('btn-stitched');
+    expect(keepShopping.querySelector('.btn-stitched-arrow')).toHaveAttribute('aria-hidden', 'true');
+    await userEvent.click(keepShopping);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 

@@ -79,8 +79,8 @@ html:has(.cart-panel[open]) {
   list-style: none;
 }
 
-/* T-E7-19: the chibi (T-E7-48), the texts and a full-width button at the top; the rest of the height waits for
-   "Productos sugeridos". */
+/* T-E7-19: the chibi (T-E7-48), the texts and the stitched button (T-E7-59) at the top; below them, "Lo más nuevo"
+   (T-E7-34). */
 .cart-empty {
   display: flex;
   flex-direction: column;
@@ -105,8 +105,9 @@ html:has(.cart-panel[open]) {
   font-weight: 600;
 }
 
-.cart-empty .btn {
-  width: 100%;
+/* T-E7-59: the stitched button in rose, centered at its own width. */
+.cart-empty-cta {
+  align-self: center;
   margin-top: 6px;
 }
 

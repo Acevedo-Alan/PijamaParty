@@ -325,13 +325,13 @@ La chibi le dio a la tienda una voz de pijamada japonesa; estos tres toques la l
 **Reglas nuevas**
 - Con umbral de envío gratis, una barra muestra cuánto falta ("Te faltan $X para envío gratis") o "¡Tenés envío gratis!". Se calcula sobre el subtotal con descuento que manda el servidor. El costo final lo sigue decidiendo el checkout (CU-12).
 - Al agregar desde la ficha, un aviso breve dice "Agregado al carrito".
-- Vacío, el panel muestra arriba la chibi de la cuenta dormida, abrazando una almohada (T-E7-48), sobre "Tu carrito está vacío.", y "Empezar a comprar" ocupa todo el ancho del panel. Debajo queda reservado el lugar de "Productos sugeridos", que llega en una tarea futura; mientras tanto no muestra nada.
+- Vacío, el panel muestra arriba la chibi de la cuenta dormida, abrazando una almohada (T-E7-48), sobre "Tu carrito está vacío.", y "Empezar a comprar" es un botón bordado como "Descubrí la colección", en el rosa de la tienda y centrado (T-E7-59): sin relleno, con un borde rosa fino y la costura por dentro, en mayúsculas espaciadas y con una flecha; con mouse, al pasar se rellena de rosa y el texto pasa a blanco. Como solo cierra el panel, queda más liviano que los productos de "Lo más nuevo". Debajo queda reservado el lugar de "Productos sugeridos", que llega en una tarea futura; mientras tanto no muestra nada.
 
 **Criterios de aceptación**
 - Dado un umbral de $50.000 y un subtotal con descuento de $24.999, cuando se abre el panel, entonces dice "Te faltan $25.001 para envío gratis".
 - Dado un subtotal con descuento de $50.000 o más, cuando se abre el panel, entonces dice "¡Tenés envío gratis!".
 - Sin umbral, el panel no muestra la barra.
-- Dado un carrito vacío, cuando se abre el panel, entonces se ve la chibi dormida con su almohada (que los lectores de pantalla no leen), "Tu carrito está vacío." y "Empezar a comprar" a todo el ancho, que cierra el panel.
+- Dado un carrito vacío, cuando se abre el panel, entonces se ve la chibi dormida con su almohada (que los lectores de pantalla no leen), "Tu carrito está vacío." y "Empezar a comprar" bordado, que cierra el panel (T-E7-59).
 
 ## Cambios a CU-13 (checkout)
 

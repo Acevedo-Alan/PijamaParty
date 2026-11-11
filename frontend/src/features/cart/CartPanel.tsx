@@ -416,8 +416,12 @@ export function CartPanel() {
               {es.cart.empty}
             </p>
             <p>{es.cart.emptyHint}</p>
-            <button type="button" className="btn" onClick={panel.close}>
-              {es.cart.keepShopping}
+            {/* T-E7-59: the stitched button in rose; it only closes the panel, so it stays lighter than the products. */}
+            <button type="button" className="btn-stitched cart-empty-cta" onClick={panel.close}>
+              {es.cart.keepShopping}{' '}
+              <span className="btn-stitched-arrow" aria-hidden="true">
+                →
+              </span>
             </button>
             {/* T-E7-19: the place of "Productos sugeridos", which "Lo más nuevo" fills (T-E7-34). */}
             <div className="cart-suggestions">
