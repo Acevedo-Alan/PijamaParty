@@ -34,6 +34,9 @@ export type VerifyAnswer = { status: 'verified' } | { status: 'invalidLink' };
 /** POST /api/account/password-recovery (UC-19, T-E4-03): the same answer whether the email has an account or not. */
 export type RecoveryAnswer = { status: 'requested' } | { status: 'tooManyAttempts' };
 
+/** PUT /api/account/phone (UC-40, T-E4-18): the stored digits, or why not. */
+export type PhoneAnswer = { status: 'changed'; phone: string } | { status: 'invalidPhone' } | { status: 'signedOut' };
+
 /** POST /api/account/password-reset (UC-19, T-E4-03). */
 export type ResetAnswer =
   | { status: 'reset' }
@@ -143,6 +146,25 @@ export async function fetchCustomer(signal?: AbortSignal): Promise<Customer | nu
     throw failed('Account check', response);
   }
   return customer;
+}
+
+/** Sent as typed: the server drops the separators and checks the 8 to 15 digits, as the checkout's phone (UC-13). */
+export async function changePhone(phone: string): Promise<PhoneAnswer> {
+  const { data, response } = await api.PUT('/api/account/phone', { body: { phone } });
+  switch (response.status) {
+    case 200:
+      if (data?.phone === undefined) {
+        throw failed('Phone change', response);
+      }
+      return { status: 'changed', phone: data.phone };
+    case 422:
+      return { status: 'invalidPhone' };
+    case 401:
+    case 403:
+      return { status: 'signedOut' };
+    default:
+      throw failed('Phone change', response);
+  }
 }
 
 export async function requestPasswordReset(email: string): Promise<RecoveryAnswer> {

@@ -186,6 +186,47 @@ class UserTest {
     }
 
     @Test
+    void givenACustomerWithoutAPhone_whenItTypesOneWithSeparators_thenItKeepsTheDigits() {
+        User user = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+        Instant later = NOW.plus(Duration.ofDays(1));
+
+        var outcome = user.changePhone(" +54 (342) 400-0000 ", later);
+
+        assertThat(outcome).isEqualTo(new User.PhoneOutcome.Changed("543424000000"));
+        assertThat(user.phone()).contains("543424000000");
+        assertThat(user.updatedAt()).isEqualTo(later);
+    }
+
+    @Test
+    void givenACustomerWithAPhone_whenItTypesTheSameOne_thenNothingChanges() {
+        User user = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+        user.rememberPhone("3424000000", NOW);
+
+        var outcome = user.changePhone("342 400-0000", NOW.plus(Duration.ofDays(1)));
+
+        assertThat(outcome).isEqualTo(new User.PhoneOutcome.Changed("3424000000"));
+        assertThat(user.updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void givenAPhoneThatIsNot8To15Digits_whenTheCustomerTypesIt_thenItIsInvalidAndNothingChanges() {
+        User user = User.newCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", hash(), NOW);
+        user.rememberPhone("3424000000", NOW);
+
+        for (String phone : new String[] {"123", "1234567", "1234567890123456", "342-ABC-0000", "", "   ", null}) {
+            assertThat(user.changePhone(phone, NOW.plus(Duration.ofDays(1)))).isEqualTo(new User.PhoneOutcome.Invalid());
+        }
+        assertThat(user.phone()).contains("3424000000");
+        assertThat(user.updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void givenTheAdministrator_whenItChangesAPhone_thenItIsRefused() {
+        assertThatThrownBy(() -> administrator().changePhone("3424000000", NOW))
+            .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
     void givenAProvider_whenItCreatesACustomer_thenItHasNoPasswordAndIsVerifiedOnlyIfTheProviderVouched() {
         User google = User.newExternalCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", true, NOW);
         User facebook = User.newExternalCustomer(UserId.of(UUID.randomUUID()), email(), "Ana", false, NOW);

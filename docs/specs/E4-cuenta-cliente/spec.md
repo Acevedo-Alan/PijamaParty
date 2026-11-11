@@ -136,3 +136,20 @@
 - Dado un cliente con pedidos, cuando elimina su cuenta, entonces ya no puede ingresar, sus direcciones no existen y sus pedidos siguen visibles en el backoffice sin vínculo a la cuenta.
 - Dado un cliente, cuando pide descargar sus datos, entonces recibe sus datos y ninguno de otro cliente.
 - Dado un cliente que elimina su cuenta y se vuelve a registrar con el mismo email, cuando ingresa, entonces no ve los pedidos anteriores.
+
+## CU-40 Cambiar mi teléfono
+
+**Actor:** Cliente
+
+**Flujo principal:** en "Datos y acceso", el cliente agrega su teléfono, o cambia el que dejó su última compra, y lo guarda. La próxima compra lo trae precargado.
+
+**Reglas**
+- El teléfono sigue la regla del pedido (CU-13): se ignoran espacios, `+`, guiones y paréntesis, y tiene que quedar de 8 a 15 dígitos.
+- Acá solo se edita el teléfono. El nombre queda como se registró, y el email no cambia (exigiría volver a verificarlo).
+- Una compra sigue dejando su teléfono en la cuenta (CU-21), en lugar del que se guardó acá.
+
+**Criterios de aceptación**
+- Dado un cliente sin teléfono, cuando guarda "342 400-0000", entonces su cuenta queda con "3424000000" y lo ven "Datos y acceso" y el resumen.
+- Dado un cliente, cuando guarda "123", entonces se le dice que el teléfono necesita de 8 a 15 dígitos y no cambia nada.
+- Dado un cliente con un teléfono guardado, cuando abre el checkout, entonces el teléfono aparece precargado.
+- Dado un visitante sin sesión, cuando manda un teléfono, entonces se rechaza.

@@ -243,6 +243,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/phone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add or change the customer's phone
+         * @description Spaces, +, - and parentheses are dropped, as in the checkout; 8 to 15 digits remain and are stored. The next checkout prefills it. Requires the CSRF token.
+         */
+        put: operations["changePhone"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/password": {
         parameters: {
             query?: never;
@@ -2275,6 +2295,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        PhoneRequest: {
+            phone: string;
+        };
+        PhoneResponse: {
+            phone?: string;
+        };
         CreatePasswordRequest: {
             password: string;
         };
@@ -4070,6 +4096,48 @@ export interface operations {
                 };
             };
             /** @description NOT_A_BUYER, or INVALID_REVIEW with the invalid fields */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    changePhone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneRequest"];
+            };
+        };
+        responses: {
+            /** @description The stored phone, digits only */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneResponse"];
+                };
+            };
+            /** @description Not signed in as a customer */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description INVALID_PHONE: not 8 to 15 digits */
             422: {
                 headers: {
                     [name: string]: unknown;

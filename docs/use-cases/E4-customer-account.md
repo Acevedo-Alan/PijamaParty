@@ -1,6 +1,6 @@
 # E4 – Customer account
 
-**Status:** Draft · **Use cases:** UC-19 to UC-22, UC-27 and UC-28 · **Spanish counterpart:** `docs/specs/E4-cuenta-cliente/spec.md`
+**Status:** Draft · **Use cases:** UC-19 to UC-22, UC-27, UC-28 and UC-40 · **Spanish counterpart:** `docs/specs/E4-cuenta-cliente/spec.md`
 
 **Modules involved:** `accounts`, `cart.api`, `ordering.api`, `notifications`, `reviews` (E5), `platform`.
 
@@ -331,3 +331,29 @@ Registering is optional: buying as a guest stays the main flow. An account saves
   - The account row the use case deletes must be there: deleting none (the account vanished in between) answers `NotSignedIn` and publishes nothing.
 - Storefront: "Mi cuenta" gets "Tus datos", with "Descargar mis datos" (it saves the file) and "Eliminar mi cuenta". Deleting opens a confirmation that explains what is deleted and that the orders are kept for the shop's legal duties without the account; it asks for the password when the account has one and offers "Confirmar con Google" or "Confirmar con Facebook" for each linked provider that is enabled. Back from the provider with `social=reauthenticated`, the confirmation opens ready to delete without a password. After the deletion the store goes to the home page with the message "Tu cuenta fue eliminada".
 - The data deletion instructions page that Meta requires is published with the legal pages (T-E4-12).
+
+---
+
+## UC-40 Change my phone
+
+**Actor:** Customer · **Module:** `accounts` · **Stage:** E4 (asked on 2026-11-11, with the account area of E7: T-E7-62)
+
+**Main flow:** in "Datos y acceso" (`/cuenta/datos`), the customer adds its phone, or changes the one its last purchase left (UC-21), and saves it. The next checkout prefills it.
+
+**Business rules**
+- The phone follows the order's rule (UC-13): spaces, `+`, `-` and parentheses are dropped, and what is left must be 8 to 15 digits. It is stored as digits only.
+- Only the phone is editable here. The name stays as registered, and the email cannot change (it would need a new verification).
+- A purchase still leaves its phone on the account (UC-21), replacing the one saved here.
+- The phone is personal data: it is never logged (CLAUDE.md, RNF-24).
+
+**Acceptance criteria**
+- Given a customer without a phone, when it saves "342 400-0000", then its account has "3424000000" and "Datos y acceso" and the summary show it.
+- Given a customer, when it saves "123", then it is told the phone needs 8 to 15 digits and nothing changes.
+- Given a customer with a saved phone, when it opens the checkout, then the phone is prefilled (UC-21).
+- Given a visitor who is not signed in, when it sends a phone, then it is refused.
+
+**Design notes (T-E4-18)**
+- Inbound port `ChangePhone` (`Command(actor, phone)`; sealed `Result`: `Changed(phone)`, `InvalidPhone`, `NotSignedIn`) and `ChangePhoneController`. The service runs as every change of the customer's own account (`CreatePassword`'s way): `CustomerAccountChanges` in a short transaction as the customer, the account row locked first (`LoadSignInMethods.lockByCustomer`), so a purchase leaving its phone at the same time waits; then `LoadUser` and `SaveUser`. The domain owns the rule: `User.changePhone` drops the separators of UC-13 and keeps 8 to 15 digits (`isValidPhone`), returning its sealed `PhoneOutcome`; the change takes the `Clock`'s instant, as `rememberPhone`.
+- `PUT /api/account/phone` (`CUSTOMER` role, as the rest of `/api/account/**`; requires the CSRF token), body `{phone}`: `200` `{phone}` with the stored digits; `422` `INVALID_PHONE`; `401` when nobody is signed in as a customer. Errors as `problem+json`; OpenAPI updated.
+- Row Level Security: the customer updates its own `app_user` row, as the checkout already does for the phone (V29); no migration.
+- Storefront (T-E7-62): the "Teléfono" row of "Datos personales" offers "Agregar" or "Editar"; it opens a phone field (`type="tel"`, `autocomplete="tel"`, "Con código de área") with "Guardar" and "Cancelar" in the card. Saving updates the signed-in customer (`/api/account/me`), so the summary and the checkout show the new phone at once. Escape cancels as "Cancelar" does, and the focus goes back to "Agregar" or "Editar"; while saving, neither can cancel. Leaving the page with an unsaved edit does not warn: it is one field.

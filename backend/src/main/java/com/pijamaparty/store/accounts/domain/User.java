@@ -21,6 +21,24 @@ public final class User {
     public static final int MAX_NAME_LENGTH = 100;
     /** UC-21: digits only, as the order's phone (UC-13) and the check of {@code app_user.phone} (V29). */
     private static final Pattern PHONE = Pattern.compile("[0-9]{8,15}");
+    /** UC-40: what the customer may type between the digits, dropped as the order's phone does (UC-13). */
+    private static final Pattern PHONE_SEPARATORS = Pattern.compile("[\\s+\\-()]");
+
+    /** UC-40: the outcome of the customer setting its own phone. */
+    public sealed interface PhoneOutcome {
+
+        /** @param phone the stored digits: personal data, never logged */
+        record Changed(String phone) implements PhoneOutcome {
+
+            @Override
+            public String toString() {
+                return "Changed[***]";
+            }
+        }
+
+        /** Not 8 to 15 digits once the separators are dropped: nothing changes. */
+        record Invalid() implements PhoneOutcome {}
+    }
 
     private final UserId id;
     private final Email email;
@@ -146,6 +164,26 @@ public final class User {
             phone = newPhone;
             updatedAt = now;
         }
+    }
+
+    /**
+     * UC-40: the customer adds or changes its phone from its account, typed as it likes ("342 400-0000"): the
+     * separators of the order's phone (UC-13) are dropped, and what is left must be 8 to 15 digits. The same phone
+     * changes nothing; a purchase still replaces it afterwards (UC-21).
+     */
+    public PhoneOutcome changePhone(String typed, Instant now) {
+        if (role != UserRole.CUSTOMER) {
+            throw new IllegalStateException("only a customer has a phone");
+        }
+        String digits = PHONE_SEPARATORS.matcher(Objects.requireNonNullElse(typed, "")).replaceAll("");
+        if (!isValidPhone(digits)) {
+            return new PhoneOutcome.Invalid();
+        }
+        if (!digits.equals(phone)) {
+            phone = digits;
+            updatedAt = now;
+        }
+        return new PhoneOutcome.Changed(digits);
     }
 
     public boolean isLockedAt(Instant now) {
