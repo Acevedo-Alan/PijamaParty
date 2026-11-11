@@ -83,6 +83,11 @@
   --card-dot-edge: rgb(58 50 45 / 0.18);
   --wash: rgb(255 255 255 / 0.35);
   --glass: rgb(255 255 255 / 0.94);
+  /* T-E7-57: the stitches of "Descubrí la colección", white over the carousel's veil, then --ink on its white fill */
+  --stitch: rgb(255 255 255 / 0.7);
+  --stitch-on-light: rgb(74 58 58 / 0.45);
+  /* T-E7-59: the rose stitches of "Empezar a comprar", --accent-text at 55 % on a light background */
+  --stitch-accent: rgb(168 63 87 / 0.55);
   --tone-hero: linear-gradient(120deg, #fce4e8 0%, #ffd9c7 55%, #c98782 100%);
   --tone-rose: linear-gradient(135deg, #f7c6cf, #e5a9b6);
   --tone-peach: linear-gradient(135deg, #ffd9c7, #dfaf9e);

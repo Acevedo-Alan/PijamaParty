@@ -103,6 +103,104 @@
     text-decoration: underline;
   }
 
+  /*
+   * T-E7-57, T-E7-59: the stitched button of the store's invitations to browse ("Descubrí la colección", "Empezar a
+   * comprar"): no fill, a fine border and, 4 px inside it, a line of stitches like the hem of a pajama; uppercase
+   * spaced text and an arrow (.btn-stitched-arrow). On hover a fill fades in behind the text (a layer, D-16: opacity),
+   * the text and stitches take the fill's colors and the arrow moves right. Rose by default, on a light background;
+   * a place sets the five colors for another background (the home carousel: white).
+   */
+  .btn-stitched {
+    --stitched-color: var(--accent-text);
+    --stitched-line: var(--stitch-accent);
+    --stitched-fill: var(--accent);
+    --stitched-on-fill: var(--on-accent);
+    --stitched-line-on-fill: var(--stitch);
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 26px;
+    border: 1px solid var(--stitched-color);
+    border-radius: var(--radius-pill);
+    background: none;
+    color: var(--stitched-color);
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  /* The fill of hover, under the stitches */
+  .btn-stitched::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--stitched-fill);
+    opacity: 0;
+    /* Fast: the text changes color at once (D-16 animates no color), so the fill must arrive almost with it. */
+    transition: opacity var(--dur-fast) var(--ease-standard);
+  }
+
+  /* The stitches */
+  .btn-stitched::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    z-index: -1;
+    border: 1px dashed var(--stitched-line);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .btn-stitched-arrow {
+    display: inline-block;
+    letter-spacing: 0;
+  }
+
+  /* Below 340 px the spaced text would not fit on one line inside the pill. */
+  @media (max-width: 339px) {
+    .btn-stitched {
+      gap: 8px;
+      padding: 0 18px;
+      letter-spacing: 0.08em;
+    }
+  }
+
+  @media (hover: hover) {
+    .btn-stitched:hover {
+      color: var(--stitched-on-fill);
+    }
+
+    .btn-stitched:hover::before {
+      opacity: 1;
+    }
+
+    .btn-stitched:hover::after {
+      border-color: var(--stitched-line-on-fill);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .btn-stitched-arrow {
+      transition: transform var(--dur-base) var(--ease-out);
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .btn-stitched:hover .btn-stitched-arrow {
+      transform: translateX(4px);
+    }
+  }
+
   @media (hover: hover) {
     .btn:hover:not(:disabled) {
       background: var(--accent-hover);

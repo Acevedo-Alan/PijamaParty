@@ -6,6 +6,7 @@ import { answer, listed, product, products, queriesTo, stubCatalogApi } from '..
 import { forgetMotionPreference, preferReducedMotion } from '../../test/reducedMotion.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { HeroCarousel, SLIDE_MS } from './HeroCarousel.tsx';
+import homeCss from './home.css?raw';
 
 const PRODUCTS = '/api/catalog/products';
 
@@ -121,6 +122,28 @@ describe('home page (UC-30)', () => {
     expect(screen.queryByRole('region', { name: carousel.label })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: es.home.audienceTitle })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(es.catalog.categoryTitle);
+  });
+});
+
+describe('"Descubrí la colección" as an embroidered outline (T-E7-57)', () => {
+  const rule = (selector: string) =>
+    new RegExp(`${selector.replace(/[.:()]/g, '\\$&')} \\{([^}]*)\\}`).exec(homeCss)?.[1] ?? '';
+
+  it('given the carousel, when it shows, then the button is the stitched one, named by its text alone, its arrow hidden from screen readers', () => {
+    render(<HeroCarousel onDiscover={vi.fn()} />);
+
+    const button = screen.getByRole('link', { name: es.home.discover });
+    expect(button).toHaveClass('btn-stitched');
+    expect(button.querySelector('.btn-stitched-arrow')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('given its styles, when read, then the stitched button takes white over the veil and fills with white, its text and stitches turning --ink', () => {
+    const cta = rule('.hero-cta');
+    expect(cta).toMatch(/--stitched-color: var\(--on-accent\);/);
+    expect(cta).toMatch(/--stitched-line: var\(--stitch\);/);
+    expect(cta).toMatch(/--stitched-fill: var\(--on-accent\);/);
+    expect(cta).toMatch(/--stitched-on-fill: var\(--ink\);/);
+    expect(cta).toMatch(/--stitched-line-on-fill: var\(--stitch-on-light\);/);
   });
 });
 

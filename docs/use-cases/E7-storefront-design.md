@@ -169,6 +169,7 @@ The chibi gave the store a sleepover-in-Japan voice; these three touches carry i
 - The audience cards set the UC-02 URL key `publico` (`mujer`, `hombre`, `infantil`) and keep the sort.
 - `/categoria/{slug}` keeps showing only the listing, without the home sections.
 - The carousel follows D-14.
+- "Descubrí la colección" is an embroidered outline (T-E7-57; the shared `.btn-stitched` of `base.css`, here in white): no fill, a 1 px white border and, 4 px inside it, a line of white stitches (a dashed 1 px line at 70 %), as on the hem of a pajama. Its text is uppercase, 12.5 px, medium (500), spaced 0.14em, white over the carousel's veil (which keeps white text above 4.5:1); the pill is 44 px tall. On hover devices, a white fill fades in behind the text, the text and the stitches turn `--ink`, and the arrow moves 4 px to the right; under reduced motion the fill only fades and the arrow stays.
 - A returning visitor sees "Vistos recientemente" between "Elegí para quién" and "Todos los productos" (T-E7-33, rules in *Changes to UC-03*).
 
 **Acceptance criteria**
@@ -180,6 +181,7 @@ The chibi gave the store a sleepover-in-Japan voice; these three touches carry i
 - Given the carousel on a phone, when it is swiped left, then the next slide shows; swiped right, the previous one; a vertical move scrolls the page (with or without reduced motion).
 - Given the carousel advancing, when the keyboard focus enters it on anything but the pause button, a finger or the mouse holds it, it leaves the screen or the browser tab is hidden, then it waits; when that ends, it resumes with the time the slide had left.
 - Given the carousel advancing, when a slide shows, then the current pill fills over the slide's time and freezes while the carousel waits; under reduced motion there is no fill.
+- Given the home page, when it shows, then "Descubrí la colección" has no fill, a white border with a stitched line inside it, and uppercase spaced text; on a computer, when the pointer rests on it, then it fills with white and its arrow moves right (T-E7-57).
 - Given the home page, a listing, a product page and the checkout, when Lighthouse measures them, then RNF-11 (LCP under 3 s) and RNF-31.4 (accessibility 90 or more) still hold.
 
 **Design notes**

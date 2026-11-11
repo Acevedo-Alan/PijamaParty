@@ -145,6 +145,7 @@ La chibi le dio a la tienda una voz de pijamada japonesa; estos tres toques la l
 - "Todos los productos" lleva debajo del título la línea "Filtrá por talle, color, temporada y más.", como en el prototipo.
 - El banner de personajes ocupa todo el ancho de la página como una franja, con su contenido al ancho de la página, como en el prototipo.
 - El listado de una categoría (`/categoria/{slug}`) no muestra las secciones de la portada.
+- "Descubrí la colección" es un contorno bordado (T-E7-57): sin relleno, con un borde blanco fino y, por dentro, una costura de puntadas blancas, como el ruedo de un pijama. El texto va en mayúsculas espaciadas, en blanco y más liviano que antes. Con mouse, al pasar por encima se rellena de blanco, el texto y las puntadas pasan a oscuro y la flecha avanza un poco; con movimiento reducido, la flecha no se mueve.
 
 **Criterios de aceptación**
 - Dada la portada en un celular, cuando carga, entonces se ven el carrusel, el banner de personajes, "Elegí para quién", la grilla y el contacto, en ese orden, y el pie con el botón de arrepentimiento.

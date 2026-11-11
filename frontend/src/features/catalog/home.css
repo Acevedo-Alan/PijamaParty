@@ -92,19 +92,15 @@
   font-size: 14px;
 }
 
+/* T-E7-57: "Descubrí la colección" is the stitched button of base.css (.btn-stitched) in white over the carousel's
+   veil (white text above 4.5:1 there); on hover it fills with white and the text and stitches turn --ink. */
 .hero-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
+  --stitched-color: var(--on-accent);
+  --stitched-line: var(--stitch);
+  --stitched-fill: var(--on-accent);
+  --stitched-on-fill: var(--ink);
+  --stitched-line-on-fill: var(--stitch-on-light);
   margin-top: 26px;
-  padding: 14px 26px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
 }
 
 /* Pause first in tab order (D-14), at the bottom left; the slide picker at the bottom right */
@@ -344,10 +340,6 @@
 }
 
 @media (hover: hover) {
-  .hero-cta:hover {
-    background: var(--accent-hover);
-  }
-
   .hero-pause:hover {
     background: rgba(74, 58, 58, 0.75);
   }

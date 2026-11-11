@@ -235,14 +235,17 @@ export function HeroCarousel({ onDiscover, slides = HERO_SLIDES }: HeroCarouselP
         <m.p {...entrance[1]}>{es.home.text}</m.p>
         <m.a
           href="#todos-los-productos"
-          className="hero-cta"
+          className="btn-stitched hero-cta"
           {...entrance[2]}
           onClick={(event) => {
             event.preventDefault();
             onDiscover();
           }}
         >
-          {es.home.discover} <span aria-hidden="true">→</span>
+          {es.home.discover}{' '}
+          <span className="btn-stitched-arrow" aria-hidden="true">
+            →
+          </span>
         </m.a>
       </div>
     </section>
