@@ -221,6 +221,21 @@ La chibi le dio a la tienda una voz de pijamada japonesa; estos tres toques la l
 - Dada una dirección que no existe, cuando se abre, entonces la chibi tiene el mapa y el "?" arriba de "No encontramos esta página" (T-E7-49).
 - Dado un cliente sin pedidos, cuando abre "Mis pedidos", entonces la chibi tiene la bolsita vacía arriba de "Todavía no hiciste ningún pedido." (T-E7-49).
 
+## El área de la cuenta (T-E7-60, T-E7-61, T-E7-62; cambios a CU-20, CU-22, CU-27 y CU-28)
+
+Quien entra a "Mi cuenta" busca sobre todo sus pedidos y sus direcciones. Hasta ahora `/cuenta` mostraba solo las formas de ingresar y, como acción más visible, un botón rojo relleno "Eliminar mi cuenta", sin llevar a los pedidos ni a las direcciones. Las páginas de la cuenta pasan a ser un área con su propia navegación, un resumen primero y la privacidad plegada al final.
+
+**Reglas**
+- **El área (T-E7-60):** el resumen (`/cuenta`), "Mis pedidos" y el detalle de cada pedido, "Mis direcciones" y "Datos y acceso" (`/cuenta/datos`) comparten un diseño. En la computadora, una columna a la izquierda con un círculo con las iniciales, el nombre y el email, y los enlaces Resumen, Mis pedidos, Mis direcciones y Datos y acceso, cada uno con un ícono y el actual marcado en rosa (el detalle de un pedido marca Mis pedidos); abajo, "Salir". En el celular, los mismos enlaces son una fila de píldoras debajo del encabezado, que se desplaza de costado, con "Salir" al final. El menú del encabezado sigue igual; "Mi cuenta" abre el resumen.
+- **El resumen (T-E7-61):** "Hola, {nombre}" y tres bloques: "Pedidos recientes" (los 3 últimos, con número, estado, fecha y total, y "Ver todos"), "Dirección principal" (con "Administrar direcciones") y "Tus datos" (nombre, email y teléfono, con "Datos y acceso"). Sin pedidos o sin direcciones, cada bloque lo dice y ofrece su enlace. Cada bloque carga y falla por su cuenta.
+- **Datos y acceso (T-E7-62):** lo que antes mostraba `/cuenta`, reordenado, cada bloque en una tarjeta blanca: "Datos personales" (nombre y email, sin editar, y el teléfono con "Agregar" o "Editar", CU-40), "Formas de ingresar" (con una bajada que dice lo que hay: si no hay cuentas para vincular, "Así ingresás a tu cuenta.") con un "Cambiar contraseña" que manda a tu propio email el enlace de recuperación de siempre, y "Privacidad" al final, plegada: descargar tus datos y "Eliminar mi cuenta" como un texto discreto en rojo, que abre la misma confirmación de antes. Al volver de vincular una cuenta o de confirmar con ella, la tienda lleva a esta página con su aviso.
+
+**Criterios de aceptación**
+- Dado un cliente en la computadora, cuando abre cualquier página de la cuenta, entonces ve sus iniciales, su nombre, su email y los cuatro enlaces con el actual marcado, y "Salir" cierra la sesión (T-E7-60).
+- Dado un cliente con 5 pedidos y una dirección principal, cuando abre "Mi cuenta", entonces ve los 3 últimos pedidos, la dirección principal y sus datos, cada uno con su enlace (T-E7-61).
+- Dado un cliente con contraseña, cuando toca "Cambiar contraseña", entonces se le manda el email de recuperación y la página lo dice (T-E7-62).
+- Dada "Datos y acceso", cuando se abre, entonces "Privacidad" está cerrada y "Eliminar mi cuenta" no es un botón relleno; al abrirla y tocarlo, aparece la confirmación de siempre (T-E7-62).
+
 ## Cambios a CU-19 (ingresar y crear cuenta)
 
 **Reglas nuevas**

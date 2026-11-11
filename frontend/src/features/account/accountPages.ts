@@ -1,4 +1,6 @@
 /** The customer account pages, loaded as one chunk the first time a /cuenta route opens (routes.tsx, T-E6-02). */
+export { AccountArea } from './AccountArea.tsx';
+export { AccountSummaryPage } from './AccountSummaryPage.tsx';
 export { AddressBookPage } from './AddressBookPage.tsx';
 export { CompleteEmailPage } from './CompleteEmailPage.tsx';
 export { ConfirmLinkPage } from './ConfirmLinkPage.tsx';

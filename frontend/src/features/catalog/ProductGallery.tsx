@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { BlurredImage } from '../../components/BlurredImage.tsx';
+import { keepInSight } from '../../components/keepInSight.ts';
 import { es } from '../../i18n/es.ts';
 import type { DetailImage } from './productDetailApi.ts';
 import { ProductLightbox } from './ProductLightbox.tsx';
@@ -16,20 +17,6 @@ interface ProductGalleryProps {
   name: string;
   /** Already ordered: the photos of the picked color come first (UC-03). */
   images: DetailImage[];
-}
-
-/** Scrolls the strip of thumbnails just enough to show the picked one, never the page. */
-function keepInSight(list: HTMLElement, item: HTMLElement) {
-  if (item.offsetLeft < list.scrollLeft) {
-    list.scrollLeft = item.offsetLeft;
-  } else if (item.offsetLeft + item.offsetWidth > list.scrollLeft + list.clientWidth) {
-    list.scrollLeft = item.offsetLeft + item.offsetWidth - list.clientWidth;
-  }
-  if (item.offsetTop < list.scrollTop) {
-    list.scrollTop = item.offsetTop;
-  } else if (item.offsetTop + item.offsetHeight > list.scrollTop + list.clientHeight) {
-    list.scrollTop = item.offsetTop + item.offsetHeight - list.clientHeight;
-  }
 }
 
 /**

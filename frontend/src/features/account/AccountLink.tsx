@@ -13,6 +13,23 @@ export const RECOVER_PATH = '/cuenta/recuperar';
 export const ADDRESSES_PATH = '/cuenta/direcciones';
 export const ORDERS_PATH = '/cuenta/pedidos';
 export const ACCOUNT_PATH = '/cuenta';
+/** "Datos y acceso" (T-E7-62): the personal data, the sign-in methods and the privacy actions. */
+export const DATA_PATH = '/cuenta/datos';
+/**
+ * The pages of the account area (T-E7-60): the summary, "Datos y acceso", the address book, the orders and each
+ * order's detail; not the sign-in, registration or link pages under /cuenta.
+ */
+export function isAccountAreaPath(pathname: string): boolean {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  return (
+    path === ACCOUNT_PATH ||
+    path === DATA_PATH ||
+    path === ADDRESSES_PATH ||
+    path === ORDERS_PATH ||
+    path.startsWith(`${ORDERS_PATH}/`)
+  );
+}
+
 /** The page of the verification link; the token comes in the fragment, which never reaches a server. */
 export const VERIFY_PATH = '/cuenta/verificar';
 /** The page of the reset link; the token comes in the fragment, which never reaches a server. */
@@ -27,15 +44,20 @@ interface ChooseProps {
   onChoose?: () => void;
 }
 
-/** The greeting, "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta" (UC-27) and "Salir" (UC-19). */
-function SignedInLinks({ customer, onChoose }: ChooseProps & { customer: Customer }) {
+/** "Salir" (UC-19): signs out and forgets the account, as the header's list and the account area do (T-E7-60). */
+export function useSignOut() {
   const queryClient = useQueryClient();
-  const exit = useMutation({
+  return useMutation({
     mutationFn: signOut,
     onSettled: () => {
       forgetAccount(queryClient);
     },
   });
+}
+
+/** The greeting, "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta" (UC-27) and "Salir" (UC-19). */
+function SignedInLinks({ customer, onChoose }: ChooseProps & { customer: Customer }) {
+  const exit = useSignOut();
 
   return (
     <>

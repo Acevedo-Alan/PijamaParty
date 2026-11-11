@@ -524,6 +524,42 @@ The shared `Chibi` (T-E7-48) joins three screens with nothing to show, 120 px an
 
 ---
 
+## The account area (T-E7-60, T-E7-61, T-E7-62; changes to UC-20, UC-22, UC-27 and UC-28)
+
+A customer opens "Mi cuenta" to see its orders and its addresses. Until now `/cuenta` showed only the sign-in methods and, as its most visible action, a filled red "Eliminar mi cuenta", with no way to the orders or the addresses but the header's list. The account pages become one area with its own navigation, a summary first, and the privacy actions folded at the end.
+
+**Business rules**
+- **The area (T-E7-60):** `/cuenta` (summary), `/cuenta/pedidos` and each order's detail, `/cuenta/direcciones` and `/cuenta/datos` share one layout. From 860 px a sidebar (240 px) on the left holds, in one row, a circle with the customer's initials (the first letters of its name's first two words, on `--rose-soft` in `--accent-text`; decorative) and, beside it, its name in bold with its email under it, smaller and in `--ink-soft`, the links "Resumen", "Mis pedidos", "Mis direcciones" and "Datos y acceso", each with a small outline icon and the current one marked (`aria-current="page"`, a `--rose-soft` pill in `--accent-text`; an order's detail marks "Mis pedidos"), and, apart from them (20 px of space and a `--line-strong` line), "Salir", which signs out as the header's does. The page's content is on the right, up to 720 px. Below 860 px the same links are a row of pills under the header, before the page's title, scrolling sideways when they do not fit (with no visible scrollbar, and brought round so the current one is in sight), with "Salir" last; there is no sidebar, initials or email. Moving between the sections keeps the navigation in place, its scroll too: only the new section enters, as a new page does (T-E7-17). A visitor who is not signed in goes to sign in, as before. The header's list keeps its links; "Mi cuenta" opens the summary.
+- **The summary (T-E7-61), `/cuenta`:** the title "Hola, {first name}" and three blocks:
+  - "Pedidos recientes": the 3 newest orders (number, status, date and total, each opening its detail) and "Ver todos →" to `/cuenta/pedidos`; without orders, "Todavía no hiciste ningún pedido." and "Ir a la tienda".
+  - "Dirección principal": the primary address (UC-20) and "Administrar direcciones →"; without addresses, "Todavía no guardaste ninguna dirección." and "Agregar una dirección →", both to `/cuenta/direcciones`.
+  - "Tus datos": name, email and phone (when there is none, "Todavía no cargaste tu teléfono", which "Datos y acceso" can add, UC-40) and "Datos y acceso →".
+  Each block loads and fails on its own, with "Reintentar".
+- **"Datos y acceso" (T-E7-62), `/cuenta/datos`:** what `/cuenta` showed, reordered:
+  - Every block is a white card with a fine border (the sign-in methods' card): "Datos personales" too, never text loose on the page.
+  - "Datos personales": name and email, read only, and the phone, with "Agregar" or "Editar" at the right of its row (UC-40, T-E4-18): it opens the phone field in the card, with "Guardar" and "Cancelar".
+  - "Formas de ingresar", as in UC-27. Its intro says what is there: "Podés ingresar con tu contraseña o con las cuentas que vincules." when a provider is shown, and "Así ingresás a tu cuenta." when only the password is (no provider enabled nor linked). With a password, its card gets "Cambiar contraseña →": it sends the UC-19 recovery email to the account's own email (the same request, answer and limits as "¿Olvidaste tu contraseña?"), and says "Te enviamos un email a {email} con un enlace para elegir una contraseña nueva. Vence en 30 minutos."; too many attempts say so. Without a password, "Crear contraseña" as before.
+  - "Privacidad", last and folded (closed by default; its toggle is an `h2`, so it is in the page's outline while closed, and the state is not kept in the URL): the UC-28 intro, "Descargar mis datos" (secondary button) and "Eliminar mi cuenta" as a quiet text button in `--danger`, which opens the UC-28 confirmation unchanged (the password, or the linked account). Coming back from confirming with a linked account (`social=reauthenticated`) opens it.
+  - The backend still sends the browser back to `/cuenta?social=…` after linking an account or confirming with it (UC-27, UC-28): `/cuenta` with a `social` value goes to `/cuenta/datos` with the same value, replacing the history entry, and the notice shows there.
+
+**Acceptance criteria**
+- Given a signed-in customer on a computer, when any account page opens, then the sidebar shows its initials, name and email and the four links with the current one marked, and "Salir" signs out (T-E7-60).
+- Given an order's detail, when it opens, then "Mis pedidos" is the marked link (T-E7-60).
+- Given a customer with 5 orders and a primary address, when `/cuenta` opens, then it shows the 3 newest orders, the primary address and its data, each with its link (T-E7-61).
+- Given a customer without orders or addresses, when `/cuenta` opens, then each block says so and offers its link (T-E7-61).
+- Given a customer with a password, when "Cambiar contraseña" is pressed on `/cuenta/datos`, then the recovery email is requested for its own email and the page says it was sent (T-E7-62).
+- Given `/cuenta/datos`, when it opens, then "Privacidad" is closed and "Eliminar mi cuenta" is not a filled button; when it is opened and "Eliminar mi cuenta" pressed, then the UC-28 confirmation shows (T-E7-62).
+- Given `/cuenta?social=linked`, when it opens, then the browser is on `/cuenta/datos?social=linked` with the linked notice (T-E7-62).
+
+**Design notes**
+- `AccountArea` (a pathless layout route over the four paths, in the account chunk) renders the `<main>`, the navigation and an `<Outlet>`; the account pages render their content without a `<main>` of their own. `AccountSummaryPage` is the summary and `MyAccountPage` moves to `/cuenta/datos` (`DATA_PATH`).
+- The summary reuses the queries of "Mis pedidos" (`MY_ORDERS_KEY`, its first page) and of the address book (`ADDRESSES_KEY`), so opening those pages afterwards shows them at once; the data come from `useCustomer`.
+- `Collapsible` gains `defaultOpen` and `heading` (the toggle inside an `h2` or `h3`).
+- `StoreLayout` keys the page entrance once for all the area's paths (`isAccountAreaPath`), and `AccountArea` enters its own content by path (`PageEntrance`, moved to `components/motion`), so the navigation is not mounted again. A page that focuses something of its own on arrival (the notice of a provider's return) keeps that focus; otherwise the page's heading takes it (WCAG 2.4.3).
+- The summary's blocks start their requests beside the customer's own, not after it.
+
+---
+
 ## Changes to UC-19 (sign-in, registration and password pages)
 
 The header no longer has "Crear cuenta" (UC-31), so the sign-in page carries it, and the sign-in, registration, password recovery and reset pages are redesigned (T-E7-23). The flows, messages and API of UC-19 and UC-27 do not change.

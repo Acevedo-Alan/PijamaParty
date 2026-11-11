@@ -5,6 +5,7 @@ import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { answer, NO_CART, withHeader } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
+import { DATA_PATH } from './AccountLink.tsx';
 import { saveFile } from './fileDownload.ts';
 import { goToProvider } from './providerRedirect.ts';
 
@@ -58,6 +59,11 @@ function stubMethods(initial: Methods, more: Record<string, unknown> = {}) {
   return methods;
 }
 
+/** T-E7-62: "Privacidad", folded at the end of "Datos y acceso", opened to reach the UC-28 actions. */
+async function openPrivacy() {
+  await userEvent.click(await screen.findByRole('button', { name: messages.privacyTitle }));
+}
+
 /** The card of a sign-in method, by its heading text. */
 async function card(name: string): Promise<HTMLElement> {
   const items = await screen.findAllByRole('listitem');
@@ -89,8 +95,12 @@ describe('my account (UC-27, T-E4-15)', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: es.account.menu }));
     await userEvent.click(await screen.findByRole('link', { name: es.account.myAccountLink }));
-
     expect(router.state.location.pathname).toBe('/cuenta');
+    // T-E7-60: the summary's navigation leads to Datos y acceso, where the sign-in methods are (T-E7-62).
+    const area = await screen.findByRole('navigation', { name: es.account.area.navigation });
+    await userEvent.click(within(area).getByRole('link', { name: es.account.area.data }));
+
+    expect(router.state.location.pathname).toBe(DATA_PATH);
     expect(await screen.findByText(messages.passwordMissing)).toBeInTheDocument();
     expect(within(await card('Google')).getByText(messages.linkedAs('ana@gmail.com'))).toBeInTheDocument();
     const facebook = await card('Facebook');
@@ -105,7 +115,7 @@ describe('my account (UC-27, T-E4-15)', () => {
   it('given a customer whose only sign-in method is Google, when it unlinks it, then it is refused and offered to create a password', async () => {
     stubMethods({ hasPassword: false, identities: [GOOGLE] });
     const remove = vi.spyOn(api, 'DELETE').mockResolvedValue(answer(409, { problem: 'LAST_SIGN_IN_METHOD' }));
-    renderRoute('/cuenta');
+    renderRoute(DATA_PATH);
 
     await userEvent.click(
       await screen.findByRole('button', {
@@ -128,7 +138,7 @@ describe('my account (UC-27, T-E4-15)', () => {
       methods.current = { ...methods.current, hasPassword: true };
       return Promise.resolve(answer(204));
     }) as never);
-    renderRoute('/cuenta');
+    renderRoute(DATA_PATH);
 
     await userEvent.click(await screen.findByRole('button', { name: messages.createPassword }));
     await userEvent.type(screen.getByLabelText(messages.newPassword), 'ocho1234');
@@ -145,7 +155,7 @@ describe('my account (UC-27, T-E4-15)', () => {
   it('given a short password, when the customer creates it, then it is told why and stays on the form', async () => {
     stubMethods({ hasPassword: false, identities: [GOOGLE] });
     vi.spyOn(api, 'PUT').mockResolvedValue(answer(422, { problem: 'PASSWORD_TOO_SHORT' }));
-    renderRoute('/cuenta');
+    renderRoute(DATA_PATH);
 
     await userEvent.click(await screen.findByRole('button', { name: messages.createPassword }));
     await userEvent.type(screen.getByLabelText(messages.newPassword), 'corta');
@@ -161,7 +171,7 @@ describe('my account (UC-27, T-E4-15)', () => {
       methods.current = { hasPassword: true, identities: [] };
       return Promise.resolve(answer(204));
     }) as never);
-    renderRoute('/cuenta');
+    renderRoute(DATA_PATH);
 
     await userEvent.click(
       await screen.findByRole('button', {
@@ -177,7 +187,7 @@ describe('my account (UC-27, T-E4-15)', () => {
   it('given a provider not linked, when the customer links it, then the session is told first and then it goes to the provider', async () => {
     stubMethods({ hasPassword: true, identities: [] });
     const post = vi.spyOn(api, 'POST').mockResolvedValue(answer(204));
-    renderRoute('/cuenta');
+    renderRoute(DATA_PATH);
 
     await userEvent.click(
       await screen.findByRole('button', {
@@ -196,7 +206,7 @@ describe('my account (UC-27, T-E4-15)', () => {
   it('given the request to link fails, when the customer links a provider, then it stays and is told', async () => {
     stubMethods({ hasPassword: true, identities: [] });
     vi.spyOn(api, 'POST').mockResolvedValue(answer(500));
-    renderRoute('/cuenta');
+    renderRoute(DATA_PATH);
 
     await userEvent.click(
       await screen.findByRole('button', {
@@ -237,8 +247,9 @@ describe('my data (UC-28, T-E4-16)', () => {
     const file = new Blob(['{}'], { type: 'application/json' });
     stubMethods({ hasPassword: true, identities: [] }, { '/api/account/data': answer(200, file) });
     const get = vi.mocked(api.GET);
-    renderRoute('/cuenta');
+    renderRoute(DATA_PATH);
 
+    await openPrivacy();
     await userEvent.click(await screen.findByRole('button', { name: messages.download }));
 
     await waitFor(() => {
@@ -250,8 +261,9 @@ describe('my data (UC-28, T-E4-16)', () => {
   it('given a customer with a password, when it deletes its account with it, then it goes home and is told', async () => {
     stubMethods({ hasPassword: true, identities: [] });
     const remove = vi.spyOn(api, 'DELETE').mockResolvedValue(answer(204));
-    const { router } = renderRoute('/cuenta');
+    const { router } = renderRoute(DATA_PATH);
 
+    await openPrivacy();
     await userEvent.click(await screen.findByRole('button', { name: messages.deleteAccount }));
     expect(screen.getByText(messages.deleteOrders)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(messages.deletePassword), 'ocho1234');
@@ -267,21 +279,23 @@ describe('my data (UC-28, T-E4-16)', () => {
   it('given a wrong password, when the customer deletes its account, then it is told and stays', async () => {
     stubMethods({ hasPassword: true, identities: [] });
     vi.spyOn(api, 'DELETE').mockResolvedValue(answer(403, { problem: 'WRONG_PASSWORD' }));
-    const { router } = renderRoute('/cuenta');
+    const { router } = renderRoute(DATA_PATH);
 
+    await openPrivacy();
     await userEvent.click(await screen.findByRole('button', { name: messages.deleteAccount }));
     await userEvent.type(screen.getByLabelText(messages.deletePassword), 'no-es-esta');
     await userEvent.click(screen.getByRole('button', { name: messages.deleteWithPassword }));
 
     expect(await screen.findByText(messages.wrongPassword)).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/cuenta');
+    expect(router.state.location.pathname).toBe(DATA_PATH);
   });
 
   it('given a customer without a password, when it deletes its account, then it confirms with its provider first', async () => {
     stubMethods({ hasPassword: false, identities: [GOOGLE] });
     const post = vi.spyOn(api, 'POST').mockResolvedValue(answer(204));
-    renderRoute('/cuenta');
+    renderRoute(DATA_PATH);
 
+    await openPrivacy();
     await userEvent.click(await screen.findByRole('button', { name: messages.deleteAccount }));
     expect(screen.queryByLabelText(messages.deletePassword)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: messages.confirmWith('Google') }));

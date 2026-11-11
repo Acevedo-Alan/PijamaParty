@@ -807,14 +807,63 @@ export const es = {
     addressesLink: 'Mis direcciones',
     ordersLink: 'Mis pedidos',
     myAccountLink: 'Mi cuenta',
+    /** T-E7-60: the account area's navigation, a sidebar on a computer and a row of pills on a phone. */
+    area: {
+      navigation: 'Secciones de tu cuenta',
+      summary: 'Resumen',
+      orders: 'Mis pedidos',
+      addresses: 'Mis direcciones',
+      data: 'Datos y acceso',
+    },
+    /** T-E7-61: the summary at /cuenta. */
+    summary: {
+      recentOrders: 'Pedidos recientes',
+      allOrders: 'Ver todos',
+      primaryAddress: 'Dirección principal',
+      manageAddresses: 'Administrar direcciones',
+      noAddresses: 'Todavía no guardaste ninguna dirección.',
+      addAddress: 'Agregar una dirección',
+      yourData: 'Tus datos',
+      dataAndAccess: 'Datos y acceso',
+      name: 'Nombre',
+      phone: 'Teléfono',
+      noPhone: 'Todavía no cargaste tu teléfono.',
+      loading: 'Cargando…',
+      ordersError: 'No pudimos cargar tus pedidos.',
+      addressesError: 'No pudimos cargar tus direcciones.',
+      retry: 'Reintentar',
+    },
     /** UC-31 (T-E7-02): the header's entries; with a session, "Mi cuenta" opens the list of the account links. */
     registerLink: 'Crear cuenta',
     menu: 'Mi cuenta',
     /** UC-27 (T-E4-15): how the customer signs in, linking and unlinking providers and creating a password. */
     myAccount: {
-      title: 'Mi cuenta',
+      /** T-E7-62: the page moved to /cuenta/datos; "Mi cuenta" is the summary now. */
+      title: 'Datos y acceso',
+      personalTitle: 'Datos personales',
+      /** T-E7-62: the UC-19 recovery email, sent to the account's own email. */
+      changePassword: 'Cambiar contraseña',
+      changingPassword: 'Enviando…',
+      changePasswordSent: (email: string) =>
+        `Te enviamos un email a ${email} con un enlace para elegir una contraseña nueva. Vence en 30 minutos.`,
+      changePasswordError: 'No pudimos enviar el email. Probá de nuevo.',
+      privacyTitle: 'Privacidad',
+      /** UC-40 (T-E4-18): the phone, added or changed in its row of "Datos personales". */
+      addPhone: 'Agregar',
+      editPhone: 'Editar',
+      addPhoneLabel: 'Agregar teléfono',
+      editPhoneLabel: 'Editar teléfono',
+      phoneField: 'Teléfono',
+      phoneHint: 'Con código de área, por ejemplo 342 400-0000.',
+      savePhone: 'Guardar',
+      savingPhone: 'Guardando…',
+      phoneSaved: 'Guardamos tu teléfono.',
+      invalidPhone: 'Revisá el teléfono: tiene que tener de 8 a 15 números, con el código de área.',
+      phoneError: 'No pudimos guardar el teléfono. Probá de nuevo.',
       methodsTitle: 'Formas de ingresar',
       methodsIntro: 'Podés ingresar con tu contraseña o con las cuentas que vincules.',
+      /** T-E7-62: when no provider is enabled nor linked, only the password shows. */
+      methodsIntroPasswordOnly: 'Así ingresás a tu cuenta.',
       loading: 'Cargando…',
       loadError: 'No pudimos cargar tus formas de ingresar.',
       retry: 'Reintentar',

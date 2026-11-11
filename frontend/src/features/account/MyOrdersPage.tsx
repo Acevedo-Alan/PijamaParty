@@ -33,7 +33,7 @@ export function MyOrdersPage() {
   const list = orders.data?.pages.flatMap((page) => page?.orders ?? []);
 
   return (
-    <main className="wrap account-page my-orders">
+    <div className="account-page my-orders">
       <title>{`${messages.title} | ${es.store.name}`}</title>
       <h1>{messages.title}</h1>
       {orders.isPending && <NightLoader>{messages.loading}</NightLoader>}
@@ -84,6 +84,6 @@ export function MyOrdersPage() {
           {messages.moreError}
         </p>
       )}
-    </main>
+    </div>
   );
 }

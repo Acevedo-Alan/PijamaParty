@@ -5,7 +5,8 @@ import { es } from '../../i18n/es.ts';
 import type { AccountDeletedState } from './AccountDeletedNotice.tsx';
 import { AccountDataSection } from './AccountDataSection.tsx';
 import { SIGN_IN_PATH } from './AccountLink.tsx';
-import { signInWithProviderUrl, type SignInProvider } from './accountApi.ts';
+import { Collapsible } from '../../components/Collapsible.tsx';
+import { requestPasswordReset, signInWithProviderUrl, type SignInProvider } from './accountApi.ts';
 import {
   SIGN_IN_METHODS_KEY,
   createPassword,
@@ -17,7 +18,8 @@ import {
 } from './signInMethodsApi.ts';
 import { forgetAccount } from './forgetAccount.ts';
 import { goToProvider } from './providerRedirect.ts';
-import { PROVIDER_NAMES, useSignInProviders } from './SocialSignIn.tsx';
+import { PROVIDER_NAMES, useSignInProvidersState } from './SocialSignIn.tsx';
+import { PersonalDataCard } from './PersonalDataCard.tsx';
 import { CUSTOMER_KEY, useCustomer } from './useCustomer.ts';
 import './account.css';
 
@@ -49,16 +51,17 @@ function socialNotice(social: string | null): { text: string; problem: boolean }
 }
 
 /**
- * UC-27 (T-E4-15): "Mi cuenta" at /cuenta. It shows how the customer signs in: its password, or "Crear contraseña"
- * while it has none, and each provider, linked ("Desvincular", after a confirmation) or not ("Vincular", only for the
- * enabled providers). The last way in cannot be unlinked: the page says so and offers to create a password. UC-28
- * (T-E4-16): "Tus datos" downloads the customer's data and deletes its account. A visitor who is not signed in goes to
- * sign in.
+ * "Datos y acceso" at /cuenta/datos (T-E7-62; "Mi cuenta" at /cuenta before it). Its personal data, read only. UC-27
+ * (T-E4-15): how the customer signs in: its password, with "Cambiar contraseña" (the UC-19 recovery email to its own
+ * email), or "Crear contraseña" while it has none, and each provider, linked ("Desvincular", after a confirmation) or
+ * not ("Vincular", only for the enabled providers). The last way in cannot be unlinked: the page says so and offers to
+ * create a password. UC-28 (T-E4-16): "Privacidad", folded at the end, downloads the customer's data and deletes its
+ * account. A visitor who is not signed in goes to sign in.
  */
 export function MyAccountPage() {
   const customer = useCustomer();
   const queryClient = useQueryClient();
-  const enabled = useSignInProviders();
+  const { providers: enabled, known: providersKnown } = useSignInProvidersState();
   const [searchParams] = useSearchParams();
   const methods = useQuery({
     queryKey: SIGN_IN_METHODS_KEY,
@@ -136,6 +139,20 @@ export function MyAccountPage() {
     },
   });
 
+  const changePassword = useMutation({
+    mutationFn: requestPasswordReset,
+    onSuccess: (answer, email) => {
+      setNotice(
+        answer.status === 'requested'
+          ? { text: messages.changePasswordSent(email), problem: false }
+          : { text: es.account.tooManyAttempts, problem: true },
+      );
+    },
+    onError: () => {
+      setNotice({ text: messages.changePasswordError, problem: true });
+    },
+  });
+
   if (deleted) {
     // Before the signed-out check: the deletion forgets the customer, and the page goes home, not to sign in.
     const state: AccountDeletedState = { accountDeleted: true };
@@ -153,16 +170,10 @@ export function MyAccountPage() {
   const busy = unlink.isPending || link.isPending;
 
   return (
-    <main className="wrap account-page my-account">
+    <div className="account-page my-account">
       <title>{`${messages.title} | ${es.store.name}`}</title>
       <h1>{messages.title}</h1>
-      {customer !== undefined && (
-        <p className="account-intro">
-          {customer.name}
-          <br />
-          {customer.email}
-        </p>
-      )}
+      {customer !== undefined && <PersonalDataCard customer={customer} onSignedOut={signedOut} />}
       <p
         className={notice?.problem === true ? 'address-notice account-error' : 'address-notice'}
         ref={noticeRef}
@@ -172,7 +183,13 @@ export function MyAccountPage() {
         {notice?.text}
       </p>
       <h2 className="my-account-heading">{messages.methodsTitle}</h2>
-      <p className="account-intro">{messages.methodsIntro}</p>
+      {/* T-E7-62: the intro says what is there; without a provider to link, only the password shows. */}
+      {/* Only once the methods and the providers are known: otherwise the text for none would show first and change. */}
+      {current !== undefined && providersKnown && (
+        <p className="account-intro">
+          {shown.length === 0 ? messages.methodsIntroPasswordOnly : messages.methodsIntro}
+        </p>
+      )}
       {methods.isError && (
         <div className="address-load-error" role="alert">
           <p>{messages.loadError}</p>
@@ -194,6 +211,23 @@ export function MyAccountPage() {
           <li className="address-card">
             <p className="address-line">{messages.password}</p>
             <p className="address-place">{current.hasPassword ? messages.passwordSet : messages.passwordMissing}</p>
+            {current.hasPassword && customer !== undefined && (
+              // T-E7-62: the UC-19 recovery email, to the account's own email; the link chooses the new password.
+              <div className="address-actions">
+                <button
+                  type="button"
+                  className="address-action"
+                  disabled={changePassword.isPending}
+                  onClick={() => {
+                    setNotice(null);
+                    changePassword.mutate(customer.email);
+                  }}
+                >
+                  {changePassword.isPending ? messages.changingPassword : messages.changePassword}{' '}
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
+            )}
             {!current.hasPassword &&
               (creatingPassword ? (
                 <PasswordForm
@@ -292,18 +326,26 @@ export function MyAccountPage() {
         </ul>
       )}
       {current !== undefined && (
-        <AccountDataSection
-          methods={current}
-          providers={PROVIDERS.filter((provider) => enabled.includes(provider) && linked(provider) !== undefined)}
-          reauthenticated={searchParams.get('social') === 'reauthenticated'}
-          onSignedOut={signedOut}
-          onDeleted={() => {
-            setDeleted(true);
-            forgetAccount(queryClient);
-          }}
-        />
+        // T-E7-62: last and folded; open when coming back from confirming with a linked account to finish deleting.
+        <Collapsible
+          title={messages.privacyTitle}
+          className="account-privacy"
+          heading="h2"
+          defaultOpen={searchParams.get('social') === 'reauthenticated'}
+        >
+          <AccountDataSection
+            methods={current}
+            providers={PROVIDERS.filter((provider) => enabled.includes(provider) && linked(provider) !== undefined)}
+            reauthenticated={searchParams.get('social') === 'reauthenticated'}
+            onSignedOut={signedOut}
+            onDeleted={() => {
+              setDeleted(true);
+              forgetAccount(queryClient);
+            }}
+          />
+        </Collapsible>
       )}
-    </main>
+    </div>
   );
 }
 

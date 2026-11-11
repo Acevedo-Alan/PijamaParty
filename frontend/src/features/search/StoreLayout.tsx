@@ -1,10 +1,10 @@
-import { m } from 'motion/react';
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { NavigationType, Outlet, useLocation, useNavigationType } from 'react-router';
 import { es } from '../../i18n/es.ts';
-import { useEntranceMotion } from '../../components/motion/useActionMotion.ts';
+import { PageEntrance } from '../../components/motion/PageEntrance.tsx';
 import { Analytics } from '../analytics/ConsentBanner.tsx';
 import { AccountDeletedNotice } from '../account/AccountDeletedNotice.tsx';
+import { isAccountAreaPath } from '../account/AccountLink.tsx';
 import { CartPanelOnDemand } from '../cart/CartPanelOnDemand.tsx';
 import { CartPanelProvider } from '../cart/CartPanelContext.tsx';
 import { WhatsAppButton } from '../help/WhatsAppButton.tsx';
@@ -14,14 +14,6 @@ import { BenefitsBar } from './BenefitsBar.tsx';
 import { SiteFooter } from './SiteFooter.tsx';
 import { SiteHeader } from './SiteHeader.tsx';
 import './search.css';
-
-/**
- * A page of the store, which rises and fades in when the visitor moves to it (T-E7-17). The store's first page shows
- * in place: Motion's features load after the first paint, so its largest paint is never delayed (RNF-11).
- */
-function PageEntrance({ children }: { children: ReactNode }) {
-  return <m.div {...useEntranceMotion()}>{children}</m.div>;
-}
 
 /** The page's heading, or its main region while the heading is not there yet. */
 function pageTarget(): HTMLElement | null {
@@ -36,12 +28,20 @@ function focusPage() {
   }
 }
 
-/** WCAG 2.4.3: after moving to another page (not on the first one), focus starts at the page, not at <body>. */
+/**
+ * WCAG 2.4.3: after moving to another page (not on the first one), focus starts at the page, not at <body>. A page
+ * that already put the focus on something of its own (a notice it shows on arrival, as "Datos y acceso" does after a
+ * provider's return, T-E7-62) keeps it: its effect runs before this one.
+ */
 function useFocusPageOnNavigation(pathname: string) {
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
       first.current = false;
+      return;
+    }
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement && focused !== document.body && focused.closest('main') !== null) {
       return;
     }
     focusPage();
@@ -104,8 +104,9 @@ export function StoreLayout() {
       {/* Before the page, so a returning visitor's tools are loaded when the page sends its first events. */}
       <Analytics />
       <AccountDeletedNotice />
-      {/* A new path is a new page, which enters; a new query on the same page (filters, sort) is not. */}
-      <PageEntrance key={pathname}>
+      {/* A new path is a new page, which enters; a new query on the same page (filters, sort) is not. The account
+          area's pages share one entry: the area stays and enters its own content (T-E7-60). */}
+      <PageEntrance key={isAccountAreaPath(pathname) ? 'account-area' : pathname}>
         <Outlet />
       </PageEntrance>
       {pathname === '/' && <BenefitsBar />}

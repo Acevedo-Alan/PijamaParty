@@ -762,6 +762,11 @@
   margin-top: 32px;
 }
 
+/* T-E7-62: "Datos personales" comes right under the title. */
+.my-account > section:first-of-type {
+  margin-top: 0;
+}
+
 .btn-danger {
   background: var(--danger);
 }
@@ -776,7 +781,7 @@
   margin-top: 16px;
 }
 
-.my-account-delete h3 {
+.my-account-delete h4 {
   font-size: 16px;
 }
 
@@ -791,4 +796,290 @@
   border-radius: var(--radius-s);
   background: var(--peach-soft);
   font-weight: 700;
+}
+
+/*
+ * T-E7-60: the account area. From 860 px a 240 px sidebar (the customer's initials, name and email, the four
+ * sections and "Salir") beside the page, up to 720 px; below it, the same links as a row of pills under the header that
+ * scrolls sideways, without initials, name, email or icons. The current section is a --rose-soft pill.
+ */
+.account-area {
+  display: grid;
+  /* One column that never grows past the screen: the row of pills scrolls instead of widening the page. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  padding-top: 16px;
+  padding-bottom: 48px;
+}
+
+.account-area .account-page {
+  max-width: 720px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.account-nav-who {
+  display: none;
+}
+
+.account-nav-links {
+  /* The offsets of the pills count from the row, which scrolls to keep the current one in sight (keepInSight). */
+  position: relative;
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  /* Room inside the scrolling row for the focus ring (2 px, 3 px off), given back by the margin so the pills line up */
+  margin: -6px;
+  padding: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.account-nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+.account-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  /* Decorative: the text names the link, so the edge needs no 3:1 (WCAG 1.4.11) */
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--ink);
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.account-nav-link svg {
+  display: none;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.account-nav-link[aria-current='page'] {
+  border-color: transparent;
+  background: var(--rose-soft);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.account-nav-exit .account-nav-link {
+  color: var(--ink-soft);
+}
+
+@media (hover: hover) {
+  .account-nav-link:hover:not([aria-current='page'], :disabled) {
+    color: var(--accent-text);
+  }
+}
+
+@media (min-width: 860px) {
+  .account-area {
+    grid-template-columns: 240px minmax(0, 720px);
+    gap: 48px;
+    align-items: start;
+    padding-top: 32px;
+  }
+
+  .account-nav {
+    position: sticky;
+    top: 96px;
+  }
+
+  /* One row: the initials, then the name in bold over the email. Its place is kept while the customer loads, so the
+     links do not move down when it arrives. */
+  .account-nav-who {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: center;
+    column-gap: 12px;
+    min-height: 48px;
+    margin-bottom: 20px;
+  }
+
+  .account-initials {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    grid-row: 1 / span 2;
+    align-self: center;
+    border-radius: 50%;
+    background: var(--rose-soft);
+    color: var(--accent-text);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .account-nav-name {
+    align-self: end;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .account-nav-email {
+    align-self: start;
+    color: var(--ink-soft);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .account-nav-links {
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .account-nav-link {
+    width: 100%;
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--radius-s);
+  }
+
+  .account-nav-link svg {
+    display: block;
+  }
+
+  /* Apart from the sections: more space and a line that shows (--line-strong). */
+  .account-nav-exit {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line-strong);
+  }
+}
+
+/* T-E7-61: the summary's blocks, white cards with a fine border, each ending in its link. */
+.account-block {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+}
+
+.account-block h2 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.account-block .my-order-list {
+  margin-bottom: 12px;
+}
+
+.account-block-empty {
+  margin-bottom: 8px;
+  color: var(--ink-soft);
+}
+
+.account-block-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .account-block-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+/* The customer's data, label above value: the summary's "Tus datos" and "Datos personales" (T-E7-62). */
+.account-data-list {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.account-data-list dt {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.account-data-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.account-data-missing {
+  color: var(--ink-soft);
+}
+
+/* T-E7-62: "Privacidad", last and folded; "Eliminar mi cuenta" a quiet text button in --danger. */
+.account-privacy {
+  margin-top: 32px;
+  border-top: 1px solid var(--line);
+}
+
+.account-privacy section {
+  margin-top: 0;
+}
+
+.account-delete-link {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* UC-40 (T-E4-18): the phone's value with "Agregar" or "Editar" beside it, at the right of the row. */
+.account-data-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.account-phone-form input {
+  width: 100%;
+  max-width: 280px;
+  margin-top: 6px;
+}
+
+/* As the other account fields (T-E7-47): a red edge when refused, the soft ring when focused. */
+.account-phone-form input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.account-phone-form input:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 0;
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 0 4px var(--focus-ring);
+}
+
+.account-data-saved:empty {
+  display: none;
+}
+
+.account-data-saved {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  .address-action:hover:not(:disabled) {
+    color: var(--ink);
+  }
 }

@@ -23,6 +23,7 @@ import {
   type AddressFormField,
   type AddressFormValues,
 } from './addressForm.ts';
+import { addressLine, addressPlace } from './addressText.ts';
 import { CUSTOMER_KEY, useCustomer } from './useCustomer.ts';
 import './account.css';
 
@@ -30,18 +31,6 @@ const messages = es.account.addresses;
 
 /** The most addresses a book holds (UC-20); the server refuses an 11th. */
 const MAX_ADDRESSES = 10;
-
-/** "San Martín 1234, piso 3, depto. B": how the list and the buttons name an address. */
-function addressLine(address: SavedAddress): string {
-  const parts = [`${address.street} ${address.number}`];
-  if (address.floor !== null) {
-    parts.push(es.checkout.floorPart(address.floor));
-  }
-  if (address.apartment !== null) {
-    parts.push(es.checkout.apartmentPart(address.apartment));
-  }
-  return parts.join(', ');
-}
 
 type Editing = { kind: 'new' } | { kind: 'edit'; address: SavedAddress };
 
@@ -115,7 +104,7 @@ export function AddressBookPage() {
   const busy = makePrimary.isPending || remove.isPending;
 
   return (
-    <main className="wrap account-page address-book">
+    <div className="account-page address-book">
       <title>{`${messages.title} | ${es.store.name}`}</title>
       <h1>{messages.title}</h1>
       <p className="account-intro">{messages.intro}</p>
@@ -162,7 +151,7 @@ export function AddressBookPage() {
                     {address.primary && <span className="address-primary">{messages.primary}</span>}
                   </p>
                   <p className="address-place">
-                    {`${address.city}, ${es.provinces[address.province]} (${address.postalCode})`}
+                    {addressPlace(address)}
                   </p>
                   {confirming === address.id ? (
                     <div className="address-confirm" role="group" aria-label={messages.remove(addressLine(address))}>
@@ -266,7 +255,7 @@ export function AddressBookPage() {
           )}
         </>
       )}
-    </main>
+    </div>
   );
 }
 

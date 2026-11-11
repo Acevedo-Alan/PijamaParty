@@ -28,7 +28,7 @@ interface AccountDataSectionProps {
 }
 
 /**
- * UC-28 (T-E4-16): "Tus datos" in "Mi cuenta": "Descargar mis datos" saves the file; "Eliminar mi cuenta" explains
+ * UC-28 (T-E4-16): "Tus datos" in "Datos y acceso", inside its folded "Privacidad" (T-E7-62): "Descargar mis datos" saves the file; "Eliminar mi cuenta" explains
  * what is deleted and what is kept, and confirms with the password or by signing in again with a linked provider.
  * After the deletion the store goes home and says the account was deleted.
  */
@@ -53,9 +53,10 @@ export function AccountDataSection({
 
   return (
     <section aria-labelledby="account-data-title">
-      <h2 id="account-data-title" className="my-account-heading">
+      {/* Under the "Privacidad" heading that folds it (T-E7-62). */}
+      <h3 id="account-data-title" className="my-account-heading">
         {messages.dataTitle}
-      </h2>
+      </h3>
       <p className="account-intro">{messages.dataIntro}</p>
       <div className="address-actions">
         <button
@@ -69,9 +70,10 @@ export function AccountDataSection({
           {download.isPending ? messages.downloading : messages.download}
         </button>
         {!deleting && (
+          // T-E7-62: a quiet text button, never the page's loudest action; the confirmation below stays as it was.
           <button
             type="button"
-            className="btn btn-danger"
+            className="link-btn account-delete-link"
             onClick={() => {
               setDeleting(true);
             }}
@@ -196,9 +198,9 @@ function DeleteAccountForm({
   const busy = remove.isPending || reauthenticate.isPending;
   return (
     <div className="address-confirm my-account-delete" role="group" aria-labelledby={`${id}-title`}>
-      <h3 id={`${id}-title`} ref={heading} tabIndex={-1}>
+      <h4 id={`${id}-title`} ref={heading} tabIndex={-1}>
         {messages.deleteTitle}
-      </h3>
+      </h4>
       <p>{messages.deleteExplanation}</p>
       <p>{messages.deleteOrders}</p>
       {confirmed || withPassword ? (

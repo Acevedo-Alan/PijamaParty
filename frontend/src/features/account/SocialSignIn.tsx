@@ -13,12 +13,20 @@ export const PROVIDER_NAMES: Record<SignInProvider, string> = { GOOGLE: 'Google'
 
 /** The enabled providers; empty while they load or when none is enabled. */
 export function useSignInProviders(): SignInProvider[] {
-  const { data } = useQuery({
+  return useSignInProvidersState().providers;
+}
+
+/**
+ * The enabled providers and whether they are known yet: a page that words itself by them (T-E7-62, "Formas de
+ * ingresar") waits for them instead of showing the text for none and then changing it.
+ */
+export function useSignInProvidersState(): { providers: SignInProvider[]; known: boolean } {
+  const { data, isFetched } = useQuery({
     queryKey: SIGN_IN_PROVIDERS_KEY,
     queryFn: ({ signal }) => fetchSignInProviders(signal),
     staleTime: Infinity,
   });
-  return data ?? [];
+  return { providers: data ?? [], known: isFetched };
 }
 
 /**

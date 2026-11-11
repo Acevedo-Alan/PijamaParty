@@ -100,7 +100,7 @@ export function MyOrderPage() {
   }
 
   return (
-    <main className="wrap account-page my-order tracking">
+    <div className="account-page my-order tracking">
       <Link to={ORDERS_PATH} className="my-order-back">
         {messages.back}
       </Link>
@@ -120,6 +120,6 @@ export function MyOrderPage() {
         </>
       )}
       {order.data?.status === 'found' && <MyOrderView order={order.data.order} />}
-    </main>
+    </div>
   );
 }

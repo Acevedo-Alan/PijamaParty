@@ -42,7 +42,8 @@
     visibility 0s linear var(--dur-base);
 }
 
-.collapsible-toggle[aria-expanded='true'] + .collapsible-panel {
+/* On the container, so it holds whether the toggle sits right before the panel or inside a heading (T-E7-62). */
+.collapsible[data-open] > .collapsible-panel {
   grid-template-rows: 1fr;
   visibility: visible;
   transition-delay: 0s;
@@ -51,4 +52,10 @@
 .collapsible-body {
   min-height: 0;
   overflow: hidden;
+}
+
+/* The heading that holds the toggle (T-E7-62): it adds a level to the outline, not a look of its own. */
+.collapsible-heading {
+  margin: 0;
+  font: inherit;
 }
