@@ -1,34 +1,17 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
-import { signOut, type Customer } from './accountApi.ts';
-import { forgetAccount } from './forgetAccount.ts';
+import type { Customer } from './accountApi.ts';
+import { accountNavIcons } from './accountNavIcons.tsx';
+import { ACCOUNT_PATH, ADDRESSES_PATH, ORDERS_PATH } from './paths.ts';
+import { isLeaving, isSigningOut, useSignOutFlow } from './signOutFlow.tsx';
 import { firstName, useCustomer } from './useCustomer.ts';
 import './account.css';
 
+export { ACCOUNT_PATH, ADDRESSES_PATH, DATA_PATH, isAccountAreaPath, ORDERS_PATH } from './paths.ts';
 export const SIGN_IN_PATH = '/cuenta/ingresar';
 export const REGISTER_PATH = '/cuenta/registro';
 export const RECOVER_PATH = '/cuenta/recuperar';
-export const ADDRESSES_PATH = '/cuenta/direcciones';
-export const ORDERS_PATH = '/cuenta/pedidos';
-export const ACCOUNT_PATH = '/cuenta';
-/** "Datos y acceso" (T-E7-62): the personal data, the sign-in methods and the privacy actions. */
-export const DATA_PATH = '/cuenta/datos';
-/**
- * The pages of the account area (T-E7-60): the summary, "Datos y acceso", the address book, the orders and each
- * order's detail; not the sign-in, registration or link pages under /cuenta.
- */
-export function isAccountAreaPath(pathname: string): boolean {
-  const path = pathname.replace(/\/+$/, '') || '/';
-  return (
-    path === ACCOUNT_PATH ||
-    path === DATA_PATH ||
-    path === ADDRESSES_PATH ||
-    path === ORDERS_PATH ||
-    path.startsWith(`${ORDERS_PATH}/`)
-  );
-}
 
 /** The page of the verification link; the token comes in the fragment, which never reaches a server. */
 export const VERIFY_PATH = '/cuenta/verificar';
@@ -44,50 +27,44 @@ interface ChooseProps {
   onChoose?: () => void;
 }
 
-/** "Salir" (UC-19): signs out and forgets the account, as the header's list and the account area do (T-E7-60). */
-export function useSignOut() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: signOut,
-    onSettled: () => {
-      forgetAccount(queryClient);
-    },
-  });
-}
-
-/** The greeting, "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta" (UC-27) and "Salir" (UC-19). */
+/**
+ * The greeting with the account's email (T-E7-65), "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta"
+ * (UC-27) and "Salir" (UC-19), each with the outline icon of the account area's sidebar. While signing out (T-E7-66)
+ * "Salir" says "Cerrando sesión…" and keeps the focus, and the other links fade and stop answering.
+ */
 function SignedInLinks({ customer, onChoose }: ChooseProps & { customer: Customer }) {
-  const exit = useSignOut();
+  const { phase, start } = useSignOutFlow();
+  const busy = isSigningOut(phase);
 
   return (
     <>
-      <p className="account-greeting">{es.account.greeting(firstName(customer.name))}</p>
-      <ul className="account-links">
-        <li>
+      <div className="account-greeting">
+        <p>{es.account.greeting(firstName(customer.name))}</p>
+        <p className="account-greeting-email">{customer.email}</p>
+      </div>
+      <ul className="account-links" data-signing-out={busy ? '' : undefined}>
+        <li inert={busy}>
           <Link to={ORDERS_PATH} onClick={onChoose}>
+            {accountNavIcons.orders}
             {es.account.ordersLink}
           </Link>
         </li>
-        <li>
+        <li inert={busy}>
           <Link to={ADDRESSES_PATH} onClick={onChoose}>
+            {accountNavIcons.addresses}
             {es.account.addressesLink}
           </Link>
         </li>
-        <li>
+        <li inert={busy}>
           <Link to={ACCOUNT_PATH} onClick={onChoose}>
+            {accountNavIcons.person}
             {es.account.myAccountLink}
           </Link>
         </li>
-        <li>
-          <button
-            type="button"
-            className="account-sign-out"
-            disabled={exit.isPending}
-            onClick={() => {
-              exit.mutate();
-            }}
-          >
-            {es.account.signOut}
+        <li className="account-links-exit">
+          <button type="button" className="account-sign-out" aria-disabled={busy || undefined} onClick={start}>
+            {accountNavIcons.signOut}
+            {busy ? es.account.signingOut : es.account.signOut}
           </button>
         </li>
       </ul>
@@ -133,6 +110,8 @@ function AccountMenu({ customer }: { customer: Customer }) {
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const listId = useId();
+  // T-E7-66: once the sign-out answers, the list closes upwards and the icon loses its dot and its shade (account.css).
+  const leaving = isLeaving(useSignOutFlow().phase);
 
   useEffect(() => {
     if (!isOpen) {
@@ -164,8 +143,9 @@ function AccountMenu({ customer }: { customer: Customer }) {
         type="button"
         className="icon-btn account-icon"
         data-signed-in=""
+        data-leaving={leaving ? '' : undefined}
         aria-label={es.account.menu}
-        aria-expanded={isOpen}
+        aria-expanded={isOpen && !leaving}
         aria-controls={listId}
         onClick={() => {
           setOpen(!isOpen);
@@ -174,7 +154,7 @@ function AccountMenu({ customer }: { customer: Customer }) {
         <PersonIcon />
       </button>
       {isOpen && (
-        <div id={listId} className="account-menu-list">
+        <div id={listId} className="account-menu-list" data-leaving={leaving ? '' : undefined}>
           <SignedInLinks
             customer={customer}
             onChoose={() => {
@@ -187,8 +167,17 @@ function AccountMenu({ customer }: { customer: Customer }) {
   );
 }
 
-/** The account level of the phone menu (UC-31, T-E7-39): the same links as the header's list, open. */
+/**
+ * The account level of the phone menu (UC-31, T-E7-39): the same links as the header's list, open. Once the sign-out
+ * answers, the menu closes, so the goodbye under the header shows (T-E7-66).
+ */
 export function MenuAccountLinks({ customer, onChoose }: Required<ChooseProps> & { customer: Customer }) {
+  const leaving = isLeaving(useSignOutFlow().phase);
+  useEffect(() => {
+    if (leaving) {
+      onChoose();
+    }
+  }, [leaving, onChoose]);
   return (
     <div className="menu-account">
       <SignedInLinks customer={customer} onChoose={onChoose} />

@@ -737,6 +737,10 @@ export const es = {
     signInLink: 'Ingresar',
     greeting: (firstName: string) => `Hola, ${firstName}`,
     signOut: 'Salir',
+    /** T-E7-66: "Salir" while the sign-out is on its way, and the goodbye under the header once it is done. */
+    signingOut: 'Cerrando sesión…',
+    signedOutNotice: 'Cerraste tu sesión. ¡Hasta pronto!',
+    closeNotice: 'Cerrar aviso',
     email: 'Email',
     password: 'Contraseña',
     tooManyAttempts: 'Hiciste muchos intentos. Probá de nuevo en un rato.',
@@ -1300,6 +1304,7 @@ export const es = {
     noResults: '(・・?)',
     notFound: '(´・ω・`)',
     paid: '(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
+    bye: '(・ω・)ﾉ',
   },
   notFound: {
     title: 'No encontramos esta página',

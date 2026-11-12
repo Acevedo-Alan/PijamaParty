@@ -4,7 +4,9 @@ import { PageEntrance } from '../../components/motion/PageEntrance.tsx';
 import { es } from '../../i18n/es.ts';
 import { keepInSight } from '../../components/keepInSight.ts';
 import type { Customer } from './accountApi.ts';
-import { ACCOUNT_PATH, ADDRESSES_PATH, DATA_PATH, ORDERS_PATH, useSignOut } from './AccountLink.tsx';
+import { ACCOUNT_PATH, ADDRESSES_PATH, DATA_PATH, ORDERS_PATH } from './paths.ts';
+import { isLeaving, isSigningOut, useSignOutFlow } from './signOutFlow.tsx';
+import { accountNavIcons } from './accountNavIcons.tsx';
 import { useCustomer } from './useCustomer.ts';
 // T-E7-63: the account's own type, fetched with this chunk only; account.css sets it on .account-area.
 import '@fontsource/poppins/500.css';
@@ -27,41 +29,13 @@ export function initials(name: string): string {
     .toLocaleUpperCase('es-AR');
 }
 
-/** Outline drawings in the header's style: a house, a parcel, a pin, a person's card and a door. */
-const icons = {
-  summary: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 11 12 4.5l8 6.5M6.5 9.5V19h11V9.5" />
-    </svg>
-  ),
-  orders: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 8 12 4l8 4v8l-8 4-8-4V8Zm0 0 8 4 8-4M12 12v8" />
-    </svg>
-  ),
-  addresses: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
-      <circle cx="12" cy="10" r="2.3" />
-    </svg>
-  ),
-  data: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3.5" y="5" width="17" height="14" rx="2" />
-      <circle cx="9" cy="11" r="2" />
-      <path d="M6 16c.6-1.6 1.7-2.4 3-2.4s2.4.8 3 2.4M14.5 10h3M14.5 13h3" />
-    </svg>
-  ),
-  signOut: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M10 5H6v14h4M14 8l4 4-4 4M18 12H9" />
-    </svg>
-  ),
-};
+const icons = accountNavIcons;
 
 function AreaLink({ to, end = false, icon, children }: { to: string; end?: boolean; icon: ReactNode; children: string }) {
+  // T-E7-66: while signing out the sections fade and stop answering; "Salir" keeps the focus.
+  const busy = isSigningOut(useSignOutFlow().phase);
   return (
-    <li>
+    <li inert={busy}>
       <NavLink to={to} end={end} className="account-nav-link">
         {icon}
         {children}
@@ -76,7 +50,8 @@ function AreaLink({ to, end = false, icon, children }: { to: string; end?: boole
  * "Salir"; on a phone the same links as a row of pills that scrolls sideways (account.css).
  */
 function AccountNav({ customer }: { customer: Customer | undefined }) {
-  const exit = useSignOut();
+  const { phase, start } = useSignOutFlow();
+  const busy = isSigningOut(phase);
   const links = useRef<HTMLUListElement>(null);
   const { pathname } = useLocation();
 
@@ -91,7 +66,7 @@ function AccountNav({ customer }: { customer: Customer | undefined }) {
   }, [pathname]);
 
   return (
-    <nav className="account-nav" aria-label={messages.navigation}>
+    <nav className="account-nav" aria-label={messages.navigation} data-signing-out={busy ? '' : undefined}>
       {/* Always there, so the sidebar does not grow when the customer arrives. */}
       <div className="account-nav-who">
         {customer !== undefined && (
@@ -120,14 +95,12 @@ function AccountNav({ customer }: { customer: Customer | undefined }) {
         <li className="account-nav-exit">
           <button
             type="button"
-            className="account-nav-link"
-            disabled={exit.isPending}
-            onClick={() => {
-              exit.mutate();
-            }}
+            className="account-nav-link account-nav-sign-out"
+            aria-disabled={busy || undefined}
+            onClick={start}
           >
             {icons.signOut}
-            {es.account.signOut}
+            {busy ? es.account.signingOut : es.account.signOut}
           </button>
         </li>
       </ul>
@@ -143,13 +116,15 @@ function AccountNav({ customer }: { customer: Customer | undefined }) {
 export function AccountArea() {
   const customer = useCustomer();
   const { pathname } = useLocation();
+  // T-E7-66: once the sign-out answers, the page fades out before the store goes home.
+  const leaving = isLeaving(useSignOutFlow().phase);
   // The navigation sits beside the page's main content, not in it: <main> holds only the page. The area stays when
   // the section changes (StoreLayout keys it once for all its paths); only the new section enters.
   return (
     // An order's detail has its own way back (T-E7-64): on a phone it shows in place of the pills.
     <div className="wrap account-area" data-order-detail={pathname.startsWith(`${ORDERS_PATH}/`) ? '' : undefined}>
       {customer !== null && <AccountNav customer={customer} />}
-      <main className="account-area-content">
+      <main className="account-area-content" data-leaving={leaving ? '' : undefined}>
         <PageEntrance key={pathname}>
           <Outlet />
         </PageEntrance>

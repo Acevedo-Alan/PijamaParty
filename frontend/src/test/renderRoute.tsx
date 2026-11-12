@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router';
+import { createMemoryRouter, type RouteObject } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 import { MotionProvider } from '../components/motion/MotionProvider.tsx';
 import { routes } from '../routes.tsx';
 // The store's cart panel is downloaded on demand; loaded here, the first test to open it does not wait for it.

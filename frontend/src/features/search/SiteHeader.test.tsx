@@ -478,13 +478,18 @@ describe('header account entry (UC-31)', () => {
     await userEvent.click(button);
 
     expect(button).toHaveAttribute('aria-expanded', 'true');
-    const list = within(screen.getByText(es.account.greeting('Ana')).parentElement as HTMLElement);
+    const listElement = screen.getByText(es.account.greeting('Ana')).closest('.account-menu-list') as HTMLElement;
+    const list = within(listElement);
     expect(list.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
       [es.account.ordersLink, '/cuenta/pedidos'],
       [es.account.addressesLink, '/cuenta/direcciones'],
       [es.account.myAccountLink, '/cuenta'],
     ]);
     expect(list.getByRole('button', { name: es.account.signOut })).toBeInTheDocument();
+    // T-E7-65: the email under the greeting, an outline icon before every entry, "Salir" apart under a line.
+    expect(list.getByText(ANA.email)).toBeInTheDocument();
+    expect(listElement.querySelectorAll('.account-links li > * > svg[aria-hidden="true"]')).toHaveLength(4);
+    expect(list.getByRole('button', { name: es.account.signOut }).closest('li')).toHaveClass('account-links-exit');
 
     await userEvent.click(list.getByRole('link', { name: es.account.ordersLink }));
     expect(button).toHaveAttribute('aria-expanded', 'false');

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Link, useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { HeaderAccount } from '../account/AccountLink.tsx';
+import { SignOutNotice } from '../account/signOutFlow.tsx';
 import { CartButton } from '../cart/CartButton.tsx';
 import { AnnouncementTicker } from './AnnouncementTicker.tsx';
 import { HeaderSearch } from './HeaderSearch.tsx';
@@ -48,6 +49,8 @@ export function SiteHeader() {
             <CartButton />
           </div>
         </div>
+        {/* T-E7-66: the goodbye after "Salir", centered under the header. */}
+        <SignOutNotice />
       </header>
     </>
   );

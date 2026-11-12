@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
-import { createMemoryRouter, matchRoutes, RouterProvider } from 'react-router';
+import { createMemoryRouter, matchRoutes } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from './api/client.ts';
 import { es } from './i18n/es.ts';

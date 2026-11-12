@@ -6,7 +6,9 @@ import './styles/base.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router';
+import { createBrowserRouter } from 'react-router';
+// From react-router/dom: its router can commit a navigation at once (flushSync), as the sign-out does (T-E7-66).
+import { RouterProvider } from 'react-router/dom';
 import { createQueryClient } from './api/queryClient.ts';
 import { MotionProvider } from './components/motion/MotionProvider.tsx';
 import { sessionQuery } from './features/admin/useSession.ts';

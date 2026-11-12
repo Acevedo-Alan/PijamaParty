@@ -123,7 +123,7 @@ describe('the account area (T-E7-60)', () => {
     expect(within(await navigation()).getByRole('link', { name: area.orders })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('given the navigation, when "Salir" is pressed, then the customer signs out and goes to sign in', async () => {
+  it('given the navigation, when "Salir" is pressed, then the page fades out, the customer signs out, goes home and gets the goodbye (T-E7-66)', async () => {
     stubAccount();
     const post = vi.spyOn(api, 'POST').mockResolvedValue(answer(204));
     const { router } = renderRoute('/cuenta/direcciones');
@@ -132,8 +132,11 @@ describe('the account area (T-E7-60)', () => {
 
     expect(post).toHaveBeenCalledWith('/api/account/logout');
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/cuenta/ingresar');
+      expect(document.querySelector('.account-area-content')).toHaveAttribute('data-leaving');
     });
+    expect(await screen.findByText(es.account.signedOutNotice)).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/');
+    expect(router.state.historyAction).not.toBe('REPLACE');
   });
 });
 

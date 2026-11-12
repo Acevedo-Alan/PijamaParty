@@ -227,6 +227,49 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
     expect(post).toHaveBeenCalledWith('/api/account/logout');
     expect(screen.queryByText(es.account.greeting('Ana'))).not.toBeInTheDocument();
   });
+
+  it('given a signed-in customer, when "Salir" is pressed, then while the request goes it says "Cerrando sesión…" and the other links stop answering (T-E7-66)', async () => {
+    stubStore(answer(200, ANA));
+    let answerLogout: (value: unknown) => void = () => undefined;
+    vi.spyOn(api, 'POST').mockImplementation((() =>
+      new Promise((resolve) => {
+        answerLogout = resolve;
+      })) as never);
+    renderRoute('/');
+
+    await userEvent.click(await screen.findByRole('button', { name: es.account.menu }));
+    await userEvent.click(await screen.findByRole('button', { name: es.account.signOut }));
+
+    const exit = await screen.findByRole('button', { name: es.account.signingOut });
+    expect(exit).toHaveAttribute('aria-disabled', 'true');
+    expect(exit).toHaveFocus();
+    expect(screen.getByRole('link', { name: es.account.ordersLink }).closest('li')).toHaveAttribute('inert');
+    expect(exit.closest('li')).not.toHaveAttribute('inert');
+    expect(exit.closest('ul')).toHaveAttribute('data-signing-out');
+
+    answerLogout(answer(204));
+
+    expect(await screen.findByRole('link', { name: es.account.signInLink })).toBeInTheDocument();
+  });
+
+  it('given a signed-in customer, when it signs out, then the goodbye shows under the header and can be closed (T-E7-66)', async () => {
+    stubStore(answer(200, ANA));
+    stubPost(answer(204));
+    const { router } = renderRoute('/preguntas-frecuentes');
+
+    await userEvent.click(await screen.findByRole('button', { name: es.account.menu }));
+    await userEvent.click(await screen.findByRole('button', { name: es.account.signOut }));
+
+    const notice = await screen.findByText(es.account.signedOutNotice);
+    expect(notice).toHaveAttribute('data-kaomoji', es.kaomoji.bye);
+    expect(notice.closest('header')).not.toBeNull();
+    expect(router.state.location.pathname).toBe('/preguntas-frecuentes');
+
+    await userEvent.click(screen.getByRole('button', { name: es.account.closeNotice }));
+    await waitFor(() => {
+      expect(screen.queryByText(es.account.signedOutNotice)).not.toBeInTheDocument();
+    });
+  });
 });
 
 describe('sign-in and registration cards (UC-19, T-E7-23)', () => {
