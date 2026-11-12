@@ -26,8 +26,8 @@ describe('header search (UC-26)', () => {
 
     const list = await screen.findByRole('listbox', { name: es.search.suggestions });
     expect(within(list).getAllByRole('option').map((option) => option.textContent)).toEqual([
-      'Pijama luna',
-      'Pijama sol',
+      'Pijama Luna',
+      'Pijama Sol',
     ]);
     expect(within(list).getAllByTestId('blurred-image')).toHaveLength(2);
     expect(field()).toHaveAttribute('aria-expanded', 'true');
@@ -39,7 +39,7 @@ describe('header search (UC-26)', () => {
     const { router } = renderRoute('/');
 
     await userEvent.type(field(), 'luna');
-    await userEvent.click(await screen.findByRole('option', { name: 'Pijama luna' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Pijama Luna' }));
 
     expect(router.state.location.pathname).toBe('/producto/luna');
   });
@@ -52,7 +52,7 @@ describe('header search (UC-26)', () => {
     await screen.findByRole('listbox');
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
 
-    expect(screen.getByRole('option', { name: 'Pijama sol' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: 'Pijama Sol' })).toHaveAttribute('aria-selected', 'true');
     await userEvent.keyboard('{Enter}');
     expect(router.state.location.pathname).toBe('/producto/sol');
   });
@@ -113,7 +113,7 @@ describe('header search (UC-26)', () => {
     expect(fullScreenField).toHaveFocus();
 
     await userEvent.type(fullScreenField, 'luna');
-    await userEvent.click(await within(screenDialog).findByRole('option', { name: 'Pijama luna' }));
+    await userEvent.click(await within(screenDialog).findByRole('option', { name: 'Pijama Luna' }));
 
     expect(router.state.location.pathname).toBe('/producto/luna');
     await waitFor(() => {

@@ -7,7 +7,7 @@ import type { Customer } from './accountApi.ts';
 import { ACCOUNT_PATH, ADDRESSES_PATH, DATA_PATH, ORDERS_PATH } from './paths.ts';
 import { isLeaving, isSigningOut, useSignOutFlow } from './signOutFlow.tsx';
 import { accountNavIcons } from './accountNavIcons.tsx';
-import { useCustomer } from './useCustomer.ts';
+import { initials, useCustomer } from './useCustomer.ts';
 // T-E7-63: the account's own type, fetched with this chunk only; account.css sets it on .account-area.
 import '@fontsource/poppins/500.css';
 import '@fontsource/poppins/600.css';
@@ -16,18 +16,9 @@ import '@fontsource/open-sans/600.css';
 import '@fontsource/open-sans/700.css';
 import './account.css';
 
-const messages = es.account.area;
+export { initials } from './useCustomer.ts';
 
-/** The first letters of the name's first two words, in upper case: "Cliente Prueba" is "CP". */
-export function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => word.charAt(0))
-    .join('')
-    .toLocaleUpperCase('es-AR');
-}
+const messages = es.account.area;
 
 const icons = accountNavIcons;
 

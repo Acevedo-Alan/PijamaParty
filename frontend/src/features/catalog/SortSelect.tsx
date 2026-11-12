@@ -18,7 +18,10 @@ export function SortSelect({ value, onChange, searching = false }: SortSelectPro
   const sorts = searching ? SEARCH_SORTS : LISTING_SORTS;
   return (
     <div className="sort">
-      <label htmlFor={id}>{es.sort.label}</label>
+      {/* T-E7-70: "Novedades" already reads as an order beside the count; screen readers still hear the label. */}
+      <label htmlFor={id} className="visually-hidden">
+        {es.sort.label}
+      </label>
       <select
         id={id}
         value={value}

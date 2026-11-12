@@ -73,7 +73,12 @@ export function CompleteEmailPage() {
                 setEmail(event.target.value);
               }}
             />
-            <button type="submit" className="btn" disabled={attempt.isPending || email.trim() === ''}>
+            <button
+              type="submit"
+              className="btn"
+              data-pending={attempt.isPending ? '' : undefined}
+              disabled={attempt.isPending || email.trim() === ''}
+            >
               {attempt.isPending ? messages.sending : messages.send}
             </button>
             <p className="account-error" role="alert">

@@ -144,7 +144,7 @@ export function SignOutNotice() {
     return null;
   }
   return (
-    <div className="sign-out-notice">
+    <div className="session-notice">
       <Toast open={noticeShown} closeLabel={es.account.closeNotice} onClose={hideNotice}>
         <span data-kaomoji={es.kaomoji.bye}>{es.account.signedOutNotice}</span>
       </Toast>

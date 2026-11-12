@@ -21,7 +21,7 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
 
     renderRoute('/');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     const section = await screen.findByRole('region', { name: messages.title });
     expect(within(section).getByRole('link', { name: 'hola@example.com' })).toHaveAttribute('href', 'mailto:hola@example.com');
     const whatsApp = within(section).getByRole('link', { name: messages.whatsApp });
@@ -39,7 +39,7 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
 
     renderRoute('/');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(within(await screen.findByRole('region', { name: messages.title })).getByRole('link', { name: 'hola@example.com' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: messages.whatsApp })).not.toBeInTheDocument();
   });
@@ -49,7 +49,7 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
 
     renderRoute('/');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(contact()).not.toBeInTheDocument();
   });
 
@@ -97,7 +97,7 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
 
     renderRoute('/categoria/verano');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(contact()).not.toBeInTheDocument();
   });
 });

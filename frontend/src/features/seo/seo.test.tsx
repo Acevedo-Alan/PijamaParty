@@ -125,13 +125,14 @@ describe('search engines (T-E6-23)', () => {
     expect(description()?.replace(/\s/g, ' ')).toBe('$ 25.000. Pijama largo de algodón.');
   });
 
+  // In title case, as the store shows names (T-E7-71); HTML closes the element whatever the case.
   it('given a name that closes the script element, when the page renders, then the data stays one script and reads back the same', async () => {
-    stubProduct(productDetail({ name: 'Pijama </script><b>x</b>' }));
+    stubProduct(productDetail({ name: 'Pijama </Script><B>X</B>' }));
 
     renderRoute('/producto/luna');
 
-    await screen.findByRole('heading', { level: 1, name: 'Pijama </script><b>x</b>' });
-    expect(structuredData().name).toBe('Pijama </script><b>x</b>');
+    await screen.findByRole('heading', { level: 1, name: 'Pijama </Script><B>X</B>' });
+    expect(structuredData().name).toBe('Pijama </Script><B>X</B>');
     expect(document.querySelector('b')).toBeNull();
   });
 

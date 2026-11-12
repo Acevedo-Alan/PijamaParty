@@ -5,6 +5,7 @@ import { PageEntrance } from '../../components/motion/PageEntrance.tsx';
 import { Analytics } from '../analytics/ConsentBanner.tsx';
 import { AccountDeletedNotice } from '../account/AccountDeletedNotice.tsx';
 import { SignOutProvider } from '../account/signOutFlow.tsx';
+import { WelcomeProvider } from '../account/welcome.tsx';
 import { isAccountAreaPath } from '../account/AccountLink.tsx';
 import { CartPanelOnDemand } from '../cart/CartPanelOnDemand.tsx';
 import { CartPanelProvider } from '../cart/CartPanelContext.tsx';
@@ -101,21 +102,24 @@ export function StoreLayout() {
     <CartPanelProvider>
       {/* T-E7-66: every "Salir" of the header, the phone menu and the account area goes through it. */}
       <SignOutProvider>
-        {isPrivatePath(pathname) && <NoIndex />}
-        <SkipLink />
-        <SiteHeader />
-        {/* Before the page, so a returning visitor's tools are loaded when the page sends its first events. */}
-        <Analytics />
-        <AccountDeletedNotice />
-        {/* A new path is a new page, which enters; a new query on the same page (filters, sort) is not. The account
-            area's pages share one entry: the area stays and enters its own content (T-E7-60). */}
-        <PageEntrance key={isAccountAreaPath(pathname) ? 'account-area' : pathname}>
-          <Outlet />
-        </PageEntrance>
-        {pathname === '/' && <BenefitsBar />}
-        <SiteFooter />
-        <WhatsAppButton />
-        <CartPanelOnDemand />
+        {/* T-E7-72: the welcome under the header once the customer signs in. */}
+        <WelcomeProvider>
+          {isPrivatePath(pathname) && <NoIndex />}
+          <SkipLink />
+          <SiteHeader />
+          {/* Before the page, so a returning visitor's tools are loaded when the page sends its first events. */}
+          <Analytics />
+          <AccountDeletedNotice />
+          {/* A new path is a new page, which enters; a new query on the same page (filters, sort) is not. The account
+              area's pages share one entry: the area stays and enters its own content (T-E7-60). */}
+          <PageEntrance key={isAccountAreaPath(pathname) ? 'account-area' : pathname}>
+            <Outlet />
+          </PageEntrance>
+          {pathname === '/' && <BenefitsBar />}
+          <SiteFooter />
+          <WhatsAppButton />
+          <CartPanelOnDemand />
+        </WelcomeProvider>
       </SignOutProvider>
     </CartPanelProvider>
   );

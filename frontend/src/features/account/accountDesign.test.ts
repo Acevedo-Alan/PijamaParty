@@ -38,11 +38,20 @@ describe('the account redesign (T-E7-63)', () => {
     }
   });
 
-  it('given a phone, when the account opens, then every navigation pill carries the gold stitching inside its edge', () => {
-    const stitches = rule('.account-nav-link::after');
-    expect(stitches).toContain('inset: 3px');
-    expect(stitches).toContain('border: 1px dashed var(--stitch-gold)');
-    // From 860 px, only the sidebar's current link keeps it.
-    expect(css).toContain(".account-nav-link:not([aria-current='page'])::after {\n    display: none;");
+  it('given the account, when its navigation shows, then the pills have a thin solid edge and no stitching (T-E7-68)', () => {
+    expect(rule('.account-nav-link')).toContain('border: 1px solid var(--line)');
+    expect(css).not.toContain('.account-nav-link::after');
+  });
+
+  it('given a signed-in header, when it shows, then the initials are a rose circle in the icon\'s place, without the dot (T-E7-72)', () => {
+    expect(rule('.account-icon-initials')).toContain('background: var(--rose-soft)');
+    expect(rule('.account-icon-initials')).toContain('color: var(--accent-text)');
+    expect(rule('.account-icon[data-initials]::after')).toContain('display: none');
+    expect(rule('.account-icon[data-leaving] .account-icon-initials')).toContain('opacity: 0');
+  });
+
+  it('given an empty address book, when it shows, then it is the one dashed card of the account (T-E7-68)', () => {
+    expect(rule('.address-empty')).toContain('border: 1.5px dashed var(--line-strong)');
+    expect(rule('.address-empty')).toContain('background: var(--surface)');
   });
 });

@@ -18,3 +18,14 @@ export function useCustomer(): Customer | null | undefined {
 export function firstName(name: string): string {
   return name.trim().split(/\s+/, 1)[0] ?? name;
 }
+
+/** The first letters of the name's first two words, in upper case: "Cliente Prueba" is "CP". */
+export function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word.charAt(0))
+    .join('')
+    .toLocaleUpperCase('es-AR');
+}

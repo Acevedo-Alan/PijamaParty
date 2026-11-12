@@ -20,7 +20,9 @@ export type CardPhotoPriority = 'lazy' | 'eager' | 'high';
 /**
  * A product of the grid (UC-01): first photo, the second one on hover in the grid view (T-E7-14) or by a swipe on
  * touch devices (T-E7-32), the "Nuevo" (D-05) and "Sold out" labels, the colors with stock (D-04) at the left of
- * the sizes (T-E7-35), the name and the price, "from" only when its variants have more than one.
+ * the sizes (T-E7-35), the name and the price, "from" only when its variants have more than one. T-E7-70: in the list
+ * view the labels leave the small photo for small words beside the colors, the price sits at the photo's bottom
+ * edge, and a light chevron ends the row.
  */
 export const ProductCard = memo(function ProductCard({
   product,
@@ -94,16 +96,25 @@ export const ProductCard = memo(function ProductCard({
             <span className={shown === 1 ? 'on' : undefined} />
           </span>
         )}
-        {(isNew || soldOut) && (
+        {view === 'grid' && (isNew || soldOut) && (
           <div className="card-badges">
             {isNew && <span className="badge new">{es.catalog.isNew}</span>}
             {soldOut && <span className="badge sold-out">{es.catalog.soldOut}</span>}
           </div>
         )}
       </div>
-      {(colors.length > 0 || sizes.length > 0) && (
+      {(colors.length > 0 || sizes.length > 0 || (view === 'list' && (isNew || soldOut))) && (
         <div className="card-meta">
-          <ColorSwatches colors={colors} />
+          {view === 'list' ? (
+            // T-E7-70: on a 96 px thumbnail the label would hide the print, so it is a word beside the colors.
+            <div className="card-meta-start">
+              <ColorSwatches colors={colors} />
+              {isNew && <span className="card-tag new">{es.catalog.isNew}</span>}
+              {soldOut && <span className="card-tag sold-out">{es.catalog.soldOut}</span>}
+            </div>
+          ) : (
+            <ColorSwatches colors={colors} />
+          )}
           <CardSizes sizes={sizes} />
         </div>
       )}
@@ -113,6 +124,14 @@ export const ProductCard = memo(function ProductCard({
         {priceVaries && <span className="price-from">{es.catalog.fromPrice}&nbsp;</span>}
         {formatMoney(fromPriceCents)}
       </p>
+      {view === 'list' && (
+        // T-E7-70: anchors the row's bottom edge; the whole card is the link, so it is decorative.
+        <span className="card-more" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M9.5 6.5 15 12l-5.5 5.5" />
+          </svg>
+        </span>
+      )}
     </Link>
   );
 });

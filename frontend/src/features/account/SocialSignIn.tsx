@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { es } from '../../i18n/es.ts';
 import { fetchSignInProviders, signInWithProviderUrl, type SignInProvider } from './accountApi.ts';
+import { markProviderSignIn } from './welcome.tsx';
 import './account.css';
 
 const messages = es.account.social;
@@ -89,6 +90,8 @@ export function SocialSignIn({ only, beforeForm = true }: SocialSignInProps) {
           key={provider}
           className={`social-button social-${provider.toLowerCase()}`}
           href={signInWithProviderUrl(provider)}
+          // T-E7-72: the store greets the customer when the provider brings it back signed in.
+          onClick={markProviderSignIn}
         >
           <ProviderMark provider={provider} />
           {messages.continueWith(PROVIDER_NAMES[provider])}

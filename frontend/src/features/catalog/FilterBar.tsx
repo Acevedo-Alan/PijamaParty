@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { es } from '../../i18n/es.ts';
 import type { FilterOptions } from './catalogApi.ts';
 import type { ProductFilters } from './listingCriteria.ts';
@@ -35,16 +34,14 @@ interface FilterBarProps {
   options: FilterOptions | undefined;
   filters: ProductFilters;
   onOpen: (group: FilterGroup) => void;
-  /** At the end of the row, outside the scrolling buttons: the number of matches (D-11, T-E7-11). */
-  trailing?: ReactNode;
 }
 
 /**
  * The buttons that open the filters panel at one group (changes to UC-02). A button says how many values of its
  * group are chosen; a group without options has no button, unless a shared link chose a value in it. On phones the
- * buttons scroll sideways while the trailing count stays in view.
+ * buttons scroll sideways across the whole width (T-E7-70: the count moved to the sort's row).
  */
-export function FilterBar({ options, filters, onOpen, trailing }: FilterBarProps) {
+export function FilterBar({ options, filters, onOpen }: FilterBarProps) {
   const groups = FILTER_GROUPS.filter(
     (group) => options === undefined || hasOptions(group, options) || chosen(group, filters) > 0,
   );
@@ -70,7 +67,6 @@ export function FilterBar({ options, filters, onOpen, trailing }: FilterBarProps
           })}
         </div>
       )}
-      {trailing}
     </div>
   );
 }

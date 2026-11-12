@@ -61,7 +61,7 @@ describe('character banner of the home page (UC-32)', () => {
 
     renderRoute('/');
 
-    expect(await screen.findByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Pijama rosa/i })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 2, name: BANNER.title })).not.toBeInTheDocument();
   });
 
@@ -70,7 +70,7 @@ describe('character banner of the home page (UC-32)', () => {
 
     const { container } = renderRoute('/');
 
-    expect(await screen.findByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Pijama rosa/i })).toBeInTheDocument();
     const place = container.querySelector('.character-banner');
     expect(place).toHaveAttribute('aria-hidden', 'true');
     expect(place?.querySelector('.ph.character-banner-art')).not.toBeNull();
@@ -92,7 +92,7 @@ describe('character banner of the home page (UC-32)', () => {
 
     renderRoute('/categoria/verano');
 
-    expect(await screen.findByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Pijama rosa/i })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: BANNER.title })).not.toBeInTheDocument();
     expect(get.mock.calls.map((call): unknown => call[0])).not.toContain('/api/home/banner');
   });

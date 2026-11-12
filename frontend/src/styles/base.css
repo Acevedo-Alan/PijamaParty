@@ -90,6 +90,37 @@
     cursor: not-allowed;
   }
 
+  /*
+   * T-E7-69: a button whose request is on its way ("Ingresando…") stays rose, not grey, and a band of the store's rose
+   * sweeps across it from left to right, as a loading bar that promises no percentage. The plane is --accent-hover
+   * (white text 5.9:1) and the band --accent (4.52:1), so the text reads at every moment. Only transform moves; with
+   * reduced motion the band stays hidden.
+   */
+  .btn[data-pending] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--accent-hover);
+    color: var(--on-accent);
+    cursor: progress;
+  }
+
+  .btn[data-pending]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent);
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .btn[data-pending]::after {
+      animation: btn-pending-sweep 1.4s var(--ease-standard) infinite;
+    }
+  }
+
   .btn-secondary {
     background: var(--surface);
     color: var(--ink);
@@ -265,4 +296,11 @@
 main:focus,
 main h1:focus {
   outline: none;
+}
+
+/* T-E7-69: the band of a pending button, from beyond its left edge to beyond its right one. */
+@keyframes btn-pending-sweep {
+  to {
+    transform: translateX(100%);
+  }
 }

@@ -3,9 +3,9 @@ import { Link } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import type { Customer } from './accountApi.ts';
 import { accountNavIcons } from './accountNavIcons.tsx';
-import { ACCOUNT_PATH, ADDRESSES_PATH, ORDERS_PATH } from './paths.ts';
+import { ACCOUNT_PATH, ADDRESSES_PATH, DATA_PATH, ORDERS_PATH } from './paths.ts';
 import { isLeaving, isSigningOut, useSignOutFlow } from './signOutFlow.tsx';
-import { firstName, useCustomer } from './useCustomer.ts';
+import { firstName, initials, useCustomer } from './useCustomer.ts';
 import './account.css';
 
 export { ACCOUNT_PATH, ADDRESSES_PATH, DATA_PATH, isAccountAreaPath, ORDERS_PATH } from './paths.ts';
@@ -28,13 +28,38 @@ interface ChooseProps {
 }
 
 /**
- * The greeting with the account's email (T-E7-65), "Mis pedidos" (UC-22), "Mis direcciones" (UC-20), "Mi cuenta"
- * (UC-27) and "Salir" (UC-19), each with the outline icon of the account area's sidebar. While signing out (T-E7-66)
- * "Salir" says "Cerrando sesión…" and keeps the focus, and the other links fade and stop answering.
+ * The account's four sections, named and drawn as the account area's navigation names and draws them (T-E7-60), so
+ * the header's list and the phone menu lead to the same places by the same names (T-E7-67): "Resumen" (UC-20, UC-22),
+ * "Mis pedidos" (UC-22), "Mis direcciones" (UC-20) and "Datos y acceso" (UC-27, UC-28, UC-40).
  */
-function SignedInLinks({ customer, onChoose }: ChooseProps & { customer: Customer }) {
+const SECTIONS = [
+  { to: ACCOUNT_PATH, icon: accountNavIcons.summary, label: es.account.area.summary },
+  { to: ORDERS_PATH, icon: accountNavIcons.orders, label: es.account.area.orders },
+  { to: ADDRESSES_PATH, icon: accountNavIcons.addresses, label: es.account.area.addresses },
+  { to: DATA_PATH, icon: accountNavIcons.data, label: es.account.area.data },
+] as const;
+
+/**
+ * "Salir" (UC-19) through the store's sign-out flow (T-E7-66): while the request goes it says "Cerrando sesión…",
+ * keeps the focus and a second press does nothing.
+ */
+function SignOutButton({ className }: { className: string }) {
   const { phase, start } = useSignOutFlow();
   const busy = isSigningOut(phase);
+  return (
+    <button type="button" className={className} aria-disabled={busy || undefined} onClick={start}>
+      {accountNavIcons.signOut}
+      {busy ? es.account.signingOut : es.account.signOut}
+    </button>
+  );
+}
+
+/**
+ * The header's list: the greeting with the account's email (T-E7-65), the four sections and "Salir", each with the
+ * outline icon of the account area's sidebar. While signing out (T-E7-66) the sections fade and stop answering.
+ */
+function SignedInLinks({ customer, onChoose }: ChooseProps & { customer: Customer }) {
+  const busy = isSigningOut(useSignOutFlow().phase);
 
   return (
     <>
@@ -43,29 +68,16 @@ function SignedInLinks({ customer, onChoose }: ChooseProps & { customer: Custome
         <p className="account-greeting-email">{customer.email}</p>
       </div>
       <ul className="account-links" data-signing-out={busy ? '' : undefined}>
-        <li inert={busy}>
-          <Link to={ORDERS_PATH} onClick={onChoose}>
-            {accountNavIcons.orders}
-            {es.account.ordersLink}
-          </Link>
-        </li>
-        <li inert={busy}>
-          <Link to={ADDRESSES_PATH} onClick={onChoose}>
-            {accountNavIcons.addresses}
-            {es.account.addressesLink}
-          </Link>
-        </li>
-        <li inert={busy}>
-          <Link to={ACCOUNT_PATH} onClick={onChoose}>
-            {accountNavIcons.person}
-            {es.account.myAccountLink}
-          </Link>
-        </li>
+        {SECTIONS.map((section) => (
+          <li key={section.to} inert={busy}>
+            <Link to={section.to} onClick={onChoose}>
+              {section.icon}
+              {section.label}
+            </Link>
+          </li>
+        ))}
         <li className="account-links-exit">
-          <button type="button" className="account-sign-out" aria-disabled={busy || undefined} onClick={start}>
-            {accountNavIcons.signOut}
-            {busy ? es.account.signingOut : es.account.signOut}
-          </button>
+          <SignOutButton className="account-sign-out" />
         </li>
       </ul>
     </>
@@ -112,6 +124,7 @@ function AccountMenu({ customer }: { customer: Customer }) {
   const listId = useId();
   // T-E7-66: once the sign-out answers, the list closes upwards and the icon loses its dot and its shade (account.css).
   const leaving = isLeaving(useSignOutFlow().phase);
+  const letters = initials(customer.name);
 
   useEffect(() => {
     if (!isOpen) {
@@ -143,6 +156,7 @@ function AccountMenu({ customer }: { customer: Customer }) {
         type="button"
         className="icon-btn account-icon"
         data-signed-in=""
+        data-initials={letters === '' ? undefined : ''}
         data-leaving={leaving ? '' : undefined}
         aria-label={es.account.menu}
         aria-expanded={isOpen && !leaving}
@@ -151,7 +165,14 @@ function AccountMenu({ customer }: { customer: Customer }) {
           setOpen(!isOpen);
         }}
       >
-        <PersonIcon />
+        {/* T-E7-72: the initials say at a glance that the customer is in; a name without letters keeps the icon. */}
+        {letters === '' ? (
+          <PersonIcon />
+        ) : (
+          <span className="account-icon-initials" aria-hidden="true">
+            {letters}
+          </span>
+        )}
       </button>
       {isOpen && (
         <div id={listId} className="account-menu-list" data-leaving={leaving ? '' : undefined}>
@@ -168,11 +189,15 @@ function AccountMenu({ customer }: { customer: Customer }) {
 }
 
 /**
- * The account level of the phone menu (UC-31, T-E7-39): the same links as the header's list, open. Once the sign-out
- * answers, the menu closes, so the goodbye under the header shows (T-E7-66).
+ * The account level of the phone menu (UC-31, T-E7-39, T-E7-67): a stitched profile card (the initials of the account
+ * area in a circle, the greeting and the email), the four sections as full-width rows with a chevron, and "Salir" apart
+ * at the bottom of the level, in a soft red. Once the sign-out answers, the menu closes, so the goodbye under the header
+ * shows (T-E7-66).
  */
 export function MenuAccountLinks({ customer, onChoose }: Required<ChooseProps> & { customer: Customer }) {
-  const leaving = isLeaving(useSignOutFlow().phase);
+  const { phase } = useSignOutFlow();
+  const busy = isSigningOut(phase);
+  const leaving = isLeaving(phase);
   useEffect(() => {
     if (leaving) {
       onChoose();
@@ -180,7 +205,27 @@ export function MenuAccountLinks({ customer, onChoose }: Required<ChooseProps> &
   }, [leaving, onChoose]);
   return (
     <div className="menu-account">
-      <SignedInLinks customer={customer} onChoose={onChoose} />
+      <div className="menu-account-profile">
+        <span className="menu-account-initials" aria-hidden="true">
+          {initials(customer.name)}
+        </span>
+        <p className="menu-account-greeting">{es.account.greeting(firstName(customer.name))}</p>
+        <p className="menu-account-email">{customer.email}</p>
+      </div>
+      <ul className="menu-account-links" data-signing-out={busy ? '' : undefined}>
+        {SECTIONS.map((section) => (
+          <li key={section.to} inert={busy}>
+            <Link to={section.to} onClick={onChoose}>
+              {section.icon}
+              <span>{section.label}</span>
+              {accountNavIcons.chevron}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div className="menu-account-exit">
+        <SignOutButton className="menu-account-sign-out" />
+      </div>
     </div>
   );
 }

@@ -42,6 +42,21 @@ describe('sign-in and registration with Google and Facebook (UC-27, T-E4-14)', (
     expect(screen.getByText(messages.or)).toBeInTheDocument();
   });
 
+  it('given a provider button, when pressed, then the tab is marked so the store greets the customer back (T-E7-72)', async () => {
+    stubStore();
+    renderRoute('/cuenta/ingresar');
+
+    const google = await screen.findByRole('link', { name: messages.continueWith('Google') });
+    // jsdom does not leave the page; only the mark is checked.
+    google.addEventListener('click', (event) => {
+      event.preventDefault();
+    });
+    await userEvent.click(google);
+
+    expect(sessionStorage.getItem('pijamaparty.welcome-after-provider')).toBe('');
+    sessionStorage.clear();
+  });
+
   it("given both providers enabled, when the sign-in page opens, then each button starts with its provider's mark, which is not read (T-E7-47)", async () => {
     stubStore();
     renderRoute('/cuenta/ingresar');

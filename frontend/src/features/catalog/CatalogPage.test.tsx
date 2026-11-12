@@ -28,7 +28,7 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(card).toHaveAttribute('href', '/producto/rosa');
     // One price: no "Desde" (UC-01).
     expect(within(card).getByText(/^\$\s12\.345$/)).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama varios/ });
+    const card = await screen.findByRole('link', { name: /Pijama varios/i });
     // "Desde" is its own span, lighter than the price.
     expect(card.querySelector('.price')?.textContent).toMatch(/^Desde\s+\$\s12\.345$/);
   });
@@ -57,9 +57,9 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const soldOut = await screen.findByRole('link', { name: /Pijama agotado/ });
+    const soldOut = await screen.findByRole('link', { name: /Pijama agotado/i });
     expect(within(soldOut).getByText(es.catalog.soldOut)).toBeInTheDocument();
-    expect(within(screen.getByRole('link', { name: /Pijama con-stock/ })).queryByText(es.catalog.soldOut))
+    expect(within(screen.getByRole('link', { name: /Pijama con-stock/i })).queryByText(es.catalog.soldOut))
       .not.toBeInTheDocument();
   });
 
@@ -68,26 +68,63 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(within(card).getAllByTestId('swatch')).toHaveLength(1);
     expect(within(card).getByTestId('swatch')).toHaveAttribute('title', 'Rosa');
     expect(within(card).getByText('Color: Rosa')).toBeInTheDocument();
-    expect(within(screen.getByRole('link', { name: /Pijama agotado/ })).queryByTestId('swatch')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('link', { name: /Pijama agotado/i })).queryByTestId('swatch')).not.toBeInTheDocument();
   });
 
-  it('given 7 colors, one unknown to the map, when listed, then 3 show, the unknown one by name, and "+4"', async () => {
-    const colors = ['Rosa', 'Unicornio', 'Beige', 'Salvia', 'Negro', 'Celeste', 'Lila'];
+  it('given 7 colors the map knows, when listed, then 3 show and "+4"', async () => {
+    const colors = ['Rosa', 'Lila', 'Beige', 'Salvia', 'Negro', 'Celeste', 'Bordo'];
     stubCatalogApi({ listings: [listed([product('muchos', { colors })])] });
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama muchos/ });
+    const card = await screen.findByRole('link', { name: /Pijama muchos/i });
     expect(within(card).getAllByTestId('swatch').map((swatch) => swatch.getAttribute('title')))
-      .toEqual(['Rosa', 'Beige']);
-    expect(within(card).getByText('Unicornio')).toHaveAttribute('aria-hidden', 'true');
+      .toEqual(['Rosa', 'Lila', 'Beige']);
     expect(within(card).getByText('+4')).toBeInTheDocument();
-    expect(within(card).getByText('Colores: Rosa, Unicornio, Beige, Salvia, Negro, Celeste y Lila'))
-      .toBeInTheDocument();
+    expect(within(card).getByText('Colores: Rosa, Lila, Beige, Salvia, Negro, Celeste y Bordo')).toBeInTheDocument();
+  });
+
+  it('given two named designs, when listed, then one print circle and "2 diseños" share the sizes\' line, without the names (T-E7-71)', async () => {
+    const colors = ['Snoopy en su casita', 'Snoopy y amigos'];
+    stubCatalogApi({ listings: [listed([product('snoopy', { colors, sizes: [{ size: 'Unico', inStock: true }] })])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama snoopy/i });
+    const meta = card.querySelector('.card-meta');
+    expect(within(card).getAllByTestId('swatch')).toHaveLength(1);
+    expect(within(card).getByText(es.catalog.designs(2))).toHaveAttribute('aria-hidden', 'true');
+    expect(within(card).queryByText('Snoopy en su casita')).not.toBeInTheDocument();
+    expect(within(card).getByText('Colores: Snoopy en su casita y Snoopy y amigos')).toBeInTheDocument();
+    expect(meta?.querySelector('.swatches-mini')).not.toBeNull();
+    expect(meta?.querySelector('.card-sizes')).toHaveTextContent('Único');
+  });
+
+  it('given one named design, when listed, then its card shows the print circle alone (T-E7-71)', async () => {
+    stubCatalogApi({ listings: [listed([product('kuromi', { colors: ['Kuromi lila'] })])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama kuromi/i });
+    expect(within(card).getAllByTestId('swatch')).toHaveLength(1);
+    expect(within(card).queryByText(/diseños/)).not.toBeInTheDocument();
+  });
+
+  it('given a name typed in capitals and the size "Unico", when listed, then the card shows it in title case and "Único" (T-E7-71)', async () => {
+    stubCatalogApi({
+      listings: [listed([{ ...product('kuromi'), name: 'TOALLON KUROMI', sizes: [{ size: 'Unico', inStock: true }] }])],
+    });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Toallon Kuromi/ });
+    expect(within(card).getByRole('heading', { name: 'Toallon Kuromi' })).toBeInTheDocument();
+    expect(card.querySelector('.card-sizes')).toHaveTextContent('Único');
+    expect(card).toHaveAccessibleName(expect.stringContaining(es.catalog.sizes(['Único'])) as string);
   });
 
   it('given a new and an older product, when listed, then only the new one says "Nuevo" (D-05)', async () => {
@@ -95,9 +132,9 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const fresh = await screen.findByRole('link', { name: /Pijama nuevo/ });
+    const fresh = await screen.findByRole('link', { name: /Pijama nuevo/i });
     expect(within(fresh).getByText(es.catalog.isNew)).toBeInTheDocument();
-    expect(within(screen.getByRole('link', { name: /Pijama viejo/ })).queryByText(es.catalog.isNew))
+    expect(within(screen.getByRole('link', { name: /Pijama viejo/i })).queryByText(es.catalog.isNew))
       .not.toBeInTheDocument();
   });
 
@@ -138,15 +175,20 @@ describe('catalog grid (UC-01)', () => {
     });
   });
 
-  it('given matches, when the listing opens, then the count ends the filter bar row, after the buttons (T-E7-11)', async () => {
+  it('given matches, when the listing opens, then the count starts the sort row and the filter bar holds only its buttons (T-E7-70)', async () => {
     stubCatalogApi({ listings: [listed(products(3, 'p'), false, 3)] });
 
     renderRoute('/');
 
     const count = await listing().findByText('3 productos');
     const bar = listing().getByRole('group', { name: es.filters.bar });
-    expect(count.parentElement).toBe(bar.parentElement);
-    expect(bar.compareDocumentPosition(count) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const sort = listing().getByRole('combobox', { name: es.sort.label });
+    expect(bar.parentElement).not.toContainElement(count);
+    expect(count.parentElement).toHaveClass('catalog-tools');
+    expect(count.parentElement?.firstElementChild).toBe(count);
+    expect(count.parentElement).toContainElement(sort);
+    // The label stays for screen readers only: "Novedades" beside the count already reads as an order.
+    expect(listing().getByText(es.sort.label)).toHaveClass('visually-hidden');
   });
 
   it('given one match, when the listing opens, then it reads "1 producto"', async () => {
@@ -202,7 +244,7 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/categoria/pijamas-de-invierno');
 
-    expect(await screen.findByRole('link', { name: /Pijama invierno/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Pijama invierno/i })).toBeInTheDocument();
     expect(queriesTo(get, PRODUCTS)).toEqual([{ category: 'pijamas-de-invierno', page: 0 }]);
     expect(queriesTo(get, '/api/catalog/filters')).toEqual([{ category: 'pijamas-de-invierno' }]);
   });
@@ -233,7 +275,7 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama sin-foto/ });
+    const card = await screen.findByRole('link', { name: /Pijama sin-foto/i });
     expect(within(card).queryByRole('img')).not.toBeInTheDocument();
     expect(within(card).getByTestId('no-photo')).toBeInTheDocument();
   });
@@ -244,13 +286,13 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     const photo = within(card).getByTestId('second-photo');
     expect(photo).toHaveAttribute('src', '/media/rosa-2-400.webp');
     expect(photo).toHaveAttribute('alt', '');
     expect(photo).toHaveAttribute('loading', 'lazy');
     expect(within(card).getAllByRole('presentation')).toHaveLength(1);
-    const single = screen.getByRole('link', { name: /Pijama una-foto/ });
+    const single = screen.getByRole('link', { name: /Pijama una-foto/i });
     expect(within(single).queryByTestId('second-photo')).not.toBeInTheDocument();
   });
 
@@ -265,7 +307,7 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     const shown = card.querySelectorAll('.card-sizes span[aria-hidden]:not(.card-sizes-label)');
     expect([...shown].map((size) => size.textContent)).toEqual(['S', 'M', 'L', 'XL']);
     expect(card).toHaveAccessibleName(expect.stringContaining(es.catalog.sizes(['S', 'M', 'L', 'XL'])) as string);
@@ -281,7 +323,7 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(card).toHaveAccessibleName(expect.stringContaining(es.catalog.sizes(['S', 'L'])) as string);
     const shown = card.querySelectorAll('.card-sizes span[aria-hidden]:not(.card-sizes-label)');
     expect([...shown].map((size) => [size.textContent, size.classList.contains('out')])).toEqual([
@@ -302,9 +344,21 @@ describe('catalog grid (UC-01)', () => {
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     const shown = card.querySelectorAll('.card-sizes span[aria-hidden]:not(.card-sizes-label)');
     expect([...shown].map((size) => size.textContent)).toEqual(['4', '12', '14']);
+  });
+
+  it('given sizes 6 to 18, when listed, then the card shows as many as fit 5 characters and "+N", never cut (T-E7-71)', async () => {
+    const sizes = ['6', '8', '10', '12', '16', '18'].map((size) => ({ size, inStock: true }));
+    stubCatalogApi({ listings: [listed([product('rosa', { sizes })])] });
+
+    renderRoute('/');
+
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
+    const shown = card.querySelectorAll('.card-sizes span[aria-hidden]:not(.card-sizes-label)');
+    expect([...shown].map((size) => size.textContent)).toEqual(['6', '8', '10', '+3']);
+    expect(card).toHaveAccessibleName(expect.stringContaining(es.catalog.sizes(['6', '8', '10', '12', '16', '18'])) as string);
   });
 
   it('given a phone and a product with two photos, when its photo is swiped, then the second shows and it does not open (T-E7-32)', async () => {
@@ -313,7 +367,7 @@ describe('catalog grid (UC-01)', () => {
     const second = { files: [{ width: 400, url: '/media/rosa-2-400.webp' }] };
     stubCatalogApi({ listings: [listed([product('rosa', { secondImage: second })])] });
     const { router } = renderRoute('/');
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     const photo = within(card).getByRole('presentation');
     expect(within(card).getByTestId('second-photo')).not.toHaveClass('touched');
 
@@ -337,7 +391,7 @@ describe('catalog grid (UC-01)', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: es.catalog.retry }));
 
-    expect(await screen.findByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Pijama rosa/i })).toBeInTheDocument();
   });
 });
 
@@ -352,7 +406,7 @@ describe('grid or list view (T-E7-06, changes to UC-01)', () => {
   it('given the grid, when "list" is chosen, then the products show as a list and the URL does not change', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
     const { router } = renderRoute('/categoria/pijamas?talle=M');
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(toggle().getByRole('button', { name: es.catalog.gridView })).toHaveAttribute('aria-pressed', 'true');
 
     await userEvent.click(toggle().getByRole('button', { name: es.catalog.listView }));
@@ -367,12 +421,43 @@ describe('grid or list view (T-E7-06, changes to UC-01)', () => {
     const second = { files: [{ width: 400, url: '/media/rosa-2-400.webp' }] };
     stubCatalogApi({ listings: [listed([product('rosa', { secondImage: second })])] });
     renderRoute('/categoria/pijamas');
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(within(card).getByTestId('second-photo')).toBeInTheDocument();
 
     await userEvent.click(toggle().getByRole('button', { name: es.catalog.listView }));
 
     expect(within(card).queryByTestId('second-photo')).not.toBeInTheDocument();
+  });
+
+  it('given a new and a sold-out product, when the list is chosen, then their labels leave the photo for words beside the colors (T-E7-70)', async () => {
+    stubCatalogApi({
+      listings: [listed([product('nuevo', { isNew: true, colors: ['Rosa'] }), product('agotado', { soldOut: true })])],
+    });
+    renderRoute('/categoria/pijamas');
+    const fresh = await screen.findByRole('link', { name: /Pijama nuevo/i });
+    expect(within(fresh).getByText(es.catalog.isNew)).toHaveClass('badge');
+
+    await userEvent.click(toggle().getByRole('button', { name: es.catalog.listView }));
+
+    const tag = within(fresh).getByText(es.catalog.isNew);
+    expect(tag).toHaveClass('card-tag');
+    expect(tag.closest('.card-media')).toBeNull();
+    expect(tag.closest('.card-meta-start')).not.toBeNull();
+    const soldOut = screen.getByRole('link', { name: /Pijama agotado/i });
+    expect(within(soldOut).getByText(es.catalog.soldOut)).toHaveClass('card-tag');
+  });
+
+  it('given the list, when a card shows, then a decorative chevron ends its row after the price (T-E7-70)', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+    renderRoute('/categoria/pijamas');
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
+    expect(card.querySelector('.card-more')).toBeNull();
+
+    await userEvent.click(toggle().getByRole('button', { name: es.catalog.listView }));
+
+    const more = card.querySelector('.card-more');
+    expect(more).toHaveAttribute('aria-hidden', 'true');
+    expect(card.querySelector('.price')?.nextElementSibling).toBe(more);
   });
 
   it('given the list chosen, when another listing opens in the same visit, then it shows as a list too', async () => {
@@ -383,7 +468,7 @@ describe('grid or list view (T-E7-06, changes to UC-01)', () => {
 
     renderRoute('/');
 
-    const card = await screen.findByRole('link', { name: /Pijama rosa/ });
+    const card = await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(card.closest('ul')).toHaveClass('list-view');
     expect(toggle().getByRole('button', { name: es.catalog.listView })).toHaveAttribute('aria-pressed', 'true');
   });

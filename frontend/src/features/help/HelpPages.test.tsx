@@ -16,7 +16,7 @@ describe('help pages (UC-31, T-E7-28)', () => {
 
     renderRoute('/');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     const help = within(within(screen.getByRole('contentinfo')).getByRole('region', { name: es.footer.help }));
     expect(help.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
       [es.faq.title, '/preguntas-frecuentes'],

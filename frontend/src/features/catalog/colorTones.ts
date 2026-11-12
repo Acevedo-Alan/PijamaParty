@@ -16,6 +16,9 @@ function tone(background: string, outlined = false): ColorTone {
   return { background, outlined };
 }
 
+/** A print: the "Estampado" color, and on a card the one circle of a product whose colors are designs (T-E7-71). */
+export const PRINT_TONE: ColorTone = tone('linear-gradient(135deg, #f2b8c6 0 33%, #a7d3ec 33% 66%, #f4d35e 66%)', true);
+
 /** By normalized name (see {@link normalizeColor}). */
 const TONES: ReadonlyMap<string, ColorTone> = new Map([
   ['rosa', tone('#f2b8c6', true)],
@@ -44,7 +47,7 @@ const TONES: ReadonlyMap<string, ColorTone> = new Map([
   ['bordo', tone('#7b1e2b')],
   ['lila', tone('#c8b6e2', true)],
   ['violeta', tone('#7d5ba6')],
-  ['estampado', tone('linear-gradient(135deg, #f2b8c6 0 33%, #a7d3ec 33% 66%, #f4d35e 66%)', true)],
+  ['estampado', PRINT_TONE],
 ]);
 
 /** Lowercase, without accents, with single spaces: "Bordó" and " bordo " are the same color. */

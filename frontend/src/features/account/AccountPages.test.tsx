@@ -215,6 +215,23 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
     });
   });
 
+  it('given a sign-in on its way, when it waits, then "Ingresando…" is marked pending, for the rose sweep, and stops when it answers (T-E7-69)', async () => {
+    stubStore();
+    let reply: (value: unknown) => void = () => undefined;
+    vi.spyOn(api, 'POST').mockImplementation((() =>
+      new Promise((resolve) => {
+        reply = resolve;
+      })) as never);
+    renderRoute('/cuenta/ingresar');
+
+    await fillSignIn();
+
+    const button = await screen.findByRole('button', { name: es.account.signIn.sending });
+    expect(button).toHaveAttribute('data-pending');
+    reply(answer(401));
+    expect(await screen.findByRole('button', { name: es.account.signIn.send })).not.toHaveAttribute('data-pending');
+  });
+
   it('given a signed-in customer, when it signs out, then the header offers to sign in again', async () => {
     stubStore(answer(200, ANA));
     const post = stubPost(answer(204));
@@ -269,6 +286,72 @@ describe('customer registration, email verification and sign-in (UC-19, T-E4-02)
     await waitFor(() => {
       expect(screen.queryByText(es.account.signedOutNotice)).not.toBeInTheDocument();
     });
+  });
+});
+
+describe('signed in, it shows (T-E7-72)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    sessionStorage.clear();
+  });
+
+  it('given a signed-in customer named "Ana Pérez", when the header shows, then its account button shows "AP" instead of the icon', async () => {
+    stubStore(answer(200, ANA));
+    renderRoute('/preguntas-frecuentes');
+
+    const button = await screen.findByRole('button', { name: es.account.menu });
+    expect(button).toHaveTextContent('AP');
+    expect(button.querySelector('.account-icon-initials')).toHaveAttribute('aria-hidden', 'true');
+    expect(button.querySelector('svg')).toBeNull();
+    expect(button).toHaveAttribute('data-initials');
+  });
+
+  it('given a password sign-in, when it succeeds, then the welcome drops in under the header of the page it goes back to', async () => {
+    stubStore();
+    stubPost(answer(200, ANA));
+    const { router } = renderRoute('/cuenta/ingresar');
+
+    await fillSignIn();
+
+    const notice = await screen.findByText(es.account.welcomeNotice('Ana'));
+    expect(notice).toHaveAttribute('data-kaomoji', es.kaomoji.welcome);
+    expect(notice.closest('header')).not.toBeNull();
+    expect(notice.closest('[role="status"]')).not.toBeNull();
+    expect(router.state.location.pathname).toBe('/');
+
+    await userEvent.click(screen.getByRole('button', { name: es.account.closeNotice }));
+    await waitFor(() => {
+      expect(screen.queryByText(es.account.welcomeNotice('Ana'))).not.toBeInTheDocument();
+    });
+  });
+
+  it('given "Continuar con …" pressed, when the store comes back signed in, then the welcome shows once', async () => {
+    sessionStorage.setItem('pijamaparty.welcome-after-provider', '');
+    stubStore(answer(200, ANA));
+    renderRoute('/');
+
+    expect(await screen.findByText(es.account.welcomeNotice('Ana'))).toBeInTheDocument();
+    expect(sessionStorage.getItem('pijamaparty.welcome-after-provider')).toBeNull();
+  });
+
+  it('given "Continuar con …" pressed, when the store comes back signed out, then no welcome shows and the mark goes', async () => {
+    sessionStorage.setItem('pijamaparty.welcome-after-provider', '');
+    stubStore();
+    renderRoute('/cuenta/ingresar?social=cancelled');
+
+    await screen.findByRole('link', { name: es.account.signInLink });
+    await waitFor(() => {
+      expect(sessionStorage.getItem('pijamaparty.welcome-after-provider')).toBeNull();
+    });
+    expect(screen.queryByText(/Ya ingresaste/)).not.toBeInTheDocument();
+  });
+
+  it('given a signed-in visit without a provider mark, when a page opens, then there is no welcome', async () => {
+    stubStore(answer(200, ANA));
+    renderRoute('/');
+
+    await screen.findByRole('button', { name: es.account.menu });
+    expect(screen.queryByText(/Ya ingresaste/)).not.toBeInTheDocument();
   });
 });
 

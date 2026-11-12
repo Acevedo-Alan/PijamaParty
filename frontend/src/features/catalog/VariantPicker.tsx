@@ -1,6 +1,7 @@
 import { useId, type ReactNode, type Ref } from 'react';
 import { es } from '../../i18n/es.ts';
 import { colorTone } from './colorTones.ts';
+import { displaySize } from './displayText.ts';
 import type { DetailVariant } from './productDetailApi.ts';
 import { isColorSoldOut, isSizeAvailable, type Selection } from './variantSelection.ts';
 
@@ -24,9 +25,9 @@ function SizeOption({ name, value, checked, disabled = false, soldOut, onPick }:
         checked={checked}
         disabled={disabled}
         onChange={onPick}
-        {...(soldOut ? { 'aria-label': es.product.soldOutOption(value) } : {})}
+        {...(soldOut ? { 'aria-label': es.product.soldOutOption(displaySize(value)) } : {})}
       />
-      {value}
+      {displaySize(value)}
     </label>
   );
 }

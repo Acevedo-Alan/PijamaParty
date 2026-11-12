@@ -40,6 +40,8 @@ export const es = {
     /** D-04: what a screen reader hears for the swatches of a card, e.g. "Colores: Rosa, Beige y Salvia". */
     colors: (colors: readonly string[]) =>
       `${colors.length === 1 ? 'Color' : 'Colores'}: ${new Intl.ListFormat('es', { type: 'conjunction' }).format(colors)}`,
+    /** T-E7-71: beside the print circle of a card whose colors are named designs ("Snoopy en su casita"). */
+    designs: (count: number) => `${String(count)} diseños`,
     /** T-E7-35: what a screen reader hears for the sizes in stock of a card, e.g. "Talles: S y L". */
     sizes: (sizes: readonly string[]) =>
       `${sizes.length === 1 ? 'Talle' : 'Talles'}: ${new Intl.ListFormat('es', { type: 'conjunction' }).format(sizes)}`,
@@ -740,6 +742,8 @@ export const es = {
     /** T-E7-66: "Salir" while the sign-out is on its way, and the goodbye under the header once it is done. */
     signingOut: 'Cerrando sesión…',
     signedOutNotice: 'Cerraste tu sesión. ¡Hasta pronto!',
+    /** T-E7-72: under the header once the customer signs in; an account may have no name. */
+    welcomeNotice: (firstName: string) => (firstName === '' ? '¡Hola! Ya ingresaste.' : `¡Hola, ${firstName}! Ya ingresaste.`),
     closeNotice: 'Cerrar aviso',
     email: 'Email',
     password: 'Contraseña',
@@ -983,8 +987,8 @@ export const es = {
     /** UC-20 (T-E4-05): the address book. The fields use the checkout's labels and rules. */
     addresses: {
       title: 'Mis direcciones',
-      intro: 'Guardá hasta 10 direcciones. La principal aparece elegida cuando comprás.',
-      /** T-E7-63: beside the title. */
+      intro: 'La dirección que marques como principal se seleccionará automáticamente al comprar.',
+      /** T-E7-63: beside the title; T-E7-68: only from 8 addresses. */
       count: (count: number) => `${String(count)} de 10`,
       loading: 'Cargando tus direcciones…',
       loadError: 'No pudimos cargar tus direcciones.',
@@ -1305,6 +1309,7 @@ export const es = {
     notFound: '(´・ω・`)',
     paid: '(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
     bye: '(・ω・)ﾉ',
+    welcome: '(◕‿◕)♡',
   },
   notFound: {
     title: 'No encontramos esta página',

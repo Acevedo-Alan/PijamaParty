@@ -36,7 +36,7 @@ describe('benefits bar (UC-31, T-E7-21, T-E7-23)', () => {
 
     renderRoute('/');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     await waitFor(() => {
       expect(get).toHaveBeenCalledWith('/api/checkout/payment-providers', expect.anything());
     });

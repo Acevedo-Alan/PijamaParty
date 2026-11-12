@@ -1,6 +1,7 @@
 import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
 import { toImage, type ListingImage } from '../catalog/catalogApi.ts';
+import { displayProductName } from '../catalog/displayText.ts';
 
 type CartResponse = components['schemas']['CartResponse'];
 type ItemResponse = components['schemas']['ItemResponse'];
@@ -95,7 +96,7 @@ function toProduct(product: ItemProductResponse | null | undefined): CartProduct
   if (name === undefined || slug === undefined || size === undefined || color === undefined || sku === undefined) {
     throw new Error('Incomplete product in a cart item');
   }
-  return { name, slug, size, color, sku, image: toImage(product.image) };
+  return { name: displayProductName(name), slug, size, color, sku, image: toImage(product.image) };
 }
 
 function toItem(item: ItemResponse): CartItem {

@@ -200,7 +200,7 @@ describe('cart side panel (UC-08)', () => {
     const section = within(await within(panel()).findByRole('region', { name: es.catalog.newest }));
     expect(section.getAllByRole('link').map((link) => link.getAttribute('href')))
       .toEqual(['/producto/a', '/producto/c', '/producto/d', '/producto/e']);
-    await userEvent.click(section.getByRole('link', { name: /Pijama c/ }));
+    await userEvent.click(section.getByRole('link', { name: /Pijama c/i }));
     expect(router.state.location.pathname).toBe('/producto/c');
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

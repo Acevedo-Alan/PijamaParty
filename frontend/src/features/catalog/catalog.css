@@ -18,6 +18,16 @@
   gap: 18px 16px;
 }
 
+/* T-E7-71: the grid stretches each item to its row's height; the card fills its item, so its price can sit at the bottom. */
+.product-grid > li:not(.skeleton-card) {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-grid > li > .card {
+  flex: 1;
+}
+
 @media (min-width: 640px) {
   .product-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -168,12 +178,17 @@
   overflow: hidden;
 }
 
-/* The name medium, the price semibold in the same ink: the two facts a shopper scans, one level apart */
+/*
+ * The name medium, the price semibold in the same ink: the two facts a shopper scans, one level apart. T-E7-71: the
+ * price sits at the card's bottom, and the grid makes every card of a row as tall, so neighbor prices line up when one
+ * name takes a line and the other two.
+ */
 .card .price {
   font-size: 14px;
   font-weight: 600;
   color: var(--ink);
-  margin-top: 2px;
+  margin-top: auto;
+  padding-top: 2px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -253,29 +268,23 @@
   border-color: var(--line-strong);
 }
 
-.swatch-name,
-.dot-more {
+/* "+N" more colors, or "N diseños" beside the print circle of named designs (T-E7-71) */
+.dot-more,
+.swatch-count {
   font-size: 11px;
   line-height: 13px;
-  color: var(--ink-soft);
-}
-
-/* D-11: "N productos" at the end of the filter bar row, as in the prototype (T-E7-11). */
-.result-count {
-  flex: none;
-  margin-left: auto;
-  padding-left: 10px;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   white-space: nowrap;
 }
 
-/* Beside the filter buttons, a rule keeps the count apart from the buttons that scroll under its edge */
-.filters-row .result-count {
-  margin-left: 10px;
-  padding-left: 12px;
-  border-left: 1px solid var(--line);
+/* D-11: "N productos", since T-E7-70 at the start of the sort's row, so the filter buttons get the whole width. */
+.result-count {
+  flex: none;
+  margin-right: auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  white-space: nowrap;
 }
 
 .skeleton-card {
@@ -427,12 +436,12 @@
 
 /* T-E7-06: the bar of filter buttons, one row that scrolls sideways on a phone */
 /* The buttons scroll sideways on phones; the count beside them stays in view. */
+/* T-E7-70: no top line, so under the header (or the heading) only one line separates: the bar's bottom one. */
 .filters-row {
   display: flex;
   align-items: center;
   margin-bottom: 18px;
   padding: 8px 0;
-  border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
 
@@ -459,6 +468,14 @@
 
 .filters-bar::-webkit-scrollbar {
   display: none;
+}
+
+/* T-E7-70: on a phone the buttons slide from edge to edge of the screen, past the page's 20 px gutter. */
+@media (max-width: 859px) {
+  .filters-bar {
+    margin: 0 -20px;
+    padding: 6px 24px 6px 20px;
+  }
 }
 
 .filter-btn {
@@ -496,7 +513,6 @@
 .catalog-tools {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -547,10 +563,14 @@
   gap: 12px;
 }
 
+/*
+ * T-E7-70: the text column fills the photo's height: the colors and sizes, then the name, at the top; the price at the
+ * photo's bottom edge with a light chevron at its right, so a short name leaves no hole under the price.
+ */
 .list-view .card {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
-  grid-auto-rows: min-content;
+  grid-template-rows: auto auto 1fr;
   column-gap: 12px;
   align-items: start;
   padding: 10px;
@@ -559,32 +579,87 @@
   background: var(--surface);
 }
 
+/* T-E7-70: the photo takes the row's whole height (at least 96 px), so a one-line name leaves no hole under it. */
 .list-view .card-media {
   grid-column: 1;
-  grid-row: 1 / span 4;
+  grid-row: 1 / span 3;
+  align-self: stretch;
   width: 96px;
 }
 
 .list-view .card .ph {
   width: 96px;
-  height: 96px;
+  height: 100%;
+  min-height: 96px;
   aspect-ratio: auto;
-}
-
-.list-view .card-badges {
-  top: 4px;
-  left: 4px;
-}
-
-.list-view .card-badges .badge {
-  padding: 2px 6px;
-  font-size: 10px;
 }
 
 .list-view .card-meta,
 .list-view .card-title,
 .list-view .card .price {
   grid-column: 2;
+}
+
+.list-view .card .price {
+  grid-row: 3;
+  align-self: end;
+  /* Clear of the chevron */
+  padding-right: 36px;
+}
+
+.list-view .card-meta-start {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/*
+ * T-E7-70: "NUEVO" and "AGOTADO" as small pills beside the colors, instead of a label over the small photo; a pill,
+ * not a bare word, so the eye does not read the swatch and the word as one thing ("a new color").
+ */
+.card-tag {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 13px;
+  text-transform: uppercase;
+}
+
+.card-tag.new {
+  background: var(--rose-soft);
+  color: var(--accent-text);
+}
+
+.card-tag.sold-out {
+  background: var(--bg);
+  color: var(--ink-soft);
+}
+
+.card-more {
+  grid-column: 2;
+  grid-row: 3;
+  justify-self: end;
+  align-self: end;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--rose-soft);
+  color: var(--accent-text);
+}
+
+.card-more svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .list-view .card-meta,
@@ -614,10 +689,6 @@
 .sort {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--ink-soft);
 }
 
 .sort select {
@@ -1061,26 +1132,30 @@ html:has(.filters-panel[open]) {
 }
 
 /*
- * The swatches and the sizes share a row, the sizes at its right end (T-E7-35). Neither breaks inside: when both do
- * not fit, as on a narrow phone card with many colors, the sizes go whole to the next line, under the swatches.
+ * The swatches and the sizes share a row, the sizes at its right end (T-E7-35). T-E7-71: always one line, so every
+ * card's name starts at the same height; the swatches never shrink (at most 3 circles, or one and "N diseños") and
+ * the sizes, if they still do not fit, are cut with "…" (screen readers hear them all).
  */
 .card-meta {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
-  gap: 6px 8px;
+  gap: 8px;
   margin-top: 9px;
 }
 
 .card-meta .swatches-mini {
+  flex: none;
   flex-wrap: nowrap;
   margin-top: 0;
 }
 
 /* T-E7-35: the sizes, "S · M · L", in Open Sans; one without stock is struck through and dimmed. */
 .card-sizes {
-  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--ff-sizes);
   font-size: 12px;

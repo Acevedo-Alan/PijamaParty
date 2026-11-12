@@ -1,5 +1,6 @@
 import { api } from '../../api/client.ts';
 import type { components, paths } from '../../api/schema.d.ts';
+import { displayProductName } from './displayText.ts';
 import type { PlaceholderDataUrl } from '../../components/BlurredImage.tsx';
 import { defaultSort, type Audience, type ListingCriteria, type Season } from './listingCriteria.ts';
 
@@ -78,7 +79,7 @@ function toProduct(item: ListItemResponse): ListedProduct {
   }
   return {
     slug,
-    name,
+    name: displayProductName(name),
     image: toImage(item.image),
     secondImage: toImage(item.secondImage),
     fromPriceCents,

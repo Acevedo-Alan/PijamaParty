@@ -7,6 +7,7 @@ import { Toast } from '../../components/motion/Toast.tsx';
 import { NightLoader } from '../../components/NightLoader.tsx';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
+import { displaySize } from '../catalog/displayText.ts';
 import { NewestProducts } from '../catalog/NewestProducts.tsx';
 import { isCouponOutdone, type Cart, type CartItem, type CouponRefusal } from './cartApi.ts';
 import { useCartPanel } from './CartPanelContext.tsx';
@@ -132,7 +133,7 @@ function Item({ item, onFollowLink }: { item: CartItem; onFollowLink: () => void
             <Link to={`/producto/${product.slug}`} className="cart-item-name" onClick={onFollowLink}>
               {product.name}
             </Link>
-            <p className="cart-item-meta">{es.cart.variant(product.color, product.size)}</p>
+            <p className="cart-item-meta">{es.cart.variant(product.color, displaySize(product.size))}</p>
           </>
         )}
         {item.previousUnitPriceCents !== null && (

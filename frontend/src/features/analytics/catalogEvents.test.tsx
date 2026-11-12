@@ -46,9 +46,9 @@ describe('catalog analytics events (RNF-25, T-E1-24)', () => {
     });
     renderRoute('/categoria/verano');
 
-    await screen.findByRole('link', { name: /Pijama luna/ });
+    await screen.findByRole('link', { name: /Pijama luna/i });
     await userEvent.click(screen.getByRole('button', { name: es.catalog.showMore }));
-    await screen.findByRole('link', { name: /Pijama mar/ });
+    await screen.findByRole('link', { name: /Pijama mar/i });
 
     await waitFor(() => {
       expect(gaEvents('view_item_list')).toHaveLength(2);
@@ -58,14 +58,14 @@ describe('catalog analytics events (RNF-25, T-E1-24)', () => {
         item_list_id: 'category_verano',
         item_list_name: 'category_verano',
         items: [
-          { item_id: 'luna', item_name: 'Pijama luna', price: 25000.5, index: 0 },
-          { item_id: 'sol', item_name: 'Pijama sol', price: 12345, index: 1 },
+          { item_id: 'luna', item_name: 'Pijama Luna', price: 25000.5, index: 0 },
+          { item_id: 'sol', item_name: 'Pijama Sol', price: 12345, index: 1 },
         ],
       },
       {
         item_list_id: 'category_verano',
         item_list_name: 'category_verano',
-        items: [{ item_id: 'mar', item_name: 'Pijama mar', price: 12345, index: 2 }],
+        items: [{ item_id: 'mar', item_name: 'Pijama Mar', price: 12345, index: 2 }],
       },
     ]);
   });
@@ -90,7 +90,7 @@ describe('catalog analytics events (RNF-25, T-E1-24)', () => {
     stubCatalogApi({ listings: [listed([product('luna')])] });
     renderRoute('/buscar?q=pijama+rosa');
 
-    await screen.findByRole('link', { name: /Pijama luna/ });
+    await screen.findByRole('link', { name: /Pijama luna/i });
 
     await waitFor(() => {
       expect(gaEvents('view_item_list')).toHaveLength(1);
@@ -115,7 +115,7 @@ describe('catalog analytics events (RNF-25, T-E1-24)', () => {
     stubCatalogApi({ listings: [listed([product('luna')])] });
     renderRoute('/');
 
-    await screen.findByRole('link', { name: /Pijama luna/ });
+    await screen.findByRole('link', { name: /Pijama luna/i });
 
     expect(window.dataLayer).toBeUndefined();
     expect(window.fbq).toBeUndefined();

@@ -34,12 +34,16 @@ const messages = es.account.addresses;
 /** The most addresses a book holds (UC-20); the server refuses an 11th. */
 const MAX_ADDRESSES = 10;
 
+/** T-E7-68: "n de 10" shows only once the limit is near; most customers keep one or two addresses. */
+const COUNT_FROM = 8;
+
 type Editing = { kind: 'new' } | { kind: 'edit'; address: SavedAddress };
 
 /**
  * UC-20 (T-E4-05): the signed-in customer's address book at /cuenta/direcciones. It adds, edits, deletes after a
  * confirmation and marks one address as primary; a visitor who is not signed in goes to sign in. T-E7-63: each address
- * a card with its action rows, and "Agregar dirección" a dashed card at the end.
+ * a card with its action rows, and "Agregar dirección" a dashed card at the end; T-E7-68: an empty book is a single
+ * dashed card with a pin, the sentence and the button, and "n de 10" shows only from 8 addresses.
  */
 export function AddressBookPage() {
   const customer = useCustomer();
@@ -111,7 +115,9 @@ export function AddressBookPage() {
       <title>{`${messages.title} | ${es.store.name}`}</title>
       <div className="address-book-title">
         <h1>{messages.title}</h1>
-        {list !== undefined && <p className="address-book-count">{messages.count(list.length)}</p>}
+        {list !== undefined && list.length >= COUNT_FROM && (
+          <p className="address-book-count">{messages.count(list.length)}</p>
+        )}
       </div>
       <p className="account-intro">{messages.intro}</p>
       <p className="address-notice" ref={noticeRef} tabIndex={-1} role="status">
@@ -135,7 +141,24 @@ export function AddressBookPage() {
         !addresses.isError && <p className="account-intro">{messages.loading}</p>
       ) : (
         <>
-          {list.length === 0 && editing === null && <p className="account-intro">{messages.empty}</p>}
+          {list.length === 0 && editing === null && (
+            // T-E7-68: the empty book is one dashed card, the only dashed thing of the account: a place to fill.
+            <div className="address-empty">
+              <span className="address-empty-icon">{accountIcons.pin}</span>
+              <p>{messages.empty}</p>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setNotice(null);
+                  setEditing({ kind: 'new' });
+                }}
+              >
+                <span className="group-icon">{accountIcons.plus}</span>
+                {messages.add}
+              </button>
+            </div>
+          )}
           <ul className="address-list">
             {list.map((address) => {
               const unit = addressUnit(address);
@@ -259,7 +282,8 @@ export function AddressBookPage() {
           ) : list.length >= MAX_ADDRESSES ? (
             <p className="account-intro">{messages.full}</p>
           ) : (
-            editing === null && (
+            editing === null &&
+            list.length > 0 && (
               // T-E7-63: a dashed card at the end of the list, always there while the book has room.
               <button
                 type="button"

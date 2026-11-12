@@ -1,5 +1,6 @@
 import { api } from '../../api/client.ts';
 import { toImage, type ListingImage } from '../catalog/catalogApi.ts';
+import { displayProductName } from '../catalog/displayText.ts';
 
 /** A product suggested while the visitor types (UC-26). */
 export interface Suggestion {
@@ -23,7 +24,7 @@ export async function fetchSuggestions(text: string, signal?: AbortSignal): Prom
     throw new Error(`Suggestions failed with status ${String(response.status)}`);
   }
   return (data.items ?? []).flatMap(({ slug, name, image }) =>
-    slug === undefined || name === undefined ? [] : [{ slug, name, image: toImage(image) }],
+    slug === undefined || name === undefined ? [] : [{ slug, name: displayProductName(name), image: toImage(image) }],
   );
 }
 

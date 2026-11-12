@@ -32,7 +32,7 @@ describe('catalog filters and sort (UC-02)', { timeout: 30_000 }, () => {
   it('given the filters size M and season summer, when applied, then the grid and the URL show them', async () => {
     const get = stubCatalogApi({ listings: [listed([product('rosa'), product('celeste')]), listed([product('rosa')])] });
     const { router } = renderRoute('/');
-    await screen.findByRole('link', { name: /Pijama celeste/ });
+    await screen.findByRole('link', { name: /Pijama celeste/i });
 
     const panel = await openFilters();
     await userEvent.click(within(await group(panel, es.filters.size)).getByRole('checkbox', { name: 'M' }));
@@ -40,9 +40,9 @@ describe('catalog filters and sort (UC-02)', { timeout: 30_000 }, () => {
     await userEvent.click(within(panel).getByRole('button', { name: es.filters.apply }));
 
     await waitFor(() => {
-      expect(screen.queryByRole('link', { name: /Pijama celeste/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /Pijama celeste/i })).not.toBeInTheDocument();
     });
-    expect(screen.getByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Pijama rosa/i })).toBeInTheDocument();
     expect(queriesTo(get, PRODUCTS)).toEqual([{ page: 0 }, { size: ['M'], season: ['SUMMER'], page: 0 }]);
     expect(router.state.location.search).toBe('?talle=M&temporada=verano');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('catalog filters and sort (UC-02)', { timeout: 30_000 }, () => {
 
     renderRoute('/categoria/pijamas?talle=M&color=Rosa&temporada=verano&precio-hasta=20000&orden=menor-precio');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(queriesTo(get, PRODUCTS)).toEqual([
       { category: 'pijamas', size: ['M'], color: ['Rosa'], season: ['SUMMER'], maxPrice: 2_000_000, sort: 'PRICE_ASC', page: 0 },
     ]);
@@ -75,7 +75,7 @@ describe('catalog filters and sort (UC-02)', { timeout: 30_000 }, () => {
     expect(await screen.findByText(es.catalog.noMatches)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: es.catalog.clearFilters }));
 
-    expect(await screen.findByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Pijama rosa/i })).toBeInTheDocument();
     expect(router.state.location.search).toBe('?orden=mayor-precio');
     expect(queriesTo(get, PRODUCTS)).toEqual([
       { size: ['XL'], sort: 'PRICE_DESC', page: 0 },
@@ -95,7 +95,7 @@ describe('catalog filters and sort (UC-02)', { timeout: 30_000 }, () => {
   it('given the listing, when the sort changes, then it applies at once from the first page', async () => {
     const get = stubCatalogApi({ listings: [listed([product('rosa')])] });
     const { router } = renderRoute('/?talle=M');
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: es.sort.label }), es.sort.PRICE_DESC);
 
@@ -128,7 +128,7 @@ describe('catalog filters and sort (UC-02)', { timeout: 30_000 }, () => {
   it('given a minimum above the maximum, when applied, then the panel refuses it and nothing is requested', async () => {
     const get = stubCatalogApi({ listings: [listed([product('rosa')])] });
     const { router } = renderRoute('/');
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
 
     const panel = await openFilters(es.filters.price);
     await userEvent.type(within(panel).getByRole('spinbutton', { name: es.filters.minPrice }), '30000');

@@ -90,7 +90,7 @@ describe('my account (UC-27, T-E4-15)', () => {
     const { router } = renderRoute('/');
 
     await userEvent.click(await screen.findByRole('button', { name: es.account.menu }));
-    await userEvent.click(await screen.findByRole('link', { name: es.account.myAccountLink }));
+    await userEvent.click(await screen.findByRole('link', { name: es.account.area.summary }));
     expect(router.state.location.pathname).toBe('/cuenta');
     // T-E7-60: the summary's navigation leads to Datos y acceso, where the sign-in methods are (T-E7-62).
     const area = await screen.findByRole('navigation', { name: es.account.area.navigation });

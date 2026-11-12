@@ -35,9 +35,10 @@ export function CatalogListing({ category, heading, photosBelowFold = false }: C
         onApply={(filters) => {
           setCriteria({ ...criteria, filters });
         }}
-        count={<ResultCount category={category} criteria={criteria} />}
       />
+      {/* T-E7-70: the count at the start of the sort's row, so the filter buttons get the whole width. */}
       <div className="catalog-tools">
+        <ResultCount category={category} criteria={criteria} />
         <SortSelect
           value={criteria.sort}
           onChange={(sort) => {

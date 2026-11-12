@@ -49,7 +49,7 @@ describe('floating WhatsApp button (UC-31, T-E7-27)', () => {
 
     renderRoute('/');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(button()).not.toBeInTheDocument();
   });
 });

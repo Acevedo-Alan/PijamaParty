@@ -17,7 +17,7 @@ describe('search results page (UC-26)', () => {
 
     renderRoute('/buscar?q=pijama+de+algod%C3%B3n');
 
-    expect(await screen.findByRole('link', { name: /Pijama luna/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Pijama luna/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(es.search.resultsFor('pijama de algodón'));
     expect(queriesTo(get, PRODUCTS)).toEqual([{ q: 'pijama de algodón', page: 0 }]);
     expect(screen.getByRole('combobox', { name: es.sort.label })).toHaveValue('RELEVANCE');
@@ -27,7 +27,7 @@ describe('search results page (UC-26)', () => {
   it('given a search, when the sort and size M are chosen, then they apply together with the text', async () => {
     const get = stubCatalogApi({ listings: [listed([product('luna')])] });
     const { router } = renderRoute('/buscar?q=pijama');
-    await screen.findByRole('link', { name: /Pijama luna/ });
+    await screen.findByRole('link', { name: /Pijama luna/i });
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: es.sort.label }), 'NEWEST');
     await userEvent.click(screen.getByRole('button', { name: /^Talle/ }));
@@ -71,7 +71,7 @@ describe('search results page (UC-26)', () => {
     expect(links.getByRole('link', { name: 'Invierno' })).toHaveAttribute('href', '/categoria/invierno');
     expect(links.getByRole('link', { name: es.catalog.seeAll })).toHaveAttribute('href', '/');
     const newest = within(await screen.findByRole('region', { name: es.catalog.newest }));
-    expect(newest.getByRole('link', { name: /Pijama rosa/ })).toHaveAttribute('href', '/producto/rosa');
+    expect(newest.getByRole('link', { name: /Pijama rosa/i })).toHaveAttribute('href', '/producto/rosa');
     // NEWEST is the default sort, so the query leaves it out
     expect(queriesTo(get, '/api/catalog/products').at(-1)).toEqual({ page: 0 });
   });
@@ -99,7 +99,7 @@ describe('search results page (UC-26)', () => {
 
     renderRoute('/?q=pijama');
 
-    await screen.findByRole('link', { name: /Pijama luna/ });
+    await screen.findByRole('link', { name: /Pijama luna/i });
     expect(queriesTo(get, PRODUCTS)).toEqual([{ page: 0 }]);
   });
 });

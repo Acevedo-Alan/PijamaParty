@@ -5,6 +5,7 @@ import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { ActiveFilters, priceLabel } from './ActiveFilters.tsx';
 import type { FilterOptions } from './catalogApi.ts';
+import { displaySize } from './displayText.ts';
 import { chosen, FILTER_GROUPS, FilterBar, type FilterGroup } from './FilterBar.tsx';
 import { groupSizes } from './sizeGroups.ts';
 import { CENTS_PER_PESO, countFilters, NO_FILTERS, WHOLE_PESOS, type ProductFilters } from './listingCriteria.ts';
@@ -185,12 +186,12 @@ function SizeGroup({ options, selected, onChange, ...disclosure }: SizeGroupProp
   if (groups.length === 0) {
     return null;
   }
-  const label = (size: string) => size;
+  const label = displaySize;
   return (
     <FilterSection
       group="sizes"
       legend={es.filters.size}
-      summary={selected.length === 0 ? null : es.filters.chosenSummary(selected)}
+      summary={selected.length === 0 ? null : es.filters.chosenSummary(selected.map(displaySize))}
       {...disclosure}
     >
       {groups.length === 1 ? (
@@ -283,8 +284,6 @@ interface FilterPanelProps {
   category: string | undefined;
   filters: ProductFilters;
   onApply: (filters: ProductFilters) => void;
-  /** Shown at the end of the bar's row: the number of matches (D-11). */
-  count?: ReactNode;
 }
 
 /**
@@ -292,7 +291,7 @@ interface FilterPanelProps {
  * keeps the focus inside, closes with Escape and hides the page from screen readers. The choices apply with "Show
  * results"; closing discards them.
  */
-export function FilterPanel({ category, filters, onApply, count }: FilterPanelProps) {
+export function FilterPanel({ category, filters, onApply }: FilterPanelProps) {
   const [isOpen, setOpen] = useState(false);
   const titleId = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -371,7 +370,6 @@ export function FilterPanel({ category, filters, onApply, count }: FilterPanelPr
         options={options.data?.status === 'found' ? options.data.options : undefined}
         filters={filters}
         onOpen={open}
-        trailing={count}
       />
       <ActiveFilters filters={filters} onApply={onApply} />
       <PanelDialog

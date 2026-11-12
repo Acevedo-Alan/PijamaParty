@@ -1,9 +1,8 @@
 /* UC-19 (T-E4-02, T-E4-03): the header's account entry and the registration, sign-in, verification and password
    recovery pages. UC-20 (T-E4-05): the address book. UC-22 (T-E4-07): my orders. */
 
-/* UC-31 (T-E7-02): the account entries of the header and the phone menu */
-.header-account,
-.menu-account {
+/* UC-31 (T-E7-02): the account entry of the header */
+.header-account {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -35,6 +34,32 @@
   border: 2px solid var(--bg);
   border-radius: 50%;
   background: var(--accent);
+}
+
+/*
+ * T-E7-72: with a name, the initials take the icon's place: a rose circle that reads as "signed in" on a phone at a
+ * glance, a change of shape, so the dot is not needed.
+ */
+.account-icon-initials {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--rose-soft);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.account-icon[data-initials]::after {
+  display: none;
+}
+
+.account-icon[data-leaving] .account-icon-initials {
+  opacity: 0;
 }
 
 .account-icon[aria-expanded='true'] {
@@ -203,6 +228,11 @@
   opacity: 0;
 }
 
+/* T-E7-72: the initials fade with the list, then the person icon comes back. */
+.account-icon-initials {
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+
 .account-area-content {
   transition: opacity var(--dur-panel) var(--ease-standard);
 }
@@ -253,9 +283,9 @@
   }
 }
 
-/* The goodbye (T-E7-66): the store's notice pill, centered 8 px under the header, with a thin bar that runs out in the
-   3 seconds it stays (NOTICE_MS of signOutFlow.tsx). */
-.sign-out-notice {
+/* The goodbye (T-E7-66) and the welcome (T-E7-72): the store's notice pill, centered 8 px under the header, with a
+   thin bar that runs out in the 3 seconds it stays (NOTICE_MS of signOutFlow.tsx). */
+.session-notice {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
@@ -265,12 +295,12 @@
   pointer-events: none;
 }
 
-.sign-out-notice .toast-region {
+.session-notice .toast-region {
   max-width: 100%;
   padding: 0 16px;
 }
 
-.sign-out-notice .toast {
+.session-notice .toast {
   position: relative;
   overflow: hidden;
   margin-top: 0;
@@ -278,7 +308,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .sign-out-notice .toast::after {
+  .session-notice .toast::after {
     content: '';
     position: absolute;
     left: 0;
@@ -288,11 +318,11 @@
     background: currentColor;
     opacity: 0.35;
     transform-origin: left;
-    animation: sign-out-notice-time 3s linear forwards;
+    animation: session-notice-time 3s linear forwards;
   }
 }
 
-@keyframes sign-out-notice-time {
+@keyframes session-notice-time {
   from {
     transform: scaleX(1);
   }
@@ -306,15 +336,174 @@
   text-align: left;
 }
 
-/* The account level of the phone menu (T-E7-39): the greeting, then the links one above the other. */
+/*
+ * T-E7-67, the account level of the phone menu, kawaii and calm: a cream profile card stitched in gold 4 px inside its
+ * edge (as the account's pills), the initials in a rose circle ringed by a dashed rose line; the four sections as
+ * full-width rows (a rose line icon, the name, a light chevron) split by hairlines; and "Salir" apart at the bottom of
+ * the level, under a gold stitch, in a soft red. No colored tiles, gradients or sparkles (T-E7-63).
+ */
 .menu-account {
+  flex: 1;
+  display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
 }
 
-.menu-account .account-greeting {
-  padding: 0 0 4px;
+.menu-account-profile {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 14px;
+  align-items: center;
+  margin: 6px 0 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--bg);
+}
+
+.menu-account-profile::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed var(--stitch-gold);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.menu-account-initials {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--rose-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  outline: 1px dashed var(--accent);
+  outline-offset: 3px;
+}
+
+.menu-account-greeting {
+  align-self: end;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.menu-account-email {
+  align-self: start;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-account-links {
+  list-style: none;
+}
+
+.menu-account-links > li {
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+
+.menu-account-links > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.menu-account-links[data-signing-out] > li {
+  opacity: 0.4;
+}
+
+.menu-account-links a,
+.menu-account-sign-out {
+  width: calc(100% + 20px);
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 -10px;
+  padding: 0 10px;
+  border-radius: 14px;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+}
+
+.menu-account-links a > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-account-links svg,
+.menu-account-sign-out svg {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.menu-account-links a > svg:first-child {
+  color: var(--accent-text);
+}
+
+.menu-account-links a > svg:last-child {
+  width: 18px;
+  height: 18px;
+  color: var(--line-strong);
+}
+
+.menu-account-links a:active {
+  background: var(--rose-soft);
+  color: var(--accent-text);
+}
+
+/* Apart from the routes, at the bottom of the level, so a thumb does not reach it by mistake. */
+.menu-account-exit {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px dashed var(--stitch-gold);
+}
+
+.menu-account-sign-out {
+  color: var(--danger);
+}
+
+.menu-account-sign-out:active:not([aria-disabled='true']) {
+  background: var(--danger-bg);
+}
+
+.menu-account-sign-out[aria-disabled='true'] {
+  color: var(--accent-text);
+  cursor: progress;
+}
+
+@media (hover: hover) {
+  .menu-account-links a:hover {
+    background: var(--rose-soft);
+    color: var(--accent-text);
+  }
+
+  .menu-account-sign-out:hover:not([aria-disabled='true']) {
+    background: var(--danger-bg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .menu-account-sign-out svg {
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+
+  .menu-account-sign-out[aria-disabled='true'] svg {
+    transform: translateX(4px);
+  }
 }
 
 .account-page {
@@ -1031,7 +1220,8 @@
   gap: 10px;
   min-height: 44px;
   padding: 0 18px;
-  /* Decorative: the text names the link, so the edge needs no 3:1 (WCAG 1.4.11) */
+  /* Decorative: the text names the link, so the edge needs no 3:1 (WCAG 1.4.11). T-E7-68: a plain solid line, no
+     stitching, so a dashed edge only ever means a place to fill ("Agregar dirección"). */
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--surface);
@@ -1040,16 +1230,6 @@
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-}
-
-/* T-E7-63: the gold stitching, 3 px inside each pill's edge, as the hem of a pajama. Decorative. */
-.account-nav-link::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border: 1px dashed var(--stitch-gold);
-  border-radius: inherit;
-  pointer-events: none;
 }
 
 .account-nav-link svg {
@@ -1147,11 +1327,6 @@
     border: 0;
     border-radius: var(--radius-s);
     background: none;
-  }
-
-  /* On the sidebar only the current link is stitched. */
-  .account-nav-link:not([aria-current='page'])::after {
-    display: none;
   }
 
   .account-nav-link svg {
@@ -1554,7 +1729,60 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* T-E7-63: the address book. The title with "n de 10"; the cards apart; "Agregar dirección" a dashed card. */
+/*
+ * T-E7-63: the address book. The title with "n de 10" (T-E7-68: from 8 addresses); the cards apart; "Agregar dirección"
+ * a dashed card. T-E7-68: an empty book is one white dashed card with a pin, the sentence and the button.
+ */
+.address-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 24px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 18px;
+  background: var(--surface);
+  text-align: center;
+}
+
+.address-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--rose-soft);
+  color: var(--accent-text);
+}
+
+.address-empty-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.address-empty p {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 500;
+  text-wrap: pretty;
+}
+
+.address-empty .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.address-empty .group-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 .address-book-title {
   display: flex;
   flex-wrap: wrap;

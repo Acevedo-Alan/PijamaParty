@@ -158,6 +158,30 @@ describe('address book (UC-20, T-E4-05)', () => {
     expect(screen.queryByRole('button', { name: messages.add })).not.toBeInTheDocument();
   });
 
+  it('given an empty book, when it opens, then one card holds the pin, the sentence and the only "Agregar dirección" (T-E7-68)', async () => {
+    stubBook([]);
+    renderRoute('/cuenta/direcciones');
+
+    const card = (await screen.findByText(messages.empty)).closest('.address-empty');
+    expect(card).not.toBeNull();
+    expect(card?.querySelector('.address-empty-icon svg[aria-hidden="true"]')).not.toBeNull();
+    expect(screen.getAllByRole('button', { name: messages.add })).toHaveLength(1);
+    expect(card).toContainElement(screen.getByRole('button', { name: messages.add }));
+    expect(screen.queryByText(messages.count(0))).not.toBeInTheDocument();
+  });
+
+  it('given a customer with 7 addresses, when the book opens, then the count is not shown; with 8, it is (T-E7-68)', async () => {
+    const { book } = stubBook(Array.from({ length: 7 }, (_, i) => saved(`a${String(i)}`, `Calle ${String(i)}`, i === 0)));
+    const { unmount } = renderRoute('/cuenta/direcciones');
+    await screen.findByText('Calle 6 1234');
+    expect(screen.queryByText(messages.count(7))).not.toBeInTheDocument();
+    unmount();
+
+    book.addresses = [...book.addresses, saved('a7', 'Calle 7', false)];
+    renderRoute('/cuenta/direcciones');
+    expect(await screen.findByText(messages.count(8))).toBeInTheDocument();
+  });
+
   it('given a book that filled up elsewhere, when the address is saved, then the refusal says it is full', async () => {
     stubBook([saved('a1', 'Belgrano', true)]);
     vi.spyOn(api, 'POST').mockResolvedValue(answer(422, { problem: 'ADDRESS_BOOK_FULL' }));

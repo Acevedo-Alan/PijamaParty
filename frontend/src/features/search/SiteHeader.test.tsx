@@ -102,7 +102,7 @@ describe('announcement ticker (UC-31, T-E7-39)', () => {
     const get = stubCatalogApi({ listings: [listed([product('rosa')])], shippingRates });
     renderRoute('/');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     await waitFor(() => {
       expect(get).toHaveBeenCalledWith('/api/shipping/rates', expect.anything());
     });
@@ -174,7 +174,7 @@ describe('store navigation (UC-31)', () => {
     await userEvent.click(headerNav().getByRole('link', { name: es.header.winter }));
 
     expect(router.state.location.search).toBe('?temporada=invierno');
-    expect(await screen.findByRole('link', { name: /Pijama polar/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Pijama polar/i })).toBeInTheDocument();
     expect(queriesTo(get, PRODUCTS)).toEqual([{ season: ['WINTER'], page: 0 }]);
   });
 
@@ -182,7 +182,7 @@ describe('store navigation (UC-31)', () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
     const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
     renderRoute('/');
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     const heading = screen.getByRole('heading', { name: es.catalog.allTitle });
 
     await userEvent.click(headerNav().getByRole('link', { name: es.header.audiences.WOMEN }));
@@ -252,7 +252,7 @@ describe('phone menu (UC-31)', () => {
     expect(screen.queryByRole('dialog', { name: es.header.menuTitle })).not.toBeInTheDocument();
   });
 
-  it('given a signed-in customer, when "Mi cuenta" is chosen in the menu, then its level lists the greeting and the account links (T-E7-39)', async () => {
+  it('given a signed-in customer, when "Mi cuenta" is chosen in the menu, then its level shows the profile card, the four sections and "Salir" apart (T-E7-39, T-E7-67)', async () => {
     renderSignedIn();
     await userEvent.click(await menuButton());
 
@@ -261,12 +261,26 @@ describe('phone menu (UC-31)', () => {
     expect(menu().getByRole('button', { name: es.header.backLabel })).toHaveFocus();
     const level = menu().getByText(es.account.greeting('Ana')).closest('.menu-level') as HTMLElement;
     expect(level).not.toHaveAttribute('inert');
-    expect(within(level).getAllByRole('link').map((link) => link.textContent)).toEqual([
-      es.account.ordersLink,
-      es.account.addressesLink,
-      es.account.myAccountLink,
+    // The card: the initials (decorative), the greeting and the email.
+    const card = level.querySelector('.menu-account-profile') as HTMLElement;
+    expect(within(card).getByText('AP')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(card).getByText(es.account.greeting('Ana'))).toBeInTheDocument();
+    expect(within(card).getByText(ANA.email)).toBeInTheDocument();
+    // The account area's four sections by their names, each row with its icon and a chevron.
+    const links = within(level).getAllByRole('link');
+    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+      [es.account.area.summary, '/cuenta'],
+      [es.account.area.orders, '/cuenta/pedidos'],
+      [es.account.area.addresses, '/cuenta/direcciones'],
+      [es.account.area.data, '/cuenta/datos'],
     ]);
-    expect(within(level).getByRole('button', { name: es.account.signOut })).toBeInTheDocument();
+    for (const link of links) {
+      expect(link.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(2);
+    }
+    // "Salir" outside the list, at the bottom of the level.
+    const exit = within(level).getByRole('button', { name: es.account.signOut });
+    expect(exit.closest('ul')).toBeNull();
+    expect(exit.closest('.menu-account-exit')).not.toBeNull();
     expect(menu().queryByRole('link', { name: es.account.signInLink })).not.toBeInTheDocument();
   });
 
@@ -480,15 +494,17 @@ describe('header account entry (UC-31)', () => {
     expect(button).toHaveAttribute('aria-expanded', 'true');
     const listElement = screen.getByText(es.account.greeting('Ana')).closest('.account-menu-list') as HTMLElement;
     const list = within(listElement);
+    // T-E7-67: the account area's four sections, by the names of its navigation.
     expect(list.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
-      [es.account.ordersLink, '/cuenta/pedidos'],
-      [es.account.addressesLink, '/cuenta/direcciones'],
-      [es.account.myAccountLink, '/cuenta'],
+      [es.account.area.summary, '/cuenta'],
+      [es.account.area.orders, '/cuenta/pedidos'],
+      [es.account.area.addresses, '/cuenta/direcciones'],
+      [es.account.area.data, '/cuenta/datos'],
     ]);
     expect(list.getByRole('button', { name: es.account.signOut })).toBeInTheDocument();
     // T-E7-65: the email under the greeting, an outline icon before every entry, "Salir" apart under a line.
     expect(list.getByText(ANA.email)).toBeInTheDocument();
-    expect(listElement.querySelectorAll('.account-links li > * > svg[aria-hidden="true"]')).toHaveLength(4);
+    expect(listElement.querySelectorAll('.account-links li > * > svg[aria-hidden="true"]')).toHaveLength(5);
     expect(list.getByRole('button', { name: es.account.signOut }).closest('li')).toHaveClass('account-links-exit');
 
     await userEvent.click(list.getByRole('link', { name: es.account.ordersLink }));

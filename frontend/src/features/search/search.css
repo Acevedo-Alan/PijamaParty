@@ -799,19 +799,6 @@ html:has(.menu-panel[open]) {
   font-weight: 700;
 }
 
-.menu-account .account-links a,
-.menu-account .account-sign-out {
-  width: 100%;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  padding: 0;
-  color: var(--ink);
-  font-size: 18px;
-  font-weight: 500;
-  text-decoration: none;
-}
-
 /* The help at the end, in small type, then Instagram and TikTok as bare icons (D-15: only those the business sent). */
 .menu-help {
   margin-top: auto;
@@ -869,9 +856,7 @@ html:has(.menu-panel[open]) {
   .menu-links a:hover,
   .menu-drill:hover,
   .menu-shortcuts a:hover,
-  .menu-shortcuts button:hover,
-  .menu-account .account-links a:hover,
-  .menu-account .account-sign-out:hover {
+  .menu-shortcuts button:hover {
     color: var(--accent-text);
   }
 

@@ -1,6 +1,7 @@
 import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
 import { toImage, type ListingImage } from './catalogApi.ts';
+import { displayProductName } from './displayText.ts';
 import type { Season } from './listingCriteria.ts';
 
 type DetailResponse = components['schemas']['ProductDetailResponse'];
@@ -99,7 +100,7 @@ function toDetail(data: DetailResponse): ProductDetail {
   return {
     id,
     slug,
-    name,
+    name: displayProductName(name),
     category: { slug: category.slug, name: category.name },
     description: data.description ?? '',
     material: data.material ?? '',

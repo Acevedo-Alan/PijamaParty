@@ -77,9 +77,10 @@ export function SearchPage() {
         onApply={(filters) => {
           setCriteria({ ...criteria, filters });
         }}
-        count={<ResultCount category={undefined} criteria={criteria} />}
       />
+      {/* T-E7-70: the count at the start of the sort's row, so the filter buttons get the whole width. */}
       <div className="catalog-tools">
+        <ResultCount category={undefined} criteria={criteria} />
         <SortSelect
           searching
           value={criteria.sort}

@@ -75,7 +75,12 @@ export function RecoverPasswordPage() {
                 }}
               />
             </AuthField>
-            <button type="submit" className="btn" disabled={attempt.isPending}>
+            <button
+              type="submit"
+              className="btn"
+              data-pending={attempt.isPending ? '' : undefined}
+              disabled={attempt.isPending}
+            >
               {attempt.isPending ? messages.sending : messages.send}
             </button>
             <p className="account-error" role="alert">

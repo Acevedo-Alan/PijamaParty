@@ -32,7 +32,7 @@ describe('home page (UC-30)', () => {
 
     renderRoute('/');
 
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     const sections = [
       screen.getByRole('region', { name: carousel.label }),
       await screen.findByRole('region', { name: BANNER.title }),
@@ -60,7 +60,7 @@ describe('home page (UC-30)', () => {
 
     expect(router.state.location.pathname).toBe('/');
     expect(router.state.location.search).toBe('?publico=mujer&orden=menor-precio');
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(queriesTo(get, PRODUCTS).at(-1)).toEqual({ audience: ['WOMEN'], sort: 'PRICE_ASC', page: 0 });
     expect(scroll.mock.contexts.at(-1)).toBe(listingHeading());
     expect(listingHeading()).toHaveFocus();
@@ -83,7 +83,7 @@ describe('home page (UC-30)', () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
     const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
     renderRoute('/');
-    await screen.findByRole('link', { name: /Pijama rosa/ });
+    await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(scroll).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('link', { name: es.home.discover }));
@@ -108,7 +108,7 @@ describe('home page (UC-30)', () => {
 
     renderRoute('/');
 
-    await screen.findAllByRole('link', { name: /Pijama p-/ });
+    await screen.findAllByRole('link', { name: /Pijama p-/i });
     const photos = screen.getAllByTestId('blurred-image').map((image) => within(image).getByRole('presentation'));
     expect(photos.map((photo) => photo.getAttribute('loading'))).toEqual(['lazy', 'lazy', 'lazy', 'lazy']);
   });
@@ -118,7 +118,7 @@ describe('home page (UC-30)', () => {
 
     renderRoute('/categoria/verano');
 
-    expect(await screen.findByRole('link', { name: /Pijama rosa/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Pijama rosa/i })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: carousel.label })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: es.home.audienceTitle })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(es.catalog.categoryTitle);

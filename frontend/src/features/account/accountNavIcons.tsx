@@ -38,4 +38,10 @@ export const accountNavIcons = {
       <path d="M10 5H6v14h4M14 8l4 4-4 4M18 12H9" />
     </svg>
   ),
+  /** T-E7-67: at the end of a row of the phone menu's account level, which opens a page. */
+  chevron: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  ),
 };
