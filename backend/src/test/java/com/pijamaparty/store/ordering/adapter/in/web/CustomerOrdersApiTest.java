@@ -108,6 +108,8 @@ class CustomerOrdersApiTest {
         assertThat(order.get("number").asLong()).isEqualTo(number);
         assertThat(order.get("status").asText()).isEqualTo("SHIPPED");
         assertThat(order.get("shipmentTrackingNumber").asText()).isEqualTo("CA123456789AR");
+        // T-E4-19: who collected the payment, for "Pagado con Mercado Pago" in the order's detail.
+        assertThat(order.get("paymentProvider").asText()).isEqualTo("MERCADOPAGO");
         assertThat(order.get("items")).hasSize(1);
         assertThat(order.get("items").get(0).get("productName").asText()).isEqualTo("Pijama");
         assertThat(order.get("items").get(0).get("lineTotalCents").asLong()).isEqualTo(2_000_000);

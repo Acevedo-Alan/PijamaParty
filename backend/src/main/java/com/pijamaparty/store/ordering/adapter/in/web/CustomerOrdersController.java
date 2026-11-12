@@ -8,6 +8,7 @@ import com.pijamaparty.store.ordering.application.ListMyOrders;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderLine;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
+import com.pijamaparty.store.ordering.domain.PaymentProvider;
 import com.pijamaparty.store.ordering.domain.ShippingAddress;
 import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
@@ -120,7 +121,9 @@ class CustomerOrdersController {
                            String couponCode,
                            long shippingCents, long totalCents, MyOrderAddressResponse address,
                            @Schema(nullable = true, requiredMode = Schema.RequiredMode.REQUIRED)
-                           String shipmentTrackingNumber) {
+                           String shipmentTrackingNumber,
+                           @Schema(description = "Who collected the payment (T-E4-19): MERCADOPAGO or MODO")
+                           PaymentProvider paymentProvider) {
 
         static MyOrderResponse of(CustomerOrder order, Map<UUID, LinePhotos.Photo> photos) {
             var amounts = order.amounts();
@@ -129,7 +132,7 @@ class CustomerOrdersController {
                 amounts.subtotal().cents(),
                 amounts.discount().cents(), order.couponCode().orElse(null), amounts.shipping().cents(),
                 amounts.total().cents(), MyOrderAddressResponse.of(order.address(), order.province()),
-                order.shipmentTrackingNumber().orElse(null));
+                order.shipmentTrackingNumber().orElse(null), order.paymentProvider());
         }
 
         @Override

@@ -3230,6 +3230,11 @@ export interface components {
             totalCents?: number;
             address?: components["schemas"]["MyOrderAddressResponse"];
             shipmentTrackingNumber: string | null;
+            /**
+             * @description Who collected the payment (T-E4-19): MERCADOPAGO or MODO
+             * @enum {string}
+             */
+            paymentProvider?: "MERCADOPAGO" | "MODO";
         };
         SignInProvidersResponse: {
             providers?: ("GOOGLE" | "FACEBOOK")[];

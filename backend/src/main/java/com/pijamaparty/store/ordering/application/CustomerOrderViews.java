@@ -4,6 +4,7 @@ import com.pijamaparty.store.ordering.domain.OrderAmounts;
 import com.pijamaparty.store.ordering.domain.OrderId;
 import com.pijamaparty.store.ordering.domain.OrderLine;
 import com.pijamaparty.store.ordering.domain.OrderStatus;
+import com.pijamaparty.store.ordering.domain.PaymentProvider;
 import com.pijamaparty.store.ordering.domain.ShippingAddress;
 import com.pijamaparty.store.platform.domain.UserId;
 import com.pijamaparty.store.shipping.api.Province;
@@ -29,7 +30,8 @@ public interface CustomerOrderViews {
      */
     record CustomerOrder(OrderId id, long number, OrderStatus status, Instant createdAt, List<OrderLine> lines,
                          OrderAmounts amounts, Optional<String> couponCode, ShippingAddress address,
-                         Province province, Optional<String> shipmentTrackingNumber) {
+                         Province province, Optional<String> shipmentTrackingNumber,
+                         PaymentProvider paymentProvider) {
 
         public CustomerOrder {
             Objects.requireNonNull(id, "id");
@@ -41,6 +43,7 @@ public interface CustomerOrderViews {
             Objects.requireNonNull(address, "address");
             Objects.requireNonNull(province, "province");
             Objects.requireNonNull(shipmentTrackingNumber, "shipmentTrackingNumber");
+            Objects.requireNonNull(paymentProvider, "paymentProvider");
         }
 
         @Override

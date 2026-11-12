@@ -371,7 +371,7 @@ public class InMemoryOrderStore implements OverdueOrders, OrderTransitions, Save
             .map(placedOrder -> new CustomerOrder(order, placedOrder.number(), orders.get(order).status(),
                 placedOrder.createdAt(), placedOrder.lines(), placedOrder.amounts(),
                 placedOrder.coupon().map(AppliedCoupon::code), placedOrder.address(), placedOrder.province(),
-                Optional.ofNullable(shipmentTrackingNumbers.get(order))));
+                Optional.ofNullable(shipmentTrackingNumbers.get(order)), placedOrder.paymentProvider()));
     }
 
     /** Only the orders the checkout placed carry a buyer email. */

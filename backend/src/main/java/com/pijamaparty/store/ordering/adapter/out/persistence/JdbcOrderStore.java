@@ -259,7 +259,8 @@ class JdbcOrderStore
 
     private static final String SELECT_CUSTOMER_VIEW = """
         SELECT id, number, status, created_at, street, street_number, floor, apartment, city, province, postal_code,
-               subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code, shipment_tracking_number
+               subtotal_cents, discount_cents, shipping_cents, total_cents, coupon_code, shipment_tracking_number,
+               payment_provider
         FROM orders WHERE id = :id AND user_id = :userId
         """;
 
@@ -590,7 +591,8 @@ class JdbcOrderStore
                         Optional.ofNullable(row.getString("floor")), Optional.ofNullable(row.getString("apartment")),
                         row.getString("city"), row.getString("postal_code")),
                     Province.valueOf(row.getString("province")),
-                    Optional.ofNullable(row.getString("shipment_tracking_number")));
+                    Optional.ofNullable(row.getString("shipment_tracking_number")),
+                    PaymentProvider.valueOf(row.getString("payment_provider")));
             })
             .stream().findFirst();
     }

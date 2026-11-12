@@ -20,4 +20,6 @@
 
 - [x] **T-E4-18** Cambiar el teléfono desde "Datos y acceso" (CU-40, pedido el 2026-11-11 con el área de la cuenta de E7, T-E7-62): `PUT /api/account/phone` con la regla del teléfono del pedido, y en la tienda "Agregar" o "Editar" en la fila del teléfono.
 
+- [x] **T-E4-19** El detalle del pedido de la cuenta dice con qué se pagó (CU-22, pedido el 2026-11-11 con el rediseño de la cuenta de E7, T-E7-64): `GET /api/account/orders/{id}` devuelve `paymentProvider` (`MERCADOPAGO` o `MODO`), que el pedido ya guardaba.
+
 **Terminado cuando:** un cliente se registra (con contraseña, Google o Facebook), guarda una dirección, compra con datos precargados, ve su pedido y su seguimiento, y puede eliminar su cuenta.

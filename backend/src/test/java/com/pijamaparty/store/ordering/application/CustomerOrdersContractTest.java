@@ -111,7 +111,7 @@ public abstract class CustomerOrdersContractTest<
         assertThat(subject.find(ana, order.id())).contains(new CustomerOrder(order.id(), order.number(),
             OrderStatus.AWAITING_PAYMENT, NOW, LINES,
             OrderAmounts.of(Money.of(5_000_000), Money.of(500_000), Money.of(300_000)), Optional.of("VERANO10"),
-            ADDRESS, Province.SANTA_FE, Optional.empty()));
+            ADDRESS, Province.SANTA_FE, Optional.empty(), PaymentProvider.MERCADOPAGO));
     }
 
     @Test
