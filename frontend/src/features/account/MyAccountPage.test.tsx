@@ -65,13 +65,9 @@ async function openPrivacy() {
 }
 
 /** The card of a sign-in method, by its heading text. */
-async function card(name: string): Promise<HTMLElement> {
-  const items = await screen.findAllByRole('listitem');
-  const found = items.find((item) => within(item).queryByText(name, { selector: '.address-line' }) !== null);
-  if (found === undefined) {
-    throw new Error(`No card for ${name}`);
-  }
-  return found;
+/** A provider's rows: its state and its action (T-E7-63). */
+function card(name: string): Promise<HTMLElement> {
+  return screen.findByRole('group', { name });
 }
 
 describe('my account (UC-27, T-E4-15)', () => {

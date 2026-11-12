@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
@@ -152,7 +152,7 @@ describe('the account summary (T-E7-61)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: es.account.greeting('Ana') })).toBeInTheDocument();
     const orders = within(screen.getByRole('region', { name: summary.recentOrders }));
     const cards = await orders.findAllByRole('link', { name: /Pedido #/ });
-    expect(cards.map((card) => card.querySelector('.my-order-number')?.textContent)).toEqual([
+    expect(cards.map((card) => card.querySelector('.summary-order-number')?.textContent)).toEqual([
       es.tracking.title(1005),
       es.tracking.title(1004),
       es.tracking.title(1003),
@@ -212,17 +212,48 @@ describe('"Datos y acceso" (T-E7-62)', () => {
     await userEvent.click(await screen.findByRole('button', { name: myAccount.changePassword }));
 
     expect(post).toHaveBeenCalledWith('/api/account/password-recovery', { body: { email: 'ana@example.com' } });
-    expect(await screen.findByText(myAccount.changePasswordSent('ana@example.com'))).toBeInTheDocument();
+    // T-E7-63: the answer shows inside "Formas de ingresar", under its card, and takes the focus.
+    const methods = within(screen.getByRole('region', { name: myAccount.methodsTitle }));
+    const sent = await methods.findByText(myAccount.changePasswordSent('ana@example.com'));
+    expect(sent).toHaveFocus();
+    expect(sent).toHaveClass('group-notice');
   });
 
-  it('given too many requests, when "Cambiar contraseña" is pressed, then the page says to wait', async () => {
+  it('given the email just sent, when a minute passes, then "Cambiar contraseña por email" cannot be pressed until then (T-E7-63)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      stubAccount();
+      const post = vi.spyOn(api, 'POST').mockResolvedValue(answer(204));
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+      renderRoute(DATA_PATH);
+
+      await user.click(await screen.findByRole('button', { name: myAccount.changePassword }));
+
+      expect(await screen.findByText(myAccount.passwordLinkSent('1:00'))).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: myAccount.changePassword })).not.toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(screen.getByText(myAccount.passwordLinkSent('0:59'))).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(59_000);
+      });
+      expect(screen.getByRole('button', { name: myAccount.changePassword })).toBeEnabled();
+      expect(post).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('given too many requests, when "Cambiar contraseña" is pressed, then the page says to wait and the row stays pressable', async () => {
     stubAccount();
     vi.spyOn(api, 'POST').mockResolvedValue(answer(429));
     renderRoute(DATA_PATH);
 
     await userEvent.click(await screen.findByRole('button', { name: myAccount.changePassword }));
 
-    expect(await screen.findByText(es.account.tooManyAttempts)).toBeInTheDocument();
+    expect(await screen.findByText(es.account.tooManyAttempts)).toHaveClass('group-notice', 'is-problem');
+    expect(screen.getByRole('button', { name: myAccount.changePassword })).toBeEnabled();
   });
 
   it('given a customer without a phone, when it adds "342 400-0000", then it is sent as typed and the stored digits show (UC-40)', async () => {
@@ -242,6 +273,20 @@ describe('"Datos y acceso" (T-E7-62)', () => {
     expect(await personal.findByText('3424000000')).toBeInTheDocument();
     expect(personal.getByText(myAccount.phoneSaved)).toHaveFocus();
     expect(personal.getByRole('button', { name: myAccount.editPhoneLabel })).toBeInTheDocument();
+  });
+
+  it('given a customer without a phone, when "Datos y acceso" opens, then "Agregar teléfono" is a row with its icon and chevron that opens the field (T-E7-63)', async () => {
+    stubAccount();
+    renderRoute(DATA_PATH);
+
+    const add = await screen.findByRole('button', { name: myAccount.addPhoneLabel });
+    expect(add).toHaveClass('group-row', 'group-action');
+    expect(add.querySelector('.group-icon svg')).not.toBeNull();
+    expect(add.querySelector('.group-chevron')).not.toBeNull();
+
+    await userEvent.click(add);
+
+    expect(screen.getByLabelText(myAccount.phoneField)).toHaveFocus();
   });
 
   it('given a phone of 3 digits, when the customer saves it, then it is told why and stays on the field (UC-40)', async () => {
@@ -306,15 +351,16 @@ describe('"Datos y acceso" (T-E7-62)', () => {
     expect(screen.getByRole('button', { name: myAccount.cancel })).toBeDisabled();
   });
 
-  it('given no provider enabled nor linked, when the page opens, then the sign-in intro does not promise linked accounts', async () => {
+  it('given no provider enabled nor linked, when the page opens, then "Formas de ingresar" has no footnote (T-E7-63)', async () => {
     stubAccount();
     renderRoute(DATA_PATH);
 
-    expect(await screen.findByText(myAccount.methodsIntroPasswordOnly)).toBeInTheDocument();
-    expect(screen.queryByText(myAccount.methodsIntro)).not.toBeInTheDocument();
+    const methods = await screen.findByRole('region', { name: myAccount.methodsTitle });
+    expect(await within(methods).findByText(myAccount.passwordSet)).toBeInTheDocument();
+    expect(methods.querySelector('.group-footnote')).toBeNull();
   });
 
-  it('given the page, when it opens, then its personal data come first and "Privacidad" is folded, its delete a quiet text button', async () => {
+  it('given the page, when it opens, then its personal data come first and "Privacidad" is folded, its delete a red row without a chevron', async () => {
     stubAccount();
     renderRoute(DATA_PATH);
 
@@ -329,7 +375,8 @@ describe('"Datos y acceso" (T-E7-62)', () => {
 
     const remove = screen.getByRole('button', { name: myAccount.deleteAccount });
     expect(remove).not.toHaveClass('btn');
-    expect(remove).toHaveClass('link-btn');
+    expect(remove).toHaveClass('group-destructive');
+    expect(remove.querySelector('.group-chevron')).toBeNull();
     await userEvent.click(remove);
     expect(screen.getByText(myAccount.deleteOrders)).toBeInTheDocument();
   });

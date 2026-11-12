@@ -23,7 +23,9 @@ import {
   type AddressFormField,
   type AddressFormValues,
 } from './addressForm.ts';
-import { addressLine, addressPlace } from './addressText.ts';
+import { accountIcons } from './accountIcons.tsx';
+import { addressLine, addressPlace, addressUnit } from './addressText.ts';
+import { Group } from './Group.tsx';
 import { CUSTOMER_KEY, useCustomer } from './useCustomer.ts';
 import './account.css';
 
@@ -36,7 +38,8 @@ type Editing = { kind: 'new' } | { kind: 'edit'; address: SavedAddress };
 
 /**
  * UC-20 (T-E4-05): the signed-in customer's address book at /cuenta/direcciones. It adds, edits, deletes after a
- * confirmation and marks one address as primary; a visitor who is not signed in goes to sign in.
+ * confirmation and marks one address as primary; a visitor who is not signed in goes to sign in. T-E7-63: each address
+ * a card with its action rows, and "Agregar dirección" a dashed card at the end.
  */
 export function AddressBookPage() {
   const customer = useCustomer();
@@ -106,7 +109,10 @@ export function AddressBookPage() {
   return (
     <div className="account-page address-book">
       <title>{`${messages.title} | ${es.store.name}`}</title>
-      <h1>{messages.title}</h1>
+      <div className="address-book-title">
+        <h1>{messages.title}</h1>
+        {list !== undefined && <p className="address-book-count">{messages.count(list.length)}</p>}
+      </div>
       <p className="account-intro">{messages.intro}</p>
       <p className="address-notice" ref={noticeRef} tabIndex={-1} role="status">
         {notice}
@@ -131,124 +137,140 @@ export function AddressBookPage() {
         <>
           {list.length === 0 && editing === null && <p className="account-intro">{messages.empty}</p>}
           <ul className="address-list">
-            {list.map((address) =>
-              editing?.kind === 'edit' && editing.address.id === address.id ? (
-                <li key={address.id} className="address-card">
-                  <AddressEditor
-                    editing={editing}
-                    canChoosePrimary={!address.primary}
-                    onCancel={() => {
-                      setEditing(null);
-                    }}
-                    onDone={done}
-                    onSignedOut={signedOut}
-                  />
-                </li>
-              ) : (
-                <li key={address.id} className="address-card">
-                  <p className="address-line">
-                    {addressLine(address)}
-                    {address.primary && <span className="address-primary">{messages.primary}</span>}
-                  </p>
-                  <p className="address-place">
-                    {addressPlace(address)}
-                  </p>
-                  {confirming === address.id ? (
-                    <div className="address-confirm" role="group" aria-label={messages.remove(addressLine(address))}>
-                      <p>{messages.confirmRemove}</p>
-                      <div className="address-actions">
-                        <button
-                          type="button"
-                          className="btn"
-                          disabled={busy}
-                          onClick={() => {
-                            remove.mutate(address.id);
+            {list.map((address) => {
+              const unit = addressUnit(address);
+              return (
+                <li key={address.id} className="address-item">
+                  {editing?.kind === 'edit' && editing.address.id === address.id ? (
+                    <Group.Card>
+                      <Group.Row>
+                        <AddressEditor
+                          editing={editing}
+                          canChoosePrimary={!address.primary}
+                          onCancel={() => {
+                            setEditing(null);
                           }}
-                        >
-                          {messages.confirmRemoveYes}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={() => {
-                            setConfirming(null);
-                          }}
-                        >
-                          {messages.cancel}
-                        </button>
-                      </div>
-                    </div>
+                          onDone={done}
+                          onSignedOut={signedOut}
+                        />
+                      </Group.Row>
+                    </Group.Card>
                   ) : (
-                    <div className="address-actions">
-                      <button
-                        type="button"
-                        className="address-action"
-                        aria-label={messages.edit(addressLine(address))}
-                        disabled={busy}
-                        onClick={() => {
-                          setNotice(null);
-                          setConfirming(null);
-                          setEditing({ kind: 'edit', address });
-                        }}
-                      >
-                        {messages.editShort}
-                      </button>
-                      {!address.primary && (
-                        <button
-                          type="button"
-                          className="address-action"
-                          aria-label={messages.makePrimary(addressLine(address))}
-                          disabled={busy}
-                          onClick={() => {
-                            makePrimary.mutate(address);
-                          }}
-                        >
-                          {messages.makePrimaryShort}
-                        </button>
+                    <Group.Card>
+                      {/* T-E7-63: the street and number as the card's title, the rest under it. */}
+                      <div className="group-row">
+                        <p className="address-line">
+                          {`${address.street} ${address.number}`}
+                          {address.primary && <span className="address-primary">{messages.primary}</span>}
+                        </p>
+                        {unit !== null && <p className="address-place">{unit}</p>}
+                        <p className="address-place">{addressPlace(address)}</p>
+                      </div>
+                      {confirming === address.id ? (
+                        <Group.Row>
+                          <div
+                            className="address-confirm"
+                            role="group"
+                            aria-label={messages.remove(addressLine(address))}
+                          >
+                            <p>{messages.confirmRemove}</p>
+                            <div className="address-actions">
+                              <button
+                                type="button"
+                                className="btn"
+                                disabled={busy}
+                                onClick={() => {
+                                  remove.mutate(address.id);
+                                }}
+                              >
+                                {messages.confirmRemoveYes}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={() => {
+                                  setConfirming(null);
+                                }}
+                              >
+                                {messages.cancel}
+                              </button>
+                            </div>
+                          </div>
+                        </Group.Row>
+                      ) : (
+                        <>
+                          {!address.primary && (
+                            <Group.ActionButton
+                              icon="star"
+                              aria-label={messages.makePrimary(addressLine(address))}
+                              disabled={busy}
+                              onClick={() => {
+                                makePrimary.mutate(address);
+                              }}
+                            >
+                              {messages.makePrimaryShort}
+                            </Group.ActionButton>
+                          )}
+                          <Group.ActionButton
+                            icon="pencil"
+                            aria-label={messages.edit(addressLine(address))}
+                            disabled={busy}
+                            onClick={() => {
+                              setNotice(null);
+                              setConfirming(null);
+                              setEditing({ kind: 'edit', address });
+                            }}
+                          >
+                            {messages.editShort}
+                          </Group.ActionButton>
+                          <Group.DestructiveButton
+                            icon="trash"
+                            aria-label={messages.remove(addressLine(address))}
+                            disabled={busy}
+                            onClick={() => {
+                              setNotice(null);
+                              setConfirming(address.id);
+                            }}
+                          >
+                            {messages.removeShort}
+                          </Group.DestructiveButton>
+                        </>
                       )}
-                      <button
-                        type="button"
-                        className="address-action"
-                        aria-label={messages.remove(addressLine(address))}
-                        disabled={busy}
-                        onClick={() => {
-                          setNotice(null);
-                          setConfirming(address.id);
-                        }}
-                      >
-                        {messages.removeShort}
-                      </button>
-                    </div>
+                    </Group.Card>
                   )}
                 </li>
-              ),
-            )}
+              );
+            })}
           </ul>
           {editing?.kind === 'new' ? (
-            <div className="address-card">
-              <AddressEditor
-                editing={editing}
-                canChoosePrimary={list.length > 0}
-                onCancel={() => {
-                  setEditing(null);
-                }}
-                onDone={done}
-                onSignedOut={signedOut}
-              />
-            </div>
+            <Group.Card>
+              <Group.Row>
+                <AddressEditor
+                  editing={editing}
+                  canChoosePrimary={list.length > 0}
+                  onCancel={() => {
+                    setEditing(null);
+                  }}
+                  onDone={done}
+                  onSignedOut={signedOut}
+                />
+              </Group.Row>
+            </Group.Card>
           ) : list.length >= MAX_ADDRESSES ? (
             <p className="account-intro">{messages.full}</p>
           ) : (
             editing === null && (
+              // T-E7-63: a dashed card at the end of the list, always there while the book has room.
               <button
                 type="button"
-                className="btn"
+                className="address-add"
                 onClick={() => {
                   setNotice(null);
                   setConfirming(null);
                   setEditing({ kind: 'new' });
                 }}
               >
+                <span className="group-icon">{accountIcons.plus}</span>
                 {messages.add}
               </button>
             )

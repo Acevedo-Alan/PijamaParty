@@ -3,10 +3,9 @@ import { Link, Navigate } from 'react-router';
 import { Chibi } from '../../components/chibi/Chibi.tsx';
 import { NightLoader } from '../../components/NightLoader.tsx';
 import { es } from '../../i18n/es.ts';
-import { formatDate } from '../../i18n/formatDate.ts';
-import { formatMoney } from '../../i18n/formatMoney.ts';
-import { ORDERS_PATH, SIGN_IN_PATH } from './AccountLink.tsx';
+import { SIGN_IN_PATH } from './AccountLink.tsx';
 import { fetchMyOrders, MY_ORDERS_KEY } from './myOrdersApi.ts';
+import { MyOrderCard } from './OrderCard.tsx';
 import { useCustomer } from './useCustomer.ts';
 import './account.css';
 
@@ -14,7 +13,7 @@ const messages = es.account.orders;
 
 /**
  * UC-22 (T-E4-07): the signed-in customer's orders at /cuenta/pedidos, newest first, 20 at a time with "Ver más"; a
- * visitor who is not signed in goes to sign in.
+ * visitor who is not signed in goes to sign in. T-E7-64: each order is a card of its family of status (OrderCard.tsx).
  */
 export function MyOrdersPage() {
   const customer = useCustomer();
@@ -57,14 +56,7 @@ export function MyOrdersPage() {
         <ul className="my-order-list">
           {list.map((order) => (
             <li key={order.id}>
-              <Link to={`${ORDERS_PATH}/${order.id}`} className="my-order-card">
-                <span className="my-order-number">{es.tracking.title(order.number)}</span>
-                <span className={`my-order-status status-${order.status.toLowerCase()}`}>
-                  {es.tracking.statuses[order.status]}
-                </span>
-                <span className="my-order-date">{messages.placedOn(formatDate(order.createdAt))}</span>
-                <span className="my-order-total">{formatMoney(order.totalCents)}</span>
-              </Link>
+              <MyOrderCard order={order} />
             </li>
           ))}
         </ul>

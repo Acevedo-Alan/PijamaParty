@@ -10,6 +10,7 @@ import {
   type DeleteAccountAnswer,
 } from './customerDataApi.ts';
 import { saveFile } from './fileDownload.ts';
+import { Group } from './Group.tsx';
 import { goToProvider } from './providerRedirect.ts';
 import type { SignInMethods } from './signInMethodsApi.ts';
 import { PROVIDER_NAMES } from './SocialSignIn.tsx';
@@ -53,35 +54,34 @@ export function AccountDataSection({
 
   return (
     <section aria-labelledby="account-data-title">
-      {/* Under the "Privacidad" heading that folds it (T-E7-62). */}
-      <h3 id="account-data-title" className="my-account-heading">
+      {/* Under the "Privacidad" heading that folds it (T-E7-62); named for assistive technology only. */}
+      <h3 id="account-data-title" className="visually-hidden">
         {messages.dataTitle}
       </h3>
-      <p className="account-intro">{messages.dataIntro}</p>
-      <div className="address-actions">
-        <button
-          type="button"
-          className="btn btn-secondary"
+      <Group.Card>
+        <Group.ActionButton
+          icon="download"
           disabled={download.isPending}
           onClick={() => {
             download.mutate();
           }}
         >
           {download.isPending ? messages.downloading : messages.download}
-        </button>
+        </Group.ActionButton>
         {!deleting && (
-          // T-E7-62: a quiet text button, never the page's loudest action; the confirmation below stays as it was.
-          <button
-            type="button"
-            className="link-btn account-delete-link"
+          // T-E7-62, T-E7-63: a red row without a chevron, never the page's loudest action; the confirmation below
+          // stays as it was.
+          <Group.DestructiveButton
+            icon="trash"
             onClick={() => {
               setDeleting(true);
             }}
           >
             {messages.deleteAccount}
-          </button>
+          </Group.DestructiveButton>
         )}
-      </div>
+      </Group.Card>
+      <Group.Footnote>{messages.dataIntro}</Group.Footnote>
       {download.isError && (
         <p className="account-error" role="alert">
           {messages.downloadError}

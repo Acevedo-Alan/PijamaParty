@@ -88,6 +88,14 @@
   --stitch-on-light: rgb(74 58 58 / 0.45);
   /* T-E7-59: the rose stitches of "Empezar a comprar", --accent-text at 55 % on a light background */
   --stitch-accent: rgb(168 63 87 / 0.55);
+  /*
+   * T-E7-63, T-E7-64: the account. The gold stitching of its navigation pills; the soft shadow of its grouped cards;
+   * the light chevron of an action row; the peach dot of an order awaiting payment. All decorative: text says the rest.
+   */
+  --stitch-gold: rgb(184 140 52 / 0.7);
+  --shadow-group: 0 1px 2px rgb(74 58 58 / 0.05), 0 8px 24px rgb(194 80 106 / 0.07);
+  --chevron: #cdbfb8;
+  --dot-pending: #f0a27a;
   --tone-hero: linear-gradient(120deg, #fce4e8 0%, #ffd9c7 55%, #c98782 100%);
   --tone-rose: linear-gradient(135deg, #f7c6cf, #e5a9b6);
   --tone-peach: linear-gradient(135deg, #ffd9c7, #dfaf9e);
@@ -139,6 +147,9 @@
   --ff-body: 'Inter', sans-serif;
   /* The sizes on a product card (T-E7-35): Open Sans 500, self-hosted the same way */
   --ff-sizes: 'Open Sans', sans-serif;
+  /* The account area (T-E7-63): Poppins 500-600 for headings, Open Sans 400-700 for text, loaded by its chunk only */
+  --ff-account-heading: 'Poppins', sans-serif;
+  --ff-account-text: 'Open Sans', sans-serif;
 
   /*
    * Motion (E7, D-16): only transform and opacity move. The same values live in motion.ts for the Motion library;

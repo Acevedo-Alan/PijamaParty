@@ -6,6 +6,12 @@ import { keepInSight } from '../../components/keepInSight.ts';
 import type { Customer } from './accountApi.ts';
 import { ACCOUNT_PATH, ADDRESSES_PATH, DATA_PATH, ORDERS_PATH, useSignOut } from './AccountLink.tsx';
 import { useCustomer } from './useCustomer.ts';
+// T-E7-63: the account's own type, fetched with this chunk only; account.css sets it on .account-area.
+import '@fontsource/poppins/500.css';
+import '@fontsource/poppins/600.css';
+import '@fontsource/open-sans/400.css';
+import '@fontsource/open-sans/600.css';
+import '@fontsource/open-sans/700.css';
 import './account.css';
 
 const messages = es.account.area;
@@ -140,7 +146,8 @@ export function AccountArea() {
   // The navigation sits beside the page's main content, not in it: <main> holds only the page. The area stays when
   // the section changes (StoreLayout keys it once for all its paths); only the new section enters.
   return (
-    <div className="wrap account-area">
+    // An order's detail has its own way back (T-E7-64): on a phone it shows in place of the pills.
+    <div className="wrap account-area" data-order-detail={pathname.startsWith(`${ORDERS_PATH}/`) ? '' : undefined}>
       {customer !== null && <AccountNav customer={customer} />}
       <main className="account-area-content">
         <PageEntrance key={pathname}>

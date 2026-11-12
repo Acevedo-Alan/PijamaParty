@@ -236,6 +236,24 @@ Quien entra a "Mi cuenta" busca sobre todo sus pedidos y sus direcciones. Hasta 
 - Dado un cliente con contraseña, cuando toca "Cambiar contraseña", entonces se le manda el email de recuperación y la página lo dice (T-E7-62).
 - Dada "Datos y acceso", cuando se abre, entonces "Privacidad" está cerrada y "Eliminar mi cuenta" no es un botón relleno; al abrirla y tocarlo, aparece la confirmación de siempre (T-E7-62).
 
+## Rediseño de la cuenta (T-E7-63, T-E7-64)
+
+La cuenta conserva sus páginas y su comportamiento y cambia su aspecto, siguiendo las guías de Apple (listas agrupadas, filas enteras como acciones), con un toque kawaii suave y menos carga visual, sin que parezca hecha por IA: sin degradados, sin destellos y sin cuadraditos de color en cada fila.
+
+**Reglas**
+- **Tipografía, solo en la cuenta:** Poppins para títulos y Open Sans para el texto; el resto de la tienda sigue con Inter.
+- **Bordado dorado en la navegación:** cada píldora del celular lleva una costura dorada por dentro, y en la computadora el enlace de la sección actual.
+- **Listas agrupadas:** un título chico en mayúsculas sobre una tarjeta blanca de esquinas redondeadas; los datos se leen como etiqueta chica arriba y valor abajo, sin íconos; las acciones son filas enteras con su ícono, su nombre en rosa y una flecha; "Eliminar" va en rojo.
+- **Formas de ingresar:** la respuesta a una acción (el email enviado, una cuenta desvinculada, un error) aparece dentro de esa sección, debajo de su tarjeta, en un recuadro chico verde o rojo. Después de "Cambiar contraseña por email", la fila dice "✓ Enlace enviado a tu correo · Reenviar en 0:59" y no se puede tocar durante 60 segundos. Todas las filas de acción van en el rosa de la tienda (las de eliminar, en rojo). Sin cuentas para vincular, no hay texto al pie.
+- **Datos y acceso, Resumen y Mis direcciones** con ese estilo; en direcciones, "Principal" es una píldora rosa y "Usar como principal", "Editar" y "Eliminar" son filas de la tarjeta, con "Agregar dirección" siempre al final.
+- **Mis pedidos:** cada pedido una tarjeta con su número, total, estado con un punto de color, una barra fina de 4 pasos (Pagado, En preparación, Enviado, Entregado) y "Seguir envío" y "Ver detalle"; un pedido con pago pendiente dice que se paga desde el enlace del email; los cancelados y expirados no tienen barra.
+- **Detalle del pedido:** "‹ Mis pedidos" arriba, el envío con su barra, el número de seguimiento con "Copiar" y el enlace a Correo Argentino, los productos con su foto, los importes y con qué se pagó (Mercado Pago o MODO), y la dirección de envío.
+
+**Criterios de aceptación**
+- Dada la cuenta, cuando se abre, entonces los títulos son Poppins y el texto Open Sans, y Poppins no se carga fuera de la cuenta (la portada sigue cargando solo el Open Sans de los talles).
+- Dado un pedido enviado y uno entregado, cuando se abre "Mis pedidos", entonces el primero muestra 3 de 4 pasos y "Seguir envío", y el segundo 4 de 4 y "Entregado".
+- Dado un pedido pagado con Mercado Pago, cuando se abre su detalle, entonces dice "Pagado con Mercado Pago"; un pedido con el pago pendiente no lo dice.
+
 ## Cambios a CU-19 (ingresar y crear cuenta)
 
 **Reglas nuevas**

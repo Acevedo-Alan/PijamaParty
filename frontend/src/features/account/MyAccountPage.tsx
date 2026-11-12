@@ -20,6 +20,8 @@ import { forgetAccount } from './forgetAccount.ts';
 import { goToProvider } from './providerRedirect.ts';
 import { PROVIDER_NAMES, useSignInProvidersState } from './SocialSignIn.tsx';
 import { PersonalDataCard } from './PersonalDataCard.tsx';
+import { initials } from './AccountArea.tsx';
+import { Group } from './Group.tsx';
 import { CUSTOMER_KEY, useCustomer } from './useCustomer.ts';
 import './account.css';
 
@@ -27,6 +29,37 @@ const messages = es.account.myAccount;
 
 /** The providers in the order the page lists them. */
 const PROVIDERS: readonly SignInProvider[] = ['GOOGLE', 'FACEBOOK'];
+
+/** How long "Cambiar contraseña por email" waits after sending before it can send again (T-E7-63). */
+const RESEND_WAIT_SECONDS = 60;
+
+/** "0:59". */
+function waitText(seconds: number): string {
+  return `${String(Math.floor(seconds / 60))}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+/** The seconds left of a wait the page starts, counting down once a second; 0 when there is none. */
+function useCountdown(seconds: number): [number, () => void] {
+  const [left, setLeft] = useState(0);
+  const running = left > 0;
+  useEffect(() => {
+    if (!running) {
+      return undefined;
+    }
+    const timer = setInterval(() => {
+      setLeft((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [running]);
+  return [
+    left,
+    () => {
+      setLeft(seconds);
+    },
+  ];
+}
 
 /** Where the provider's return of a link or a confirmation left the browser: the `social` value of this page's query. */
 function socialNotice(social: string | null): { text: string; problem: boolean } | null {
@@ -139,14 +172,17 @@ export function MyAccountPage() {
     },
   });
 
+  const [resendIn, startResendWait] = useCountdown(RESEND_WAIT_SECONDS);
+
   const changePassword = useMutation({
     mutationFn: requestPasswordReset,
     onSuccess: (answer, email) => {
-      setNotice(
-        answer.status === 'requested'
-          ? { text: messages.changePasswordSent(email), problem: false }
-          : { text: es.account.tooManyAttempts, problem: true },
-      );
+      if (answer.status === 'requested') {
+        startResendWait();
+        setNotice({ text: messages.changePasswordSent(email), problem: false });
+      } else {
+        setNotice({ text: es.account.tooManyAttempts, problem: true });
+      }
     },
     onError: () => {
       setNotice({ text: messages.changePasswordError, problem: true });
@@ -173,158 +209,164 @@ export function MyAccountPage() {
     <div className="account-page my-account">
       <title>{`${messages.title} | ${es.store.name}`}</title>
       <h1>{messages.title}</h1>
-      {customer !== undefined && <PersonalDataCard customer={customer} onSignedOut={signedOut} />}
-      <p
-        className={notice?.problem === true ? 'address-notice account-error' : 'address-notice'}
-        ref={noticeRef}
-        tabIndex={-1}
-        role={notice?.problem === true ? 'alert' : 'status'}
-      >
-        {notice?.text}
-      </p>
-      <h2 className="my-account-heading">{messages.methodsTitle}</h2>
-      {/* T-E7-62: the intro says what is there; without a provider to link, only the password shows. */}
-      {/* Only once the methods and the providers are known: otherwise the text for none would show first and change. */}
-      {current !== undefined && providersKnown && (
-        <p className="account-intro">
-          {shown.length === 0 ? messages.methodsIntroPasswordOnly : messages.methodsIntro}
-        </p>
-      )}
-      {methods.isError && (
-        <div className="address-load-error" role="alert">
-          <p>{messages.loadError}</p>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              void methods.refetch();
-            }}
-          >
-            {messages.retry}
-          </button>
+      {customer !== undefined && (
+        // T-E7-63: who the page is about, before its groups.
+        <div className="account-profile">
+          <span className="account-profile-initials" aria-hidden="true">
+            {initials(customer.name)}
+          </span>
+          <p className="account-profile-name">{customer.name}</p>
+          <p className="account-profile-email">{customer.email}</p>
         </div>
       )}
-      {current === undefined ? (
-        !methods.isError && <p className="account-intro">{messages.loading}</p>
-      ) : (
-        <ul className="address-list">
-          <li className="address-card">
-            <p className="address-line">{messages.password}</p>
-            <p className="address-place">{current.hasPassword ? messages.passwordSet : messages.passwordMissing}</p>
-            {current.hasPassword && customer !== undefined && (
-              // T-E7-62: the UC-19 recovery email, to the account's own email; the link chooses the new password.
-              <div className="address-actions">
-                <button
-                  type="button"
-                  className="address-action"
+      {customer !== undefined && <PersonalDataCard customer={customer} onSignedOut={signedOut} />}
+      <Group.Section title={messages.methodsTitle}>
+        {methods.isError && (
+          <div className="address-load-error" role="alert">
+            <p>{messages.loadError}</p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                void methods.refetch();
+              }}
+            >
+              {messages.retry}
+            </button>
+          </div>
+        )}
+        {current === undefined ? (
+          !methods.isError && <p className="account-intro">{messages.loading}</p>
+        ) : (
+          <Group.Card>
+            <Group.Field label={messages.password}>
+              {current.hasPassword ? messages.passwordSet : <Group.Missing>{messages.passwordMissing}</Group.Missing>}
+            </Group.Field>
+            {current.hasPassword &&
+              customer !== undefined &&
+              (resendIn > 0 ? (
+                // T-E7-63: sent; it waits a minute before it can be sent again, so it is not pressed again in doubt.
+                <Group.Done>{messages.passwordLinkSent(waitText(resendIn))}</Group.Done>
+              ) : (
+                // T-E7-62: the UC-19 recovery email, to the account's own email; the link chooses the new password.
+                <Group.ActionButton
+                  icon="mail"
                   disabled={changePassword.isPending}
                   onClick={() => {
                     setNotice(null);
                     changePassword.mutate(customer.email);
                   }}
                 >
-                  {changePassword.isPending ? messages.changingPassword : messages.changePassword}{' '}
-                  <span aria-hidden="true">→</span>
-                </button>
-              </div>
-            )}
+                  {changePassword.isPending ? messages.changingPassword : messages.changePassword}
+                </Group.ActionButton>
+              ))}
             {!current.hasPassword &&
               (creatingPassword ? (
-                <PasswordForm
-                  onCancel={() => {
-                    setCreatingPassword(false);
-                  }}
-                  onDone={(text) => {
-                    setCreatingPassword(false);
-                    done(text);
-                  }}
-                  onSignedOut={signedOut}
-                />
-              ) : (
-                <div className="address-actions">
-                  <button
-                    type="button"
-                    className="address-action"
-                    onClick={() => {
-                      setNotice(null);
-                      setCreatingPassword(true);
+                <Group.Row>
+                  <PasswordForm
+                    onCancel={() => {
+                      setCreatingPassword(false);
                     }}
-                  >
-                    {messages.createPassword}
-                  </button>
-                </div>
+                    onDone={(text) => {
+                      setCreatingPassword(false);
+                      done(text);
+                    }}
+                    onSignedOut={signedOut}
+                  />
+                </Group.Row>
+              ) : (
+                <Group.ActionButton
+                  icon="key"
+                  onClick={() => {
+                    setNotice(null);
+                    setCreatingPassword(true);
+                  }}
+                >
+                  {messages.createPassword}
+                </Group.ActionButton>
               ))}
-          </li>
-          {shown.map((provider) => {
-            const identity = linked(provider);
-            const name = PROVIDER_NAMES[provider];
-            return (
-              <li key={provider} className="address-card">
-                <p className="address-line">{name}</p>
-                <p className="address-place">
-                  {identity === undefined ? messages.notLinked : messages.linkedAs(identity.email)}
-                </p>
-                {identity === undefined ? (
-                  <div className="address-actions">
-                    <button
-                      type="button"
-                      className="address-action"
-                      aria-label={messages.linkProvider(name)}
+            {shown.map((provider) => {
+              const identity = linked(provider);
+              const name = PROVIDER_NAMES[provider];
+              return (
+                <Group.Rows key={provider} label={name}>
+                  <Group.Field label={name}>
+                    {identity === undefined ? (
+                      <Group.Missing>{messages.notLinked}</Group.Missing>
+                    ) : (
+                      messages.linkedAs(identity.email)
+                    )}
+                  </Group.Field>
+                  {identity === undefined ? (
+                    <Group.ActionButton
+                      icon="link"
                       disabled={busy}
                       onClick={() => {
                         setNotice(null);
                         link.mutate(provider);
                       }}
                     >
-                      {messages.link}
-                    </button>
-                  </div>
-                ) : confirming === provider ? (
-                  <div className="address-confirm" role="group" aria-label={messages.unlinkProvider(name)}>
-                    <p>{messages.confirmUnlink(name)}</p>
-                    <div className="address-actions">
-                      <button
-                        type="button"
-                        className="btn"
-                        disabled={busy}
-                        onClick={() => {
-                          unlink.mutate(provider);
-                        }}
-                      >
-                        {messages.confirmUnlinkYes}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => {
-                          setConfirming(null);
-                        }}
-                      >
-                        {messages.cancel}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="address-actions">
-                    <button
-                      type="button"
-                      className="address-action"
-                      aria-label={messages.unlinkProvider(name)}
+                      {messages.linkProvider(name)}
+                    </Group.ActionButton>
+                  ) : confirming === provider ? (
+                    <Group.Row>
+                      <div className="address-confirm" role="group" aria-label={messages.unlinkProvider(name)}>
+                        <p>{messages.confirmUnlink(name)}</p>
+                        <div className="address-actions">
+                          <button
+                            type="button"
+                            className="btn"
+                            disabled={busy}
+                            onClick={() => {
+                              unlink.mutate(provider);
+                            }}
+                          >
+                            {messages.confirmUnlinkYes}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => {
+                              setConfirming(null);
+                            }}
+                          >
+                            {messages.cancel}
+                          </button>
+                        </div>
+                      </div>
+                    </Group.Row>
+                  ) : (
+                    <Group.ActionButton
+                      icon="unlink"
                       disabled={busy}
                       onClick={() => {
                         setNotice(null);
                         setConfirming(provider);
                       }}
                     >
-                      {messages.unlink}
-                    </button>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                      {messages.unlinkProvider(name)}
+                    </Group.ActionButton>
+                  )}
+                </Group.Rows>
+              );
+            })}
+          </Group.Card>
+        )}
+        {/* T-E7-63: the answer of this section's actions, under its card; always there, so it is announced. */}
+        <p
+          className={notice?.problem === true ? 'group-notice is-problem' : 'group-notice'}
+          ref={noticeRef}
+          tabIndex={-1}
+          role={notice?.problem === true ? 'alert' : 'status'}
+        >
+          {notice?.text}
+        </p>
+        {/* T-E7-63: a footnote only when there are accounts to link; for the password alone the card says it all.
+            Only once the providers are known, so it does not show and then go. */}
+        {current !== undefined && providersKnown && shown.length > 0 && (
+          <Group.Footnote>{messages.methodsIntro}</Group.Footnote>
+        )}
+      </Group.Section>
       {current !== undefined && (
         // T-E7-62: last and folded; open when coming back from confirming with a linked account to finish deleting.
         <Collapsible
@@ -405,7 +447,7 @@ function PasswordForm({ onCancel, onDone, onSignedOut }: PasswordFormProps) {
   }
 
   return (
-    <form className="account-form my-account-password" onSubmit={send} noValidate>
+    <form className="account-form" onSubmit={send} noValidate>
       <label htmlFor={`${id}-password`}>{messages.newPassword}</label>
       <input
         id={`${id}-password`}

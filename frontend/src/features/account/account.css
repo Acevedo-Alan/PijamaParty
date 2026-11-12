@@ -466,14 +466,6 @@
   list-style: none;
 }
 
-.address-card {
-  margin-bottom: 12px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-s);
-  background: var(--surface);
-}
-
 .address-line {
   display: flex;
   flex-wrap: wrap;
@@ -482,13 +474,14 @@
   font-weight: 600;
 }
 
+/* T-E7-63: "Principal", a rose pill beside the street. */
 .address-primary {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--peach-soft);
-  color: var(--ink);
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--rose-soft);
+  color: var(--accent-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .address-place {
@@ -501,14 +494,6 @@
   flex-wrap: wrap;
   gap: 8px 16px;
   margin-top: 12px;
-}
-
-.address-action {
-  min-height: 44px;
-  padding: 0 4px;
-  color: var(--accent-text);
-  font-weight: 600;
-  text-decoration: underline;
 }
 
 .address-confirm {
@@ -604,80 +589,81 @@
   list-style: none;
 }
 
-.my-order-card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px 12px;
-  margin-bottom: 12px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-s);
-  background: var(--surface);
-  color: var(--ink);
-  text-decoration: none;
-}
-
-.my-order-number {
-  font-weight: 600;
-}
-
-.my-order-status {
-  justify-self: end;
-  font-size: 14px;
-  font-weight: 600;
+.my-order-list > li + li {
+  margin-top: 14px;
 }
 
 .my-order-date {
+  margin-top: -10px;
   color: var(--ink-soft);
 }
 
-.my-order-total {
-  justify-self: end;
-  font-weight: 600;
-}
-
+/* T-E7-64: "‹ Mis pedidos", at the top of an order's detail. */
 .my-order-back {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 44px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   color: var(--accent-text);
   font-weight: 600;
+  text-decoration: none;
 }
 
-.my-order-shipment,
-.my-order-address {
-  margin: 20px 0;
+.my-order-back span {
+  font-size: 22px;
+  line-height: 1;
 }
 
-.my-order-shipment h2,
-.my-order-address h2 {
-  margin-bottom: 8px;
-  font-size: 16px;
-  font-weight: 600;
+@media (hover: hover) {
+  .my-order-back:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
 
 .my-order-tracking-number {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  justify-content: space-between;
+  gap: 4px 12px;
   font-variant-numeric: tabular-nums;
-  font-size: 16px;
   overflow-wrap: anywhere;
 }
 
-.my-order-shipment a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--accent-text);
-  font-weight: 600;
+/* The items of the tracking link (orders.css) inside the card: their own lines, without the last one's. */
+.my-order-items .tracking-items li:last-child {
+  border-bottom: 0;
 }
 
-.my-order-hint {
+.my-order-items .tracking-items li.with-photo {
+  grid-template-columns: 48px 1fr auto;
+}
+
+.my-order-items .tracking-item-photo {
+  width: 48px;
+  height: 48px;
+}
+
+.my-order-items .tracking-item-amount,
+.my-order-items .tracking-amounts {
+  font-variant-numeric: tabular-nums;
+}
+
+.my-order-items .tracking-amounts {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.my-order-paid-with {
   color: var(--ink-soft);
   font-size: 14px;
+}
+
+.my-order-address p + p {
+  color: var(--ink-soft);
 }
 
 /* UC-27 (T-E4-14): "Continuar con Google" and "Continuar con Facebook", above the email form. */
@@ -747,25 +733,7 @@
   max-width: 640px;
 }
 
-.my-account-heading {
-  margin-bottom: 8px;
-  font-size: 18px;
-}
-
-.my-account-password {
-  margin-top: 12px;
-}
-
 /* UC-28 (T-E4-16): "Tus datos", downloading the data and deleting the account. */
-
-.my-account section {
-  margin-top: 32px;
-}
-
-/* T-E7-62: "Datos personales" comes right under the title. */
-.my-account > section:first-of-type {
-  margin-top: 0;
-}
 
 .btn-danger {
   background: var(--danger);
@@ -840,20 +808,31 @@
 }
 
 .account-nav-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 10px;
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0 18px;
   /* Decorative: the text names the link, so the edge needs no 3:1 (WCAG 1.4.11) */
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
-  background: none;
+  background: var(--surface);
   color: var(--ink);
   font-size: 14px;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
+}
+
+/* T-E7-63: the gold stitching, 3 px inside each pill's edge, as the hem of a pajama. Decorative. */
+.account-nav-link::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px dashed var(--stitch-gold);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .account-nav-link svg {
@@ -950,6 +929,12 @@
     padding: 0 14px;
     border: 0;
     border-radius: var(--radius-s);
+    background: none;
+  }
+
+  /* On the sidebar only the current link is stitched. */
+  .account-nav-link:not([aria-current='page'])::after {
+    display: none;
   }
 
   .account-nav-link svg {
@@ -964,91 +949,17 @@
   }
 }
 
-/* T-E7-61: the summary's blocks, white cards with a fine border, each ending in its link. */
-.account-block {
-  margin-top: 16px;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-m);
-  background: var(--surface);
-}
-
-.account-block h2 {
-  margin-bottom: 12px;
-  font-size: 16px;
-}
-
-.account-block .my-order-list {
-  margin-bottom: 12px;
-}
-
-.account-block-empty {
-  margin-bottom: 8px;
-  color: var(--ink-soft);
-}
-
-.account-block-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  color: var(--accent-text);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-@media (hover: hover) {
-  .account-block-link:hover {
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-}
-
-/* The customer's data, label above value: the summary's "Tus datos" and "Datos personales" (T-E7-62). */
-.account-data-list {
-  display: grid;
-  gap: 12px;
-  margin: 0 0 8px;
-}
-
-.account-data-list dt {
-  color: var(--ink-soft);
-  font-size: 13px;
-}
-
-.account-data-list dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.account-data-missing {
-  color: var(--ink-soft);
-}
-
-/* T-E7-62: "Privacidad", last and folded; "Eliminar mi cuenta" a quiet text button in --danger. */
+/* T-E7-62: "Privacidad", last and folded. */
 .account-privacy {
   margin-top: 32px;
   border-top: 1px solid var(--line);
 }
 
-.account-privacy section {
-  margin-top: 0;
+.account-privacy .group-card {
+  margin-top: 4px;
 }
 
-.account-delete-link {
-  color: var(--danger);
-  font-weight: 600;
-}
-
-/* UC-40 (T-E4-18): the phone's value with "Agregar" or "Editar" beside it, at the right of the row. */
-.account-data-value {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 12px;
-}
-
+/* UC-40 (T-E4-18): the phone's field, in the row of "Datos personales". */
 .account-phone-form input {
   width: 100%;
   max-width: 280px;
@@ -1074,12 +985,432 @@
 }
 
 .account-data-saved {
-  margin-top: 8px;
+  margin: 8px 16px 0;
   font-weight: 600;
 }
 
-@media (hover: hover) {
-  .address-action:hover:not(:disabled) {
-    color: var(--ink);
+/*
+ * T-E7-63: the account's own type. Poppins for headings and the profile's name, Open Sans for the rest; the fonts come
+ * with the account chunk (AccountArea.tsx), so the rest of the store keeps Inter.
+ */
+.account-area {
+  font-family: var(--ff-account-text);
+}
+
+.account-area :is(h1, h2, h3, h4),
+.account-profile-name {
+  font-family: var(--ff-account-heading);
+  text-wrap: balance;
+}
+
+.account-area .account-page h1 {
+  margin-bottom: 6px;
+  font-family: var(--ff-account-heading);
+  font-weight: 600;
+}
+
+.account-area .account-page h1 + .account-intro {
+  margin-bottom: 8px;
+}
+
+/* On a phone an order's detail has "‹ Mis pedidos" in place of the pills (T-E7-64). */
+@media (max-width: 859px) {
+  .account-area[data-order-detail] .account-nav {
+    display: none;
   }
+}
+
+/*
+ * T-E7-63: the grouped lists (Group.tsx). A small uppercase caption over a white card with soft corners and shadow,
+ * rows split by hairlines; fields read a label over the value; an action is the whole row, its icon and name in the
+ * store's rose (or --ink when quieter, --danger to delete) and a light chevron.
+ */
+.group {
+  margin-top: 28px;
+}
+
+.group-caption {
+  margin: 0 0 8px 16px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.group-card {
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-group);
+}
+
+/* A hairline above every row but the card's first, also inside a group of rows (Group.Rows, which draws no box). */
+.group-card .group-row {
+  border-top: 1px solid var(--line);
+}
+
+.group-card > .group-row:first-child,
+.group-card > .group-rows:first-child > .group-row:first-child {
+  border-top: 0;
+}
+
+.group-rows {
+  display: contents;
+}
+
+.group-row {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 12px 16px;
+  text-align: left;
+}
+
+.group-field dt,
+.group-field-label {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.group-field dd {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.group-missing {
+  color: var(--ink-soft);
+}
+
+.group-action,
+.group-row-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  border-radius: 0;
+  background: none;
+  color: var(--accent-text);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.group-row-link {
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.group-destructive {
+  color: var(--danger);
+}
+
+.group-action:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.group-icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.group-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.group-label,
+.group-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-chevron {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--chevron);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The ring inside the row: the card clips what falls outside it. */
+.group-action:focus-visible,
+.group-row-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -4px;
+}
+
+@media (hover: hover) {
+  .group-action:hover:not(:disabled, .group-done),
+  .group-row-link:hover {
+    background: var(--bg);
+  }
+}
+
+.group-footnote {
+  margin: 8px 16px 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  text-wrap: pretty;
+}
+
+/* "Copiar" beside the tracking number: a 44 px target that keeps the row's height. */
+.group-inline-button {
+  min-height: 44px;
+  margin: -10px -8px -10px 0;
+  padding: 0 8px;
+  color: var(--accent-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* T-E7-63: the profile card of "Datos y acceso": the initials in a rose circle, the name, the email. */
+.account-profile {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  column-gap: 14px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-group);
+}
+
+.account-profile-initials {
+  display: grid;
+  place-items: center;
+  grid-row: 1 / span 2;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--rose-soft);
+  color: var(--accent-text);
+  font-family: var(--ff-account-heading);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.account-profile-name {
+  align-self: end;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.account-profile-email {
+  align-self: start;
+  color: var(--ink-soft);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.account-area .account-profile + .group {
+  margin-top: 24px;
+}
+
+/* The summary's recent orders: number and total, then the status dot, its name and the date. */
+.summary-order {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 4px 0;
+}
+
+.summary-order-number {
+  font-weight: 600;
+}
+
+.summary-order-total,
+.order-card-total {
+  justify-self: end;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-order-status,
+.order-card-status {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* T-E7-64: an order's card. */
+.order-card-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+}
+
+.order-card-number {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.order-card-status {
+  font-size: 14px;
+}
+
+.order-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.order-dot-delivered {
+  background: var(--success);
+}
+
+.order-dot-awaiting_payment {
+  background: var(--dot-pending);
+}
+
+.order-dot-cancelled,
+.order-dot-expired {
+  background: var(--line-strong);
+}
+
+.order-card-body {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.order-card-note {
+  margin-top: 10px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+/* The thin bar of the four paid steps: rose on the way, green once delivered. */
+.order-progress {
+  margin-top: 12px;
+}
+
+.order-progress-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-progress-bar li {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.order-progress-bar li.is-reached {
+  background: var(--accent);
+}
+
+.order-progress.is-delivered .order-progress-bar li.is-reached {
+  background: var(--success);
+}
+
+.order-progress-caption {
+  margin-top: 6px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* T-E7-63: the address book. The title with "n de 10"; the cards apart; "Agregar dirección" a dashed card. */
+.address-book-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.address-book-count {
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.address-list > li + li {
+  margin-top: 14px;
+}
+
+.address-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 18px;
+  background: none;
+  color: var(--accent-text);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.address-add:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .address-add:hover {
+    background: var(--surface);
+  }
+}
+
+/* T-E7-63: a row that did its work and waits ("Enlace enviado a tu correo · Reenviar en 0:59"): green, nothing to press. */
+.group-done {
+  color: var(--success);
+  cursor: default;
+  font-variant-numeric: tabular-nums;
+}
+
+/* T-E7-63: the answer of an action of "Formas de ingresar", under its card: a small box, green or red. */
+.group-notice {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-s);
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 14px;
+  text-wrap: pretty;
+}
+
+.group-notice.is-problem {
+  background: var(--danger-bg);
+  color: var(--danger-strong);
+}
+
+.group-notice:empty {
+  display: none;
+}
+
+.group-notice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

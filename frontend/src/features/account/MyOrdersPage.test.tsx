@@ -48,6 +48,7 @@ function detail(overrides: Record<string, unknown> = {}) {
       postalCode: 'S3000ABC',
     },
     shipmentTrackingNumber: 'CA123456789AR',
+    paymentProvider: 'MERCADOPAGO',
     ...overrides,
   };
 }
@@ -99,12 +100,12 @@ describe('my orders (UC-22, T-E4-07)', () => {
     await userEvent.click(await screen.findByRole('link', { name: es.account.ordersLink }));
 
     expect(router.state.location.pathname).toBe('/cuenta/pedidos');
-    const items = await within(screen.getByRole('main')).findAllByRole('listitem');
+    const items = await within(screen.getByRole('main')).findAllByRole('article');
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('Pedido #1002');
     expect(items[0]).toHaveTextContent(es.tracking.statuses.SHIPPED);
     expect(items[0]).toHaveTextContent('$ 40.500');
-    expect(items[0]).toHaveTextContent(messages.placedOn('14/10/2026'));
+    expect(items[0]).toHaveTextContent(messages.placedOnShort('14/10/2026'));
     expect(items[1]).toHaveTextContent('Pedido #1001');
     expect(items[1]).toHaveTextContent(es.tracking.statuses.AWAITING_PAYMENT);
     expect(screen.queryByRole('button', { name: messages.more })).not.toBeInTheDocument();
@@ -121,9 +122,9 @@ describe('my orders (UC-22, T-E4-07)', () => {
     await userEvent.click(await screen.findByRole('button', { name: messages.more }));
 
     await waitFor(() => {
-      expect(within(screen.getByRole('main')).getAllByRole('listitem')).toHaveLength(2);
+      expect(within(screen.getByRole('main')).getAllByRole('article')).toHaveLength(2);
     });
-    expect(within(screen.getByRole('main')).getAllByRole('listitem')[1]).toHaveTextContent('Pedido #1001');
+    expect(within(screen.getByRole('main')).getAllByRole('article')[1]).toHaveTextContent('Pedido #1001');
     expect(screen.queryByRole('button', { name: messages.more })).not.toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/api/account/orders', expect.objectContaining({ params: { query: { page: 1 } } }));
   });
@@ -156,18 +157,18 @@ describe('my orders (UC-22, T-E4-07)', () => {
     const user = userEvent.setup();
     const { router } = renderRoute('/cuenta/pedidos');
 
-    await user.click(await screen.findByRole('link', { name: /Pedido #1002/ }));
+    await user.click(await screen.findByRole('link', { name: `${messages.viewDetail} · Pedido #1002` }));
 
     expect(router.state.location.pathname).toBe(`/cuenta/pedidos/${SECOND}`);
     expect(await screen.findByRole('heading', { name: 'Pedido #1002' })).toBeInTheDocument();
-    expect(screen.getByText(es.tracking.statuses.SHIPPED)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: messages.shipment })).toHaveTextContent(es.tracking.statuses.SHIPPED);
     const items = screen.getByRole('region', { name: messages.items });
     expect(within(items).getByText('Pijama Luna')).toBeInTheDocument();
     expect(within(items).getByText(es.tracking.discountWith('VERANO10'))).toBeInTheDocument();
     expect(within(items).getByText('$ 40.500')).toBeInTheDocument();
     const address = screen.getByRole('region', { name: messages.address });
     expect(address).toHaveTextContent('San Martín 1234, piso 3, depto. B');
-    expect(address).toHaveTextContent('S3000ABC Santa Fe, Santa Fe');
+    expect(address).toHaveTextContent('Santa Fe, Santa Fe (S3000ABC)');
     const shipment = screen.getByRole('region', { name: messages.shipment });
     expect(shipment).toHaveTextContent('CA123456789AR');
     const correo = within(shipment).getByRole('link', { name: messages.trackAtCorreo });
@@ -217,6 +218,74 @@ describe('my orders (UC-22, T-E4-07)', () => {
 
     expect(await screen.findByText(messages.noShipmentYet)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: messages.trackAtCorreo })).not.toBeInTheDocument();
+  });
+
+  it('given a shipped order and a delivered one, when "Mis pedidos" opens, then the first card shows 3 of 4 steps and "Seguir envío", the second 4 of 4 and "Entregado" (T-E7-64)', async () => {
+    stubOrders(() =>
+      answer(200, {
+        orders: [
+          summary(SECOND, 1002, '2026-10-14T15:00:00Z', 'SHIPPED', 100),
+          summary(FIRST, 1001, '2026-10-13T15:00:00Z', 'DELIVERED', 100),
+        ],
+        hasMore: false,
+      }),
+    );
+    renderRoute('/cuenta/pedidos');
+
+    const [shipped, delivered] = await within(screen.getByRole('main')).findAllByRole('article');
+    if (shipped === undefined || delivered === undefined) {
+      throw new Error('Two cards expected');
+    }
+    const shippedSteps = within(within(shipped).getByRole('list', { name: es.tracking.paid.progress })).getAllByRole(
+      'listitem',
+    );
+    expect(shippedSteps.filter((step) => step.classList.contains('is-reached'))).toHaveLength(3);
+    expect(shippedSteps[2]).toHaveAttribute('aria-current', 'step');
+    expect(shipped).toHaveTextContent(messages.step(3));
+    expect(within(shipped).getByRole('link', { name: `${messages.trackShipment} · Pedido #1002` })).toHaveAttribute(
+      'href',
+      `/cuenta/pedidos/${SECOND}`,
+    );
+    const deliveredSteps = within(delivered).getAllByRole('listitem');
+    expect(deliveredSteps.filter((step) => step.classList.contains('is-reached'))).toHaveLength(4);
+    expect(delivered.querySelector('.order-progress-caption')).toHaveTextContent(es.tracking.statuses.DELIVERED);
+    expect(within(delivered).queryByRole('link', { name: new RegExp(messages.trackShipment) })).not.toBeInTheDocument();
+  });
+
+  it('given an order awaiting payment, when "Mis pedidos" opens, then its card has no bar and says it is paid from the email (T-E7-64)', async () => {
+    stubOrders(() =>
+      answer(200, { orders: [summary(FIRST, 1001, '2026-10-13T15:00:00Z', 'AWAITING_PAYMENT', 100)], hasMore: false }),
+    );
+    renderRoute('/cuenta/pedidos');
+
+    const [card] = await within(screen.getByRole('main')).findAllByRole('article');
+    if (card === undefined) {
+      throw new Error('A card expected');
+    }
+    expect(within(card).queryByRole('list')).not.toBeInTheDocument();
+    expect(card).toHaveTextContent(messages.payFromEmail);
+  });
+
+  it('given an order paid with MercadoPago, when its detail opens, then it says "Pagado con Mercado Pago" (T-E7-64, T-E4-19)', async () => {
+    stubOrders(
+      () => answer(200, { orders: [], hasMore: false }),
+      () => answer(200, detail({ status: 'DELIVERED' })),
+    );
+    renderRoute(`/cuenta/pedidos/${SECOND}`);
+
+    const items = await screen.findByRole('region', { name: messages.items });
+    expect(within(items).getByText('Pagado con Mercado Pago')).toBeInTheDocument();
+  });
+
+  it('given an order awaiting payment, when its detail opens, then it names no one who collected it (T-E4-19)', async () => {
+    stubOrders(
+      () => answer(200, { orders: [], hasMore: false }),
+      () => answer(200, detail({ status: 'AWAITING_PAYMENT', shipmentTrackingNumber: null })),
+    );
+    renderRoute(`/cuenta/pedidos/${SECOND}`);
+
+    await screen.findByRole('region', { name: messages.items });
+    expect(screen.queryByText(messages.paidWith.MERCADOPAGO)).not.toBeInTheDocument();
   });
 
   it('given another person\'s order, when the customer tries to open it, then it is told the order is not found', async () => {

@@ -817,8 +817,10 @@ export const es = {
     },
     /** T-E7-61: the summary at /cuenta. */
     summary: {
+      /** T-E7-63: the line under the greeting. */
+      intro: 'Tus pedidos, tu dirección y tus datos.',
       recentOrders: 'Pedidos recientes',
-      allOrders: 'Ver todos',
+      allOrders: 'Ver todos mis pedidos',
       primaryAddress: 'Dirección principal',
       manageAddresses: 'Administrar direcciones',
       noAddresses: 'Todavía no guardaste ninguna dirección.',
@@ -842,15 +844,15 @@ export const es = {
       title: 'Datos y acceso',
       personalTitle: 'Datos personales',
       /** T-E7-62: the UC-19 recovery email, sent to the account's own email. */
-      changePassword: 'Cambiar contraseña',
+      changePassword: 'Cambiar contraseña por email',
       changingPassword: 'Enviando…',
       changePasswordSent: (email: string) =>
         `Te enviamos un email a ${email} con un enlace para elegir una contraseña nueva. Vence en 30 minutos.`,
       changePasswordError: 'No pudimos enviar el email. Probá de nuevo.',
+      /** T-E7-63: the row of "Cambiar contraseña por email" while it waits, e.g. "… · Reenviar en 0:59". */
+      passwordLinkSent: (wait: string) => `Enlace enviado a tu correo · Reenviar en ${wait}`,
       privacyTitle: 'Privacidad',
       /** UC-40 (T-E4-18): the phone, added or changed in its row of "Datos personales". */
-      addPhone: 'Agregar',
-      editPhone: 'Editar',
       addPhoneLabel: 'Agregar teléfono',
       editPhoneLabel: 'Editar teléfono',
       phoneField: 'Teléfono',
@@ -862,14 +864,13 @@ export const es = {
       phoneError: 'No pudimos guardar el teléfono. Probá de nuevo.',
       methodsTitle: 'Formas de ingresar',
       methodsIntro: 'Podés ingresar con tu contraseña o con las cuentas que vincules.',
-      /** T-E7-62: when no provider is enabled nor linked, only the password shows. */
-      methodsIntroPasswordOnly: 'Así ingresás a tu cuenta.',
       loading: 'Cargando…',
       loadError: 'No pudimos cargar tus formas de ingresar.',
       retry: 'Reintentar',
       password: 'Contraseña',
-      passwordSet: 'Ingresás con tu email y tu contraseña.',
-      passwordMissing: 'Todavía no tenés contraseña.',
+      /** T-E7-63: the value of the password's row. */
+      passwordSet: 'Configurada',
+      passwordMissing: 'Sin contraseña',
       createPassword: 'Crear contraseña',
       newPassword: 'Nueva contraseña',
       passwordHint: 'Al menos 8 caracteres.',
@@ -949,23 +950,38 @@ export const es = {
       loadingMore: 'Cargando…',
       moreError: 'No pudimos cargar más pedidos. Probá de nuevo.',
       back: 'Volver a mis pedidos',
+      /** T-E7-64: the visible text of the back link; its name stays "Volver a mis pedidos". */
+      backShort: 'Mis pedidos',
+      /** T-E7-64: an order's card and its detail. */
+      placedOnShort: (date: string) => `hecho el ${date}`,
+      step: (step: number) => `Paso ${String(step)} de 4`,
+      stepWithCarrier: (step: number) => `Paso ${String(step)} de 4 · Correo Argentino`,
+      trackShipment: 'Seguir envío',
+      viewDetail: 'Ver detalle',
+      /** UC-22: the account has no link to pay (its token is kept only as a hash): the email has it. */
+      payFromEmail: 'Lo pagás desde el enlace del email que te enviamos al hacer el pedido.',
+      trackingNumber: 'Número de seguimiento',
+      /** T-E4-19: who collected the payment. */
+      paidWith: { MERCADOPAGO: 'Pagado con Mercado Pago', MODO: 'Pagado con MODO' },
       loadingOrder: 'Cargando tu pedido…',
       loadOrderError: 'No pudimos cargar tu pedido.',
       notFoundTitle: 'No encontramos tu pedido',
       notFoundBody: 'No está entre los pedidos de tu cuenta.',
       items: 'Productos',
       address: 'Dirección de envío',
-      shipment: 'Número de seguimiento del envío',
+      shipment: 'Envío',
       noShipmentYet: 'Cuando despachemos tu pedido vas a ver acá el número de seguimiento.',
       copy: 'Copiar',
       copied: 'Copiado',
-      trackAtCorreo: 'Seguir el envío en Correo Argentino',
+      trackAtCorreo: 'Seguir en Correo Argentino',
       trackingHint: 'Copiá el número y pegalo en la página de Correo Argentino.',
     },
     /** UC-20 (T-E4-05): the address book. The fields use the checkout's labels and rules. */
     addresses: {
       title: 'Mis direcciones',
       intro: 'Guardá hasta 10 direcciones. La principal aparece elegida cuando comprás.',
+      /** T-E7-63: beside the title. */
+      count: (count: number) => `${String(count)} de 10`,
       loading: 'Cargando tus direcciones…',
       loadError: 'No pudimos cargar tus direcciones.',
       retry: 'Reintentar',

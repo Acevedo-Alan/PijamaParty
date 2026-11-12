@@ -560,6 +560,41 @@ A customer opens "Mi cuenta" to see its orders and its addresses. Until now `/cu
 
 ---
 
+## The account redesign (T-E7-63, T-E7-64; asked on 2026-11-11, sketch approved the same day)
+
+The account area of T-E7-60 to T-E7-62 keeps its pages, routes and behavior, and changes its look, after Apple's Human Interface Guidelines (grouped lists, whole rows as actions) with a soft kawaii touch and less visual load. It must not read as generated: no gradient washes, no sparkles, no colored icon tiles on every row.
+
+**Business rules**
+- **Type, the account only:** Poppins (500, 600) for headings and the profile's name, Open Sans (400 to 700) for the rest, both self-hosted (`@fontsource`, the CSP of T-E6-03) and imported only by the account chunk, so the home and the first load do not change. The rest of the store keeps Inter.
+- **Gold stitching on the navigation:** each pill of the phone row has a 1 px dashed gold line (`--stitch-gold`) 3 px inside its edge, the current one on `--rose-soft`, the others on white; from 860 px the sidebar's current link carries the same stitching. Nothing else is stitched.
+- **Grouped lists (T-E7-63):** a section is a small uppercase caption (12 px, spaced, `--ink-soft`) over a white card (18 px corners, a soft shadow, no border), whose rows are split by hairlines; a footnote may follow in 13 px `--ink-soft`.
+  - A **field** reads a label (13 px, `--ink-soft`) over its value (16 px, `--ink`), with no icon; an empty value says so in `--ink-soft`.
+  - An **action** is a whole row (at least 50 px tall): a line icon and its name in `--accent-text`, and a chevron in a light grey; every action row is in `--accent-text`, so the rows that act always look alike (asked on 2026-11-11); "Eliminar…" rows are in `--danger`, with no chevron. A row that just did its work and waits (below) is in `--success` with a check, not a button. Every row has a hover tint (hover devices) and the focus ring.
+- **Datos y acceso:** a profile card (initials in a 60 px `--rose-soft` circle, the name in Poppins, the email), then "Datos personales" (name, email, phone; "Agregar teléfono" or "Editar teléfono" as an action row that opens the field of UC-40 in the card), "Formas de ingresar" ("Contraseña · Configurada" or "Crear contraseña"; "Cambiar contraseña por email"; each provider shown with "Vincular" or "Desvincular"; a footnote only when providers are shown, "Podés ingresar con tu contraseña o con las cuentas que vincules.", none for the password alone, which the caption and the row already say), and "Privacidad" last, still folded, with "Descargar mis datos" and "Eliminar mi cuenta".
+  - **The answer of an action of "Formas de ingresar"** (the email sent, a provider unlinked, a failure, the return from a provider) shows under that card, inside its section, as a small box (14 px; `--success-bg` with `--success`, or `--danger-bg` with `--danger-strong` for a failure), never between the sections. It takes the focus, as before.
+  - **After "Cambiar contraseña por email" sends the email,** its row becomes "✓ Enlace enviado a tu correo · Reenviar en m:ss" for 60 seconds, not pressable, so the customer does not send it again thinking it failed; then the row comes back. A refusal for too many attempts (429) starts no wait. The wait lives only in the page: reloading it ends the wait, and the server's own limit (RNF-22) still applies.
+- **Resumen:** "Hola, {name}" and a one-line intro, then "Pedidos recientes" (rows: number, a status dot and name with the date, the total and a chevron, each opening its detail; then "Ver todos mis pedidos"), "Dirección principal" (its lines and "Administrar direcciones") and "Tus datos" (name, email and phone in one card and "Datos y acceso").
+- **Mis direcciones:** the title with "n de 10"; each address a card (street and number as its title, "Principal" as a `--rose-soft` pill beside it, then floor, apartment, city, province and postal code in `--ink-soft`) whose action rows are "Usar como principal" (not on the primary), "Editar" and "Eliminar" (with the confirmation of UC-20); "Agregar dirección" is a dashed card at the end, always there.
+- **Mis pedidos (T-E7-64):** each order a card: "Pedido #n" in Poppins and its total, a status dot with its name and "hecho el {date}"; for `PAID`, `PREPARING`, `SHIPPED` and `DELIVERED` a thin 4-segment bar (Pagado, En preparación, Enviado, Entregado; rose while on its way, green once delivered) and "Paso n de 4" (or "Entregado"); then "Seguir envío" (while `SHIPPED`, to the order's detail) and "Ver detalle". `AWAITING_PAYMENT` (a peach dot) says it is paid from the link of its email, as UC-22; `CANCELLED` and `EXPIRED` (a grey dot) have no bar. "Ver más" keeps paging.
+- **An order's detail:** "‹ Mis pedidos" at the top instead of the pills; the title with the date; "Envío" (the status, the bar, "Paso n de 4 · Correo Argentino", the tracking number with "Copiar" and "Seguir en Correo Argentino", as today); "Productos" (each with its 48 × 48 photo or the gradient of a missing one, color, size, quantity and line total; then subtotal, discount with its code, shipping, total, and, once paid, "Pagado con Mercado Pago" or "Pagado con MODO", T-E4-19); "Dirección de envío".
+- Amounts use tabular figures; headings balance their lines; texts keep the store's sentence case.
+
+**Acceptance criteria**
+- Given the account pages, when they render, then their headings are Poppins and their text Open Sans, and no file outside the account imports Poppins; the home keeps only the Open Sans 500 of the card sizes it already loaded (T-E7-35) (T-E7-63).
+- Given a phone, when an account page opens, then every navigation pill carries the gold stitching (T-E7-63).
+- Given "Datos y acceso" for a customer without a phone, when it opens, then "Agregar teléfono" is a row with its icon and chevron, and pressing it opens the field (T-E7-63).
+- Given a customer with a password, when it presses "Cambiar contraseña por email" and the email goes, then the answer shows inside "Formas de ingresar" and the row says "Enlace enviado a tu correo" and cannot be pressed for 60 seconds, then it can again (T-E7-63).
+- Given no provider enabled nor linked, when "Datos y acceso" opens, then "Formas de ingresar" has no footnote (T-E7-63).
+- Given a shipped order and a delivered one, when "Mis pedidos" opens, then the first card shows 3 of 4 segments, "Paso 3 de 4" and "Seguir envío", and the second 4 of 4 and "Entregado" (T-E7-64).
+- Given an order awaiting payment, when "Mis pedidos" opens, then its card has no bar and says it is paid from the email's link (T-E7-64).
+- Given an order paid with MercadoPago, when its detail opens, then it says "Pagado con Mercado Pago" (T-E7-64, T-E4-19).
+
+**Design notes**
+- Composition, not modes (the composition-patterns skill): `Group.Section`, `Group.Card`, `Group.Field`, `Group.Missing`, `Group.Rows` (a provider's state and action, named as a group), `Group.Row`, `Group.ActionButton`, `Group.ActionLink`, `Group.RowLink`, `Group.DestructiveButton` and `Group.Footnote` (`features/account/Group.tsx`), and for the orders one card per family of status, `PaidOrderCard`, `PendingOrderCard` and `ClosedOrderCard`, sharing `OrderCard.Header` and `OrderCard.Progress`. No boolean props for tone or variant.
+- The account chunk imports the fonts and sets them on `.account-area`; nothing outside it changes.
+
+---
+
 ## Changes to UC-19 (sign-in, registration and password pages)
 
 The header no longer has "Crear cuenta" (UC-31), so the sign-in page carries it, and the sign-in, registration, password recovery and reset pages are redesigned (T-E7-23). The flows, messages and API of UC-19 and UC-27 do not change.

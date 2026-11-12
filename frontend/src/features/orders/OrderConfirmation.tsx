@@ -8,7 +8,7 @@ import { useStoreContact } from '../help/useStoreContact.ts';
 import type { OrderStatus, TrackedOrder } from './orderTrackingApi.ts';
 
 /** The states of an order already paid (UC-14, GLOSSARY.md), in the order the order goes through them. */
-const PAID_STEPS = ['PAID', 'PREPARING', 'SHIPPED', 'DELIVERED'] as const satisfies readonly OrderStatus[];
+export const PAID_STEPS = ['PAID', 'PREPARING', 'SHIPPED', 'DELIVERED'] as const satisfies readonly OrderStatus[];
 
 export type PaidStatus = (typeof PAID_STEPS)[number];
 

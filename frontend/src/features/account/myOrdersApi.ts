@@ -1,7 +1,7 @@
 import { api } from '../../api/client.ts';
 import type { components } from '../../api/schema.d.ts';
 import { toImage, type ListingImage } from '../catalog/catalogApi.ts';
-import { isProvince, type Province } from '../checkout/checkoutForm.ts';
+import { isProvince, type PaymentProvider, type Province } from '../checkout/checkoutForm.ts';
 import type { OrderStatus } from '../orders/orderTrackingApi.ts';
 
 type MyOrderSummaryResponse = components['schemas']['MyOrderSummaryResponse'];
@@ -67,6 +67,8 @@ export interface MyOrder {
   totalCents: number;
   address: MyOrderAddress;
   shipmentTrackingNumber: string | null;
+  /** Who collected the payment (T-E4-19). */
+  paymentProvider: PaymentProvider;
 }
 
 /** GET /api/account/orders: null when nobody is signed in as a customer. */
@@ -148,7 +150,8 @@ function toOrder(data: MyOrderResponse): MyOrder {
     subtotalCents === undefined ||
     discountCents === undefined ||
     shippingCents === undefined ||
-    totalCents === undefined
+    totalCents === undefined ||
+    data.paymentProvider === undefined
   ) {
     throw new Error('Incomplete order');
   }
@@ -165,6 +168,7 @@ function toOrder(data: MyOrderResponse): MyOrder {
     totalCents,
     address: toAddress(data.address),
     shipmentTrackingNumber: data.shipmentTrackingNumber,
+    paymentProvider: data.paymentProvider,
   };
 }
 

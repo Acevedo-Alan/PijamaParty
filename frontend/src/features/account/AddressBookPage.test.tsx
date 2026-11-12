@@ -80,7 +80,9 @@ describe('address book (UC-20, T-E4-05)', () => {
     const items = await within(screen.getByRole('main')).findAllByRole('listitem');
     expect(items[0]).toHaveTextContent('Belgrano 1234');
     expect(within(nth(items, 0)).getByText(messages.primary)).toBeInTheDocument();
-    expect(items[1]).toHaveTextContent('San Martín 1234, piso 3, depto. B');
+    // T-E7-63: the street and number as the card's title, the floor and apartment under it.
+    expect(items[1]).toHaveTextContent('San Martín 1234');
+    expect(within(nth(items, 1)).getByText('Piso 3, depto. B')).toBeInTheDocument();
     expect(items[1]).toHaveTextContent('Santa Fe, Santa Fe (S3000ABC)');
     expect(within(nth(items, 1)).queryByText(messages.primary)).not.toBeInTheDocument();
   });

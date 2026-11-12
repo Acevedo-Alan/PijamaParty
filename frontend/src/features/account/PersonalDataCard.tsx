@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type SyntheticEvent } from 'react';
 import { es } from '../../i18n/es.ts';
 import { changePhone, type Customer } from './accountApi.ts';
+import { Group } from './Group.tsx';
 import { CUSTOMER_KEY } from './useCustomer.ts';
 
 const messages = es.account.myAccount;
@@ -16,10 +17,9 @@ interface PersonalDataCardProps {
 type Closed = 'saved' | 'cancelled' | null;
 
 /**
- * "Datos personales" of "Datos y acceso" (T-E7-62): its title, then the data in a white card, as the sign-in methods.
- * The name and the email read only; the phone has "Agregar" or "Editar" beside its value (UC-40, T-E4-18), which turns
- * the row into its field, labelled by the row's own "Teléfono". Saving updates the signed-in customer, so the summary
- * and the checkout show the new phone at once.
+ * "Datos personales" of "Datos y acceso" (T-E7-62, T-E7-63): the name and the email read only; "Agregar teléfono" or
+ * "Editar teléfono" is an action row (UC-40, T-E4-18) that turns the phone into its field, labelled by the row's own
+ * "Teléfono". Saving updates the signed-in customer, so the summary and the checkout show the new phone at once.
  */
 export function PersonalDataCard({ customer, onSignedOut }: PersonalDataCardProps) {
   const fieldId = useId();
@@ -43,25 +43,16 @@ export function PersonalDataCard({ customer, onSignedOut }: PersonalDataCardProp
   }
 
   return (
-    <section aria-labelledby="personal-data-title">
-      <h2 id="personal-data-title" className="my-account-heading">
-        {messages.personalTitle}
-      </h2>
-      {/* The title outside and the data in a card, as "Formas de ingresar" and each of its methods. */}
-      <dl className="account-data-list address-card">
-        <div>
-          <dt>{es.account.summary.name}</dt>
-          <dd>{customer.name}</dd>
-        </div>
-        <div>
-          <dt>{es.account.email}</dt>
-          <dd>{customer.email}</dd>
-        </div>
-        <div>
-          {/* While editing, the row's own "Teléfono" labels the field, so it is said once and clicking it focuses it. */}
-          <dt>{editing ? <label htmlFor={fieldId}>{es.account.summary.phone}</label> : es.account.summary.phone}</dt>
+      <Group.Section title={messages.personalTitle}>
+        <Group.Card>
+          <Group.Field label={es.account.summary.name}>{customer.name}</Group.Field>
+          <Group.Field label={es.account.email}>{customer.email}</Group.Field>
           {editing ? (
-            <dd>
+            <Group.Row>
+              {/* The row's own "Teléfono" labels the field, so it is said once and clicking it focuses it. */}
+              <label htmlFor={fieldId} className="group-field-label">
+                {es.account.summary.phone}
+              </label>
               <PhoneForm
                 fieldId={fieldId}
                 current={customer.phone}
@@ -73,30 +64,29 @@ export function PersonalDataCard({ customer, onSignedOut }: PersonalDataCardProp
                 }}
                 onSignedOut={onSignedOut}
               />
-            </dd>
+            </Group.Row>
           ) : (
-            <dd className="account-data-value">
-              {customer.phone ?? <span className="account-data-missing">{es.account.summary.noPhone}</span>}
-              <button
+            <>
+              <Group.Field label={es.account.summary.phone}>
+                {customer.phone ?? <Group.Missing>{es.account.summary.noPhone}</Group.Missing>}
+              </Group.Field>
+              <Group.ActionButton
                 ref={editRef}
-                type="button"
-                className="address-action"
-                aria-label={customer.phone === null ? messages.addPhoneLabel : messages.editPhoneLabel}
+                icon="phone"
                 onClick={() => {
                   setClosed(null);
                   setEditing(true);
                 }}
               >
-                {customer.phone === null ? messages.addPhone : messages.editPhone}
-              </button>
-            </dd>
+                {customer.phone === null ? messages.addPhoneLabel : messages.editPhoneLabel}
+              </Group.ActionButton>
+            </>
           )}
-        </div>
-      </dl>
-      <p className="account-data-saved" ref={savedRef} tabIndex={-1} role="status">
-        {closed === 'saved' ? messages.phoneSaved : ''}
-      </p>
-    </section>
+        </Group.Card>
+        <p className="account-data-saved" ref={savedRef} tabIndex={-1} role="status">
+          {closed === 'saved' ? messages.phoneSaved : ''}
+        </p>
+      </Group.Section>
   );
 }
 
