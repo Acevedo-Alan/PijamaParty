@@ -47,6 +47,8 @@ function moodOf(outcome: AuthOutcome, errorSeen: boolean, focus: FocusKind, pass
 
 interface AuthCardProps {
   title: string;
+  /** A short line above the title, e.g. the back office's "Backoffice · Paso 1 de 2" (UC-04). */
+  eyebrow?: string | undefined;
   intro?: string | undefined;
   /** The page's request, which the chibi waits for, is sad about or celebrates (T-E7-47). */
   outcome?: AuthOutcome;
@@ -61,7 +63,7 @@ interface AuthCardProps {
  * from 860 px, a band above the card below that. The chibi follows the focus and the request; a refusal makes it sad
  * until a field is typed in again.
  */
-export function AuthCard({ title, intro, outcome, pose, children }: AuthCardProps) {
+export function AuthCard({ title, eyebrow, intro, outcome, pose, children }: AuthCardProps) {
   const [focus, setFocus] = useState<FocusKind>('none');
   const [passwordShown, setPasswordShown] = useState(false);
   const [errorSeen, setErrorSeen] = useState(false);
@@ -91,6 +93,7 @@ export function AuthCard({ title, intro, outcome, pose, children }: AuthCardProp
       <AuthChibi mood={moodOf(outcome, errorSeen, focus, passwordShown)} pose={pose} />
       <div className="wrap auth-panel">
         <div className="auth-card">
+          {eyebrow !== undefined && <p className="auth-eyebrow">{eyebrow}</p>}
           <h1>{title}</h1>
           {intro !== undefined && <p className="account-intro">{intro}</p>}
           <PasswordShownContext value={setPasswordShown}>{children}</PasswordShownContext>

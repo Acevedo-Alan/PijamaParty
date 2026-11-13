@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { problem, signedIn, signedOut, stubApi } from '../../test/adminApi.ts';
 import { answer } from '../../test/catalogApi.ts';
@@ -192,5 +193,57 @@ describe('back-office sign-in (UC-04)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: esAdmin.signIn.title })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/admin/ingresar');
     expect(api.callsTo('POST /api/admin/auth/logout')).toHaveLength(1);
+  });
+
+  it('given the sign-in page, when it opens, then it says it is the back office and the first of two steps, and the password can be shown', async () => {
+    stubApi({ 'GET /api/admin/auth/me': signedOut });
+    renderRoute('/admin/ingresar');
+
+    expect(await screen.findByText(messages.step(1, 2))).toBeInTheDocument();
+    const password = screen.getByLabelText(messages.password);
+    expect(password).toHaveAttribute('type', 'password');
+    await userEvent.click(screen.getByRole('button', { name: es.account.showPassword }));
+    expect(password).toHaveAttribute('type', 'text');
+  });
+
+  it('given the code step, when "Usá un código de recuperación" is pressed, then the field takes a recovery code and sends it', async () => {
+    const api = stubApi({
+      'GET /api/admin/auth/me': signedOut,
+      'POST /api/admin/auth/login': answer(200, { nextStep: 'SECOND_FACTOR' }),
+      'POST /api/admin/auth/second-factor': problem(401),
+    });
+    renderRoute('/admin/ingresar');
+
+    await signInWith('owner@example.com', 'a long password');
+    expect(await screen.findByText(messages.step(2, 2))).toBeInTheDocument();
+    expect(screen.getByLabelText(messages.codeLabel)).toHaveAttribute('inputmode', 'numeric');
+    await userEvent.click(screen.getByRole('button', { name: messages.useRecoveryCode }));
+
+    const recovery = screen.getByLabelText(messages.recoveryCodeLabel);
+    expect(recovery).toHaveFocus();
+    expect(recovery).toHaveAttribute('inputmode', 'text');
+    expect(recovery).toHaveAccessibleDescription(messages.recoveryCodeHint);
+    await userEvent.type(recovery, 'AB7K3-M9QX2');
+    await userEvent.click(screen.getByRole('button', { name: messages.verify }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(messages.invalidCode);
+    expect(api.callsTo('POST /api/admin/auth/second-factor')[0]?.options.body).toEqual({ code: 'AB7K3-M9QX2' });
+
+    await userEvent.click(screen.getByRole('button', { name: messages.useAppCode }));
+    expect(screen.getByLabelText(messages.codeLabel)).toHaveValue('');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('given the code step, when "Usar otra cuenta" is pressed, then the password is asked again', async () => {
+    stubApi({
+      'GET /api/admin/auth/me': signedOut,
+      'POST /api/admin/auth/login': answer(200, { nextStep: 'SECOND_FACTOR' }),
+    });
+    renderRoute('/admin/ingresar');
+
+    await signInWith('owner@example.com', 'a long password');
+    await userEvent.click(await screen.findByRole('button', { name: messages.back }));
+
+    expect(screen.getByRole('heading', { level: 1, name: messages.title })).toBeInTheDocument();
+    expect(screen.getByLabelText(messages.password)).toHaveValue('');
   });
 });

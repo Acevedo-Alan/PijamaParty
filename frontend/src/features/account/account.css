@@ -673,6 +673,15 @@
   }
 }
 
+/* A short line above the title, e.g. the back office's step (UC-04). */
+.auth-eyebrow {
+  margin-bottom: 4px;
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .auth-card h1 {
   margin-bottom: 6px;
   text-wrap: balance;

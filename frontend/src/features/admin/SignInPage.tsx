@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useId, useState, type SubmitEvent } from 'react';
+import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
-import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
 import { formatTime } from '../../i18n/formatDate.ts';
+import { AuthCard, AuthField, PasswordInput, type AuthOutcome } from '../account/AuthCard.tsx';
 import { leaveAnalyticsBehind } from '../analytics/analytics.ts';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import {
@@ -31,6 +31,9 @@ type Step =
 
 type Answer = SignInAnswer | CodeAnswer | EnrollmentAnswer;
 
+/** Tells the page how a step's request goes, so the chibi of the card waits, or is sad about a refusal (T-E7-47). */
+type ReportOutcome = (outcome: AuthOutcome) => void;
+
 function failureMessage(answer: Answer | undefined, failed: boolean): string | null {
   if (failed) {
     return messages.failed;
@@ -49,15 +52,33 @@ function failureMessage(answer: Answer | undefined, failed: boolean): string | n
   }
 }
 
+function outcomeOf(pending: boolean, failure: string | null): AuthOutcome {
+  if (pending) {
+    return 'waiting';
+  }
+  return failure === null ? undefined : 'error';
+}
+
 function Failure({ text }: { text: string | null }) {
   return text === null ? null : (
-    <p className="form-error" role="alert">
+    <p className="account-error" role="alert">
       {text}
     </p>
   );
 }
 
-function PasswordStep({ onAccepted, onError }: { onAccepted: (next: NextStep) => void; onError: () => void }) {
+function PasswordStep({
+  onAccepted,
+  onError,
+  onOutcome,
+}: {
+  onAccepted: (next: NextStep) => void;
+  onError: () => void;
+  onOutcome: ReportOutcome;
+}) {
+  const id = useId();
+  const emailId = `${id}-email`;
+  const passwordId = `${id}-password`;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const attempt = useMutation({
@@ -70,6 +91,12 @@ function PasswordStep({ onAccepted, onError }: { onAccepted: (next: NextStep) =>
     },
     onError,
   });
+  const failure = failureMessage(attempt.data, attempt.isError);
+  const outcome = outcomeOf(attempt.isPending, failure);
+
+  useEffect(() => {
+    onOutcome(outcome);
+  }, [outcome, onOutcome]);
 
   function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,23 +104,25 @@ function PasswordStep({ onAccepted, onError }: { onAccepted: (next: NextStep) =>
   }
 
   return (
-    <form className="admin-form" onSubmit={submit}>
-      <label className="field">
-        <span>{messages.email}</span>
+    <form className="account-form" onSubmit={submit}>
+      <AuthField id={emailId} label={messages.email} error={null} icon="email">
         <input
+          id={emailId}
           type="email"
+          inputMode="email"
           autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
           required
           value={email}
           onChange={(event) => {
             setEmail(event.target.value);
           }}
         />
-      </label>
-      <label className="field">
-        <span>{messages.password}</span>
-        <input
-          type="password"
+      </AuthField>
+      <AuthField id={passwordId} label={messages.password} error={null} icon="password">
+        <PasswordInput
+          id={passwordId}
           autoComplete="current-password"
           required
           value={password}
@@ -101,27 +130,52 @@ function PasswordStep({ onAccepted, onError }: { onAccepted: (next: NextStep) =>
             setPassword(event.target.value);
           }}
         />
-      </label>
-      <Failure text={failureMessage(attempt.data, attempt.isError)} />
-      <button type="submit" className="btn" disabled={attempt.isPending}>
+      </AuthField>
+      <button
+        type="submit"
+        className="btn"
+        data-pending={attempt.isPending ? '' : undefined}
+        disabled={attempt.isPending}
+      >
         {attempt.isPending ? messages.submitting : messages.submit}
       </button>
+      <Failure text={failure} />
     </form>
   );
 }
 
 interface CodeFieldProps<T extends Answer> {
+  /** The label of the app's code. */
   label: string;
   hint?: string;
+  /** Whether a recovery code can be typed instead of the app's (UC-04): the sign-in, not the enrollment. */
+  allowRecovery?: boolean;
   submit: string;
   submitting: string;
   send: (code: string) => Promise<T>;
   onAnswer: (answer: T) => void;
+  onOutcome: ReportOutcome;
 }
 
-/** One code field (6 digits of the app, or a recovery code) and its errors. */
-function CodeForm<T extends Answer>({ label, hint, submit, submitting, send, onAnswer }: CodeFieldProps<T>) {
-  const hintId = useId();
+/**
+ * One code field and its errors: the 6 digits of the app, with the phone's number pad, or, after "Usá un código de
+ * recuperación", a recovery code as text. Both go to the same request; only the field changes.
+ */
+function CodeForm<T extends Answer>({
+  label,
+  hint,
+  allowRecovery = false,
+  submit,
+  submitting,
+  send,
+  onAnswer,
+  onOutcome,
+}: CodeFieldProps<T>) {
+  const id = useId();
+  const codeId = `${id}-code`;
+  const hintId = `${id}-hint`;
+  const input = useRef<HTMLInputElement>(null);
+  const [recovery, setRecovery] = useState(false);
   const [code, setCode] = useState('');
   const attempt = useMutation({
     mutationFn: () => send(code),
@@ -130,40 +184,68 @@ function CodeForm<T extends Answer>({ label, hint, submit, submitting, send, onA
       onAnswer(answer);
     },
   });
+  const failure = failureMessage(attempt.data, attempt.isError);
+  const outcome = outcomeOf(attempt.isPending, failure);
+
+  useEffect(() => {
+    onOutcome(outcome);
+  }, [outcome, onOutcome]);
+
+  const shownHint = recovery ? messages.recoveryCodeHint : hint;
+
+  function toggleRecovery() {
+    setRecovery(!recovery);
+    setCode('');
+    attempt.reset();
+    input.current?.focus();
+  }
 
   return (
     <form
-      className="admin-form"
+      className="account-form"
       onSubmit={(event) => {
         event.preventDefault();
         attempt.mutate();
       }}
     >
-      <label className="field">
-        <span>{label}</span>
+      <AuthField id={codeId} label={recovery ? messages.recoveryCodeLabel : label} error={null}>
         <input
-          inputMode="text"
+          ref={input}
+          id={codeId}
+          className={recovery ? 'sign-in-code sign-in-code-recovery' : 'sign-in-code'}
+          inputMode={recovery ? 'text' : 'numeric'}
           autoComplete="one-time-code"
-          autoCapitalize="characters"
+          autoCapitalize={recovery ? 'characters' : 'none'}
           spellCheck={false}
           required
-          maxLength={64}
+          // "123 456", as most apps show it, fits; the API ignores the space.
+          maxLength={recovery ? 64 : 7}
           value={code}
-          {...(hint === undefined ? {} : { 'aria-describedby': hintId })}
+          {...(shownHint === undefined ? {} : { 'aria-describedby': hintId })}
           onChange={(event) => {
             setCode(event.target.value);
           }}
         />
-      </label>
-      {hint !== undefined && (
-        <p id={hintId} className="field-hint">
-          {hint}
+      </AuthField>
+      {shownHint !== undefined && (
+        <p id={hintId} className="account-hint">
+          {shownHint}
         </p>
       )}
-      <Failure text={failureMessage(attempt.data, attempt.isError)} />
-      <button type="submit" className="btn" disabled={attempt.isPending}>
+      <button
+        type="submit"
+        className="btn"
+        data-pending={attempt.isPending ? '' : undefined}
+        disabled={attempt.isPending}
+      >
         {attempt.isPending ? submitting : submit}
       </button>
+      <Failure text={failure} />
+      {allowRecovery && (
+        <button type="button" className="link-btn sign-in-alternative" onClick={toggleRecovery}>
+          {recovery ? messages.useAppCode : messages.useRecoveryCode}
+        </button>
+      )}
     </form>
   );
 }
@@ -171,9 +253,11 @@ function CodeForm<T extends Answer>({ label, hint, submit, submitting, send, onA
 function EnrollmentStep({
   onAnswer,
   onExpired,
+  onOutcome,
 }: {
   onAnswer: (answer: EnrollmentAnswer) => void;
   onExpired: () => void;
+  onOutcome: ReportOutcome;
 }) {
   // Each request makes a new secret: ask once for this step, never again behind the visitor's back.
   const enrollment = useQuery({
@@ -204,9 +288,9 @@ function EnrollmentStep({
   const { secret, qrCode } = enrollment.data;
   return (
     <>
-      <p>{messages.enrollIntro}</p>
+      <p className="account-intro">{messages.enrollIntro}</p>
       <img className="enrollment-qr" src={qrCode} alt={messages.qrAlt} width={240} height={240} />
-      <p className="field-hint">{messages.secretLabel}</p>
+      <p className="account-hint">{messages.secretLabel}</p>
       <p className="enrollment-secret">{secret.replace(/(.{4})/g, '$1 ').trim()}</p>
       <CodeForm
         label={messages.enrollCodeLabel}
@@ -214,6 +298,7 @@ function EnrollmentStep({
         submitting={messages.enrolling}
         send={confirmEnrollment}
         onAnswer={onAnswer}
+        onOutcome={onOutcome}
       />
     </>
   );
@@ -232,8 +317,8 @@ function RecoveryCodesStep({ codes, onContinue }: { codes: string[]; onContinue:
   }
 
   return (
-    <>
-      <p>{messages.recoveryIntro}</p>
+    <div className="sign-in-recovery">
+      <p className="account-intro">{messages.recoveryIntro}</p>
       <ul className="recovery-codes" aria-label={messages.recoveryTitle}>
         {codes.map((code) => (
           <li key={code}>{code}</li>
@@ -255,7 +340,7 @@ function RecoveryCodesStep({ codes, onContinue }: { codes: string[]; onContinue:
       <button type="button" className="btn" disabled={!saved} onClick={onContinue}>
         {messages.continue}
       </button>
-    </>
+    </div>
   );
 }
 
@@ -266,10 +351,18 @@ const TITLES: Record<Step['name'], string> = {
   recoveryCodes: messages.recoveryTitle,
 };
 
+const EYEBROWS: Record<Step['name'], string> = {
+  password: messages.step(1, 2),
+  secondFactor: messages.step(2, 2),
+  enrollment: messages.step(2, 2),
+  recoveryCodes: messages.lastStep,
+};
+
 /**
  * The back-office sign-in (UC-04) at /admin/ingresar: the password, then the code of the authenticator app or, the
  * first time, its enrollment and the recovery codes (T-E1-16). Checking the session first also leaves the CSRF cookie
- * the sign-in needs.
+ * the sign-in needs. It takes the store's sign-in card and chibi (T-E7-23, T-E7-47), with the step above the title;
+ * from the code or the enrollment, "Usar otra cuenta" goes back to the password.
  */
 export function SignInPage() {
   const session = useSession();
@@ -278,11 +371,17 @@ export function SignInPage() {
   const state = (useLocation().state ?? {}) as SignInState;
   const target = returnPath(state.from);
   const [step, setStep] = useState<Step>({ name: 'password' });
+  const [outcome, setOutcome] = useState<AuthOutcome>(undefined);
 
   // As every back-office page (AdminLayout): the analytics tools stay on the store.
   useEffect(() => {
     leaveAnalyticsBehind();
   }, []);
+
+  function goTo(next: Step) {
+    setOutcome(undefined);
+    setStep(next);
+  }
 
   function enter(administrator: Administrator) {
     const signedIn: SessionAnswer = { status: 'signedIn', administrator };
@@ -291,14 +390,14 @@ export function SignInPage() {
   }
 
   function restart() {
-    setStep({ name: 'password', notice: messages.expiredStep });
+    goTo({ name: 'password', notice: messages.expiredStep });
   }
 
   function onCode(answer: CodeAnswer) {
     if (answer.status === 'signedIn') {
       enter(answer.administrator);
     } else if (answer.status === 'expired' || answer.status === 'locked') {
-      setStep(answer.status === 'locked'
+      goTo(answer.status === 'locked'
         ? { name: 'password', notice: messages.locked(formatTime(answer.until)) }
         : { name: 'password', notice: messages.expiredStep });
     }
@@ -306,11 +405,11 @@ export function SignInPage() {
 
   function onEnrollment(answer: EnrollmentAnswer) {
     if (answer.status === 'enrolled') {
-      setStep({ name: 'recoveryCodes', administrator: answer.administrator, codes: answer.recoveryCodes });
+      goTo({ name: 'recoveryCodes', administrator: answer.administrator, codes: answer.recoveryCodes });
     } else if (answer.status === 'expired') {
       restart();
     } else if (answer.status === 'locked') {
-      setStep({ name: 'password', notice: messages.locked(formatTime(answer.until)) });
+      goTo({ name: 'password', notice: messages.locked(formatTime(answer.until)) });
     }
   }
 
@@ -318,26 +417,37 @@ export function SignInPage() {
     return <Navigate to={target} replace />;
   }
 
+  const canGoBack = step.name === 'secondFactor' || step.name === 'enrollment';
   return (
-    <main className="wrap admin-main admin-sign-in">
+    <AuthCard
+      title={TITLES[step.name]}
+      eyebrow={EYEBROWS[step.name]}
+      outcome={outcome}
+      pose={step.name === 'password' ? 'signIn' : 'reset'}
+    >
       <NoIndex />
-      <title>{`${TITLES[step.name]} | ${es.store.name}`}</title>
-      <h1>{TITLES[step.name]}</h1>
       {step.name === 'password' && (
         <>
           {step.notice !== undefined ? (
-            <p role="status">{step.notice}</p>
+            <p className="account-done" role="status">
+              {step.notice}
+            </p>
           ) : (
-            state.expired === true && <p role="status">{messages.expired}</p>
+            state.expired === true && (
+              <p className="account-done" role="status">
+                {messages.expired}
+              </p>
+            )
           )}
           <PasswordStep
             onAccepted={(next) => {
-              setStep(next === 'ENROLLMENT' ? { name: 'enrollment' } : { name: 'secondFactor' });
+              goTo(next === 'ENROLLMENT' ? { name: 'enrollment' } : { name: 'secondFactor' });
             }}
             onError={() => {
               // A missing CSRF cookie is answered 403: checking the session again sets it.
               void session.refetch();
             }}
+            onOutcome={setOutcome}
           />
         </>
       )}
@@ -345,13 +455,17 @@ export function SignInPage() {
         <CodeForm
           label={messages.codeLabel}
           hint={messages.codeHint}
+          allowRecovery
           submit={messages.verify}
           submitting={messages.verifying}
           send={verifySecondFactor}
           onAnswer={onCode}
+          onOutcome={setOutcome}
         />
       )}
-      {step.name === 'enrollment' && <EnrollmentStep onAnswer={onEnrollment} onExpired={restart} />}
+      {step.name === 'enrollment' && (
+        <EnrollmentStep onAnswer={onEnrollment} onExpired={restart} onOutcome={setOutcome} />
+      )}
       {step.name === 'recoveryCodes' && (
         <RecoveryCodesStep
           codes={step.codes}
@@ -360,6 +474,17 @@ export function SignInPage() {
           }}
         />
       )}
-    </main>
+      {canGoBack && (
+        <button
+          type="button"
+          className="btn btn-secondary sign-in-back"
+          onClick={() => {
+            goTo({ name: 'password' });
+          }}
+        >
+          {messages.back}
+        </button>
+      )}
+    </AuthCard>
   );
 }

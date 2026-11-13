@@ -197,9 +197,6 @@
   font-size: 24px;
 }
 
-.admin-sign-in {
-  max-width: 420px;
-}
 
 .admin-title-row {
   display: flex;
@@ -692,8 +689,48 @@
   gap: 6px 16px;
   list-style: none;
   padding: 12px;
-  background: var(--surface);
+  background: var(--peach-soft);
   border-radius: var(--radius-s);
+}
+
+/*
+ * UC-04 in the store's sign-in card (account.css): the code field, its alternative and the way back to the password.
+ * The app's code reads large and spaced, as the app shows it; a recovery code keeps the text size.
+ */
+.account-form .sign-in-code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 22px;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.account-form .sign-in-code-recovery {
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  text-align: start;
+}
+
+.sign-in-alternative {
+  align-self: center;
+  width: 100%;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.sign-in-back {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.sign-in-recovery {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-card .enrollment-qr {
+  display: block;
+  margin: 0 auto 12px;
 }
 
 /* UC-18: the orders */

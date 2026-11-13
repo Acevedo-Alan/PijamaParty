@@ -188,9 +188,16 @@ export const esAdmin = {
     expired: 'Tu sesión venció. Ingresá de nuevo para seguir.',
     failed: 'No pudimos ingresar. Probá de nuevo en unos segundos.',
     codeTitle: 'Verificación en dos pasos',
+    /** Above the title: where the owner is and which step of the sign-in it is. */
+    step: (step: number, of: number) => `Backoffice · Paso ${String(step)} de ${String(of)}`,
+    lastStep: 'Backoffice · Último paso',
+    back: 'Usar otra cuenta',
     codeLabel: 'Código de verificación',
-    codeHint:
-      'Abrí la app de autenticación y escribí los 6 números. Si no tenés el teléfono, usá uno de tus códigos de recuperación.',
+    codeHint: 'Abrí la app de autenticación y escribí los 6 números.',
+    recoveryCodeLabel: 'Código de recuperación',
+    recoveryCodeHint: 'Cada código de recuperación sirve una sola vez.',
+    useRecoveryCode: '¿No tenés el teléfono? Usá un código de recuperación',
+    useAppCode: 'Usar el código de la app',
     verify: 'Verificar',
     verifying: 'Verificando…',
     invalidCode: 'El código no es correcto o ya se usó.',
