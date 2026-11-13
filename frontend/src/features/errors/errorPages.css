@@ -1,0 +1,44 @@
+/* RNF-31.7, T-E7-49, T-E6-25: the 404 and the error page, one centered column: the chibi, the heading, the text, the
+   links and the contact line. */
+.error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 48px;
+  padding-bottom: 64px;
+  text-align: center;
+}
+
+/* Nothing else on the page, so the chibi is a little bigger here. */
+.error-page .empty-state-chibi {
+  width: 160px;
+  height: 160px;
+}
+
+.error-page p {
+  max-width: 44ch;
+  color: var(--ink-soft);
+}
+
+.error-page a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.error-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+/* The contact links read as part of the sentence, so they keep the text's size and only the color marks them. */
+.error-page .error-page-contact a {
+  display: inline;
+  min-height: 0;
+}

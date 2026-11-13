@@ -180,7 +180,7 @@ export const routes: RouteObject[] = [
         path: 'actividad',
         lazy: async () => ({ Component: (await import('./features/admin/ActivityPage.tsx')).ActivityPage }),
       },
-      { path: '*', element: <NotFoundPage /> },
+      { path: '*', element: <NotFoundPage withContact={false} /> },
     ],
   },
 ];

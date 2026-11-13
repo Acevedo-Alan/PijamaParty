@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
@@ -5,6 +6,16 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
 import { withRoot } from '../../routes.tsx';
+
+/** The routes under a query cache, as main.tsx renders them: the error page asks for the store's contact. */
+function renderRouter(router: ReturnType<typeof createMemoryRouter>) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+}
 
 describe('route states (T-E8-21)', () => {
   afterEach(() => {
@@ -19,7 +30,7 @@ describe('route states (T-E8-21)', () => {
     const failing = withRoot([
       { path: '/roto', lazy: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
     ]);
-    render(<RouterProvider router={createMemoryRouter(failing, { initialEntries: ['/roto'] })} />);
+    renderRouter(createMemoryRouter(failing, { initialEntries: ['/roto'] }));
 
     expect(await screen.findByRole('heading', { level: 1, name: es.routeError.title })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: es.routeError.reload }));
@@ -41,7 +52,7 @@ describe('route states (T-E8-21)', () => {
       },
     ]);
     const router = createMemoryRouter(slow, { initialEntries: ['/'] });
-    render(<RouterProvider router={router} />);
+    renderRouter(router);
 
     void router.navigate('/lenta');
     expect(await screen.findByText(es.routeError.loading)).toBeInTheDocument();

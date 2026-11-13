@@ -1316,6 +1316,12 @@ export const es = {
     body: 'Puede que el enlace esté mal escrito o que la página ya no exista.',
     backToStore: 'Volver a la tienda',
   },
+  /** RNF-31.7 (T-E6-25): the contact line of the 404 and the error page, e.g. "¿Necesitás ayuda? Escribinos por WhatsApp o a hola@…". */
+  errorPages: {
+    needHelp: '¿Necesitás ayuda?',
+    writeTo: 'Escribinos a',
+    orTo: 'o a',
+  },
   /** Failed or slow route loading (T-E8-21). */
   routeError: {
     title: 'Algo salió mal',
