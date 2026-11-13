@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client.ts';
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
@@ -193,7 +193,17 @@ describe('store navigation (UC-31)', () => {
 });
 
 describe('phone menu (UC-31)', () => {
+  // jsdom applies no @media rule, so the menu button keeps the base display: none of search.css; jsdom 30 does not
+  // focus a hidden element, as a browser does not. Shown here as below 960 px, where the button exists.
+  let phoneLayout: HTMLStyleElement;
+  beforeEach(() => {
+    phoneLayout = document.createElement('style');
+    phoneLayout.textContent = '.icon-btn.menu-toggle { display: flex; }';
+    document.head.append(phoneLayout);
+  });
+
   afterEach(() => {
+    phoneLayout.remove();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     clearStoreContact();
