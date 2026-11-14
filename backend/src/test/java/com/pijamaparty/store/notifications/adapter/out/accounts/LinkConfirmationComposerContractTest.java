@@ -8,6 +8,7 @@ import com.pijamaparty.store.notifications.application.EmailComposerContractTest
 import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.platform.application.InMemoryTokenGenerator;
+import com.pijamaparty.store.settings.api.StoreContact;
 import java.net.URI;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,8 @@ class LinkConfirmationComposerContractTest extends EmailComposerContractTest<Lin
         messages.setBasename("messages");
         messages.setDefaultEncoding("UTF-8");
         messages.setFallbackToSystemLocale(false);
-        return new LinkConfirmationComposer(links, messages, URI.create("https://pijamaparty.example/"));
+        return new LinkConfirmationComposer(links, messages, URI.create("https://pijamaparty.example/"),
+            () -> StoreContact.Contact.NONE);
     }
 
     @Override

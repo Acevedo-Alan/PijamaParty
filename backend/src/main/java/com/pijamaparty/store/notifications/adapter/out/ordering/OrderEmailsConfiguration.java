@@ -3,6 +3,7 @@ package com.pijamaparty.store.notifications.adapter.out.ordering;
 import com.pijamaparty.store.ordering.api.PaidOrders;
 import com.pijamaparty.store.ordering.api.TrackingLinks;
 import com.pijamaparty.store.ordering.api.WithdrawalNotices;
+import com.pijamaparty.store.settings.api.StoreContact;
 import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -22,27 +23,30 @@ class OrderEmailsConfiguration {
     @Bean
     OrderPaidCustomerComposer orderPaidCustomerComposer(PaidOrders orders, TrackingLinks trackingLinks,
                                                         MessageSource messages,
-                                                        @Value("${store.public-url}") URI publicUrl) {
-        return new OrderPaidCustomerComposer(orders, trackingLinks, messages, publicUrl);
+                                                        @Value("${store.public-url}") URI publicUrl,
+                                                        StoreContact contact) {
+        return new OrderPaidCustomerComposer(orders, trackingLinks, messages, publicUrl, contact);
     }
 
     @Bean
     OrderPaidAdminComposer orderPaidAdminComposer(
-        PaidOrders orders, MessageSource messages, @Value("${store.public-url}") URI publicUrl,
+        PaidOrders orders, MessageSource messages, @Value("${store.public-url}") URI publicUrl, StoreContact contact,
         @Value("${store.notifications.admin-recipient}") String recipient) {
-        return new OrderPaidAdminComposer(orders, messages, publicUrl, recipient);
+        return new OrderPaidAdminComposer(orders, messages, publicUrl, contact, recipient);
     }
 
     @Bean
     WithdrawalCustomerComposer withdrawalCustomerComposer(
-        WithdrawalNotices notices, MessageSource messages, @Value("${store.public-url}") URI publicUrl) {
-        return new WithdrawalCustomerComposer(notices, messages, publicUrl);
+        WithdrawalNotices notices, MessageSource messages, @Value("${store.public-url}") URI publicUrl,
+        StoreContact contact) {
+        return new WithdrawalCustomerComposer(notices, messages, publicUrl, contact);
     }
 
     @Bean
     WithdrawalAdminComposer withdrawalAdminComposer(
         WithdrawalNotices notices, MessageSource messages, @Value("${store.public-url}") URI publicUrl,
+        StoreContact contact,
         @Value("${store.notifications.admin-recipient}") String recipient) {
-        return new WithdrawalAdminComposer(notices, messages, publicUrl, recipient);
+        return new WithdrawalAdminComposer(notices, messages, publicUrl, contact, recipient);
     }
 }

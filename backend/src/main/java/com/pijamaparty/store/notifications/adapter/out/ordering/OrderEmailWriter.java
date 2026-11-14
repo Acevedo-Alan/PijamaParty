@@ -5,6 +5,7 @@ import com.pijamaparty.store.ordering.api.PaidOrders.Address;
 import com.pijamaparty.store.ordering.api.PaidOrders.Line;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
 import com.pijamaparty.store.platform.domain.Money;
+import com.pijamaparty.store.settings.api.StoreContact.Contact;
 import java.net.URI;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -16,8 +17,8 @@ import org.springframework.context.MessageSource;
 /** An email about an order: the parts of every email, plus the order's summary, amounts and address. */
 final class OrderEmailWriter extends EmailWriter<OrderEmailWriter> {
 
-    OrderEmailWriter(MessageSource messages, URI publicUrl) {
-        super(messages, publicUrl);
+    OrderEmailWriter(MessageSource messages, URI publicUrl, Contact contact) {
+        super(messages, publicUrl, contact);
     }
 
     @Override
@@ -43,8 +44,12 @@ final class OrderEmailWriter extends EmailWriter<OrderEmailWriter> {
         appendHtml("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
             + "style=\"border-collapse:collapse;margin:0 0 16px\">\n");
         for (Line line : order.lines()) {
-            row(message("notifications.order.line", line.productName(), line.size(), line.color(),
-                Integer.toString(line.quantity())), pesos(line.amount()), false);
+            String quantity = Integer.toString(line.quantity());
+            String detail = message("notifications.order.line-detail", line.size(), line.color(), quantity);
+            row(escape(line.productName()) + "<br><span style=\"font-size:13px;color:" + INK_SOFT + "\">"
+                    + escape(detail) + "</span>",
+                message("notifications.order.line", line.productName(), line.size(), line.color(), quantity),
+                pesos(line.amount()), false);
         }
         row(message("notifications.order.subtotal"), pesos(order.subtotal()), false);
         if (!order.discount().isZero()) {
@@ -72,12 +77,17 @@ final class OrderEmailWriter extends EmailWriter<OrderEmailWriter> {
     }
 
     private void row(String label, String amount, boolean strong) {
+        row(escape(label), label, amount, strong);
+    }
+
+    /** @param htmlLabel the label already escaped, for the HTML; {@code textLabel} for the plain text */
+    private void row(String htmlLabel, String textLabel, String amount, boolean strong) {
         String style = strong
             ? "font-weight:bold;font-size:17px;color:" + ACCENT + ";border-top:2px solid " + LINE + ";padding:10px 0 0"
             : "border-bottom:1px solid " + LINE + ";padding:8px 0";
-        appendHtml("<tr><td style=\"" + style + "\">" + escape(label)
+        appendHtml("<tr><td style=\"" + style + "\">" + htmlLabel
             + "</td><td style=\"" + style + ";text-align:right;white-space:nowrap;padding-left:12px\">"
             + escape(amount) + "</td></tr>\n");
-        appendText(label + ": " + amount + "\n");
+        appendText(textLabel + ": " + amount + "\n");
     }
 }

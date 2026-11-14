@@ -32,7 +32,7 @@ A modular monolith keeps one deployable and one PostgreSQL (simple operations, r
 | `shipping` | Cost per zone, free-shipping threshold | `ShippingZoneRate`, `ShippingSettings` | `activity` |
 | `ordering` | Checkout orchestration, orders, state machine, tracking link, withdrawal requests ("botón de arrepentimiento") | `Order`, `OrderItem` | `cart`, `inventory`, `promotions`, `shipping`, `payments`, `accounts` (what a customer's checkout leaves on its account, UC-21; its orders in the data download and their unlinking when the account is deleted, UC-28), `catalog` (the photos of the order lines, UC-14, UC-22), `activity` |
 | `payments` | Provider gateways, payment attempts, webhooks | `Payment`, `PaymentEvent` | – |
-| `notifications` | Email outbox, sending, bounces | `OutboxEmail` | `ordering` (events), `accounts` (events and the links of the account emails) |
+| `notifications` | Email outbox, sending, bounces | `OutboxEmail` | `ordering` (events), `accounts` (events and the links of the account emails), `settings` (the store's contact in the emails' footer, UC-36) |
 | `accounts` | Users, authentication (password, Google and Facebook through OAuth2), 2FA, address book, account deletion and data export | `User`, `Address` | `activity` (the administrator's sign-ins) |
 | `reviews` | Reviews and moderation | `Review` | `ordering`, `catalog`, `accounts` (the author's name, its reviews in the data download and their deletion with the account, UC-24, UC-28), `activity` |
 | `settings` | The store's contact data, social links, header announcement and low-stock threshold (UC-36) | `StoreSettings` | `activity` |

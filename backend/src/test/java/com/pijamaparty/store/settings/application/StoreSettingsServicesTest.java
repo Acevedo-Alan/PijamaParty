@@ -8,6 +8,7 @@ import com.pijamaparty.store.activity.api.FieldChange;
 import com.pijamaparty.store.activity.api.SubjectType;
 import com.pijamaparty.store.platform.domain.Actor;
 import com.pijamaparty.store.platform.domain.UserId;
+import com.pijamaparty.store.settings.api.StoreContact;
 import com.pijamaparty.store.settings.domain.StoreSettings;
 import com.pijamaparty.store.settings.domain.WhatsAppNumber;
 import java.time.Clock;
@@ -34,6 +35,7 @@ class StoreSettingsServicesTest {
     private final GetStoreSettings get = new GetStoreSettingsService(store);
     private final GetPublicStoreContact getContact = new GetPublicStoreContactService(store);
     private final com.pijamaparty.store.settings.api.StoreSettings reader = new StoreSettingsReader(store);
+    private final StoreContact contactReader = new StoreContactReader(store);
 
     private static StoreSettings.Typed typed(String whatsApp, String announcement, long threshold) {
         return new StoreSettings.Typed(null, whatsApp, null, null, null, null, null, announcement, threshold);
@@ -135,5 +137,21 @@ class StoreSettingsServicesTest {
             .isEqualTo(new GetStoreSettings.Result.Found(store.load()));
         assertThat(getContact.execute()).isEqualTo(store.load());
         assertThat(reader.lowStockThreshold()).isZero();
+    }
+
+    @Test
+    void givenSomeContactSet_whenTheEmailsReadIt_thenTheyGetOnlyWhatIsSet() {
+        update.execute(new UpdateStoreSettings.Command(ADMIN, 0, new StoreSettings.Typed("Hola@PijamaParty.example",
+            "+54 9 342 400-0000", "Lunes a viernes", "San Martín 2000", "https://www.instagram.com/pijamaparty",
+            null, null, "Aviso", 3L)));
+
+        assertThat(contactReader.contact()).isEqualTo(new StoreContact.Contact(Optional.of("hola@pijamaparty.example"),
+            Optional.of("5493424000000"), Optional.of("https://www.instagram.com/pijamaparty"), Optional.empty(),
+            Optional.empty()));
+    }
+
+    @Test
+    void givenNoContact_whenTheEmailsReadIt_thenItIsEmpty() {
+        assertThat(contactReader.contact()).isEqualTo(StoreContact.Contact.NONE);
     }
 }

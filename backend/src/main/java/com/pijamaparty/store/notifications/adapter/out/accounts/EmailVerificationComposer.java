@@ -6,6 +6,7 @@ import com.pijamaparty.store.notifications.adapter.out.mail.EmailWriter;
 import com.pijamaparty.store.notifications.application.EmailComposer;
 import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
+import com.pijamaparty.store.settings.api.StoreContact;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,11 +26,14 @@ class EmailVerificationComposer implements EmailComposer {
 
     private final EmailVerificationLinks links;
     private final MessageSource messages;
+    private final StoreContact contact;
     private final String publicUrl;
 
-    EmailVerificationComposer(EmailVerificationLinks links, MessageSource messages, URI publicUrl) {
+    EmailVerificationComposer(EmailVerificationLinks links, MessageSource messages, URI publicUrl,
+                              StoreContact contact) {
         this.links = links;
         this.messages = messages;
+        this.contact = contact;
         this.publicUrl = publicUrl.toString().replaceAll("/+$", "");
     }
 
@@ -46,7 +50,7 @@ class EmailVerificationComposer implements EmailComposer {
         }
         EmailVerificationLink link = found.get();
         String url = publicUrl + VERIFICATION_PATH + link.token().value();
-        var writer = new AccountEmailWriter(messages, URI.create(publicUrl));
+        var writer = new AccountEmailWriter(messages, URI.create(publicUrl), contact.contact());
         String subject = writer.message("notifications.email-verification.subject");
         writer.heading(writer.message("notifications.email-verification.greeting", EmailWriter.firstName(link.name())))
             .paragraph(writer.message("notifications.email-verification.intro"))

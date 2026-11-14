@@ -8,6 +8,7 @@ import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
 import com.pijamaparty.store.platform.domain.Money;
+import com.pijamaparty.store.settings.api.StoreContact;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,7 +30,8 @@ class OrderPaidCustomerComposerContractTest extends EmailComposerContractTest<Or
 
     @Override
     protected OrderPaidCustomerComposer createSubject() {
-        return new OrderPaidCustomerComposer(orders, orders, messages(), URI.create("https://pijamaparty.example/"));
+        return new OrderPaidCustomerComposer(orders, orders, messages(), URI.create("https://pijamaparty.example/"),
+            () -> StoreContact.Contact.NONE);
     }
 
     @Override
@@ -52,6 +54,23 @@ class OrderPaidCustomerComposerContractTest extends EmailComposerContractTest<Or
     }
 
     @Test
+    void givenTheStoreSetItsWhatsAppAndInstagram_whenComposed_thenTheFooterLinksToThemAndNothingElse() {
+        var contact = new StoreContact.Contact(Optional.empty(), Optional.of("5493424000000"),
+            Optional.of("https://www.instagram.com/pijamaparty"), Optional.empty(), Optional.empty());
+        var withContact = new OrderPaidCustomerComposer(orders, orders, messages(),
+            URI.create("https://pijamaparty.example/"), () -> contact);
+
+        EmailMessage message = ((Composition.Composed) withContact.compose(orders.paid().orderId())).message();
+
+        assertThat(message.html()).contains("href=\"https://wa.me/5493424000000\"", "WhatsApp +54 9 3424000000",
+            "href=\"https://www.instagram.com/pijamaparty\"").doesNotContain("mailto:", "Facebook", "TikTok");
+        assertThat(message.text()).endsWith("Pijama Party · Santa Fe\n"
+            + "WhatsApp: +54 9 3424000000 (https://wa.me/5493424000000)\n"
+            + "Instagram: https://www.instagram.com/pijamaparty\n"
+            + "https://pijamaparty.example\n");
+    }
+
+    @Test
     void givenAPaidOrder_whenComposed_thenItGoesToTheBuyerWithTheOrderNumberInTheSubject() {
         EmailMessage message = compose(orders.paid());
 
@@ -63,9 +82,10 @@ class OrderPaidCustomerComposerContractTest extends EmailComposerContractTest<Or
     void givenAPaidOrder_whenComposed_thenBothBodiesGreetTheBuyerAndHaveTheSummaryTotalAndAddress() {
         EmailMessage message = compose(orders.paid());
 
+        assertThat(message.text()).contains("Pijama Luna - Talle M - Rosa x 2", "Talle S - Gris x 1");
+        assertThat(message.html()).contains("Pijama Luna<br>", "Talle M · Rosa · x 2", "Talle S · Gris · x 1");
         for (String body : new String[] {message.text(), message.html()}) {
-            assertThat(body).contains("¡Hola, María José!", "pedido #1001",
-                "Pijama Luna - Talle M - Rosa x 2", "$ 40.000,00", "Talle S - Gris x 1", "$ 10.000,00",
+            assertThat(body).contains("¡Hola, María José!", "pedido #1001", "$ 40.000,00", "$ 10.000,00",
                 "Subtotal", "$ 50.000,00", "Descuento (VERANO10)", "- $ 5.000,00", "Envío", "$ 3.000,00",
                 "Total", "$ 48.000,00",
                 "San Martín 1234, piso 3, depto. B", "Santa Fe, Santa Fe", "CP S3000ABC",

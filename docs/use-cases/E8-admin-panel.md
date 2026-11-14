@@ -201,6 +201,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - **Announcement:** optional, 0 to 80 characters, plain text, trimmed, without line breaks or control characters. When it is set, the header strip shows it. When it is empty, the strip shows "Envío gratis desde $X" as today (UC-31), or nothing without a threshold.
 - **Low-stock threshold** (D-E8-03): an integer from 0 to 1,000. 0 means only sold-out variants count as low.
 - An empty field is saved as "none", and its link is not shown in the store (UC-30, UC-31 as today).
+- **In the emails** (T-E3-33, UC-17): the footer of every email shows the WhatsApp number, the contact email and the social links that are set, read when each email is composed (`settings.api.StoreContact`); not the opening hours, the address or the announcement.
 - The seller data of the footer (RNF-30.2) and the free-shipping threshold (UC-12) are not part of this screen.
 - Saving adds an activity entry with the fields that changed, before and after (UC-37). These are business data, not personal data.
 - **Unsaved changes** (decided on 2026-11-04, T-E8-14, as the Stock screen of UC-07): while a field differs from what was last loaded or saved, leaving the screen, reloading or closing the tab asks first ("Hay cambios sin guardar en los datos de la tienda. ¿Salir igual?"). Saving, and the redirect to sign in when the session ends, do not ask.
@@ -214,6 +215,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - Given an empty TikTok link, when the footer shows, then it has no TikTok link.
 - Given a Facebook link `https://www.facebook.com/pijamaparty`, when the footer shows, then "Redes sociales" links to it next to Instagram.
 - Given the opening hours "Lunes a viernes de 9 a 18 h" and the address "San Martín 2000, Santa Fe", when the footer shows, then Contacto shows both and the address opens Google Maps.
+- Given a WhatsApp number and an Instagram link and no email, Facebook or TikTok, when the next order email is composed, then its footer links to `https://wa.me/{number}` and to Instagram, and to nothing else (T-E3-33).
 - Given hours of 81 characters or an announcement with a line break, when saved, then it is refused with `422`.
 - Given a threshold of 0, when the summary opens, then only sold-out variants show in "Stock bajo".
 - Given a threshold of 1,001 or -1, when saved, then it is refused with `422`.

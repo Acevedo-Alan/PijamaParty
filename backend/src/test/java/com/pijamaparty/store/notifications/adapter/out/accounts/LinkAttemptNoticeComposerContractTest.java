@@ -6,6 +6,7 @@ import com.pijamaparty.store.notifications.application.EmailComposer.Composition
 import com.pijamaparty.store.notifications.application.EmailComposerContractTest;
 import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
+import com.pijamaparty.store.settings.api.StoreContact;
 import java.net.URI;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,8 @@ class LinkAttemptNoticeComposerContractTest extends EmailComposerContractTest<Li
         messages.setBasename("messages");
         messages.setDefaultEncoding("UTF-8");
         messages.setFallbackToSystemLocale(false);
-        return new LinkAttemptNoticeComposer(notices, messages, URI.create("https://pijamaparty.example/"));
+        return new LinkAttemptNoticeComposer(notices, messages, URI.create("https://pijamaparty.example/"),
+            () -> StoreContact.Contact.NONE);
     }
 
     @Override

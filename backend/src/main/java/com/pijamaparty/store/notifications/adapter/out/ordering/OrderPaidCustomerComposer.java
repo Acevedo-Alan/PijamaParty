@@ -6,6 +6,7 @@ import com.pijamaparty.store.notifications.domain.EmailType;
 import com.pijamaparty.store.ordering.api.PaidOrders;
 import com.pijamaparty.store.ordering.api.PaidOrders.PaidOrder;
 import com.pijamaparty.store.ordering.api.TrackingLinks;
+import com.pijamaparty.store.settings.api.StoreContact;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,12 +25,15 @@ class OrderPaidCustomerComposer implements EmailComposer {
     private final PaidOrders orders;
     private final TrackingLinks trackingLinks;
     private final MessageSource messages;
+    private final StoreContact contact;
     private final String publicUrl;
 
-    OrderPaidCustomerComposer(PaidOrders orders, TrackingLinks trackingLinks, MessageSource messages, URI publicUrl) {
+    OrderPaidCustomerComposer(PaidOrders orders, TrackingLinks trackingLinks, MessageSource messages, URI publicUrl,
+                              StoreContact contact) {
         this.orders = orders;
         this.trackingLinks = trackingLinks;
         this.messages = messages;
+        this.contact = contact;
         this.publicUrl = publicUrl.toString().replaceAll("/+$", "");
     }
 
@@ -48,7 +52,7 @@ class OrderPaidCustomerComposer implements EmailComposer {
         PaidOrder order = found.get();
         String link = publicUrl + TRACKING_PATH + trackingLinks.issue(order.orderId()).value();
         String number = Long.toString(order.number());
-        var writer = new OrderEmailWriter(messages, URI.create(publicUrl));
+        var writer = new OrderEmailWriter(messages, URI.create(publicUrl), contact.contact());
         String subject = writer.message("notifications.order-paid.customer.subject", number);
         writer.heading(writer.message("notifications.order-paid.customer.greeting", number, order.buyerFirstName()))
             .paragraph(writer.message("notifications.order-paid.customer.intro", number))

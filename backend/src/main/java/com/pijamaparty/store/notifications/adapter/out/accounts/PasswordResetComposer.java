@@ -6,6 +6,7 @@ import com.pijamaparty.store.notifications.adapter.out.mail.EmailWriter;
 import com.pijamaparty.store.notifications.application.EmailComposer;
 import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
+import com.pijamaparty.store.settings.api.StoreContact;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,11 +23,13 @@ class PasswordResetComposer implements EmailComposer {
 
     private final PasswordResetLinks links;
     private final MessageSource messages;
+    private final StoreContact contact;
     private final String publicUrl;
 
-    PasswordResetComposer(PasswordResetLinks links, MessageSource messages, URI publicUrl) {
+    PasswordResetComposer(PasswordResetLinks links, MessageSource messages, URI publicUrl, StoreContact contact) {
         this.links = links;
         this.messages = messages;
+        this.contact = contact;
         this.publicUrl = publicUrl.toString().replaceAll("/+$", "");
     }
 
@@ -43,7 +46,7 @@ class PasswordResetComposer implements EmailComposer {
         }
         PasswordResetLink link = found.get();
         String url = publicUrl + RESET_PATH + link.token().value();
-        var writer = new AccountEmailWriter(messages, URI.create(publicUrl));
+        var writer = new AccountEmailWriter(messages, URI.create(publicUrl), contact.contact());
         String subject = writer.message("notifications.password-reset.subject");
         writer.heading(writer.message("notifications.password-reset.greeting", EmailWriter.firstName(link.name())))
             .paragraph(writer.message("notifications.password-reset.intro"))

@@ -1,8 +1,11 @@
 package com.pijamaparty.store.notifications.adapter.out.mail;
 
+import com.pijamaparty.store.settings.api.StoreContact.Contact;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import org.springframework.context.MessageSource;
 import org.springframework.web.util.HtmlUtils;
 
@@ -40,13 +43,18 @@ public abstract class EmailWriter<W extends EmailWriter<W>> {
 
     private final MessageSource messages;
     private final String publicUrl;
+    private final Contact contact;
     private final StringBuilder html = new StringBuilder();
     private final StringBuilder text = new StringBuilder();
 
-    /** @param publicUrl the storefront's origin ({@code store.public-url}), where the logo and the footer link point */
-    protected EmailWriter(MessageSource messages, URI publicUrl) {
+    /**
+     * @param publicUrl the storefront's origin ({@code store.public-url}), where the logo and the footer link point
+     * @param contact   the store's contact from "Datos de la tienda" (UC-36), read for this email, for the footer
+     */
+    protected EmailWriter(MessageSource messages, URI publicUrl, Contact contact) {
         this.messages = messages;
         this.publicUrl = publicUrl.toString().replaceAll("/+$", "");
+        this.contact = contact;
     }
 
     protected abstract W self();
@@ -111,13 +119,71 @@ public abstract class EmailWriter<W extends EmailWriter<W>> {
             + "<tr><td style=\"background:#ffffff;border-radius:12px;padding:28px 24px;" + FONT
             + ";font-size:15px;line-height:1.5;color:" + INK + "\">\n" + html + "</td></tr>\n"
             + "<tr><td align=\"center\" style=\"padding:16px 12px;" + FONT + ";font-size:12px;line-height:1.5;color:"
-            + INK_SOFT + "\">" + escape(message("notifications.layout.footer")) + "<br><a href=\"" + shop
-            + "\" style=\"color:" + ACCENT + "\">" + escape(shopLabel()) + "</a></td></tr>\n"
+            + INK_SOFT + "\">" + escape(message("notifications.layout.footer"))
+            + contactRow(reachLinks()) + contactRow(networkLinks())
+            + "<br><a href=\"" + shop + "\" style=\"color:" + ACCENT + "\">" + escape(shopLabel()) + "</a></td></tr>\n"
             + "</table>\n</td></tr></table>\n</body>\n</html>\n";
     }
 
     public String text() {
-        return text.toString().strip() + "\n\n--\n" + message("notifications.layout.footer") + "\n" + publicUrl + "\n";
+        StringBuilder footer = new StringBuilder(message("notifications.layout.footer")).append('\n');
+        for (FooterLink link : reachLinks()) {
+            footer.append(link.textLine()).append('\n');
+        }
+        for (FooterLink link : networkLinks()) {
+            footer.append(link.textLine()).append('\n');
+        }
+        return text.toString().strip() + "\n\n--\n" + footer + publicUrl + "\n";
+    }
+
+    /** {@code 5493424000000} as {@code +54 9 3424000000}, as the storefront's footer shows it. */
+    static String displayWhatsApp(String digits) {
+        return "+" + digits.substring(0, 2) + " " + digits.substring(2, 3) + " " + digits.substring(3);
+    }
+
+    /** A link of the footer: its text in the HTML, its line in the plain text and its address. */
+    private record FooterLink(String label, String textLine, String href) {
+    }
+
+    /** How to reach the store: WhatsApp, then the email; each only when set. */
+    private List<FooterLink> reachLinks() {
+        List<FooterLink> links = new ArrayList<>();
+        contact.whatsAppNumber().ifPresent(digits -> {
+            String name = message("notifications.layout.whatsapp");
+            String shown = displayWhatsApp(digits);
+            String href = "https://wa.me/" + digits;
+            links.add(new FooterLink(name + " " + shown, name + ": " + shown + " (" + href + ")", href));
+        });
+        contact.email().ifPresent(email -> links.add(
+            new FooterLink(email, message("notifications.layout.email") + ": " + email, "mailto:" + email)));
+        return links;
+    }
+
+    /** The social networks, named by their network; each only when set. */
+    private List<FooterLink> networkLinks() {
+        List<FooterLink> links = new ArrayList<>();
+        network(links, "notifications.layout.instagram", contact.instagramUrl());
+        network(links, "notifications.layout.facebook", contact.facebookUrl());
+        network(links, "notifications.layout.tiktok", contact.tiktokUrl());
+        return links;
+    }
+
+    private void network(List<FooterLink> links, String key, Optional<String> url) {
+        url.ifPresent(href -> {
+            String name = message(key);
+            links.add(new FooterLink(name, name + ": " + href, href));
+        });
+    }
+
+    /** One row of links separated by " · ", or nothing without links. */
+    private static String contactRow(List<FooterLink> links) {
+        if (links.isEmpty()) {
+            return "";
+        }
+        return "<br>" + String.join(" · ", links.stream()
+            .map(link -> "<a href=\"" + escape(link.href()) + "\" style=\"color:" + ACCENT + "\">"
+                + escape(link.label()) + "</a>")
+            .toList());
     }
 
     /** HTML already escaped by the subclass. */

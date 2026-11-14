@@ -6,6 +6,7 @@ import com.pijamaparty.store.notifications.adapter.out.mail.EmailWriter;
 import com.pijamaparty.store.notifications.application.EmailComposer;
 import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
+import com.pijamaparty.store.settings.api.StoreContact;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,11 +23,13 @@ class LinkAttemptNoticeComposer implements EmailComposer {
 
     private final LinkAttemptNotices notices;
     private final MessageSource messages;
+    private final StoreContact contact;
     private final String publicUrl;
 
-    LinkAttemptNoticeComposer(LinkAttemptNotices notices, MessageSource messages, URI publicUrl) {
+    LinkAttemptNoticeComposer(LinkAttemptNotices notices, MessageSource messages, URI publicUrl, StoreContact contact) {
         this.notices = notices;
         this.messages = messages;
+        this.contact = contact;
         this.publicUrl = publicUrl.toString().replaceAll("/+$", "");
     }
 
@@ -42,7 +45,7 @@ class LinkAttemptNoticeComposer implements EmailComposer {
             return new Composition.Gone();
         }
         Recipient recipient = found.get();
-        var writer = new AccountEmailWriter(messages, URI.create(publicUrl));
+        var writer = new AccountEmailWriter(messages, URI.create(publicUrl), contact.contact());
         String subject = writer.message("notifications.link-attempt.subject");
         writer.heading(writer.message("notifications.link-attempt.greeting", EmailWriter.firstName(recipient.name())))
             .paragraph(writer.message("notifications.link-attempt.intro"))

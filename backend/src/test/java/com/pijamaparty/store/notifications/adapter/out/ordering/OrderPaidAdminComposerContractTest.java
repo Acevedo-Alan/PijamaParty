@@ -6,6 +6,7 @@ import com.pijamaparty.store.notifications.application.EmailComposer.Composition
 import com.pijamaparty.store.notifications.application.EmailComposerContractTest;
 import com.pijamaparty.store.notifications.domain.EmailMessage;
 import com.pijamaparty.store.notifications.domain.EmailType;
+import com.pijamaparty.store.settings.api.StoreContact;
 import java.net.URI;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,7 @@ class OrderPaidAdminComposerContractTest extends EmailComposerContractTest<Order
     @Override
     protected OrderPaidAdminComposer createSubject() {
         return new OrderPaidAdminComposer(orders, OrderPaidCustomerComposerContractTest.messages(),
-            URI.create("https://pijamaparty.example/"),
+            URI.create("https://pijamaparty.example/"), () -> StoreContact.Contact.NONE,
             "admin@pijamaparty.example");
     }
 
@@ -44,9 +45,10 @@ class OrderPaidAdminComposerContractTest extends EmailComposerContractTest<Order
 
         assertThat(message.to()).isEqualTo("admin@pijamaparty.example");
         assertThat(message.subject()).isEqualTo("Nuevo pedido pagado #1001");
+        assertThat(message.text()).contains("Pijama Luna - Talle M - Rosa x 2");
+        assertThat(message.html()).contains("Pijama Luna<br>", "Talle M · Rosa · x 2");
         for (String body : new String[] {message.text(), message.html()}) {
-            assertThat(body).contains("María José Pérez", "Santa Fe, Santa Fe", "Pijama Luna - Talle M - Rosa x 2",
-                "Total", "$ 48.000,00", "backoffice");
+            assertThat(body).contains("María José Pérez", "Santa Fe, Santa Fe", "Total", "$ 48.000,00", "backoffice");
             assertThat(body).doesNotContain("San Martín", "ana@example.com", "/pedido/");
         }
         assertThat(orders.linked()).isEmpty();
@@ -56,7 +58,7 @@ class OrderPaidAdminComposerContractTest extends EmailComposerContractTest<Order
     void givenNoAdministratorConfigured_whenComposed_thenItIsGoneWithAWarning(CapturedOutput output) {
         UUID order = orders.paid().orderId();
         var unconfigured = new OrderPaidAdminComposer(orders, OrderPaidCustomerComposerContractTest.messages(),
-            URI.create("https://pijamaparty.example/"), " ");
+            URI.create("https://pijamaparty.example/"), () -> StoreContact.Contact.NONE, " ");
 
         assertThat(unconfigured.compose(order)).isInstanceOf(Composition.Gone.class);
         assertThat(output.getAll()).contains("No administrator to tell about paid order " + order);
