@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
+import { focusPage } from '../../components/focusPage.ts';
 import { es } from '../../i18n/es.ts';
 import { COOKIES_PATH } from '../help/FaqLink.tsx';
 import {
@@ -15,12 +16,12 @@ import './analytics.css';
 
 const messages = es.consent;
 
-/** Opens the banner again from the footer's "Cookies" link. */
-const reopenListeners = new Set<() => void>();
+/** Opens the banner again from the footer's "Cookies" link, which gets the focus back after the choice (T-E6-25). */
+const reopenListeners = new Set<(opener: HTMLElement | null) => void>();
 
-export function reopenConsent(): void {
+export function reopenConsent(opener: HTMLElement | null = null): void {
   for (const listener of reopenListeners) {
-    listener();
+    listener(opener);
   }
 }
 
@@ -41,16 +42,28 @@ export function Analytics() {
   const [choice, setChoice] = useState<ConsentChoice | null>(() => (enabled ? readConsent() : null));
   const [open, setOpen] = useState(() => enabled && choice === null);
   const { pathname } = useLocation();
+  const region = useRef<HTMLElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  // T-E6-25: each reopening from the footer moves the focus to the banner, also when it is already open.
+  const [focusRequest, setFocusRequest] = useState(0);
 
   useEffect(() => {
-    const listener = () => {
+    const listener = (from: HTMLElement | null) => {
+      opener.current = from;
       setOpen(true);
+      setFocusRequest((count) => count + 1);
     };
     reopenListeners.add(listener);
     return () => {
       reopenListeners.delete(listener);
     };
   }, []);
+
+  useEffect(() => {
+    if (focusRequest > 0) {
+      region.current?.focus();
+    }
+  }, [focusRequest]);
 
   useEffect(() => {
     if (enabled && choice === 'accepted') {
@@ -82,6 +95,14 @@ export function Analytics() {
     saveConsent(next);
     setChoice(next);
     setOpen(false);
+    // T-E6-25, WCAG 2.4.3: the pressed button goes away with the banner, so the focus does not fall to <body>.
+    const from = opener.current;
+    opener.current = null;
+    if (from?.isConnected === true) {
+      from.focus();
+    } else {
+      focusPage();
+    }
     if (revoked) {
       clearAnalyticsCookies();
       if (analyticsLoaded()) {
@@ -91,7 +112,7 @@ export function Analytics() {
   }
 
   return (
-    <section className="consent" aria-label={messages.title}>
+    <section ref={region} className="consent" aria-label={messages.title} tabIndex={-1}>
       <div className="wrap consent-inner">
         <p>
           {messages.text}
@@ -129,7 +150,13 @@ export function ConsentFooterLink() {
     return null;
   }
   return (
-    <button type="button" className="link-btn" onClick={reopenConsent}>
+    <button
+      type="button"
+      className="link-btn"
+      onClick={(event) => {
+        reopenConsent(event.currentTarget);
+      }}
+    >
       {messages.footerLink}
     </button>
   );

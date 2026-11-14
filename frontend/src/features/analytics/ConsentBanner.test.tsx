@@ -105,6 +105,38 @@ describe('analytics consent (RNF-25, T-E1-23)', () => {
     expect(reload).toHaveBeenCalledOnce();
   });
 
+  it('given a choice made, when the banner is reopened from the footer, then it takes the focus and gives it back after choosing (T-E6-25)', async () => {
+    saveConsent('rejected');
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/');
+    const cookies = await screen.findByRole('button', { name: consent.footerLink });
+
+    await userEvent.click(cookies);
+    expect(banner()).toHaveFocus();
+
+    await userEvent.click(screen.getByRole('button', { name: consent.reject }));
+    expect(banner()).not.toBeInTheDocument();
+    expect(cookies).toHaveFocus();
+  });
+
+  it('given the banner already open, when Cookies is pressed in the footer, then the focus moves to the banner (T-E6-25)', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/');
+    await screen.findByRole('region', { name: consent.title });
+
+    await userEvent.click(screen.getByRole('button', { name: consent.footerLink }));
+    expect(banner()).toHaveFocus();
+  });
+
+  it('given a first visit, when the visitor chooses, then the focus goes to the page and not to <body> (T-E6-25)', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    renderRoute('/');
+    const heading = await screen.findByRole('heading', { level: 1 });
+
+    await userEvent.click(await screen.findByRole('button', { name: consent.reject }));
+    expect(heading).toHaveFocus();
+  });
+
   it('given no analytics ids in the build, when the shop opens, then there is no banner nor Cookies link', async () => {
     vi.stubEnv('VITE_GA4_MEASUREMENT_ID', '');
     vi.stubEnv('VITE_META_PIXEL_ID', '');

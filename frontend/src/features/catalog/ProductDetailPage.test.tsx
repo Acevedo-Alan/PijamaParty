@@ -190,6 +190,28 @@ describe('product detail (UC-03)', () => {
       .toHaveAttribute('src', '/media/celeste-400.webp');
   });
 
+  it('given a color with photos of its own, when it is picked, then a screen reader hears that its photos come first (T-E6-25)', async () => {
+    stubDetail(answer(200, productDetail({
+      images: [
+        detailImage('frente', null),
+        detailImage('rosa', 'Rosa'),
+        detailImage('rosa-espalda', 'Rosa'),
+        detailImage('rosa-detalle', 'Rosa'),
+      ],
+      variants: [detailVariant('M', 'Rosa', 3), detailVariant('M', 'Celeste', 2)],
+    })));
+    renderRoute('/producto/luna');
+    await screen.findByRole('radio', { name: 'Rosa' });
+    const notice = () => document.querySelector('.pdp-layout > [aria-live="polite"]');
+    expect(notice()).toHaveTextContent(/^$/);
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Rosa' }));
+    expect(notice()).toHaveTextContent(es.product.colorPhotos('Rosa', 3));
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Celeste' }));
+    expect(notice()).toHaveTextContent(/^$/);
+  });
+
   it('given several photos, when a thumbnail is chosen, then it becomes the main photo with its placeholder', async () => {
     stubDetail(answer(200, productDetail({ images: [detailImage('frente', null), detailImage('espalda', null)] })));
     renderRoute('/producto/luna');

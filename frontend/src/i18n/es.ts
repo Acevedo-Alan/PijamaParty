@@ -150,6 +150,8 @@ export const es = {
       color === null ? `${name}, foto ${String(position)}` : `${name}, ${color}, foto ${String(position)}`,
     showPhoto: (position: number) => `Ver foto ${String(position)}`,
     noPhoto: 'Sin fotos',
+    /** T-E6-25: read by screen readers when a picked color moves its photos to the front of the gallery. */
+    colorPhotos: (color: string, count: number) => `Fotos del color ${color} primero (${String(count)})`,
     /** E7: the enlarged view of the main photo. */
     enlargePhoto: 'Ampliar foto',
     /** T-E8-27: the shortcut of a signed-in administrator to the product's form in the back office. */

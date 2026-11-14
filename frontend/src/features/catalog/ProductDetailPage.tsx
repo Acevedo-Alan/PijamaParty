@@ -89,6 +89,8 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
   const [quantity, setQuantity] = useState(1);
   // T-E7-36: the add button was pressed while the size or the color was still not picked.
   const [showMissing, setShowMissing] = useState(false);
+  // T-E6-25, WCAG 4.1.3: what a screen reader hears when a picked color moves its photos to the front.
+  const [photoNotice, setPhotoNotice] = useState('');
   const variant = findVariant(product.variants, selection);
   const price = shownPrice(product.variants, selection) ?? { cents: product.fromPriceCents, from: true };
   const missingPick = selection.size === null || selection.color === null;
@@ -202,6 +204,10 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         name={product.name}
         images={galleryFor(product.images, selection.color)}
       />
+      {/* A live region, not a second status: the page's status is the stock note. */}
+      <p className="visually-hidden" aria-live="polite">
+        {photoNotice}
+      </p>
       <div className="pdp-info">
         <h1>{product.name}</h1>
         <AdminEditLink productId={product.id} />
@@ -220,6 +226,10 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
             pick({ ...selection, size });
           }}
           onPickColor={(color) => {
+            if (color !== selection.color) {
+              const photos = product.images.filter((image) => image.color === color).length;
+              setPhotoNotice(photos > 0 ? es.product.colorPhotos(color, photos) : '');
+            }
             pick(pickColor(product.variants, selection, color));
           }}
         />

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { NavigationType, Outlet, useLocation, useNavigationType } from 'react-router';
 import { es } from '../../i18n/es.ts';
+import { focusPage } from '../../components/focusPage.ts';
 import { PageEntrance } from '../../components/motion/PageEntrance.tsx';
 import { Analytics } from '../analytics/ConsentBanner.tsx';
 import { AccountDeletedNotice } from '../account/AccountDeletedNotice.tsx';
@@ -16,19 +17,6 @@ import { BenefitsBar } from './BenefitsBar.tsx';
 import { SiteFooter } from './SiteFooter.tsx';
 import { SiteHeader } from './SiteHeader.tsx';
 import './search.css';
-
-/** The page's heading, or its main region while the heading is not there yet. */
-function pageTarget(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('main h1') ?? document.querySelector<HTMLElement>('main');
-}
-
-function focusPage() {
-  const target = pageTarget();
-  if (target !== null) {
-    target.tabIndex = -1;
-    target.focus({ preventScroll: true });
-  }
-}
 
 /**
  * WCAG 2.4.3: after moving to another page (not on the first one), focus starts at the page, not at <body>. A page

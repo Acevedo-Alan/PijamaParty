@@ -11,6 +11,11 @@
   padding: 16px 0 calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
+/* T-E6-25: the banner takes focus when reopened from the footer; it is not a control, so no ring (as main h1). */
+.consent:focus {
+  outline: none;
+}
+
 .consent-inner {
   display: flex;
   flex-direction: column;
