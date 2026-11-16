@@ -13,16 +13,21 @@ vi.mock('./redirect.ts', () => ({ goToPayment: vi.fn() }));
 
 /**
  * MercadoPago's card form (T-E3-29) needs its SDK from the internet; here a stand-in that is ready at once and whose
- * button submits what the real form gives for a test card.
+ * button submits what the real form gives for a test card. Like the real one, it is finished once its submit resolves:
+ * only a new form takes another card.
  */
 vi.mock('@mercadopago/sdk-react', async () => {
-  const { useEffect } = await import('react');
+  const { useEffect, useState } = await import('react');
   return {
     initMercadoPago: vi.fn(),
     CardPayment: ({ onSubmit, onReady }: { onSubmit: (form: unknown) => Promise<void>; onReady?: () => void }) => {
+      const [finished, setFinished] = useState(false);
       useEffect(() => {
         onReady?.();
       }, [onReady]);
+      if (finished) {
+        return <p>Formulario de tarjeta enviado</p>;
+      }
       return (
         <button
           type="button"
@@ -34,6 +39,8 @@ vi.mock('@mercadopago/sdk-react', async () => {
               transaction_amount: 40500,
               installments: 3,
               payer: { email: 'otra@example.com', identification: { type: 'DNI', number: '12345678' } },
+            }).then(() => {
+              setFinished(true);
             })
           }
         >

@@ -107,14 +107,21 @@ function CardPanel({ token, order }: { token: string; order: TrackedOrder }) {
   const key = useCardFormKey(true);
   const payment = usePayWithCard(token);
   const [form, setForm] = useState<'loading' | 'ready' | 'failed'>('loading');
+  // MercadoPago's form is finished once its submit resolves: for another card the page starts a new, empty one.
+  const [attempt, setAttempt] = useState(0);
   const titleId = useId();
 
   async function send(card: CardDetails) {
     try {
-      await payment.mutateAsync(card);
+      const answer = await payment.mutateAsync(card);
+      if (answer.status === 'approved' || answer.status === 'inProcess') {
+        return;
+      }
     } catch {
-      // Shown below from the mutation's state; the form only needs to stop waiting.
+      // Shown below from the mutation's state; the buyer gets a new form to try again.
     }
+    setForm('loading');
+    setAttempt((count) => count + 1);
   }
 
   const { problem, note } = cardOutcome(payment.data, payment.isError);
@@ -140,6 +147,7 @@ function CardPanel({ token, order }: { token: string; order: TrackedOrder }) {
           {key.data !== undefined && key.data !== null && (
             <Suspense fallback={null}>
               <CardPaymentForm
+                key={attempt}
                 publicKey={key.data}
                 amountCents={order.totalCents}
                 onSubmit={send}
