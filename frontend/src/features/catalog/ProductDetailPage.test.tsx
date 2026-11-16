@@ -22,6 +22,7 @@ import {
   withHeader,
 } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
+import { clearStoreContact, setStoreContact } from '../../test/storeContact.ts';
 
 /** The listing of UC-01, which "Completá tu look" reads (D-08). */
 const LISTING_PATH = '/api/catalog/products';
@@ -51,6 +52,41 @@ const shown = (cents: number) => formatMoney(cents).replace(/\s/g, ' ');
 describe('product detail (UC-03)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    clearStoreContact();
+  });
+
+  it('given the store WhatsApp and a picked variant with stock, when the detail shows, then it offers to ask about it there', async () => {
+    setStoreContact({ whatsAppNumber: '5493424000000' });
+    stubDetail(answer(200, productDetail()));
+    renderRoute('/producto/luna');
+    const ask = () => screen.queryByRole('link', { name: es.product.whatsAppAskLabel });
+
+    await screen.findByRole('radio', { name: 'Rosa' });
+    expect(ask()).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Rosa' }));
+    const message = es.product.whatsAppAskMessage(
+      'Pijama Luna', 'M', 'Rosa', formatMoney(2_500_000), `${window.location.origin}/producto/luna`,
+    );
+    expect(ask()).toHaveAttribute('href', `https://wa.me/5493424000000?text=${encodeURIComponent(message)}`);
+    expect(ask()).toHaveAttribute('target', '_blank');
+    expect(ask()).toHaveTextContent(es.product.whatsAppAsk);
+
+    // Light-blue M has no stock, and its swatch says so in its name.
+    await userEvent.click(screen.getByRole('radio', { name: /^Celeste/ }));
+    expect(ask()).not.toBeInTheDocument();
+  });
+
+  it('given a store without WhatsApp, when a variant with stock is picked, then there is no WhatsApp question', async () => {
+    // An email and no number: once the footer links the email, the contact data has arrived without a WhatsApp.
+    setStoreContact({ email: 'hola@example.com' });
+    stubDetail(answer(200, productDetail()));
+    renderRoute('/producto/luna');
+
+    await screen.findByRole('link', { name: 'hola@example.com' });
+    await userEvent.click(await screen.findByRole('radio', { name: 'Rosa' }));
+    expect(addToCart()).toBeEnabled();
+    expect(screen.queryByRole('link', { name: es.product.whatsAppAskLabel })).not.toBeInTheDocument();
   });
 
   it('given a listed product, when it opens, then gallery, description, material, season and price are shown', async () => {

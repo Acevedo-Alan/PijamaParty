@@ -152,6 +152,12 @@ export const es = {
     noPhoto: 'Sin fotos',
     /** T-E6-25: read by screen readers when a picked color moves its photos to the front of the gallery. */
     colorPhotos: (color: string, count: number) => `Fotos del color ${color} primero (${String(count)})`,
+    /** UC-03: the question to the business about the picked variant, in WhatsApp; nothing about the visitor (R-05). */
+    whatsAppAsk: 'Consultar por WhatsApp',
+    /** WCAG 3.2.5: the link opens WhatsApp in a new tab, and says so. */
+    whatsAppAskLabel: 'Consultar por WhatsApp (se abre en una pestaña nueva)',
+    whatsAppAskMessage: (name: string, size: string, color: string, price: string, link: string) =>
+      `¡Hola! Quería consultar por ${name}, talle ${size}, color ${color} (${price}). ${link}`,
     /** E7: the enlarged view of the main photo. */
     enlargePhoto: 'Ampliar foto',
     /** T-E8-27: the shortcut of a signed-in administrator to the product's form in the back office. */

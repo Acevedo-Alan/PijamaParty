@@ -21,6 +21,7 @@ import { ProductBreadcrumbs } from './ProductBreadcrumbs.tsx';
 import { ProductGallery } from './ProductGallery.tsx';
 import type { ProductDetail } from './productDetailApi.ts';
 import { ProductSections } from './ProductSections.tsx';
+import { ProductWhatsApp } from './ProductWhatsApp.tsx';
 import { QuantityInput } from './QuantityInput.tsx';
 import { RecentlyViewed } from './RecentlyViewed.tsx';
 import { rememberViewed } from './recentlyViewed.ts';
@@ -248,6 +249,15 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
         <p className="pdp-add-error" role="alert">
           <AddProblem answer={add.data} failed={add.isError} />
         </p>
+        {variant !== undefined && variant.available > 0 && (
+          <ProductWhatsApp
+            name={product.name}
+            slug={product.slug}
+            size={variant.size}
+            color={variant.color}
+            priceCents={variant.priceCents}
+          />
+        )}
         <ProductSections product={product} />
         <ShippingByProvince />
         <PurchaseInfoSummary />

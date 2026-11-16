@@ -533,6 +533,28 @@
   color: var(--danger);
 }
 
+/* UC-03: "Consultar por WhatsApp", secondary to the add button: outlined, the same look as the order's chat link. */
+.pdp-whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--accent-text);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .pdp-whatsapp:hover {
+    border-color: var(--accent);
+  }
+}
+
 @media (hover: hover) {
   .pdp-thumb:hover {
     opacity: 1;
