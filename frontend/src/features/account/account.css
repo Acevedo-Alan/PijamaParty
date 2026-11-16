@@ -233,6 +233,21 @@
   transition: opacity var(--dur-base) var(--ease-standard);
 }
 
+/*
+ * E7 hover table: the initials skip the header's rainbow; their circle turns rose with white letters (4.52:1), at
+ * once (D-16: only transform and opacity move).
+ */
+.icon-btn.account-icon[data-initials]::before {
+  display: none;
+}
+
+@media (hover: hover) {
+  .account-icon[data-initials]:hover .account-icon-initials {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+}
+
 .account-area-content {
   transition: opacity var(--dur-panel) var(--ease-standard);
 }
