@@ -301,6 +301,24 @@ class MercadoPagoWebhookApiTest {
     }
 
     @Test
+    void givenAnOrderAnotherIntegrationCreated_whenNotified_thenItIsAcknowledgedSoMercadoPagoStopsDeliveringIt(
+        CapturedOutput logs) throws Exception {
+        Placed placed = placeOrder();
+        // T-E3-34: as the sandbox sent it on 2026-11-17, an order of the same account with a reference of its own.
+        mercadoPago.holdsOrderJson("ORDTST01M7M9QXZVA2WFVCM8W6KS17ZE", """
+            {"id": "ORDTST01M7M9QXZVA2WFVCM8W6KS17ZE", "external_reference": "d-1335", "total_amount": "210.00",
+             "currency": "ARS", "status": "processed", "status_detail": "accredited"}
+            """);
+
+        notifyPayment("ORDTST01M7M9QXZVA2WFVCM8W6KS17ZE").andExpect(status().isOk());
+
+        assertThat(orderStatus(placed)).isEqualTo("AWAITING_PAYMENT");
+        assertThat(paymentEvents()).isEmpty();
+        assertThat(logLines(logs)).contains("MercadoPago order ORDTST01M7M9QXZVA2WFVCM8W6KS17ZE has no order number "
+            + "of this store");
+    }
+
+    @Test
     void givenAnInvalidOrMissingSignature_whenNotified_thenItIsRefusedWithoutAskingMercadoPago(CapturedOutput logs)
         throws Exception {
         Placed placed = placeOrder();

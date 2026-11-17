@@ -35,6 +35,8 @@ class ConfirmPaymentService implements ConfirmPayment {
         return switch (verifier.verify(command.externalPaymentId())) {
             case PaymentVerifier.Verification.Unavailable unavailable -> new Result.ProviderUnavailable();
             case PaymentVerifier.Verification.NotFound notFound -> new Result.NotFoundAtProvider();
+            // T-E3-34: answered 200, so the provider stops delivering it; without an order number nothing is recorded.
+            case PaymentVerifier.Verification.NotForThisStore foreign -> new Result.UnknownPayment();
             case PaymentVerifier.Verification.Found found -> recorder.record(command.provider(), found.payment());
         };
     }

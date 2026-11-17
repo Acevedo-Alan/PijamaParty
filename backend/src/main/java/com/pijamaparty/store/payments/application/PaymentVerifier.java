@@ -36,6 +36,12 @@ public interface PaymentVerifier {
         /** The provider has no such payment. */
         record NotFound() implements Verification {}
 
+        /**
+         * T-E3-34: the provider has the payment, but it refers to no order number of this store (another integration of
+         * the same account made it), so it is nothing to confirm here.
+         */
+        record NotForThisStore() implements Verification {}
+
         /** Unreachable, timed out, refused or answered something unusable. */
         record Unavailable() implements Verification {}
     }

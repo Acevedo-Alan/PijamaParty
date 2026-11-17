@@ -90,28 +90,42 @@ class MercadoPagoPaymentVerifier implements PaymentVerifier {
                 unreachable.getClass().getSimpleName());
             return new Verification.Unavailable();
         }
+        if (response != null && externalPaymentId.equals(response.id())
+            && orderNumberOf(response.externalReference()).isEmpty()) {
+            // T-E3-34: the order exists but this store did not create it; answered 200, so it is not delivered again.
+            log.warn("MercadoPago order {} has no order number of this store as its external_reference: ignored",
+                externalPaymentId);
+            return new Verification.NotForThisStore();
+        }
         return verifiedOf(externalPaymentId, response)
             .<Verification>map(Verification.Found::new)
             .orElseGet(() -> {
-                log.warn("MercadoPago answered order {} without its id, a usable external_reference, status, "
-                    + "currency or amount", externalPaymentId);
+                log.warn("MercadoPago answered order {} without its id, a usable status, currency or amount",
+                    externalPaymentId);
                 return new Verification.Unavailable();
             });
     }
 
     private static Optional<VerifiedPayment> verifiedOf(String asked, OrderResponse response) {
-        if (response == null || !asked.equals(response.id()) || response.externalReference() == null
-            || !ORDER_NUMBER.matcher(response.externalReference()).matches()
-            || !Money.CURRENCY.equals(response.currency())) {
+        if (response == null || !asked.equals(response.id()) || !Money.CURRENCY.equals(response.currency())) {
             return Optional.empty();
         }
         Optional<VerifiedStatus> status = statusOf(response.status(), response.statusDetail());
-        long orderNumber = Long.parseLong(response.externalReference());
+        Optional<Long> orderNumber = orderNumberOf(response.externalReference());
         Optional<Money> amount = centsOf(response.totalAmount());
-        if (status.isEmpty() || orderNumber == 0 || amount.isEmpty()) {
+        if (status.isEmpty() || orderNumber.isEmpty() || amount.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(new VerifiedPayment(response.id(), orderNumber, status.get(), amount.get()));
+        return Optional.of(new VerifiedPayment(response.id(), orderNumber.get(), status.get(), amount.get()));
+    }
+
+    /** The store's order number: 1 to 18 digits, not zero; anything else is no order of this store. */
+    private static Optional<Long> orderNumberOf(String reference) {
+        if (reference == null || !ORDER_NUMBER.matcher(reference).matches()) {
+            return Optional.empty();
+        }
+        long number = Long.parseLong(reference);
+        return number == 0 ? Optional.empty() : Optional.of(number);
     }
 
     /**

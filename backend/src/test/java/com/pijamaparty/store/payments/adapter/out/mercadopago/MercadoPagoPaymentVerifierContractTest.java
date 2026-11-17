@@ -154,14 +154,24 @@ class MercadoPagoPaymentVerifierContractTest extends PaymentVerifierContractTest
         assertUnavailable(order(ORDER_ID, "processed", "accredited", "\"1001\"", "\"21000.505\"", "ARS"), "decimals");
         assertUnavailable(order(ORDER_ID, "processed", "accredited", "\"1001\"", "\"0.00\"", "ARS"), "amount");
         assertUnavailable(order(ORDER_ID, "processed", "accredited", "\"1001\"", "\"many\"", "ARS"), "not a number");
-        assertUnavailable(order(ORDER_ID, "processed", "accredited", "null", "\"21000.50\"", "ARS"), "no reference");
-        assertUnavailable(order(ORDER_ID, "processed", "accredited", "\"ORDER-1001\"", "\"21000.50\"", "ARS"),
-            "reference");
-        assertUnavailable(order(ORDER_ID, "processed", "accredited", "\"0\"", "\"21000.50\"", "ARS"), "order zero");
         assertUnavailable(order(ORDER_ID, "chargeback", "accredited", "\"1001\"", "\"21000.50\"", "ARS"), "status");
         assertUnavailable(order("ORDTST01ANOTHERONE", "processed", "accredited", "\"1001\"", "\"21000.50\"", "ARS"),
             "another id");
         assertUnavailable("<html>maintenance</html>", "not json");
+    }
+
+    @Test
+    void givenAnOrderWhoseReferenceIsNoOrderNumberOfTheStore_whenVerified_thenItIsNotForThisStore() {
+        // T-E3-34: another integration of the account, or a test made by hand ("d-1335" came from the sandbox).
+        Map<String, String> references = Map.of("no reference", "null", "text", "\"d-1335\"",
+            "prefixed", "\"ORDER-1001\"", "zero", "\"0\"", "too long", "\"1234567890123456789\"");
+        for (var reference : references.entrySet()) {
+            stub.holdsOrderJson(ORDER_ID, order(ORDER_ID, "processed", "accredited", reference.getValue(),
+                "\"21000.50\"", "ARS"));
+
+            assertThat(subject.verify(ORDER_ID)).as(reference.getKey())
+                .isInstanceOf(PaymentVerifier.Verification.NotForThisStore.class);
+        }
     }
 
     private static String order(String id, String status, String detail, String reference, String amount,
