@@ -15,10 +15,25 @@ export type CardPaymentAnswer =
   | { status: 'tooManyAttempts' }
   | { status: 'notFound' };
 
+/** Credit or debit (T-E3-34): MercadoPago's Orders API needs it with the card. */
+export type CardType = components['schemas']['CardPaymentRequest']['paymentType'];
+
+/**
+ * T-E3-34: credit or debit, as the card form's `additionalData.paymentTypeId` tells. The SDK marks it optional: without
+ * it, MercadoPago's own debit brands (`debvisa`, `debmaster`, `debcabal`, `maestro`) are debit and the rest credit.
+ */
+export function cardTypeOf(paymentTypeId: string | undefined, paymentMethodId: string): CardType {
+  if (paymentTypeId === 'credit_card' || paymentTypeId === 'debit_card') {
+    return paymentTypeId;
+  }
+  return paymentMethodId.startsWith('deb') || paymentMethodId === 'maestro' ? 'debit_card' : 'credit_card';
+}
+
 /** What MercadoPago's card form gives for the card: never the card itself, a single-use token. */
 export interface CardDetails {
   cardToken: string;
   paymentMethodId: string;
+  paymentType: CardType;
   issuerId: string | null;
   installments: number;
   identificationType: string;
@@ -35,6 +50,7 @@ export async function payWithCard(token: string, idempotencyKey: string, card: C
     body: {
       cardToken: card.cardToken,
       paymentMethodId: card.paymentMethodId,
+      paymentType: card.paymentType,
       ...(card.issuerId === null ? {} : { issuerId: card.issuerId }),
       installments: card.installments,
       identificationType: card.identificationType,

@@ -28,12 +28,13 @@ public interface PayOrderWithCard {
      * What MercadoPago's card form answered for the card; the cardholder's ID is personal data (R-05), hidden by
      * {@link #toString()} and never stored.
      */
-    record Card(String token, String paymentMethodId, Optional<String> issuerId, int installments,
+    record Card(String token, String paymentMethodId, CardType type, Optional<String> issuerId, int installments,
                 String identificationType, String identificationNumber) {
 
         public Card {
             Objects.requireNonNull(token, "token");
             Objects.requireNonNull(paymentMethodId, "paymentMethodId");
+            Objects.requireNonNull(type, "type");
             Objects.requireNonNull(issuerId, "issuerId");
             Objects.requireNonNull(identificationType, "identificationType");
             Objects.requireNonNull(identificationNumber, "identificationNumber");
@@ -45,15 +46,18 @@ public interface PayOrderWithCard {
         }
     }
 
-    /** Why a card was rejected, as the storefront explains it. */
+    /** T-E3-34: credit or debit, as the card form tells; MercadoPago's Orders API needs it. */
+    enum CardType {
+        CREDIT_CARD,
+        DEBIT_CARD
+    }
+
+    /** Why a card was rejected, as the storefront explains it (the reasons MercadoPago's Orders API tells, T-E3-34). */
     enum Rejection {
         INSUFFICIENT_FUNDS,
-        BAD_SECURITY_CODE,
-        BAD_EXPIRY_DATE,
         BAD_CARD_DATA,
         CALL_FOR_AUTHORIZE,
         CARD_DISABLED,
-        DUPLICATED,
         MAX_ATTEMPTS,
         HIGH_RISK,
         OTHER

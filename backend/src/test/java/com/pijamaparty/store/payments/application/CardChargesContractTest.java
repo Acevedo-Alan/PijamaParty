@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.payments.api.CardPaymentRequest;
 import com.pijamaparty.store.payments.api.CardRejection;
+import com.pijamaparty.store.payments.api.CardType;
 import com.pijamaparty.store.payments.api.PaymentProvider;
 import com.pijamaparty.store.payments.application.CardCharges.Charge;
 import com.pijamaparty.store.payments.application.CardCharges.ChargeStatus;
@@ -33,9 +34,13 @@ public abstract class CardChargesContractTest<T extends CardCharges> extends Con
     /** The provider fails or cannot be reached. */
     protected abstract void providerIsDown();
 
+    /** T-E3-34: the provider refuses the store's credentials. */
+    protected abstract void credentialsAreRefused();
+
     protected static CardCharges.CardCharge charge(long orderNumber, UUID key) {
         return new CardCharges.CardCharge(orderNumber, Money.of(4_450_000), "ana@example.com",
-            new CardPaymentRequest.Card("card-token-1", "visa", Optional.of("310"), 3, "DNI", "12345678"), key);
+            new CardPaymentRequest.Card("card-token-1", "visa", CardType.CREDIT_CARD, Optional.of("310"), 3, "DNI",
+                "12345678"), key);
     }
 
     @Test
@@ -110,5 +115,13 @@ public abstract class CardChargesContractTest<T extends CardCharges> extends Con
 
         assertThat(subject.charge(charge(NUMBERS.incrementAndGet(), UUID.randomUUID())))
             .isInstanceOf(Charge.Unavailable.class);
+    }
+
+    @Test
+    void givenTheStoresCredentialsRefused_whenCharged_thenItIsTheCredentialsNotTheCard() {
+        credentialsAreRefused();
+
+        assertThat(subject.charge(charge(NUMBERS.incrementAndGet(), UUID.randomUUID())))
+            .isInstanceOf(Charge.CredentialsRefused.class);
     }
 }

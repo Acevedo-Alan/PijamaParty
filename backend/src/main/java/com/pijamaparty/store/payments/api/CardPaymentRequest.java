@@ -39,19 +39,21 @@ public record CardPaymentRequest(UUID orderId, long orderNumber, Money amount, S
      *
      * @param token                the single-use card token
      * @param paymentMethodId      the card's brand at MercadoPago ({@code visa}, {@code master}, {@code debvisa} ...)
+     * @param type                 credit or debit, as the form tells (T-E3-34)
      * @param issuerId             the issuing bank at MercadoPago, when the form gives one
      * @param installments         1 to {@value #MAX_INSTALLMENTS}, as the buyer chose
      * @param identificationType   the cardholder's ID type ({@code DNI}, {@code CUIL} ...)
      * @param identificationNumber the cardholder's ID number: personal data, never stored nor logged
      */
-    public record Card(String token, String paymentMethodId, Optional<String> issuerId, int installments,
-                       String identificationType, String identificationNumber) {
+    public record Card(String token, String paymentMethodId, CardType type, Optional<String> issuerId,
+                       int installments, String identificationType, String identificationNumber) {
 
         public static final int MAX_INSTALLMENTS = 48;
 
         public Card {
             Objects.requireNonNull(token, "token");
             Objects.requireNonNull(paymentMethodId, "paymentMethodId");
+            Objects.requireNonNull(type, "type");
             Objects.requireNonNull(issuerId, "issuerId");
             Objects.requireNonNull(identificationType, "identificationType");
             Objects.requireNonNull(identificationNumber, "identificationNumber");

@@ -54,6 +54,11 @@ class PayWithCardService implements CardPayments {
         return switch (charges.charge(charge)) {
             // The charge stays held: the provider may have charged (CardChargeLock).
             case CardCharges.Charge.Unavailable unavailable -> new CardPaymentResult.ProviderUnavailable();
+            // T-E3-34: nothing was charged, so the next card need not wait; the buyer hears card payment is unavailable.
+            case CardCharges.Charge.CredentialsRefused refused -> {
+                savePayments.releaseCardCharge(request.orderId(), charges.provider(), request.idempotencyKey());
+                yield new CardPaymentResult.ProviderUnavailable();
+            }
             case CardCharges.Charge.Refused refused -> {
                 savePayments.releaseCardCharge(request.orderId(), charges.provider(), request.idempotencyKey());
                 yield new CardPaymentResult.Rejected(CardRejection.BAD_CARD_DATA);

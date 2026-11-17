@@ -44,6 +44,6 @@ test('a guest buys with an approved card and gets one confirmation email', async
   const payments = await paymentsOf(orderNumber);
   expect(payments.map((payment) => payment.status)).toEqual(['approved']);
   // The card was charged the server's total, never an amount from the page (R-02).
-  expect(payments.map((payment) => payment.amount)).toEqual([25000]);
+  expect(payments.map((payment) => payment.amount)).toEqual(['25000.00']);
   await expect.poll(async () => (await emailsTo(buyer.email)).length, { timeout: 30_000 }).toBe(1);
 });

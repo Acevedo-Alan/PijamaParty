@@ -94,7 +94,7 @@ The deploy script turns it on and off by itself; around a restore (T-E6-04) do i
 - **An order waits for payment** (`AWAITING_PAYMENT`): the stock is reserved for 30 minutes. The buyer can retry from
   the tracking link; after the reservation the order expires and the units go back on sale. Nothing to do.
 - **A paid order does not move to "pagado"**: MercadoPago's webhook did not arrive or was refused. The endpoint is
-  `https://DOMAIN/api/payments/mercadopago/webhook` (event "Pagos") and it is signed with
+  `https://DOMAIN/api/payments/mercadopago/webhook` (event "Order (Mercado Pago)") and it is signed with
   `MERCADOPAGO_WEBHOOK_SECRET`; a wrong secret makes every notification fail with `401` (look for them in the `api`
   and `caddy` logs). Fix the secret, then resend the notification from the MercadoPago panel.
 - **Payment approved after the order expired or was cancelled**: the order detail shows an alert. Refund from the

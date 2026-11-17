@@ -357,8 +357,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * MercadoPago notifies that a payment changed
-         * @description Called by MercadoPago only, signed with the application's secret (x-signature, x-request-id). The payment is asked to MercadoPago; an approved one for the order's exact total pays the order. Repeating a notification has no further effects.
+         * MercadoPago notifies that an order of its Orders API changed
+         * @description Called by MercadoPago only, signed with the application's secret (x-signature, x-request-id). The order is asked to MercadoPago; an approved one for the store order's exact total pays it. Repeating a notification has no further effects.
          */
         post: operations["notify"];
         delete?: never;
@@ -2343,6 +2343,8 @@ export interface components {
         CardPaymentRequest: {
             cardToken: string;
             paymentMethodId: string;
+            /** @enum {string} */
+            paymentType: "credit_card" | "debit_card";
             issuerId?: string;
             /** Format: int32 */
             installments?: number;
@@ -2353,7 +2355,7 @@ export interface components {
             /** @enum {string} */
             status?: "APPROVED" | "IN_PROCESS" | "REJECTED";
             /** @enum {string|null} */
-            rejection: "INSUFFICIENT_FUNDS" | "BAD_SECURITY_CODE" | "BAD_EXPIRY_DATE" | "BAD_CARD_DATA" | "CALL_FOR_AUTHORIZE" | "CARD_DISABLED" | "DUPLICATED" | "MAX_ATTEMPTS" | "HIGH_RISK" | "OTHER" | null;
+            rejection: "INSUFFICIENT_FUNDS" | "BAD_CARD_DATA" | "CALL_FOR_AUTHORIZE" | "CARD_DISABLED" | "MAX_ATTEMPTS" | "HIGH_RISK" | "OTHER" | null;
         };
         AddressRequest: {
             street: string;
@@ -4375,9 +4377,9 @@ export interface operations {
     notify: {
         parameters: {
             query?: {
-                /** @description The kind of resource, payment */
+                /** @description The kind of resource, order */
                 type?: string;
-                /** @description MercadoPago's id of the payment */
+                /** @description MercadoPago's id of the order (ORD…) */
                 "data.id"?: string;
             };
             header?: {
@@ -4389,7 +4391,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Processed, or ignored (not a payment, or a payment this store does not know) */
+            /** @description Processed, or ignored (not an order, or an order this store does not know) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4407,7 +4409,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description MercadoPago could not be asked for the payment; it delivers the notification again (Retry-After) */
+            /** @description MercadoPago could not be asked for the order; it delivers the notification again (Retry-After) */
             503: {
                 headers: {
                     [name: string]: unknown;

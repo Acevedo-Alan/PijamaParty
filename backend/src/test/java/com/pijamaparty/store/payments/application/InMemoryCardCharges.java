@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class InMemoryCardCharges implements CardCharges {
 
-    private enum Mode { APPROVE, REJECT_FOR_FUNDS, REVIEW, REFUSE, DOWN }
+    private enum Mode { APPROVE, REJECT_FOR_FUNDS, REVIEW, REFUSE, DOWN, CREDENTIALS_REFUSED }
 
     private final Map<UUID, Charge> bySubmit = new ConcurrentHashMap<>();
     private final List<CardCharge> charges = new CopyOnWriteArrayList<>();
@@ -47,6 +47,7 @@ public class InMemoryCardCharges implements CardCharges {
         charges.add(charge);
         return switch (mode) {
             case DOWN -> new Charge.Unavailable();
+            case CREDENTIALS_REFUSED -> new Charge.CredentialsRefused();
             case REFUSE -> new Charge.Refused();
             case APPROVE -> bySubmit.computeIfAbsent(charge.idempotencyKey(),
                 key -> charged(ChargeStatus.APPROVED, Optional.empty()));
@@ -75,6 +76,11 @@ public class InMemoryCardCharges implements CardCharges {
 
     public void refuse() {
         mode = Mode.REFUSE;
+    }
+
+    /** T-E3-34: the provider refuses the store's credentials. */
+    public void refuseCredentials() {
+        mode = Mode.CREDENTIALS_REFUSED;
     }
 
     public void down() {

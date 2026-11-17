@@ -16,28 +16,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The MercadoPago API on a free local port (JDK HTTP server, no network). {@code POST /v1/payments} charges a card
- * token (T-E3-29): it creates a payment with a new id and the status {@link #cardsAnswer} chose (approved by default),
- * for the request's amount and {@code external_reference}, as MercadoPago does, except that a repeated
- * {@code X-Idempotency-Key} gets the payment its first request created. {@code GET /v1/payments/{id}} shows those
- * payments and the ones {@link #holdsPayment} arranged (404 for any other). Tests can make it fail or slow down, then
- * {@link #reset()} it.
+ * MercadoPago's Orders API on a free local port (JDK HTTP server, no network), as the sandbox answered it on 2026-11-17
+ * (T-E3-34). {@code POST /v1/orders} charges a card token: it creates an order with a new {@code ORD…} id and the status
+ * {@link #cardsAnswer} chose (processed by default), for the request's amount and {@code external_reference}; a refused
+ * card ({@code failed}) answers {@code 402} with the order in {@code data}, and a repeated {@code X-Idempotency-Key}
+ * gets the order its first request created. {@code GET /v1/orders/{id}} shows those orders and the ones
+ * {@link #holdsOrder} arranged, and answers {@code 400} for any other id, as the Orders API does. Tests can make it
+ * fail or slow down, then {@link #reset()} it.
  */
 public final class MercadoPagoStub implements AutoCloseable {
 
-    private static final String PAYMENTS = "/v1/payments";
-    private static final String PAYMENTS_PATH = PAYMENTS + "/";
+    private static final String ORDERS = "/v1/orders";
+    private static final String ORDERS_PATH = ORDERS + "/";
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private final HttpServer server;
     private final List<Request> requests = new CopyOnWriteArrayList<>();
-    private final Map<String, String> payments = new ConcurrentHashMap<>();
-    private final Map<String, String> paymentsByKey = new ConcurrentHashMap<>();
-    private final AtomicInteger sequence = new AtomicInteger(1_000_000);
-    private volatile String cardStatus = "approved";
+    private final Map<String, String> orders = new ConcurrentHashMap<>();
+    private final Map<String, String> ordersByKey = new ConcurrentHashMap<>();
+    private final AtomicLong sequence = new AtomicLong(1_000_000);
+    private volatile String cardStatus = "processed";
     private volatile String cardStatusDetail = "accredited";
     private volatile Integer status;
     private volatile String body;
@@ -82,22 +83,29 @@ public final class MercadoPagoStub implements AutoCloseable {
         if (status != null) {
             answerStatus = status;
             answerBody = body;
-        } else if ("GET".equals(exchange.getRequestMethod()) && path.startsWith(PAYMENTS_PATH)) {
-            String payment = payments.get(path.substring(PAYMENTS_PATH.length()));
-            answerStatus = payment == null ? 404 : 200;
-            answerBody = payment == null ? "{\"message\":\"Payment not found\",\"status\":404}" : payment;
-        } else if ("POST".equals(exchange.getRequestMethod()) && PAYMENTS.equals(path)) {
+        } else if ("GET".equals(exchange.getRequestMethod()) && path.startsWith(ORDERS_PATH)) {
+            String order = orders.get(path.substring(ORDERS_PATH.length()));
+            answerStatus = order == null ? 400 : 200;
+            answerBody = order == null
+                ? "{\"errors\":[{\"code\":\"invalid_path_param\",\"message\":\"order_id is invalid\"}]}"
+                : order;
+        } else if ("POST".equals(exchange.getRequestMethod()) && ORDERS.equals(path)) {
             String id = idempotencyKey == null
-                ? Integer.toString(sequence.incrementAndGet())
-                : paymentsByKey.computeIfAbsent(idempotencyKey, key -> Integer.toString(sequence.incrementAndGet()));
+                ? newId()
+                : ordersByKey.computeIfAbsent(idempotencyKey, key -> newId());
             JsonNode charge = JSON.readTree(received);
-            payments.computeIfAbsent(id, key -> paymentJson(key, cardStatus, cardStatusDetail,
-                charge.path("external_reference").asText(), charge.path("transaction_amount").decimalValue()));
-            answerStatus = 201;
-            answerBody = payments.get(id);
+            orders.computeIfAbsent(id, key -> orderJson(key, cardStatus, cardStatusDetail,
+                charge.path("external_reference").asText(), new BigDecimal(charge.path("total_amount").asText())));
+            String order = orders.get(id);
+            boolean refused = order.contains("\"status\": \"failed\"");
+            answerStatus = refused ? 402 : 201;
+            answerBody = refused
+                ? "{\"errors\": [{\"code\": \"failed\", \"message\": \"The following transactions failed\"}], "
+                    + "\"data\": " + order + "}"
+                : order;
         } else {
             answerStatus = 404;
-            answerBody = "{\"message\":\"not found\",\"status\":404}";
+            answerBody = "{\"errors\":[{\"code\":\"not_found\",\"message\":\"not found\"}]}";
         }
         byte[] answer = answerBody.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -106,43 +114,63 @@ public final class MercadoPagoStub implements AutoCloseable {
         exchange.close();
     }
 
+    private String newId() {
+        return "ORDTST01STUB%018d".formatted(sequence.incrementAndGet());
+    }
+
     public URI baseUrl() {
         return URI.create("http://127.0.0.1:" + server.getAddress().getPort());
     }
 
     /**
-     * MercadoPago holds a payment for the order, in one of its statuses ({@code approved}, {@code rejected},
-     * {@code pending} ...), with the payer data MercadoPago adds, which the store must ignore.
+     * MercadoPago holds an order for the store's order, in one of its statuses ({@code processed}, {@code failed},
+     * {@code processing} ...; {@code processed} is accredited), with the payer data MercadoPago adds, which the store
+     * must ignore.
      */
-    public void holdsPayment(String id, long orderNumber, String mercadoPagoStatus, BigDecimal pesos) {
-        holdsPaymentJson(id, paymentJson(id, mercadoPagoStatus, "accredited", Long.toString(orderNumber), pesos));
+    public void holdsOrder(String id, long orderNumber, String orderStatus, BigDecimal pesos) {
+        holdsOrderJson(id, orderJson(id, orderStatus, detailOf(orderStatus), Long.toString(orderNumber), pesos));
     }
 
-    private static String paymentJson(String id, String mercadoPagoStatus, String statusDetail, String reference,
-                                      BigDecimal pesos) {
+    private static String detailOf(String orderStatus) {
+        return switch (orderStatus) {
+            case "processed" -> "accredited";
+            case "processing" -> "in_process";
+            case "failed" -> "rejected_by_issuer";
+            default -> orderStatus;
+        };
+    }
+
+    /** The order's own detail mirrors its payment's, as the sandbox answers: failed orders say {@code failed}. */
+    private static String orderJson(String id, String orderStatus, String paymentDetail, String reference,
+                                    BigDecimal pesos) {
+        String orderDetail = "failed".equals(orderStatus) ? "failed" : paymentDetail;
+        String amount = pesos.setScale(2).toPlainString();
         return """
-            {"id": %s, "status": "%s", "status_detail": "%s", "external_reference": "%s",
-             "transaction_amount": %s, "currency_id": "ARS", "date_approved": "2026-10-12T12:05:00.000-03:00",
+            {"id": "%s", "type": "online", "processing_mode": "automatic", "external_reference": "%s",
+             "total_amount": "%s", "total_paid_amount": "%s", "currency": "ARS", "country_code": "ARG",
+             "status": "%s", "status_detail": "%s",
              "payer": {"email": "ana@example.com", "identification": {"type": "DNI", "number": "12345678"}},
-             "payment_method_id": "visa", "payment_type_id": "credit_card"}
-            """.formatted(id, mercadoPagoStatus, statusDetail, reference, pesos.toPlainString());
+             "transactions": {"payments": [{"id": "PAY01STUB%s", "amount": "%s", "status": "%s",
+               "status_detail": "%s", "payment_method": {"id": "visa", "type": "credit_card", "installments": 1}}]}}
+            """.formatted(id, reference, amount, "processed".equals(orderStatus) ? amount : "0.00", orderStatus,
+            orderDetail, id.substring(Math.max(0, id.length() - 12)), amount, orderStatus, paymentDetail);
     }
 
     /**
-     * The next cards charged get this status and detail, as MercadoPago answers them: {@code rejected} with
-     * {@code cc_rejected_insufficient_amount}, {@code in_process} with {@code pending_contingency} ...
+     * The next cards charged get this order status and payment detail, as the Orders API answers them:
+     * {@code failed} with {@code insufficient_amount} (a {@code 402}), {@code processing} with {@code in_process} ...
      */
-    public void cardsAnswer(String mercadoPagoStatus, String statusDetail) {
-        cardStatus = mercadoPagoStatus;
-        cardStatusDetail = statusDetail;
+    public void cardsAnswer(String orderStatus, String paymentStatusDetail) {
+        cardStatus = orderStatus;
+        cardStatusDetail = paymentStatusDetail;
     }
 
-    /** MercadoPago answers this JSON for the payment. */
-    public void holdsPaymentJson(String id, String json) {
-        payments.put(id, json);
+    /** MercadoPago answers this JSON for the order. */
+    public void holdsOrderJson(String id, String json) {
+        orders.put(id, json);
     }
 
-    /** Answers every next call with this status and body instead of a created payment or a payment. */
+    /** Answers every next call with this status and body instead of an order. */
     public void answer(int newStatus, String newBody) {
         status = newStatus;
         body = newBody;
@@ -152,15 +180,15 @@ public final class MercadoPagoStub implements AutoCloseable {
         delay = newDelay;
     }
 
-    /** Back to approving cards at once, with no payments and no requests recorded. */
+    /** Back to approving cards at once, with no orders and no requests recorded. */
     public void reset() {
         status = null;
         body = null;
         delay = Duration.ZERO;
-        cardStatus = "approved";
+        cardStatus = "processed";
         cardStatusDetail = "accredited";
-        payments.clear();
-        paymentsByKey.clear();
+        orders.clear();
+        ordersByKey.clear();
         requests.clear();
     }
 

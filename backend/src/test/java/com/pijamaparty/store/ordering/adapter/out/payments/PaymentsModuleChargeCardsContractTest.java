@@ -59,12 +59,12 @@ class PaymentsModuleChargeCardsContractTest extends ChargeCardsContractTest<Char
 
     @Override
     protected void cardsAreRejectedForInsufficientFunds() {
-        mercadoPago.cardsAnswer("rejected", "cc_rejected_insufficient_amount");
+        mercadoPago.cardsAnswer("failed", "insufficient_amount");
     }
 
     @Override
     protected void cardsAreInReview() {
-        mercadoPago.cardsAnswer("in_process", "pending_contingency");
+        mercadoPago.cardsAnswer("processing", "in_process");
     }
 
     @Override
@@ -92,6 +92,6 @@ class PaymentsModuleChargeCardsContractTest extends ChargeCardsContractTest<Char
         assertThat(OrderRows.statusOf(owner, order.id())).contains(OrderStatus.PAID);
         assertThat(owner.queryForObject("select count(*) from payment_event", Long.class)).isOne();
         assertThat(mercadoPago.requests()).extracting(MercadoPagoStub.Request::path)
-            .containsExactly("/v1/payments", "/v1/payments/" + payment.get("external_payment_id"));
+            .containsExactly("/v1/orders", "/v1/orders/" + payment.get("external_payment_id"));
     }
 }

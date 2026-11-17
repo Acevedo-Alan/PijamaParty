@@ -1,5 +1,6 @@
 package com.pijamaparty.store.ordering.adapter.in.web;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.pijamaparty.store.ordering.application.CorrectOrderEmail;
 import com.pijamaparty.store.ordering.application.GetTrackedOrder;
 import com.pijamaparty.store.ordering.application.LinePhotos;
@@ -321,13 +322,14 @@ class OrderTrackingController {
      */
     record CardPaymentRequest(@NotBlank @Size(max = MAX_TEXT) String cardToken,
                               @NotBlank @Size(max = 50) String paymentMethodId,
+                              @NotNull CardPaymentType paymentType,
                               @Size(max = 50) String issuerId,
                               @Min(1) @Max(48) int installments,
                               @NotBlank @Size(max = 20) String identificationType,
                               @NotBlank @Size(max = 30) String identificationNumber) {
 
         PayOrderWithCard.Card toCard() {
-            return new PayOrderWithCard.Card(cardToken, paymentMethodId,
+            return new PayOrderWithCard.Card(cardToken, paymentMethodId, paymentType.type,
                 issuerId == null || issuerId.isBlank() ? Optional.empty() : Optional.of(issuerId), installments,
                 identificationType, identificationNumber);
         }
@@ -342,6 +344,20 @@ class OrderTrackingController {
         APPROVED,
         IN_PROCESS,
         REJECTED
+    }
+
+    /** T-E3-34: the card form's {@code paymentTypeId}, in its own words; MercadoPago's Orders API needs it. */
+    enum CardPaymentType {
+        @JsonProperty("credit_card")
+        CREDIT_CARD(PayOrderWithCard.CardType.CREDIT_CARD),
+        @JsonProperty("debit_card")
+        DEBIT_CARD(PayOrderWithCard.CardType.DEBIT_CARD);
+
+        private final PayOrderWithCard.CardType type;
+
+        CardPaymentType(PayOrderWithCard.CardType type) {
+            this.type = type;
+        }
     }
 
     /** {@code rejection}: why, when {@code status} is REJECTED. */

@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
+import java.util.Locale;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.Test;
@@ -108,13 +109,17 @@ class MercadoPagoSignatureTest {
         return "ts=" + ts + ",v1=" + v1;
     }
 
-    /** What MercadoPago computes, written independently of the class under test. */
+    /**
+     * What MercadoPago computes, written independently of the class under test: an id with letters ({@code ORD…},
+     * T-E3-34) goes in lowercase, as MercadoPago documents.
+     */
     static String sign(String secret, String dataId, String requestId, String ts) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(secret.isEmpty() ? new byte[1] : secret.getBytes(StandardCharsets.UTF_8),
                 "HmacSHA256"));
-            String manifest = "id:" + dataId + ";request-id:" + requestId + ";ts:" + ts + ";";
+            String manifest = "id:" + dataId.toLowerCase(Locale.ROOT) + ";request-id:" + requestId
+                + ";ts:" + ts + ";";
             return HexFormat.of().formatHex(mac.doFinal(manifest.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             throw new IllegalStateException(e);

@@ -1,6 +1,6 @@
 import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CardDetails } from './cardPaymentApi.ts';
+import { type CardDetails, cardTypeOf } from './cardPaymentApi.ts';
 
 /** The key MercadoPago's SDK was started with; it is started once per key, never on each render. */
 let startedWith: string | null = null;
@@ -49,16 +49,20 @@ export default function CardPaymentForm({ publicKey, amountCents, onSubmit, onRe
     }
   }, []);
   const submit = useCallback(
-    async (form: {
-      token: string;
-      payment_method_id: string;
-      issuer_id: string;
-      installments: number;
-      payer: { identification?: { type: string; number: string } };
-    }) => {
+    async (
+      form: {
+        token: string;
+        payment_method_id: string;
+        issuer_id: string;
+        installments: number;
+        payer: { identification?: { type: string; number: string } };
+      },
+      additionalData?: { paymentTypeId?: string },
+    ) => {
       await latest.current.onSubmit({
         cardToken: form.token,
         paymentMethodId: form.payment_method_id,
+        paymentType: cardTypeOf(additionalData?.paymentTypeId, form.payment_method_id),
         issuerId: form.issuer_id === '' ? null : form.issuer_id,
         installments: form.installments,
         identificationType: form.payer.identification?.type ?? '',
@@ -68,6 +72,18 @@ export default function CardPaymentForm({ publicKey, amountCents, onSubmit, onRe
     [],
   );
   return (
-    <CardPayment locale="es-AR" initialization={initialization} onReady={ready} onError={failed} onSubmit={submit} />
+    <CardPayment
+      locale="es-AR"
+      initialization={initialization}
+      customization={CUSTOMIZATION}
+      onReady={ready}
+      onError={failed}
+      onSubmit={submit}
+    />
   );
 }
+
+/** UC-14: credit and debit cards only, so the form never takes a prepaid one the store would refuse. */
+const CUSTOMIZATION = {
+  paymentMethods: { types: { included: ['credit_card', 'debit_card'] as ('credit_card' | 'debit_card')[] } },
+};

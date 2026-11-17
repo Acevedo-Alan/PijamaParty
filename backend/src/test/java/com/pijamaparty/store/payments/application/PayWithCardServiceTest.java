@@ -3,6 +3,7 @@ package com.pijamaparty.store.payments.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pijamaparty.store.payments.api.CardPaymentRequest;
+import com.pijamaparty.store.payments.api.CardType;
 import com.pijamaparty.store.payments.api.CardPaymentResult;
 import com.pijamaparty.store.payments.api.CardRejection;
 import com.pijamaparty.store.payments.api.PaymentProvider;
@@ -37,7 +38,8 @@ class PayWithCardServiceTest {
 
     private CardPaymentRequest request(UUID key) {
         return new CardPaymentRequest(order, NUMBER, TOTAL, "ana@example.com",
-            new CardPaymentRequest.Card("card-token-1", "visa", Optional.empty(), 1, "DNI", "12345678"), key);
+            new CardPaymentRequest.Card("card-token-1", "visa", CardType.CREDIT_CARD, Optional.empty(), 1, "DNI",
+                "12345678"), key);
     }
 
     @Test
@@ -115,6 +117,24 @@ class PayWithCardServiceTest {
 
         assertThat(service.pay(request(UUID.randomUUID()))).isEqualTo(new CardPaymentResult.Approved());
         assertThat(cards.charges()).hasSize(2);
+    }
+
+    @Test
+    void givenTheStoresCredentialsRefused_whenPaid_thenCardPaymentIsUnavailableAndNothingIsConfirmed() {
+        cards.refuseCredentials();
+
+        assertThat(service.pay(request(UUID.randomUUID()))).isEqualTo(new CardPaymentResult.ProviderUnavailable());
+        assertThat(confirmed).isEmpty();
+    }
+
+    @Test
+    void givenTheStoresCredentialsRefused_whenAnotherCardIsSentOnceFixed_thenItIsChargedWithoutWaiting() {
+        cards.refuseCredentials();
+        service.pay(request(UUID.randomUUID()));
+        cards.approve();
+
+        // T-E3-34: nothing was charged, so the charge is not held for 10 minutes as after a timeout.
+        assertThat(service.pay(request(UUID.randomUUID()))).isEqualTo(new CardPaymentResult.Approved());
     }
 
     @Test

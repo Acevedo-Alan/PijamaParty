@@ -1,6 +1,5 @@
 package com.pijamaparty.store.payments.adapter.out.mercadopago;
 
-import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.MessageSource;
@@ -16,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
  * <p>{@code store.payments.mercadopago.public-key}: the public key of the same account, for the browser's card form
  * (T-E3-29; the Docker secret {@code MERCADOPAGO_PUBLIC_KEY}). Empty: the card form cannot open.
  *
- * <p>{@code store.public-url}: the storefront's origin, where MercadoPago notifies.
+ * <p>MercadoPago notifies the URL of the application's Webhooks, set in its panel (UC-15, T-E3-34): nothing here.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(MercadoPagoProperties.class)
@@ -26,12 +25,11 @@ class MercadoPagoConfiguration {
     @Bean
     MercadoPagoCardCharges mercadoPagoCardCharges(
         MercadoPagoProperties properties, @Value("${store.payments.mercadopago.access-token}") String accessToken,
-        @Value("${store.payments.mercadopago.public-key}") String publicKey,
-        @Value("${store.public-url}") URI publicUrl, MessageSource messages) {
-        return new MercadoPagoCardCharges(properties, accessToken, publicKey, publicUrl, messages);
+        @Value("${store.payments.mercadopago.public-key}") String publicKey, MessageSource messages) {
+        return new MercadoPagoCardCharges(properties, accessToken, publicKey, messages);
     }
 
-    /** UC-15: the payments MercadoPago notifies are asked to it with the same access token. */
+    /** UC-15: the orders MercadoPago notifies are asked to it with the same access token. */
     @Bean
     MercadoPagoPaymentVerifier mercadoPagoPaymentVerifier(
         MercadoPagoProperties properties, @Value("${store.payments.mercadopago.access-token}") String accessToken) {

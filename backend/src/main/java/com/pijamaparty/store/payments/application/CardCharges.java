@@ -66,6 +66,12 @@ public interface CardCharges {
 
         /** Unreachable, timed out, failed or answered something unusable. */
         record Unavailable() implements Charge {}
+
+        /**
+         * T-E3-34: the provider refused the store's credentials. Nothing was charged; the store's configuration, not the
+         * card, has to be fixed.
+         */
+        record CredentialsRefused() implements Charge {}
     }
 
     /** The created payment's status, as the provider answered the charge. */

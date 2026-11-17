@@ -22,6 +22,7 @@ import com.pijamaparty.store.TestcontainersConfiguration;
 import com.pijamaparty.store.payments.adapter.out.mercadopago.MercadoPagoStub;
 import com.pijamaparty.store.platform.testing.ApiTest;
 import jakarta.servlet.http.Cookie;
+import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -32,6 +33,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -45,6 +49,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * the link.
  */
 @ApiTest
+@ExtendWith(OutputCaptureExtension.class)
 class OrderTrackingApiTest {
 
     private static final String CART_COOKIE = "__Host-cart_token";
@@ -205,7 +210,7 @@ class OrderTrackingApiTest {
             .andExpect(jsonPath("$.rejection").value(nullValue()));
 
         JsonNode charge = mercadoPago.requests().getFirst().json();
-        assertThat(charge.get("transaction_amount").decimalValue().movePointRight(2).longValueExact())
+        assertThat(new BigDecimal(charge.get("total_amount").asText()).movePointRight(2).longValueExact())
             .isEqualTo(placed.get("totalCents").asLong());
         assertThat(charge.get("payer").get("email").asText()).isEqualTo("ana@example.com");
         assertThat(charge.get("external_reference").asText()).isEqualTo(placed.get("number").asText());
@@ -217,7 +222,7 @@ class OrderTrackingApiTest {
     @Test
     void givenACardWithoutFunds_whenItIsSent_thenItIsRejectedAndTheOrderStillAwaitsPayment() throws Exception {
         JsonNode placed = placeOrder();
-        mercadoPago.cardsAnswer("rejected", "cc_rejected_insufficient_amount");
+        mercadoPago.cardsAnswer("failed", "insufficient_amount");
 
         payWithCard(placed.get("trackingToken").asText(), UUID.randomUUID().toString())
             .andExpect(status().isOk())
@@ -233,7 +238,7 @@ class OrderTrackingApiTest {
         throws Exception {
         JsonNode placed = placeOrder();
         // In review, the order still awaits payment: a network retry of the submit reaches MercadoPago again
-        mercadoPago.cardsAnswer("in_process", "pending_contingency");
+        mercadoPago.cardsAnswer("processing", "in_process");
         String key = UUID.randomUUID().toString();
 
         payWithCard(placed.get("trackingToken").asText(), key).andExpect(status().isOk());
@@ -249,7 +254,7 @@ class OrderTrackingApiTest {
     void givenACardInReview_whenAnotherCardIsSentWithANewKey_thenItIs409ChargeInProgressAndNothingIsCharged()
         throws Exception {
         JsonNode placed = placeOrder();
-        mercadoPago.cardsAnswer("in_process", "pending_contingency");
+        mercadoPago.cardsAnswer("processing", "in_process");
         String token = placed.get("trackingToken").asText();
         payWithCard(token, UUID.randomUUID().toString()).andExpect(status().isOk());
         int charges = mercadoPago.requests().stream().filter(request -> request.method().equals("POST")).toList()
@@ -278,6 +283,41 @@ class OrderTrackingApiTest {
 
         assertThat(owner.queryForObject("select status from orders where number = ?", String.class,
             placed.get("number").asLong())).isEqualTo("AWAITING_PAYMENT");
+    }
+
+    @Test
+    void givenMercadoPagoRefusingTheStoresCredentials_whenACardIsSent_thenItAnswers503AndLogsTheCredentials(
+        CapturedOutput logs) throws Exception {
+        JsonNode placed = placeOrder();
+        mercadoPago.answer(401, "{\"errors\":[{\"code\":\"unauthorized\",\"message\":\"Unauthorized use of live "
+            + "credentials\"}]}");
+
+        payWithCard(placed.get("trackingToken").asText(), UUID.randomUUID().toString())
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(header().exists("Retry-After"))
+            .andExpect(jsonPath("$.problem").value("PAYMENT_PROVIDER_UNAVAILABLE"));
+
+        String number = placed.get("number").asText();
+        assertThat(logs.getAll()).contains("MercadoPago refused the store's credentials charging order " + number)
+            .doesNotContain("ana@example.com", "12345678");
+        // T-E3-34: nothing was charged, so another card goes through at once once the credentials are fixed
+        mercadoPago.reset();
+        payWithCard(placed.get("trackingToken").asText(), UUID.randomUUID().toString())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("APPROVED"));
+    }
+
+    @Test
+    void givenACardWithoutItsType_whenItIsSent_thenItIsABadRequestAndNothingIsCharged() throws Exception {
+        JsonNode placed = placeOrder();
+        mercadoPago.reset();
+
+        mvc.perform(post("/api/orders/{token}/card-payment", placed.get("trackingToken").asText()).with(csrf())
+                .header("Idempotency-Key", UUID.randomUUID().toString())
+                .contentType(MediaType.APPLICATION_JSON).content(CARD.replace("\"credit_card\"", "\"prepaid\"")))
+            .andExpect(status().isBadRequest());
+
+        assertThat(mercadoPago.requests()).isEmpty();
     }
 
     @Test
@@ -360,9 +400,10 @@ class OrderTrackingApiTest {
         return mvc.perform(get("/api/orders/{token}", token));
     }
 
-    /** What MercadoPago's card form answers for a card: a token, the brand, installments and the holder's ID. */
+    /** What MercadoPago's card form answers for a card: a token, the brand, credit or debit, installments and the holder's ID. */
     private static final String CARD = """
-        {"cardToken": "card-token-1", "paymentMethodId": "visa", "issuerId": "310", "installments": 3,
+        {"cardToken": "card-token-1", "paymentMethodId": "visa", "paymentType": "credit_card", "issuerId": "310",
+         "installments": 3,
          "identificationType": "DNI", "identificationNumber": "12345678"}
         """;
 

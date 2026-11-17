@@ -55,7 +55,7 @@ class MercadoPagoWebhookApiTest {
     private static final String WEBHOOK = "/api/payments/mercadopago/webhook";
     private static final String CART_COOKIE = "__Host-cart_token";
     private static final SecureRandom RANDOM = new SecureRandom();
-    private static final String PAYMENT_ID = "9876543210";
+    private static final String PAYMENT_ID = "ORDTST01M7M43W866NP578ACQYTA5KJ9";
 
     private final MockMvc mvc;
     private final ObjectMapper json;
@@ -100,7 +100,7 @@ class MercadoPagoWebhookApiTest {
         throws Exception {
         UUID coupon = applyCoupon();
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", placed.pesos());
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "processed", placed.pesos());
 
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
 
@@ -110,7 +110,7 @@ class MercadoPagoWebhookApiTest {
             .containsEntry("external_payment_id", PAYMENT_ID);
         assertThat(owner.queryForObject("select count(*) from coupon_redemption where coupon_id = ?", Long.class,
             coupon)).isOne();
-        assertThat(mercadoPago.lastRequest().path()).isEqualTo("/v1/payments/" + PAYMENT_ID);
+        assertThat(mercadoPago.lastRequest().path()).isEqualTo("/v1/orders/" + PAYMENT_ID);
         assertThat(logLines(logs)).doesNotContain("ana@example.com", "12345678", "Ana P");
         // UC-17: the buyer's and the administrator's emails, enqueued with the payment (RNF-23)
         assertThat(emails(placed)).containsExactlyInAnyOrder("ORDER_PAID_CUSTOMER", "ORDER_PAID_ADMIN");
@@ -121,7 +121,7 @@ class MercadoPagoWebhookApiTest {
         throws Exception {
         UUID coupon = applyCoupon();
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", placed.pesos());
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "processed", placed.pesos());
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
 
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
@@ -137,7 +137,7 @@ class MercadoPagoWebhookApiTest {
     @Test
     void givenAnOrderWhoseConfirmationIsProcessedTwice_whenItFinishes_thenEachEmailIsEnqueuedOnce() throws Exception {
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", placed.pesos());
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "processed", placed.pesos());
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
 
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
@@ -161,7 +161,7 @@ class MercadoPagoWebhookApiTest {
     @Test
     void givenTwoIdenticalNotificationsAtOnce_whenProcessed_thenOnlyOneHasEffects() throws Exception {
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", placed.pesos());
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "processed", placed.pesos());
         var start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
@@ -197,9 +197,9 @@ class MercadoPagoWebhookApiTest {
     void givenAPendingPaymentNotified_whenItIsApprovedAndNotifiedAgain_thenTheOrderIsPaidAndBothAreRecorded()
         throws Exception {
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "in_process", placed.pesos());
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "processing", placed.pesos());
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", placed.pesos());
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "processed", placed.pesos());
 
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
 
@@ -211,7 +211,7 @@ class MercadoPagoWebhookApiTest {
     @Test
     void givenARejectedPayment_whenNotified_thenTheOrderKeepsWaitingWithItsStockReserved() throws Exception {
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "rejected", placed.pesos());
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "failed", placed.pesos());
 
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
 
@@ -226,31 +226,31 @@ class MercadoPagoWebhookApiTest {
     void givenAPaidOrder_whenAnotherPaymentOfItIsApproved_thenItIsAcknowledgedLoggedForRefundAndTheOrderIsUnchanged(
         CapturedOutput logs) throws Exception {
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment("111", placed.number(), "approved", placed.pesos());
-        mercadoPago.holdsPayment("222", placed.number(), "approved", placed.pesos());
-        notifyPayment("111").andExpect(status().isOk());
+        mercadoPago.holdsOrder("ORDTST01AAA111", placed.number(), "processed", placed.pesos());
+        mercadoPago.holdsOrder("ORDTST01AAA222", placed.number(), "processed", placed.pesos());
+        notifyPayment("ORDTST01AAA111").andExpect(status().isOk());
 
-        notifyPayment("222").andExpect(status().isOk());
+        notifyPayment("ORDTST01AAA222").andExpect(status().isOk());
 
         assertThat(orderStatus(placed)).isEqualTo("PAID");
-        assertThat(payment(placed)).containsEntry("status", "APPROVED").containsEntry("external_payment_id", "111");
+        assertThat(payment(placed)).containsEntry("status", "APPROVED").containsEntry("external_payment_id", "ORDTST01AAA111");
         assertThat(owner.queryForObject("select count(*) from stock_movement where type = 'DEDUCTION'", Long.class))
             .isOne();
-        assertThat(logLines(logs)).contains("MercadoPago payment 222 of order " + placed.number()
+        assertThat(logLines(logs)).contains("MercadoPago order ORDTST01AAA222 of order " + placed.number()
             + " is a second approved payment: refund it");
     }
 
     @Test
     void givenARejectedAttempt_whenTheBuyerPaysWithAnotherCard_thenTheOrderIsPaid() throws Exception {
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment("111", placed.number(), "rejected", placed.pesos());
-        mercadoPago.holdsPayment("222", placed.number(), "approved", placed.pesos());
+        mercadoPago.holdsOrder("ORDTST01AAA111", placed.number(), "failed", placed.pesos());
+        mercadoPago.holdsOrder("ORDTST01AAA222", placed.number(), "processed", placed.pesos());
 
-        notifyPayment("111").andExpect(status().isOk());
-        notifyPayment("222").andExpect(status().isOk());
+        notifyPayment("ORDTST01AAA111").andExpect(status().isOk());
+        notifyPayment("ORDTST01AAA222").andExpect(status().isOk());
 
         assertThat(orderStatus(placed)).isEqualTo("PAID");
-        assertThat(payment(placed)).containsEntry("status", "APPROVED").containsEntry("external_payment_id", "222");
+        assertThat(payment(placed)).containsEntry("status", "APPROVED").containsEntry("external_payment_id", "ORDTST01AAA222");
     }
 
     @Test
@@ -261,7 +261,7 @@ class MercadoPagoWebhookApiTest {
             + "reservation_expires_at = now() - interval '1 minute' where number = ?",
             placed.number());
         CurrentActor.callAsSystem(expireOverdueOrder::execute);
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", placed.pesos());
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "processed", placed.pesos());
 
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
 
@@ -276,7 +276,7 @@ class MercadoPagoWebhookApiTest {
     @Test
     void givenAPaymentForAnotherAmount_whenNotified_thenTheOrderIsNotPaid() throws Exception {
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", new BigDecimal("1.00"));
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "processed", new BigDecimal("1.00"));
 
         notifyPayment(PAYMENT_ID).andExpect(status().isOk());
 
@@ -288,15 +288,15 @@ class MercadoPagoWebhookApiTest {
     void givenAPaymentThatDoesNotExist_whenNotified_thenItIsIgnoredWithAWarningWithoutPersonalData(
         CapturedOutput logs) throws Exception {
         Placed placed = placeOrder();
-        mercadoPago.holdsPayment("555", 999_999, "approved", placed.pesos());
+        mercadoPago.holdsOrder("ORDTST01AAA555", 999_999, "processed", placed.pesos());
 
-        notifyPayment("404404").andExpect(status().isOk());
-        notifyPayment("555").andExpect(status().isOk());
+        notifyPayment("ORDTST01AAA404404").andExpect(status().isOk());
+        notifyPayment("ORDTST01AAA555").andExpect(status().isOk());
 
         assertThat(orderStatus(placed)).isEqualTo("AWAITING_PAYMENT");
         assertThat(payment(placed)).containsEntry("status", "PENDING");
-        assertThat(logLines(logs)).contains("MercadoPago does not know payment 404404")
-            .contains("MercadoPago payment 555 is not for an order of this store")
+        assertThat(logLines(logs)).contains("MercadoPago does not know order ORDTST01AAA404404")
+            .contains("MercadoPago order ORDTST01AAA555 is not for an order of this store")
             .doesNotContain("ana@example.com", "12345678");
     }
 
@@ -305,17 +305,17 @@ class MercadoPagoWebhookApiTest {
         throws Exception {
         Placed placed = placeOrder();
         mercadoPago.reset();
-        mercadoPago.holdsPayment(PAYMENT_ID, placed.number(), "approved", placed.pesos());
+        mercadoPago.holdsOrder(PAYMENT_ID, placed.number(), "processed", placed.pesos());
         String ts = Long.toString(Instant.now().toEpochMilli());
         String requestId = UUID.randomUUID().toString();
 
-        mvc.perform(post(WEBHOOK).param("type", "payment").param("data.id", PAYMENT_ID)
+        mvc.perform(post(WEBHOOK).param("type", "order").param("data.id", PAYMENT_ID)
                 .header("x-request-id", requestId)
                 .header("x-signature", MercadoPagoSignatureTest.header(ts,
                     MercadoPagoSignatureTest.sign("not-the-secret", PAYMENT_ID, requestId, ts))))
             .andExpect(status().isUnauthorized())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
-        mvc.perform(post(WEBHOOK).param("type", "payment").param("data.id", PAYMENT_ID))
+        mvc.perform(post(WEBHOOK).param("type", "order").param("data.id", PAYMENT_ID))
             .andExpect(status().isUnauthorized());
 
         assertThat(mercadoPago.requests()).isEmpty();
@@ -343,7 +343,9 @@ class MercadoPagoWebhookApiTest {
         mercadoPago.reset();
 
         notify("merchant_order", PAYMENT_ID).andExpect(status().isOk());
-        notify("payment", "not-a-number").andExpect(status().isOk());
+        notify("payment", "123456789").andExpect(status().isOk());
+        notify("order", "not-an-order-id").andExpect(status().isOk());
+        notify("order", "ord01lowercase").andExpect(status().isOk());
 
         assertThat(mercadoPago.requests()).isEmpty();
     }
@@ -378,7 +380,7 @@ class MercadoPagoWebhookApiTest {
 
     /** As MercadoPago sends it: signed, without a session or a CSRF token. */
     private ResultActions notifyPayment(String paymentId) throws Exception {
-        return notify("payment", paymentId);
+        return notify("order", paymentId);
     }
 
     private ResultActions notify(String type, String dataId) throws Exception {
@@ -389,7 +391,7 @@ class MercadoPagoWebhookApiTest {
             .header("x-signature", MercadoPagoSignatureTest.header(ts, MercadoPagoSignatureTest.sign(
                 MercadoPagoStubConfiguration.WEBHOOK_SECRET, dataId, requestId, ts)))
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"action\":\"payment.updated\",\"type\":\"" + type + "\",\"data\":{\"id\":\"" + dataId
+            .content("{\"action\":\"order.processed\",\"type\":\"" + type + "\",\"data\":{\"id\":\"" + dataId
                 + "\"}}"));
     }
 

@@ -33,4 +33,9 @@ class InMemoryCardChargesContractTest extends CardChargesContractTest<InMemoryCa
     protected void providerIsDown() {
         subject.down();
     }
+
+    @Override
+    protected void credentialsAreRefused() {
+        subject.refuseCredentials();
+    }
 }

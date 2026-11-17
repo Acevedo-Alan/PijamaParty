@@ -20,7 +20,13 @@ vi.mock('@mercadopago/sdk-react', async () => {
   const { useEffect, useState } = await import('react');
   return {
     initMercadoPago: vi.fn(),
-    CardPayment: ({ onSubmit, onReady }: { onSubmit: (form: unknown) => Promise<void>; onReady?: () => void }) => {
+    CardPayment: ({
+      onSubmit,
+      onReady,
+    }: {
+      onSubmit: (form: unknown, additionalData?: unknown) => Promise<void>;
+      onReady?: () => void;
+    }) => {
       const [finished, setFinished] = useState(false);
       useEffect(() => {
         onReady?.();
@@ -39,7 +45,7 @@ vi.mock('@mercadopago/sdk-react', async () => {
               transaction_amount: 40500,
               installments: 3,
               payer: { email: 'otra@example.com', identification: { type: 'DNI', number: '12345678' } },
-            }).then(() => {
+            }, { bin: '45099535', lastFourDigits: '3704', paymentTypeId: 'credit_card' }).then(() => {
               setFinished(true);
             })
           }
@@ -200,6 +206,7 @@ describe('tracking link (UC-14, T-E3-08)', () => {
     expect(options.body).toEqual({
       cardToken: 'card-token-1',
       paymentMethodId: 'visa',
+      paymentType: 'credit_card',
       issuerId: '310',
       installments: 3,
       identificationType: 'DNI',

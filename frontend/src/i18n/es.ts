@@ -659,12 +659,9 @@ export const es = {
       inProcess: 'Tu pago quedó en revisión en Mercado Pago. Te avisamos por email cuando se confirme.',
       rejections: {
         INSUFFICIENT_FUNDS: 'Fondos insuficientes. Probá con otra tarjeta.',
-        BAD_SECURITY_CODE: 'El código de seguridad no es correcto. Revisalo y probá de nuevo.',
-        BAD_EXPIRY_DATE: 'La fecha de vencimiento no es correcta. Revisala y probá de nuevo.',
         BAD_CARD_DATA: 'Algún dato de la tarjeta no es correcto. Revisalos y probá de nuevo.',
         CALL_FOR_AUTHORIZE: 'Tu banco pide que autorices el pago. Comunicate con él y después probá de nuevo.',
         CARD_DISABLED: 'La tarjeta está deshabilitada. Activala con tu banco o probá con otra.',
-        DUPLICATED: 'Ya hiciste un pago igual hace un momento. Revisá tu email antes de pagar de nuevo.',
         MAX_ATTEMPTS: 'Llegaste al límite de intentos con esta tarjeta. Probá con otra.',
         HIGH_RISK: 'El pago fue rechazado. Probá con otra tarjeta.',
         OTHER: 'El pago fue rechazado. Probá con otra tarjeta.',

@@ -6,7 +6,8 @@
  * Reads the repository root's `.env.sandbox` (git-ignored):
  *   MERCADOPAGO_ACCESS_TOKEN    the test seller's production access token (APP_USR-...)
  *   MERCADOPAGO_PUBLIC_KEY      the public key of the same credentials (APP_USR-...), for the card form (T-E3-29)
- *   MERCADOPAGO_WEBHOOK_SECRET  the secret key of the application's Webhooks ("Modo productivo", event Pagos)
+ *   MERCADOPAGO_WEBHOOK_SECRET  the secret key of the application's Webhooks ("Modo productivo", event "Order (Mercado
+ *                               Pago)", T-E3-34)
  *   VIPS_BIN_DIR                optional, libvips' bin folder for the photos
  *   CLOUDFLARED                 optional, the cloudflared executable
  *
@@ -172,7 +173,7 @@ await waitForHealth(publicUrl);
 console.log(`
 Ready. Open the store at ${publicUrl} (not localhost).
 
-Webhook URL for the MercadoPago panel (Webhooks, Modo productivo, event Pagos):
+Webhook URL for the MercadoPago panel (Webhooks, Modo productivo, event "Order (Mercado Pago)"):
   ${publicUrl}/api/payments/mercadopago/webhook
 
 Logs: ${LOGS}

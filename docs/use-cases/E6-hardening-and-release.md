@@ -43,9 +43,9 @@ Each task's open decisions are settled with the owner when the task starts and w
   - Frontend: the Vite build served by `vite preview` with `/api` proxied to the backend, so the tests see the production bundle.
   - Playwright's `webServer` starts the stubs, the backend and the frontend. Running everything with one command is part of the task.
 - **The MercadoPago stub** (TypeScript, in `e2e/`) implements only what the real adapters call:
-  - creating the preference (UC-14). Its `init_point` points to a stub checkout page with "approve" and "reject" buttons.
-  - `GET /v1/payments/{id}` for `MercadoPagoPaymentVerifier` (UC-15).
-  - The stub checkout page sends a webhook signed like MercadoPago's (`x-signature`, `x-request-id`) to `/api/payments/mercadopago/webhook`, then redirects to the `back_urls`. A test can ask the stub to send a notification again (scenario 5).
+  - charging a card by creating an order of the Orders API, `POST /v1/orders` (UC-14; T-E3-29 replaced the preference, T-E3-34 `/v1/payments`). A fake card form (`support/mercadoPagoSdk.ts`) hands out one card token per outcome: approved (`201`), or refused for insufficient funds (`402`).
+  - `GET /v1/orders/{id}` for `MercadoPagoPaymentVerifier` (UC-15).
+  - After each charge the stub sends the order's notification (`type=order`), signed like MercadoPago's (`x-signature`, `x-request-id`, the id in lowercase), to `/api/payments/mercadopago/webhook`. A test can ask the stub to send a notification again (scenario 5).
 
   The real `MercadoPagoGateway`, `MercadoPagoPaymentVerifier` and `MercadoPagoSignature` run unchanged. This needs no new provider and no change to production code; their contract tests already cover the port side.
 - **The Resend stub** records every email it receives (recipient and subject in memory, never written to disk or logs), so scenarios 1 and 5 can count the confirmations.

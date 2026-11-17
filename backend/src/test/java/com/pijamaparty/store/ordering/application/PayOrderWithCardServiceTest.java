@@ -26,7 +26,8 @@ class PayOrderWithCardServiceTest {
 
     private static final Instant PLACED_AT = Instant.parse("2026-10-31T15:00:00Z");
     private static final PayOrderWithCard.Card CARD =
-        new PayOrderWithCard.Card("card-token-1", "visa", Optional.empty(), 1, "DNI", "12345678");
+        new PayOrderWithCard.Card("card-token-1", "visa", PayOrderWithCard.CardType.CREDIT_CARD, Optional.empty(), 1, "DNI",
+            "12345678");
 
     private final InMemoryOrderStore orders = new InMemoryOrderStore();
     private final InMemoryChargeCards cards = new InMemoryChargeCards();

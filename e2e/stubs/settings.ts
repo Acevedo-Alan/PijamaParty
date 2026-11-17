@@ -13,6 +13,8 @@ export const CLOCK_CONTROL_URL = 'http://127.0.0.1:8093';
 
 export const MERCADOPAGO_ACCESS_TOKEN = 'e2e-access-token';
 export const MERCADOPAGO_WEBHOOK_SECRET = 'e2e-webhook-secret';
+/** T-E3-34: the URL of the application's Webhooks in MercadoPago's panel; the Orders API sends no notification_url. */
+export const MERCADOPAGO_WEBHOOK_URL = `${BACKEND_URL}/api/payments/mercadopago/webhook`;
 export const RESEND_API_KEY = 'e2e-resend-key';
 
 /**

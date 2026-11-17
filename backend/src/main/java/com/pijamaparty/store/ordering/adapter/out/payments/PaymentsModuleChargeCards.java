@@ -6,6 +6,7 @@ import com.pijamaparty.store.ordering.application.PayOrderWithCard;
 import com.pijamaparty.store.payments.api.CardPaymentRequest;
 import com.pijamaparty.store.payments.api.CardPaymentResult;
 import com.pijamaparty.store.payments.api.CardPayments;
+import com.pijamaparty.store.payments.api.CardType;
 import com.pijamaparty.store.platform.persistence.CurrentActor;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -27,8 +28,8 @@ class PaymentsModuleChargeCards implements ChargeCards {
     @Override
     public PayOrderWithCard.Result charge(OrderToPay order, PayOrderWithCard.Card card, UUID idempotencyKey) {
         var request = new CardPaymentRequest(order.id().value(), order.number(), order.total(), order.buyerEmail(),
-            new CardPaymentRequest.Card(card.token(), card.paymentMethodId(), card.issuerId(), card.installments(),
-                card.identificationType(), card.identificationNumber()),
+            new CardPaymentRequest.Card(card.token(), card.paymentMethodId(), CardType.valueOf(card.type().name()),
+                card.issuerId(), card.installments(), card.identificationType(), card.identificationNumber()),
             idempotencyKey);
         return switch (CurrentActor.callAsSystem(() -> cardPayments.pay(request))) {
             case CardPaymentResult.Approved approved -> new PayOrderWithCard.Result.Approved();

@@ -20,7 +20,8 @@ public abstract class ChargeCardsContractTest<T extends ChargeCards> extends Con
     private static final AtomicLong NUMBERS = new AtomicLong(8000);
 
     protected static final PayOrderWithCard.Card CARD =
-        new PayOrderWithCard.Card("card-token-1", "visa", Optional.empty(), 1, "DNI", "12345678");
+        new PayOrderWithCard.Card("card-token-1", "visa", PayOrderWithCard.CardType.CREDIT_CARD, Optional.empty(), 1, "DNI",
+            "12345678");
 
     /** The next cards are rejected for insufficient funds. */
     protected abstract void cardsAreRejectedForInsufficientFunds();

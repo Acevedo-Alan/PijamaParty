@@ -40,10 +40,12 @@ export async function emailsTo(address: string): Promise<SentEmail[]> {
 }
 
 export interface StubPayment {
-  id: number;
+  /** MercadoPago's order id (ORD…, T-E3-34). */
+  id: string;
   status: 'approved' | 'rejected';
   externalReference: string;
-  amount: number;
+  /** Pesos with two decimals, as the Orders API writes them. */
+  amount: string;
 }
 
 /** The payments made at the MercadoPago stub for one order number. */
@@ -55,9 +57,7 @@ export async function paymentsOf(orderNumber: number): Promise<StubPayment[]> {
 }
 
 /** Delivers a payment's Webhooks notification once more, as MercadoPago does; returns the store's HTTP status. */
-export async function notifyAgain(paymentId: number): Promise<number> {
-  const response = await ok(
-    await fetch(`${MERCADOPAGO_STUB}/__e2e/payments/${String(paymentId)}/notify`, { method: 'POST' }),
-  );
+export async function notifyAgain(paymentId: string): Promise<number> {
+  const response = await ok(await fetch(`${MERCADOPAGO_STUB}/__e2e/payments/${paymentId}/notify`, { method: 'POST' }));
   return ((await response.json()) as { status: number }).status;
 }

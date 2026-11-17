@@ -34,7 +34,7 @@ export const mercadoPagoSdk = `
                 transaction_amount: settings.initialization.amount,
                 installments: 1,
                 payer: { email: 'buyer@example.com', identification: { type: 'DNI', number: '30123456' } },
-              });
+              }, { bin: '45099535', lastFourDigits: '3704', paymentTypeId: 'credit_card' });
             });
             return element;
           };

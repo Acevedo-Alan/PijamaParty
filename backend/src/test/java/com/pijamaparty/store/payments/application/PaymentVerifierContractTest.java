@@ -20,6 +20,14 @@ public abstract class PaymentVerifierContractTest<T extends PaymentVerifier> ext
 
     protected static final String PAYMENT_ID = "1234567890";
 
+    /**
+     * The provider's id of payment {@code seed}, in its format: the number itself by default ({@link #PAYMENT_ID} is
+     * seed 1234567890). MercadoPago's orders have ids of their own (T-E3-34).
+     */
+    protected String paymentId(long seed) {
+        return Long.toString(seed);
+    }
+
     protected abstract PaymentProvider expectedProvider();
 
     /** The provider holds a payment with this id for the order, in this status, for this amount. */
@@ -45,10 +53,11 @@ public abstract class PaymentVerifierContractTest<T extends PaymentVerifier> ext
 
     @Test
     void givenAnApprovedPayment_whenVerified_thenItIsFoundWithItsOrderAndExactAmount() {
-        givenPayment(PAYMENT_ID, 1001, VerifiedStatus.APPROVED, Money.of(2_100_050));
+        String id = paymentId(1234567890L);
+        givenPayment(id, 1001, VerifiedStatus.APPROVED, Money.of(2_100_050));
 
-        assertThat(subject.verify(PAYMENT_ID)).isEqualTo(new PaymentVerifier.Verification.Found(
-            new VerifiedPayment(PAYMENT_ID, expectedReference(PAYMENT_ID, 1001), VerifiedStatus.APPROVED,
+        assertThat(subject.verify(id)).isEqualTo(new PaymentVerifier.Verification.Found(
+            new VerifiedPayment(id, expectedReference(id, 1001), VerifiedStatus.APPROVED,
                 Money.of(2_100_050))));
     }
 
@@ -56,7 +65,7 @@ public abstract class PaymentVerifierContractTest<T extends PaymentVerifier> ext
     void givenPaymentsInEveryStatus_whenVerified_thenEachKeepsItsStatus() {
         long number = 1001;
         for (VerifiedStatus status : reportableStatuses()) {
-            String id = Long.toString(5000 + number);
+            String id = paymentId(5000 + number);
             givenPayment(id, number, status, Money.of(100));
 
             assertThat(subject.verify(id)).isEqualTo(new PaymentVerifier.Verification.Found(
@@ -67,14 +76,15 @@ public abstract class PaymentVerifierContractTest<T extends PaymentVerifier> ext
 
     @Test
     void givenAPaymentTheProviderDoesNotHold_whenVerified_thenItIsNotFound() {
-        assertThat(subject.verify("999")).isInstanceOf(PaymentVerifier.Verification.NotFound.class);
+        assertThat(subject.verify(paymentId(999))).isInstanceOf(PaymentVerifier.Verification.NotFound.class);
     }
 
     @Test
     void givenTheProviderDown_whenAPaymentIsVerified_thenItIsUnavailableWithoutThrowing() {
-        givenPayment(PAYMENT_ID, 1001, VerifiedStatus.APPROVED, Money.of(2_100_050));
+        String id = paymentId(1234567890L);
+        givenPayment(id, 1001, VerifiedStatus.APPROVED, Money.of(2_100_050));
         providerIsDown();
 
-        assertThat(subject.verify(PAYMENT_ID)).isInstanceOf(PaymentVerifier.Verification.Unavailable.class);
+        assertThat(subject.verify(id)).isInstanceOf(PaymentVerifier.Verification.Unavailable.class);
     }
 }
