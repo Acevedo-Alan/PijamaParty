@@ -93,7 +93,8 @@ class MercadoPagoCardChargesContractTest extends CardChargesContractTest<Mercado
         assertThat(method.get("type").asText()).isEqualTo("credit_card");
         assertThat(method.get("token").asText()).isEqualTo("card-token-1");
         assertThat(method.get("installments").asInt()).isEqualTo(3);
-        assertThat(method.get("issuer_id").asText()).isEqualTo("310");
+        // The Orders API refuses issuer_id (400 unsupported_properties, T-E3-34).
+        assertThat(method.has("issuer_id")).isFalse();
     }
 
     @Test

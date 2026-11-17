@@ -89,6 +89,12 @@ public final class MercadoPagoStub implements AutoCloseable {
             answerBody = order == null
                 ? "{\"errors\":[{\"code\":\"invalid_path_param\",\"message\":\"order_id is invalid\"}]}"
                 : order;
+        } else if ("POST".equals(exchange.getRequestMethod()) && ORDERS.equals(path)
+            && JSON.readTree(received).path("transactions").path("payments").path(0).path("payment_method")
+                .has("issuer_id")) {
+            // As the Orders API: an unknown property of the payment method is refused (seen 2026-11-17).
+            answerStatus = 400;
+            answerBody = "{\"errors\":[{\"code\":\"unsupported_properties\",\"message\":\"Properties not supported\"}]}";
         } else if ("POST".equals(exchange.getRequestMethod()) && ORDERS.equals(path)) {
             String id = idempotencyKey == null
                 ? newId()

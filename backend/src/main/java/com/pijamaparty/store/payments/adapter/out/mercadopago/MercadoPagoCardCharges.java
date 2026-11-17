@@ -1,6 +1,5 @@
 package com.pijamaparty.store.payments.adapter.out.mercadopago;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.pijamaparty.store.payments.api.CardPaymentRequest;
 import com.pijamaparty.store.payments.api.CardRejection;
@@ -156,8 +155,8 @@ class MercadoPagoCardCharges implements CardCharges {
         String number = Long.toString(charge.orderNumber());
         CardPaymentRequest.Card card = charge.card();
         String amount = pesos(charge.amount());
-        var method = new PaymentMethod(card.paymentMethodId(), typeOf(card.type()), card.token(), card.installments(),
-            card.issuerId().orElse(null));
+        // No issuer_id: the Orders API refuses it (400 unsupported_properties, seen in the sandbox on 2026-11-17).
+        var method = new PaymentMethod(card.paymentMethodId(), typeOf(card.type()), card.token(), card.installments());
         return new OrderRequest(
             "online",
             "automatic",
@@ -222,9 +221,7 @@ class MercadoPagoCardCharges implements CardCharges {
         }
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PaymentMethod(String id, String type, String token, int installments,
-                         @JsonProperty("issuer_id") String issuerId) {
+    record PaymentMethod(String id, String type, String token, int installments) {
 
         @Override
         public String toString() {

@@ -34,7 +34,9 @@ interface OrderBody {
   total_amount?: string;
   external_reference?: string;
   payer?: { email?: string; identification?: { number?: string } };
-  transactions?: { payments?: { amount?: string; payment_method?: { token?: string; type?: string } }[] };
+  transactions?: {
+    payments?: { amount?: string; payment_method?: { token?: string; type?: string; issuer_id?: unknown } }[];
+  };
 }
 
 const orders = new Map<string, Order>();
@@ -136,6 +138,11 @@ async function charge(request: IncomingMessage, response: ServerResponse): Promi
   const idempotencyKey = request.headers['x-idempotency-key'];
   const body = JSON.parse(await readBody(request)) as OrderBody;
   const payment = body.transactions?.payments?.[0];
+  if (payment?.payment_method?.issuer_id !== undefined) {
+    // As the Orders API: an unknown property of the payment method is refused (seen 2026-11-17).
+    sendJson(response, 400, { errors: [{ code: 'unsupported_properties', message: 'Properties not supported' }] });
+    return;
+  }
   if (
     typeof idempotencyKey !== 'string' ||
     body.total_amount === undefined ||
