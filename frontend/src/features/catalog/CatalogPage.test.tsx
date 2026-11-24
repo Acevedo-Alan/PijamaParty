@@ -175,7 +175,7 @@ describe('catalog grid (UC-01)', () => {
     });
   });
 
-  it('given matches, when the listing opens, then the count starts the sort row and the filter bar holds only its buttons (T-E7-70)', async () => {
+  it('given matches, when the listing opens, then the filter bar holds only its buttons and the count, the sort and the bar share one toolbar (T-E7-70, T-E7-76)', async () => {
     stubCatalogApi({ listings: [listed(products(3, 'p'), false, 3)] });
 
     renderRoute('/');
@@ -184,9 +184,11 @@ describe('catalog grid (UC-01)', () => {
     const bar = listing().getByRole('group', { name: es.filters.bar });
     const sort = listing().getByRole('combobox', { name: es.sort.label });
     expect(bar.parentElement).not.toContainElement(count);
-    expect(count.parentElement).toHaveClass('catalog-tools');
-    expect(count.parentElement?.firstElementChild).toBe(count);
-    expect(count.parentElement).toContainElement(sort);
+    // The toolbar lays them out: one row with the sort from 860 px, the count's own row below (catalog.css).
+    const toolbar = count.closest('.listing-toolbar');
+    expect(toolbar).toContainElement(bar);
+    expect(toolbar).toContainElement(sort);
+    expect(toolbar).toContainElement(listing().getByRole('group', { name: es.catalog.view }));
     // The label stays for screen readers only: "Novedades" beside the count already reads as an order.
     expect(listing().getByText(es.sort.label)).toHaveClass('visually-hidden');
   });

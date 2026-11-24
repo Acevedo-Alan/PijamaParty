@@ -1,11 +1,9 @@
 import type { ReactNode } from 'react';
-import { FilterPanel } from './FilterPanel.tsx';
 import { NO_FILTERS, withoutText } from './listingCriteria.ts';
-import { ProductListing, ResultCount } from './ProductListing.tsx';
-import { SortSelect } from './SortSelect.tsx';
+import { ListingToolbar } from './ListingToolbar.tsx';
+import { ProductListing } from './ProductListing.tsx';
 import { useListingCriteria } from './useListingCriteria.ts';
 import { useListingView } from './useListingView.ts';
-import { ViewToggle } from './ViewToggle.tsx';
 import './catalog.css';
 
 interface CatalogListingProps {
@@ -29,24 +27,18 @@ export function CatalogListing({ category, heading, photosBelowFold = false }: C
   return (
     <>
       {heading}
-      <FilterPanel
+      <ListingToolbar
         category={category}
-        filters={criteria.filters}
-        onApply={(filters) => {
+        criteria={criteria}
+        view={view}
+        onFilters={(filters) => {
           setCriteria({ ...criteria, filters });
         }}
+        onSort={(sort) => {
+          setCriteria({ ...criteria, sort });
+        }}
+        onView={setView}
       />
-      {/* T-E7-70: the count at the start of the sort's row, so the filter buttons get the whole width. */}
-      <div className="catalog-tools">
-        <ResultCount category={category} criteria={criteria} />
-        <SortSelect
-          value={criteria.sort}
-          onChange={(sort) => {
-            setCriteria({ ...criteria, sort });
-          }}
-        />
-        <ViewToggle value={view} onChange={setView} />
-      </div>
       <ProductListing
         category={category}
         criteria={criteria}

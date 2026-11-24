@@ -3,14 +3,12 @@ import { Link } from 'react-router';
 import { LazyChibi } from '../../components/chibi/LazyChibi.tsx';
 import { es } from '../../i18n/es.ts';
 import { trackSearch } from '../analytics/catalogEvents.ts';
-import { FilterPanel } from '../catalog/FilterPanel.tsx';
 import { NO_FILTERS } from '../catalog/listingCriteria.ts';
+import { ListingToolbar } from '../catalog/ListingToolbar.tsx';
 import { NewestProducts } from '../catalog/NewestProducts.tsx';
-import { ProductListing, ResultCount } from '../catalog/ProductListing.tsx';
-import { SortSelect } from '../catalog/SortSelect.tsx';
+import { ProductListing } from '../catalog/ProductListing.tsx';
 import { useListingCriteria } from '../catalog/useListingCriteria.ts';
 import { useListingView } from '../catalog/useListingView.ts';
-import { ViewToggle } from '../catalog/ViewToggle.tsx';
 import { useShopCategories } from './useShopCategories.ts';
 import { isSearchable } from './useSuggestions.ts';
 import '../catalog/catalog.css';
@@ -71,25 +69,19 @@ export function SearchPage() {
     <main className="wrap catalog">
       <title>{`${title} | ${es.store.name}`}</title>
       <h1 className="section-title">{title}</h1>
-      <FilterPanel
+      <ListingToolbar
+        searching
         category={undefined}
-        filters={criteria.filters}
-        onApply={(filters) => {
+        criteria={criteria}
+        view={view}
+        onFilters={(filters) => {
           setCriteria({ ...criteria, filters });
         }}
+        onSort={(sort) => {
+          setCriteria({ ...criteria, sort });
+        }}
+        onView={setView}
       />
-      {/* T-E7-70: the count at the start of the sort's row, so the filter buttons get the whole width. */}
-      <div className="catalog-tools">
-        <ResultCount category={undefined} criteria={criteria} />
-        <SortSelect
-          searching
-          value={criteria.sort}
-          onChange={(sort) => {
-            setCriteria({ ...criteria, sort });
-          }}
-        />
-        <ViewToggle value={view} onChange={setView} />
-      </div>
       <ProductListing
         category={undefined}
         criteria={criteria}

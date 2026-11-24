@@ -5,6 +5,7 @@ import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { filterOptions, listed, product, queriesTo, stubCatalogApi } from '../../test/catalogApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
+import catalogCss from './catalog.css?raw';
 
 const PRODUCTS = '/api/catalog/products';
 
@@ -81,6 +82,58 @@ describe('catalog filters and sort (UC-02)', { timeout: 30_000 }, () => {
       { size: ['XL'], sort: 'PRICE_DESC', page: 0 },
       { sort: 'PRICE_DESC', page: 0 },
     ]);
+  });
+
+  it('given filters with no matches, when the listing shows, then there is nothing to order or lay out, and the chibi and a support line come with the message (T-E7-76)', async () => {
+    stubCatalogApi({ listings: [listed([])] });
+    const { container } = renderRoute('/?talle=XL&color=Rosa');
+
+    expect(await screen.findByText(es.catalog.noMatches)).toBeInTheDocument();
+    expect(screen.getByText(es.catalog.noMatchesHint)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: es.catalog.clearFilters })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: es.sort.label })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: es.catalog.view })).not.toBeInTheDocument();
+    // A combination the visitor made: the heading stays the whole shop's.
+    expect(screen.getByRole('heading', { level: 2, name: es.catalog.allTitle })).toBeInTheDocument();
+    expect(container.querySelector('.empty-state .empty-state-chibi')).not.toBeNull();
+  });
+
+  it('given the header\'s "Hombre" and no men\'s products, when the listing shows, then the heading and the message name it, and "Ver todos los productos" clears it (T-E7-76)', async () => {
+    stubCatalogApi({ listings: [listed([]), listed([product('rosa')])] });
+    const { router } = renderRoute('/?publico=hombre');
+
+    expect(await screen.findByText(es.catalog.noneInLink('Hombre'))).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Hombre' })).toBeInTheDocument();
+    expect(screen.getByText(es.catalog.noneInLinkHint)).toBeInTheDocument();
+    expect(screen.queryByText(es.catalog.noMatches)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: es.catalog.seeAllProducts }));
+
+    expect(await screen.findByRole('link', { name: /Pijama rosa/i })).toBeInTheDocument();
+    expect(router.state.location.search).toBe('');
+    expect(screen.getByRole('heading', { level: 2, name: es.catalog.allTitle })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: es.sort.label })).toBeInTheDocument();
+  });
+
+  it('given "Hombre" and a size chosen together, when the listing shows, then the heading reads "Todos los productos" (T-E7-76)', async () => {
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+    renderRoute('/?publico=hombre&talle=M');
+
+    await screen.findByRole('link', { name: /Pijama rosa/i });
+    expect(screen.getByRole('heading', { level: 2, name: es.catalog.allTitle })).toBeInTheDocument();
+  });
+
+  it('given the toolbar\'s styles, when read, then its one line is below the whole block, the chips are smaller than the filter buttons on rose, and the empty state\'s button is a pill (T-E7-76)', () => {
+    expect(catalogCss).toMatch(/\.listing-toolbar \{[^}]*border-bottom: 1px solid var\(--line\);/);
+    expect(catalogCss).not.toMatch(/\.filters-row \{[^}]*border-bottom/);
+    const chip = /\.active-chip \{([^}]*)\}/.exec(catalogCss)?.[1] ?? '';
+    expect(chip).toContain('min-height: 32px;');
+    expect(chip).toContain('font-size: 12px;');
+    expect(chip).toContain('background: var(--rose-soft);');
+    expect(/\.filter-btn \{[^}]*min-height: 44px;/.test(catalogCss)).toBe(true);
+    expect(catalogCss).toMatch(/\.empty-state \.btn \{\s*border-radius: var\(--radius-pill\);/);
+    // From 860 px the sort and the view share the buttons' row.
+    expect(catalogCss).toMatch(/@media \(min-width: 860px\) \{\s*\.listing-toolbar \{[\s\S]*?\.listing-toolbar > \.sort \{\s*grid-area: 1 \/ 3;/);
   });
 
   it('given a category without products and no filters, when it opens, then the empty-category message is kept', async () => {

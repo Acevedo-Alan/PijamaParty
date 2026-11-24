@@ -1,11 +1,13 @@
 import { m } from 'motion/react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router';
+import { LazyChibi } from '../../components/chibi/LazyChibi.tsx';
 import { staggered, useEntranceMotion } from '../../components/motion/useActionMotion.ts';
 import { es } from '../../i18n/es.ts';
 import { listId, trackItemList } from '../analytics/catalogEvents.ts';
 import { countFilters, type ListingCriteria } from './listingCriteria.ts';
 import { ShowMore } from './ShowMore.tsx';
+import { storeLinkLabel } from './storeLinks.ts';
 import { ProductCard, type CardPhotoPriority } from './ProductCard.tsx';
 import type { ListingView } from './useListingView.ts';
 import { useProductListing } from './useProductListing.ts';
@@ -130,11 +132,16 @@ export function ProductListing({
   const steps = listing.data.pages.flatMap((page) => (page.status === 'listed' ? page.items.map((_, step) => step) : []));
   const unknownCategory = listing.data.pages[0]?.status === 'unknownCategory';
   if (products.length === 0 && !unknownCategory && countFilters(criteria.filters) > 0) {
+    // T-E7-76: a header link's filter ("Hombre") was not a combination the visitor made, so it is not blamed on one.
+    const link = category === undefined && criteria.text === undefined ? storeLinkLabel(criteria.filters) : undefined;
     return (
       <div className="empty-state">
-        <p role="status">{es.catalog.noMatches}</p>
+        {/* T-E7-49, T-E7-76: decorative; the message says nothing matched. */}
+        <LazyChibi mood="puzzled" pose="search" className="empty-state-chibi" />
+        <p role="status">{link === undefined ? es.catalog.noMatches : es.catalog.noneInLink(link)}</p>
+        <p className="empty-state-hint">{link === undefined ? es.catalog.noMatchesHint : es.catalog.noneInLinkHint}</p>
         <button type="button" className="btn" onClick={onClearFilters}>
-          {es.catalog.clearFilters}
+          {link === undefined ? es.catalog.clearFilters : es.catalog.seeAllProducts}
         </button>
       </div>
     );

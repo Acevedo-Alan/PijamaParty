@@ -1,21 +1,7 @@
 import { Link, useLocation } from 'react-router';
-import { es } from '../../i18n/es.ts';
 import { SHOW_LISTING } from '../catalog/HomePage.tsx';
-import { NO_FILTERS, parseCriteria, toSearchParams, type ProductFilters } from '../catalog/listingCriteria.ts';
-
-/** UC-31: Todo, then the audiences (the UC-02 key `publico`), then the winter season (`temporada`). */
-const LINKS: { label: string; filters: ProductFilters }[] = [
-  { label: es.header.all, filters: NO_FILTERS },
-  { label: es.header.audiences.WOMEN, filters: { ...NO_FILTERS, audiences: ['WOMEN'] } },
-  { label: es.header.audiences.MEN, filters: { ...NO_FILTERS, audiences: ['MEN'] } },
-  { label: es.header.audiences.KIDS, filters: { ...NO_FILTERS, audiences: ['KIDS'] } },
-  { label: es.header.winter, filters: { ...NO_FILTERS, seasons: ['WINTER'] } },
-];
-
-/** The URL query of some filters, without a sort: the links always open the default one. */
-function filtersQuery(filters: ProductFilters): string {
-  return toSearchParams({ filters, sort: 'NEWEST' }).toString();
-}
+import { parseCriteria } from '../catalog/listingCriteria.ts';
+import { filtersQuery, STORE_LINKS } from '../catalog/storeLinks.ts';
 
 export interface StoreLink {
   label: string;
@@ -29,7 +15,7 @@ export interface StoreLink {
 export function useStoreLinks(): StoreLink[] {
   const { pathname, search } = useLocation();
   const shown = pathname === '/' ? filtersQuery(parseCriteria(new URLSearchParams(search)).filters) : null;
-  return LINKS.map(({ label, filters }) => {
+  return STORE_LINKS.map(({ label, filters }) => {
     const query = filtersQuery(filters);
     return { label, search: query, current: query === shown };
   });

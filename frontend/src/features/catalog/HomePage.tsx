@@ -9,6 +9,7 @@ import { CatalogListing } from './CatalogListing.tsx';
 import { CharacterBanner, useHomeBanner } from './CharacterBanner.tsx';
 import { HeroCarousel } from './HeroCarousel.tsx';
 import { RecentlyViewed } from './RecentlyViewed.tsx';
+import { storeLinkLabel } from './storeLinks.ts';
 import { toSearchParams, withoutText } from './listingCriteria.ts';
 import { useListingCriteria } from './useListingCriteria.ts';
 import './catalog.css';
@@ -74,19 +75,20 @@ export function HomePage() {
           heading={
             <>
               <h2 className="section-title listing-heading" id="todos-los-productos" ref={listingHeading} tabIndex={-1}>
-                {es.catalog.allTitle}
+                {/* T-E7-76: a header link's filter names the listing ("Hombre"); any other keeps the whole shop's. */}
+                {storeLinkLabel(criteria.filters) ?? es.catalog.allTitle}
               </h2>
               <p className="section-sub">{es.home.listingText}</p>
             </>
           }
         />
       </section>
-      <ContactSection />
-    </main>
       {/* T-E7-75: a fine line where the catalog ends; then trust first and the contact last, before the footer. */}
       <div className="wrap" aria-hidden="true">
         <hr className="home-divider" />
       </div>
       <BenefitsBar />
+      <ContactSection />
+    </main>
   );
 }

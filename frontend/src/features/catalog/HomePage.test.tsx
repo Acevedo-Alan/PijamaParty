@@ -19,7 +19,8 @@ const BANNER = {
 };
 
 const { carousel } = es.home;
-const listingHeading = () => screen.getByRole('heading', { level: 2, name: es.catalog.allTitle });
+/** The listing's heading; a header link's filter names it instead (T-E7-76). */
+const listingHeading = (name: string = es.catalog.allTitle) => screen.getByRole('heading', { level: 2, name });
 const slide = (position: number) => screen.getByRole('button', { name: carousel.showSlide(position, 3) });
 
 describe('home page (UC-30)', () => {
@@ -62,8 +63,16 @@ describe('home page (UC-30)', () => {
     expect(router.state.location.search).toBe('?publico=mujer&orden=menor-precio');
     await screen.findByRole('link', { name: /Pijama rosa/i });
     expect(queriesTo(get, PRODUCTS).at(-1)).toEqual({ audience: ['WOMEN'], sort: 'PRICE_ASC', page: 0 });
-    expect(scroll.mock.contexts.at(-1)).toBe(listingHeading());
-    expect(listingHeading()).toHaveFocus();
+    // The header's "Mujer" is that same filter, so the heading names it (T-E7-76).
+    expect(scroll.mock.contexts.at(-1)).toBe(listingHeading(es.header.audiences.WOMEN));
+    expect(listingHeading(es.header.audiences.WOMEN)).toHaveFocus();
+  });
+
+  it('given the anchored listing, when its styles are read, then the section keeps as much empty page above the heading as the heading stops below the top, past the 64 px header (T-E7-76)', () => {
+    const margin = /\.listing-heading \{\s*scroll-margin-top: (\d+)px;/.exec(homeCss)?.[1];
+    const padding = /\.home \.catalog \{\s*padding-top: (\d+)px;/.exec(homeCss)?.[1];
+    expect(Number(margin)).toBeGreaterThan(64);
+    expect(Number(padding)).toBeGreaterThanOrEqual(Number(margin));
   });
 
   it('given the three audience cards, when listed, then they open Mujer, Hombre and Niños', () => {

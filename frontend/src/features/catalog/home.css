@@ -270,8 +270,9 @@
   padding-top: 36px;
 }
 
+/* As tall as the heading's scroll margin (T-E7-76): the anchored listing shows only empty page above its heading. */
 .home .catalog {
-  padding-top: 24px;
+  padding-top: 72px;
 }
 
 .section-sub {
@@ -280,9 +281,10 @@
   font-size: 14px;
 }
 
-/* Below the sticky header when the page scrolls to it */
+/* T-E7-76: scrolled to, the heading stops below the header (the 64 px pill, or the phone's bar), and the section keeps
+   as much empty page above it (.home .catalog), so nothing of the section above shows behind or around the header. */
 .listing-heading {
-  scroll-margin-top: 88px;
+  scroll-margin-top: 72px;
 }
 
 /* "Elegí para quién": three cards in a row, 3:4 on phones and 5:4 from 700 px */

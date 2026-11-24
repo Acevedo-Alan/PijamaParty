@@ -64,7 +64,13 @@ export const es = {
     loadMoreError: 'No pudimos cargar más productos.',
     retry: 'Reintentar',
     noMatches: 'No encontramos productos con los filtros elegidos.',
+    /** T-E7-76: the support line under it. */
+    noMatchesHint: 'Probá quitando algún filtro o explorá todo el catálogo.',
     clearFilters: 'Limpiar filtros',
+    /** T-E7-76: a header link's filter ("Hombre") without products: no combination of filters to blame. */
+    noneInLink: (link: string) => `Todavía no tenemos productos en ${link}.`,
+    noneInLinkHint: 'Mientras tanto, mirá todo lo que hay en la tienda.',
+    seeAllProducts: 'Ver todos los productos',
     /** T-E7-06: the grid or the list, kept for the visit. */
     view: 'Vista del listado',
     gridView: 'Ver en cuadrícula',
