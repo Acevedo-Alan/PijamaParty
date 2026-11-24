@@ -164,9 +164,10 @@ header.site[data-scrolled]::before {
     pointer-events: none;
   }
 
-  /* The bar gives way to the pill, but its top 6 px (the pill's margin) stay solid, so the cards never peek over it. */
+  /* The bar gives way to the pill, but the strip above it (the row's 6 px move plus the pill's 6 px inset) stays solid
+     and fades out over the pill's top 12 px, so nothing peeks over the pill and its sides stay see-through (T-E7-75). */
   header.site[data-scrolled]::before {
-    background: linear-gradient(to bottom, var(--bg) 0 8px, transparent 8px);
+    background: linear-gradient(to bottom, var(--bg) 0 12px, transparent 24px);
     backdrop-filter: none;
     border-bottom-color: transparent;
   }

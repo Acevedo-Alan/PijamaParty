@@ -18,6 +18,7 @@ import {
 import { cart, cartItem } from '../../test/cartApi.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { clearStoreContact, setStoreContact } from '../../test/storeContact.ts';
+import searchCss from './search.css?raw';
 
 const PRODUCTS = '/api/catalog/products';
 const ANA = { id: '00000000-0000-0000-0000-000000000001', email: 'ana@example.com', name: 'Ana Pérez' };
@@ -399,6 +400,15 @@ describe('header on scroll (T-E7-15, T-E7-16, UC-31)', () => {
   afterEach(() => {
     scrollPageTo(0);
     vi.restoreAllMocks();
+  });
+
+  it('given the pill header, when the page scrolls under it, then the strip above the pill stays the page color and fades out over its top (T-E7-75)', () => {
+    // jsdom draws nothing: the strip is the scrolled header's background layer. The pill's top is 12 px down (the
+    // row's 6 px move plus the pill's 6 px inset), so the solid part has to reach it.
+    const strip = /header\.site\[data-scrolled\]::before \{\s*background: linear-gradient\(to bottom, var\(--bg\) 0 (\d+)px, transparent (\d+)px\);/.exec(searchCss);
+    expect(strip).not.toBeNull();
+    expect(Number(strip?.[1])).toBeGreaterThanOrEqual(12);
+    expect(Number(strip?.[2])).toBeGreaterThan(Number(strip?.[1]));
   });
 
   /** jsdom does not scroll: the position is set and the event sent, as the browser does. */

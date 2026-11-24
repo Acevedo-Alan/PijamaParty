@@ -2,12 +2,12 @@
    the latter with its two lists side by side), the block over two columns from 640 px and everything in one row from
    960 px; below them, after a line, the Cookies link and the copyright across the whole width. */
 
-/* T-E7-21, T-E7-43: the benefits bar right above the footer; three cards in a row from 860 px, stacked below. Each is a
-   white card with a fine border and a pastel rainbow hairline on top, and its icon sits in a soft pink circle (as the
-   footer's networks do): the border and the gap tell the cards apart, so no divider is needed on a phone. */
+/* T-E7-21, T-E7-43: the benefits bar of the home page, after the listing and above "Contactanos" (T-E7-75); three
+   cards in a row from 860 px, stacked below. Each is a white card with a fine border and a pastel rainbow hairline on
+   top, and its icon sits in a soft pink circle (as the footer's networks do): the border and the gap tell the cards
+   apart, so no divider is needed on a phone. */
 .benefits {
-  margin-top: 40px;
-  padding: 8px 0 40px;
+  margin-top: 32px;
 }
 
 .benefits-list {
@@ -62,10 +62,6 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.benefits + .site-footer {
-  margin-top: 0;
-}
-
 /* The footer's pink fills the screen's whole width; its content stays inside the page's width, lined up with .wrap.
    Its lines are a soft --accent. On --rose-soft the texts are --ink: --ink-soft would stay under 4.5:1. */
 .site-footer {
@@ -510,10 +506,6 @@
 }
 
 @media (max-width: 859px) {
-  .benefits {
-    padding: 0 0 32px;
-  }
-
   .benefits-list {
     grid-auto-flow: row;
     gap: 12px;

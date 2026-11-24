@@ -1,6 +1,23 @@
 /* The prototype's home sections (UC-30): the welcome carousel (.hero) and "Elegí para quién" (.category-explorer),
    mobile-first. Every photo place keeps its size with or without the photo, so nothing shifts when one arrives. */
 
+/* T-E7-75: the listing ends closer to the store's blocks, and a fine line marks where it ends. */
+.home .catalog {
+  padding-bottom: 32px;
+}
+
+@media (min-width: 860px) {
+  .home .catalog {
+    padding-bottom: 40px;
+  }
+}
+
+.home-divider {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
 /* The prototype's gradient backgrounds (.ph-hero, .ph-1, .ph-3, .ph-5), shown until the photos arrive (D-15) */
 .tone-hero {
   background: var(--tone-hero);

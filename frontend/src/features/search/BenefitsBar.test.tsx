@@ -15,7 +15,7 @@ describe('benefits bar (UC-31, T-E7-21, T-E7-23)', () => {
     vi.restoreAllMocks();
   });
 
-  it('given MercadoPago and MODO enabled, when the home page opens, then above the footer it shows shipping, the enabled payment methods and security', async () => {
+  it('given MercadoPago and MODO enabled, when the home page opens, then between the listing and the footer it shows shipping, the enabled payment methods and security', async () => {
     stubCatalogApi({
       listings: [listed([product('rosa')])],
       paymentProviders: answer(200, { providers: ['MERCADOPAGO', 'MODO'] }),

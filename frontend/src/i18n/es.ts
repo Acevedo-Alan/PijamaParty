@@ -574,7 +574,8 @@ export const es = {
   contact: {
     title: 'Contactanos',
     text: 'Escribinos para resolver dudas o finalizar tu pedido de forma personalizada.',
-    whatsApp: 'Pedir por WhatsApp',
+    /** T-E7-75: a question to the store, not a second way to buy. */
+    whatsApp: 'Escribinos por WhatsApp',
     /** T-E7-27: the name of the floating button. */
     whatsAppButton: 'Escribinos por WhatsApp',
     /** WCAG 3.2.5: the link opens WhatsApp in a new tab, and says so. */

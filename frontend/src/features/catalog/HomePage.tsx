@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import { es } from '../../i18n/es.ts';
 import { ContactSection } from '../help/ContactSection.tsx';
+import { BenefitsBar } from '../search/BenefitsBar.tsx';
 import { PageMeta } from '../seo/PageMeta.tsx';
 import { AudienceCards } from './AudienceCards.tsx';
 import { CatalogListing } from './CatalogListing.tsx';
@@ -82,5 +83,10 @@ export function HomePage() {
       </section>
       <ContactSection />
     </main>
+      {/* T-E7-75: a fine line where the catalog ends; then trust first and the contact last, before the footer. */}
+      <div className="wrap" aria-hidden="true">
+        <hr className="home-divider" />
+      </div>
+      <BenefitsBar />
   );
 }

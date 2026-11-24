@@ -33,6 +33,30 @@ describe('"Contactanos" of the home page (UC-30, D-09)', () => {
     expect(grid.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('given the store contact, when the home page is read from top to bottom, then the listing, the divider, the benefits bar and "Contactanos" with "Escribinos por WhatsApp" come in that order (T-E7-75)', async () => {
+    setStoreContact({ email: 'hola@example.com', whatsAppNumber: '5493424000000' });
+    stubCatalogApi({ listings: [listed([product('rosa')])] });
+
+    const { container } = renderRoute('/');
+
+    await screen.findByRole('link', { name: /Pijama rosa/i });
+    const section = await screen.findByRole('region', { name: messages.title });
+    const order = [
+      screen.getByRole('region', { name: es.catalog.allTitle }),
+      container.querySelector('.home-divider'),
+      screen.getByRole('region', { name: es.benefits.label }),
+      section,
+      screen.getByRole('contentinfo'),
+    ];
+    order.slice(1).forEach((next, index) => {
+      expect(next).not.toBeNull();
+      expect((order[index]?.compareDocumentPosition(next as Node) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+    expect(within(section).getByRole('link', { name: 'Escribinos por WhatsApp' })).toHaveAttribute('href', 'https://wa.me/5493424000000');
+    // The text and the button share one card (help.css).
+    expect(section.querySelector('.contact-card .contact-whatsapp')).not.toBeNull();
+  });
+
   it('given only the email (D-15), when the home page opens, then there is no WhatsApp link', async () => {
     setStoreContact({ email: 'hola@example.com' });
     stubCatalogApi({ listings: [listed([product('rosa')])] });

@@ -13,7 +13,6 @@ import { CartPanelProvider } from '../cart/CartPanelContext.tsx';
 import { WhatsAppButton } from '../help/WhatsAppButton.tsx';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import { isPrivatePath } from '../seo/privatePaths.ts';
-import { BenefitsBar } from './BenefitsBar.tsx';
 import { SiteFooter } from './SiteFooter.tsx';
 import { SiteHeader } from './SiteHeader.tsx';
 import './search.css';
@@ -103,7 +102,6 @@ export function StoreLayout() {
           <PageEntrance key={isAccountAreaPath(pathname) ? 'account-area' : pathname}>
             <Outlet />
           </PageEntrance>
-          {pathname === '/' && <BenefitsBar />}
           <SiteFooter />
           <WhatsAppButton />
           <CartPanelOnDemand />

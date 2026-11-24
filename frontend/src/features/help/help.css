@@ -125,15 +125,34 @@
   color: var(--accent-text);
 }
 
-/* "Contactanos" at the end of the home page (UC-30, D-09): the email and the WhatsApp link, no form. */
+/* "Contactanos" at the end of the home page (UC-30, D-09): the email and the WhatsApp link, no form. T-E7-75: a card
+   with the benefit cards' look (footer.css), 24 px below them; stacked and centered on a phone, the text on the left
+   and the button on the right from 640 px. White, not tinted: the footer right below is already --rose-soft. */
 .contact {
   scroll-margin-top: 40px; /* "Contacto" of the footer lands below the header */
-  padding-block: 48px 24px;
+  padding-top: 24px;
+}
+
+.contact-card {
+  position: relative;
+  overflow: hidden;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px 32px;
+  gap: 20px;
+  padding: 24px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  text-align: center;
+}
+
+.contact-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--rainbow-across);
 }
 
 .contact .section-title {
@@ -142,8 +161,32 @@
 
 .contact p {
   max-width: 40ch;
+  margin-inline: auto;
   color: var(--ink-soft);
   font-size: 14px;
+}
+
+.contact-card .contact-whatsapp {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .contact-card {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 32px;
+    padding: 28px 32px;
+    text-align: left;
+  }
+
+  .contact p {
+    margin-inline: 0;
+  }
+
+  .contact-card .contact-whatsapp {
+    width: auto;
+    flex: none;
+  }
 }
 
 .contact-email {
