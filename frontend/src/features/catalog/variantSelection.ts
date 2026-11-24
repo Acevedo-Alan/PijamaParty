@@ -33,13 +33,13 @@ export function hasStockFor(variants: DetailVariant[], selection: Selection): bo
 }
 
 /**
- * A group with a single option starts picked, so a one-size or one-color product needs one choice less. A size
- * without stock is never picked for the visitor.
+ * A group with a single option starts picked, so a one-size or one-color product needs one choice less; so does the
+ * only size with stock among several (T-E7-74). A size without stock is never picked for the visitor.
  */
 export function initialSelection({ sizes, colors, variants }: ProductDetail): Selection {
   const color = colors.length === 1 ? (colors[0] ?? null) : null;
-  const onlySize = sizes.length === 1 ? sizes[0] : undefined;
-  const size = onlySize !== undefined && isSizeAvailable(variants, onlySize, color) ? onlySize : null;
+  const withStock = sizes.filter((size) => isSizeAvailable(variants, size, color));
+  const size = withStock.length === 1 ? (withStock[0] ?? null) : null;
   return { size, color };
 }
 

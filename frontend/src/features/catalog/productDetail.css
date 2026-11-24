@@ -418,6 +418,51 @@
   gap: 8px;
 }
 
+/* T-E7-74: the sizes that can still be picked are outlined in red while their message shows. */
+.option-group.is-missing .size-option:not(.sold-out) {
+  border-color: var(--danger);
+}
+
+/* T-E7-74: a short sideways shake on every press without the picks; the two names let it play again each time. After
+   a scroll to the group it waits for the scroll, so it is seen. */
+@media (prefers-reduced-motion: no-preference) {
+  .option-group[data-nudge='odd'] :is(.chips, .swatches) {
+    animation: pick-shake-odd 320ms var(--ease-standard);
+  }
+
+  .option-group[data-nudge='even'] :is(.chips, .swatches) {
+    animation: pick-shake-even 320ms var(--ease-standard);
+  }
+
+  .option-group[data-nudge-after-scroll] :is(.chips, .swatches) {
+    animation-delay: var(--dur-slow);
+  }
+}
+
+@keyframes pick-shake-odd {
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes pick-shake-even {
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
 /* T-E7-36: below a group still without a pick, once the add button was pressed. */
 .option-missing {
   margin-top: 8px;

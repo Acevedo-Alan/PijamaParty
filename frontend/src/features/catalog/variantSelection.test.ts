@@ -76,6 +76,17 @@ describe('variant selection (UC-03)', () => {
       .toEqual({ size: null, color: null });
   });
 
+  it('given several sizes with stock in one only, when the page opens, then that size starts picked (T-E7-74)', () => {
+    const sizes = ['S', 'M', 'L'];
+    const oneLeft = [variant('S', 'Rosa', 0), variant('M', 'Rosa', 3), variant('L', 'Rosa', 0)];
+    expect(initialSelection(detail({ sizes, colors: ['Rosa'], variants: oneLeft }))).toEqual({ size: 'M', color: 'Rosa' });
+
+    // With no color picked yet, every color's stock counts: M has none in any, so S starts picked and the color waits.
+    const twoColors = [variant('S', 'Rosa', 2), variant('M', 'Celeste', 0)];
+    expect(initialSelection(detail({ sizes: ['S', 'M'], colors: ['Rosa', 'Celeste'], variants: twoColors })))
+      .toEqual({ size: 'S', color: null });
+  });
+
   it('given a picked size, when the color changes, then the size stays only while the combination has stock', () => {
     expect(pickColor(VARIANTS, { size: 'M', color: 'Celeste' }, 'Rosa')).toEqual({ size: null, color: 'Rosa' });
     expect(pickColor(VARIANTS, { size: 'S', color: null }, 'Rosa')).toEqual({ size: 'S', color: 'Rosa' });

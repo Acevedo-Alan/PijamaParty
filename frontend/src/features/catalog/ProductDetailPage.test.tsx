@@ -21,8 +21,10 @@ import {
   SHIPPING_RATES_PATH,
   withHeader,
 } from '../../test/catalogApi.ts';
+import { forgetMotionPreference, preferReducedMotion } from '../../test/reducedMotion.ts';
 import { renderRoute } from '../../test/renderRoute.tsx';
 import { clearStoreContact, setStoreContact } from '../../test/storeContact.ts';
+import productDetailCss from './productDetail.css?raw';
 
 /** The listing of UC-01, which "Completá tu look" reads (D-08). */
 const LISTING_PATH = '/api/catalog/products';
@@ -170,6 +172,73 @@ describe('product detail (UC-03)', () => {
 
     expect(screen.queryByText(es.product.pickSize)).not.toBeInTheDocument();
     expect(screen.getByText(es.product.pickColor)).toBeInTheDocument();
+  });
+
+  it('given no size picked, when the buy button is pressed twice, then each press shakes the sizes, outlines those with stock and asks the phone to vibrate (T-E7-74)', async () => {
+    stubDetail(answer(200, productDetail({
+      sizes: ['S', 'M', 'L'],
+      variants: [detailVariant('S', 'Rosa', 2), detailVariant('M', 'Rosa', 3), detailVariant('L', 'Rosa', 0)],
+    })));
+    const vibrate = vi.fn(() => true);
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: vibrate });
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    renderRoute('/producto/luna');
+    await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' });
+    const sizes = screen.getByRole('group', { name: es.product.size });
+    expect(sizes).not.toHaveAttribute('data-nudge');
+
+    await userEvent.click(addToCart());
+
+    expect(sizes).toHaveClass('is-missing');
+    expect(sizes).toHaveAttribute('data-nudge', 'odd');
+    expect(vibrate).toHaveBeenCalledWith([30, 40, 30]);
+    expect(scroll).toHaveBeenCalledWith({ block: 'center', behavior: 'smooth' });
+
+    await userEvent.click(addToCart());
+
+    expect(sizes).toHaveAttribute('data-nudge', 'even');
+    expect(vibrate).toHaveBeenCalledTimes(2);
+
+    await userEvent.click(within(sizes).getByRole('radio', { name: 'S' }));
+    expect(sizes).not.toHaveClass('is-missing');
+    Reflect.deleteProperty(navigator, 'vibrate');
+  });
+
+  it('given reduced motion and a browser without vibration, when the buy button is pressed without a size, then the sizes come into view at once and nothing breaks (T-E7-74)', async () => {
+    preferReducedMotion(true);
+    stubDetail(answer(200, productDetail({
+      sizes: ['S', 'M'],
+      variants: [detailVariant('S', 'Rosa', 2), detailVariant('M', 'Rosa', 3)],
+    })));
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    renderRoute('/producto/luna');
+    await screen.findByRole('heading', { level: 1, name: 'Pijama Luna' });
+
+    await userEvent.click(addToCart());
+
+    expect(scroll).toHaveBeenCalledWith({ block: 'center', behavior: 'auto' });
+    expect(screen.getByText(es.product.pickSize)).toBeInTheDocument();
+    forgetMotionPreference();
+  });
+
+  it('given the shake of a missing pick, when its styles are read, then it moves only without reduced motion and only sideways (T-E7-74)', () => {
+    const [, moving = ''] = /@media \(prefers-reduced-motion: no-preference\) \{\s*\.option-group\[data-nudge='odd'\]([\s\S]*?)\n\}/.exec(productDetailCss) ?? [];
+    expect(moving).toContain('pick-shake-odd 320ms');
+    expect(moving).toContain('pick-shake-even 320ms');
+    expect(productDetailCss).toMatch(/\.option-group\.is-missing \.size-option:not\(\.sold-out\) \{\s*border-color: var\(--danger\);/);
+    expect(productDetailCss).toMatch(/@keyframes pick-shake-odd \{[^}]*translateX\(-4px\)/);
+  });
+
+  it('given sizes S, M and L with stock in M only, when the product page opens, then M starts picked (T-E7-74)', async () => {
+    stubDetail(answer(200, productDetail({
+      sizes: ['S', 'M', 'L'],
+      colors: ['Rosa'],
+      variants: [detailVariant('S', 'Rosa', 0), detailVariant('M', 'Rosa', 3), detailVariant('L', 'Rosa', 0)],
+    })));
+    renderRoute('/producto/luna');
+
+    expect(await screen.findByRole('radio', { name: 'M' })).toBeChecked();
+    expect(screen.getByRole('status')).toHaveTextContent(es.product.available(3));
   });
 
   it('given a color sold out in every size, when it is picked after pressing the buy button, then there is nothing to add, the stock note says why and no size is asked for (T-E7-36)', async () => {

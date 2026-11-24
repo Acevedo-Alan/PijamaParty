@@ -31,7 +31,7 @@ import { SizeGuideLink } from './SizeGuideSection.tsx';
 import { StickyAddToCart } from './StickyAddToCart.tsx';
 import { AdminEditLink } from './AdminEditLink.tsx';
 import { productDetailKey, useProductDetail } from './useProductDetail.ts';
-import { VariantPicker } from './VariantPicker.tsx';
+import { type Nudge, type PickGroup, VariantPicker } from './VariantPicker.tsx';
 import {
   findVariant,
   galleryFor,
@@ -69,6 +69,30 @@ function AddProblem({ answer, failed }: { answer: AddAnswer | undefined; failed:
   return null;
 }
 
+/** T-E7-74: two short pulses when the add button is pressed without the picks. */
+const MISSING_PICK_VIBRATION = [30, 40, 30];
+
+function prefersReducedMotion(): boolean {
+  // jsdom and some embedded browsers have no matchMedia: then nothing says the motion should be reduced.
+  return (window as Partial<Window>).matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+}
+
+/** Whether the whole element is on screen now. */
+function isInView(element: Element): boolean {
+  const { top, bottom } = element.getBoundingClientRect();
+  return top >= 0 && bottom <= window.innerHeight;
+}
+
+/** T-E7-74: where the browser can (not iOS Safari, nor Firefox), the phone buzzes; elsewhere nothing happens. */
+function vibrateMissingPick() {
+  // The types promise vibrate, but several browsers leave it out.
+  (navigator as Partial<Navigator>).vibrate?.(MISSING_PICK_VIBRATION);
+}
+
+function missingGroups({ size, color }: Selection): PickGroup[] {
+  return [...(size === null ? ['size' as const] : []), ...(color === null ? ['color' as const] : [])];
+}
+
 /** How long the add button says "¡Listo! En tu bolsa" after a successful add (E7 motion). */
 const ADDED_FOR_MS = 1500;
 
@@ -90,6 +114,8 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
   const [quantity, setQuantity] = useState(1);
   // T-E7-36: the add button was pressed while the size or the color was still not picked.
   const [showMissing, setShowMissing] = useState(false);
+  // T-E7-74: every press without the picks shakes the groups still missing one again.
+  const [nudge, setNudge] = useState<Nudge>({ count: 0, afterScroll: false, groups: [] });
   // T-E6-25, WCAG 4.1.3: what a screen reader hears when a picked color moves its photos to the front.
   const [photoNotice, setPhotoNotice] = useState('');
   const variant = findVariant(product.variants, selection);
@@ -118,10 +144,14 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
     };
   }, [confirmed]);
 
-  /** T-E7-36: the first group still without a pick (the size first) comes into view and takes the focus. */
-  function focusMissingPick() {
-    const group = picker.current?.querySelector(`[data-group="${selection.size === null ? 'size' : 'color'}"]`);
-    group?.scrollIntoView({ block: 'center' });
+  /** T-E7-36: the first group still without a pick (the size first). */
+  function firstMissingGroup() {
+    return picker.current?.querySelector(`[data-group="${selection.size === null ? 'size' : 'color'}"]`) ?? null;
+  }
+
+  /** T-E7-36, T-E7-74: the group comes to the middle of the screen, smoothly unless motion is reduced, and takes the focus. */
+  function focusMissingPick(group: Element | null) {
+    group?.scrollIntoView({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     group?.querySelector<HTMLInputElement>('input:not(:disabled)')?.focus({ preventScroll: true });
   }
 
@@ -132,11 +162,16 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
       return;
     }
     if (missingPick) {
+      const group = firstMissingGroup();
+      // T-E7-74: out of sight, the shake waits for the scroll that brings the group in.
+      const afterScroll = group !== null && !isInView(group);
       // Rendered before the focus moves, so the group's description is read with it.
       flushSync(() => {
         setShowMissing(true);
+        setNudge((last) => ({ count: last.count + 1, afterScroll, groups: missingGroups(selection) }));
       });
-      focusMissingPick();
+      vibrateMissingPick();
+      focusMissingPick(group);
       return;
     }
     if (variant === undefined) {
@@ -222,6 +257,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
           variants={product.variants}
           selection={selection}
           showMissing={showMissing}
+          nudge={nudge}
           sizeGuide={product.sizeGuide !== null && <SizeGuideLink guide={product.sizeGuide} />}
           onPickSize={(size) => {
             pick({ ...selection, size });
