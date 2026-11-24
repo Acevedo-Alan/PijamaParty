@@ -416,7 +416,6 @@ function TrackedOrderView({ token, order, confirming }: { token: string; order: 
           </dl>
         )}
         {isPaid(status) && <DeliveryBlock order={order} status={status} />}
-        <OrderWhatsApp number={order.number} />
       </div>
       <section className="tracking-summary" aria-labelledby="tracking-items">
         <h2 id="tracking-items">{es.tracking.items}</h2>
@@ -426,6 +425,8 @@ function TrackedOrderView({ token, order, confirming }: { token: string; order: 
             {es.tracking.shipTo(capitalizeWords(order.city), es.provinces[order.province])}
           </p>
         )}
+        {/* T-E7-73: help is offered once the buyer has gone over what was bought */}
+        <OrderWhatsApp number={order.number} />
       </section>
       <EmailCorrection token={token} order={order} />
       <OrderClosing />

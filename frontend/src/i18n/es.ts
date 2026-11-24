@@ -689,17 +689,20 @@ export const es = {
         SHIPPED: 'Tu pedido está en camino.',
         DELIVERED: 'Tu pedido fue entregado.',
       },
-      copy: 'Copiar',
       copyLabel: (number: number) => `Copiar el número del pedido #${String(number)}`,
       copied: 'Copiado',
       copyFailed: 'No se pudo copiar',
       progress: 'Avance del pedido',
       completed: 'completado',
       delivery: 'Entrega',
-      shipsTo: (city: string, province: string) => `Correo Argentino a domicilio en ${city}, ${province}`,
-      /** The delivery times of the FAQ (T-E5-12): Santa Fe, then the rest of the country. */
-      arrivesInSantaFe: 'Llega en 1 a 3 días hábiles desde que se acreditó el pago.',
-      arrivesElsewhere: 'Llega en 3 a 7 días hábiles desde que se acreditó el pago.',
+      /** T-E7-73: "{carrier} {shipsHomeIn} {city}, {province}", the carrier and the place in bold. */
+      carrier: 'Correo Argentino',
+      shipsHomeIn: 'a domicilio en',
+      /** The delivery times of the FAQ (T-E5-12), the days in bold: "{arrivesIn} {days} {arrivesSince}". */
+      arrivesIn: 'Llega en',
+      daysInSantaFe: '1 a 3 días hábiles',
+      daysElsewhere: '3 a 7 días hábiles',
+      arrivesSince: 'desde que se acreditó el pago.',
       emailSent: 'Te enviamos la confirmación y el enlace de este pedido por email.',
     },
     /** Only the order number goes in the message, never the buyer's data (T-E7-44). */

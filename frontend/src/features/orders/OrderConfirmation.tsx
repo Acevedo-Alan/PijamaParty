@@ -1,14 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
-import { Chibi } from '../../components/chibi/Chibi.tsx';
-import { capitalizeWords } from '../../i18n/capitalizeWords.ts';
-import { es } from '../../i18n/es.ts';
-import { whatsAppUrl } from '../help/storeContact.ts';
-import { useStoreContact } from '../help/useStoreContact.ts';
-import type { OrderStatus, TrackedOrder } from './orderTrackingApi.ts';
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
+import { Chibi } from "../../components/chibi/Chibi.tsx";
+import { capitalizeWords } from "../../i18n/capitalizeWords.ts";
+import { es } from "../../i18n/es.ts";
+import { whatsAppUrl } from "../help/storeContact.ts";
+import { useStoreContact } from "../help/useStoreContact.ts";
+import type { OrderStatus, TrackedOrder } from "./orderTrackingApi.ts";
 
 /** The states of an order already paid (UC-14, GLOSSARY.md), in the order the order goes through them. */
-export const PAID_STEPS = ['PAID', 'PREPARING', 'SHIPPED', 'DELIVERED'] as const satisfies readonly OrderStatus[];
+export const PAID_STEPS = [
+  "PAID",
+  "PREPARING",
+  "SHIPPED",
+  "DELIVERED",
+] as const satisfies readonly OrderStatus[];
 
 export type PaidStatus = (typeof PAID_STEPS)[number];
 
@@ -20,9 +25,54 @@ export function isPaid(status: OrderStatus): status is PaidStatus {
 /** How long "Copiado" stays on the button. */
 const COPIED_FOR_MS = 2000;
 
-/** "Copiar" next to the order number: only where the browser lets the page write to the clipboard. */
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      className="tracking-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {children}
+    </svg>
+  );
+}
+
+/** T-E7-73: line drawings in the account's style (accountIcons.tsx); decorative, the text next to each names it. */
+const ICONS = {
+  copy: (
+    <Icon>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="2" />
+      <path d="M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2" />
+    </Icon>
+  ),
+  check: (
+    <Icon>
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </Icon>
+  ),
+  truck: (
+    <Icon>
+      <path d="M3 6.5h11v9H3zM14 9.5h4l3 3v3h-7M7.5 18.5a1.8 1.8 0 1 0 0-.1M17.5 18.5a1.8 1.8 0 1 0 0-.1" />
+    </Icon>
+  ),
+  clock: (
+    <Icon>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </Icon>
+  ),
+  mail: (
+    <Icon>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+      <path d="m4 7 8 6 8-6" />
+    </Icon>
+  ),
+};
+
+/** The copy icon inside the order number's pill: only where the browser lets the page write to the clipboard. */
 function CopyNumber({ number }: { number: number }) {
-  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(
@@ -45,13 +95,13 @@ function CopyNumber({ number }: { number: number }) {
     clearTimeout(timer.current);
     clipboard.writeText(`#${String(number)}`).then(
       () => {
-        setState('copied');
+        setState("copied");
         timer.current = setTimeout(() => {
-          setState('idle');
+          setState("idle");
         }, COPIED_FOR_MS);
       },
       () => {
-        setState('failed');
+        setState("failed");
       },
     );
   }
@@ -60,14 +110,29 @@ function CopyNumber({ number }: { number: number }) {
     <>
       <button
         type="button"
-        className="tracking-copy"
-        aria-label={state === 'copied' ? es.tracking.paid.copied : es.tracking.paid.copyLabel(number)}
+        className={`tracking-copy${state === "copied" ? " is-copied" : ""}`}
+        aria-label={
+          state === "copied"
+            ? es.tracking.paid.copied
+            : es.tracking.paid.copyLabel(number)
+        }
         onClick={copy}
       >
-        {state === 'copied' ? es.tracking.paid.copied : es.tracking.paid.copy}
+        {state === "copied" ? (
+          <>
+            {ICONS.check}
+            <span aria-hidden="true">{es.tracking.paid.copied}</span>
+          </>
+        ) : (
+          ICONS.copy
+        )}
       </button>
       <span className="visually-hidden" role="status">
-        {state === 'copied' ? es.tracking.paid.copied : state === 'failed' ? es.tracking.paid.copyFailed : ''}
+        {state === "copied"
+          ? es.tracking.paid.copied
+          : state === "failed"
+            ? es.tracking.paid.copyFailed
+            : ""}
       </span>
     </>
   );
@@ -78,20 +143,34 @@ function CopyNumber({ number }: { number: number }) {
  * chibi celebrates it, with the check as a seal at its side; the check draws itself once (CSS, not under reduced
  * motion). Both are decorative: the heading says it.
  */
-export function PaidHeader({ order, status }: { order: TrackedOrder; status: PaidStatus }) {
+export function PaidHeader({
+  order,
+  status,
+}: {
+  order: TrackedOrder;
+  status: PaidStatus;
+}) {
   return (
     <header className="tracking-paid">
       <div className="tracking-paid-chibi">
         <Chibi mood="success" pose="paid" />
-        <svg className="tracking-paid-check" viewBox="0 0 48 48" aria-hidden="true">
+        <svg
+          className="tracking-paid-check"
+          viewBox="0 0 48 48"
+          aria-hidden="true"
+        >
           <circle cx="24" cy="24" r="24" />
           <path d="M14 24.5l7 7 13-14" pathLength={1} />
         </svg>
       </div>
-      <h1 data-kaomoji={es.kaomoji.paid}>{es.tracking.paid.thanks(capitalizeWords(order.buyerFirstName))}</h1>
+      <h1 data-kaomoji={es.kaomoji.paid}>
+        {es.tracking.paid.thanks(capitalizeWords(order.buyerFirstName))}
+      </h1>
       <p className="tracking-paid-line">{es.tracking.paid.lines[status]}</p>
       <p className="tracking-number">
-        <span className="tracking-number-badge">{es.tracking.title(order.number)}</span>
+        <span className="tracking-number-text">
+          {es.tracking.title(order.number)}
+        </span>
         <CopyNumber number={order.number} />
       </p>
     </header>
@@ -104,15 +183,16 @@ export function OrderProgress({ status }: { status: PaidStatus }) {
   return (
     <ol className="tracking-progress" aria-label={es.tracking.paid.progress}>
       {PAID_STEPS.map((step, index) => {
-        const state = index < current ? 'done' : index === current ? 'current' : 'later';
+        const state =
+          index < current ? "done" : index === current ? "current" : "later";
         return (
           <li
             key={step}
-            className={`tracking-step is-${state}${state === 'current' && index < PAID_STEPS.length - 1 ? ' is-pulsing' : ''}`}
-            aria-current={state === 'current' ? 'step' : undefined}
+            className={`tracking-step is-${state}${state === "current" && index < PAID_STEPS.length - 1 ? " is-pulsing" : ""}`}
+            aria-current={state === "current" ? "step" : undefined}
           >
             <span className="tracking-step-mark" aria-hidden="true">
-              {state === 'done' ? (
+              {state === "done" ? (
                 <svg viewBox="0 0 16 16">
                   <path d="M3.5 8.5l3 3 6-7" />
                 </svg>
@@ -120,8 +200,12 @@ export function OrderProgress({ status }: { status: PaidStatus }) {
                 index + 1
               )}
             </span>
-            <span className="tracking-step-name">{es.tracking.statuses[step]}</span>
-            {state === 'done' && <span className="visually-hidden">{` ${es.tracking.paid.completed}`}</span>}
+            <span className="tracking-step-name">
+              {es.tracking.statuses[step]}
+            </span>
+            {state === "done" && (
+              <span className="visually-hidden">{` ${es.tracking.paid.completed}`}</span>
+            )}
           </li>
         );
       })}
@@ -129,19 +213,49 @@ export function OrderProgress({ status }: { status: PaidStatus }) {
   );
 }
 
-/** T-E7-44: where the order goes (city and province only, UC-14) and, until it ships, the FAQ's delivery time. */
-export function DeliveryBlock({ order, status }: { order: TrackedOrder; status: PaidStatus }) {
-  const waiting = status === 'PAID' || status === 'PREPARING';
+/**
+ * T-E7-44: where the order goes (city and province only, UC-14) and, until it ships, the FAQ's delivery time.
+ * T-E7-73: one line each, after its icon, the carrier, the place and the days in bold.
+ */
+export function DeliveryBlock({
+  order,
+  status,
+}: {
+  order: TrackedOrder;
+  status: PaidStatus;
+}) {
+  const waiting = status === "PAID" || status === "PREPARING";
+  const text = es.tracking.paid;
   return (
     <section className="tracking-delivery" aria-labelledby="tracking-delivery">
-      <h2 id="tracking-delivery">{es.tracking.paid.delivery}</h2>
-      <p>{es.tracking.paid.shipsTo(capitalizeWords(order.city), es.provinces[order.province])}</p>
-      {waiting && (
-        <p className="tracking-note">
-          {order.province === 'SANTA_FE' ? es.tracking.paid.arrivesInSantaFe : es.tracking.paid.arrivesElsewhere}
-        </p>
-      )}
-      <p className="tracking-note">{es.tracking.paid.emailSent}</p>
+      <h2 id="tracking-delivery">{text.delivery}</h2>
+      <ul className="tracking-delivery-lines">
+        <li>
+          {ICONS.truck}
+          <span>
+            <strong>{text.carrier}</strong> {text.shipsHomeIn}{" "}
+            <strong>{`${capitalizeWords(order.city)}, ${es.provinces[order.province]}`}</strong>
+          </span>
+        </li>
+        {waiting && (
+          <li>
+            {ICONS.clock}
+            <span>
+              {text.arrivesIn}{" "}
+              <strong>
+                {order.province === "SANTA_FE"
+                  ? text.daysInSantaFe
+                  : text.daysElsewhere}
+              </strong>{" "}
+              {text.arrivesSince}
+            </span>
+          </li>
+        )}
+        <li className="tracking-note">
+          {ICONS.mail}
+          <span>{text.emailSent}</span>
+        </li>
+      </ul>
     </section>
   );
 }

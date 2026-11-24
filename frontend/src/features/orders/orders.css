@@ -331,36 +331,59 @@
   color: var(--ink-soft);
 }
 
+/* T-E7-73: the number and its copy icon in one pill, so the copy belongs to the number. */
 .tracking-number {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  min-height: 44px;
   margin: 0;
+  padding: 0 4px 0 16px;
+  border-radius: 999px;
+  background: var(--rose-soft);
 }
 
-.tracking-number-badge {
-  padding: 4px 12px;
-  border-radius: var(--radius-s);
-  background: var(--rose-soft);
+.tracking-number-text {
+  padding-right: 8px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
+.tracking-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .tracking-copy {
-  min-height: 32px;
-  padding: 4px 12px;
-  border: 1px solid var(--line-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 0;
   border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink);
+  background: transparent;
+  color: var(--accent-text);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .tracking-copy:hover {
-  border-color: var(--ink);
+  background: var(--surface);
+}
+
+.tracking-copy.is-copied {
+  padding-right: 12px;
+  color: var(--success);
 }
 
 /* Four paid states: a circle per step over its name, joined by a line; as the checkout's steps (T-E7-38). */
@@ -386,15 +409,21 @@
 .tracking-step + .tracking-step::before {
   content: '';
   position: absolute;
-  top: 14px;
+  top: 13px;
   right: calc(50% + 18px);
   left: calc(-50% + 18px);
-  height: 1px;
+  height: 2px;
+  border-radius: 1px;
   background: var(--line-strong);
 }
 
 .tracking-step.is-done + .tracking-step::before {
   background: var(--accent);
+}
+
+/* T-E7-73: the way to the next step is half walked, so the steps read as one process. */
+.tracking-step.is-current + .tracking-step::before {
+  background: linear-gradient(to right, var(--accent) 50%, var(--line-strong) 50%);
 }
 
 .tracking-step-mark {
@@ -479,8 +508,23 @@
   font-size: 18px;
 }
 
-.tracking-delivery p {
-  margin: 4px 0 0;
+.tracking-delivery-lines {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tracking-delivery-lines li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tracking-delivery-lines .tracking-icon {
+  margin-top: 2px;
+  color: var(--accent-text);
 }
 
 .tracking-whatsapp {
