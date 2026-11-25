@@ -28,6 +28,8 @@ class RowLevelSecurityCoverageTest {
         // The catalog and the store's settings: public, without personal data
         "category", "product", "variant", "product_image", "size_guide", "home_banner", "stock_level",
         "shipping_zone_rate", "shop_setting", "store_settings",
+        // The setup guide's omitted items (UC-46): an item name and a time, nothing about anybody
+        "setup_guide_omission",
         // Coupons and their uses, by order id only
         "coupon", "coupon_scope", "coupon_redemption",
         // Quantities and the administrator's note, by variant, order and administrator id

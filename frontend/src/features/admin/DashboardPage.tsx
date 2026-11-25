@@ -44,6 +44,7 @@ import {
 import type { OrderStatus } from './ordersApi.ts';
 import { rise } from './rise.ts';
 import { SalesChart } from './SalesChart.tsx';
+import { SetupGuideCard, useSetupGuide } from './SetupGuideCard.tsx';
 import { useStoreDay } from './useStoreDay.ts';
 import { formatNumber } from '../../i18n/formatNumber.ts';
 
@@ -751,6 +752,8 @@ export function DashboardPage() {
   const [autoRefresh, setAutoRefresh] = useAutoRefresh();
   const dashboard = useDashboard(chart, choice, autoRefresh);
   const activity = useRecentActivity(autoRefresh);
+  // UC-46: the card reads it on its own; "Actualizar" reads it again with the rest.
+  const setupGuide = useSetupGuide();
   const problem = period === 'CUSTOM' ? datesProblem(draft, today) : null;
 
   const choosePeriod = (next: SalesPeriod) => {
@@ -789,6 +792,7 @@ export function DashboardPage() {
                   if (!fetching) {
                     void dashboard.refetch();
                     void activity.refetch();
+                    void setupGuide.refetch();
                   }
                 }}
               >
@@ -806,6 +810,8 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+      {/* UC-46: "Tu tienda, lista" first; its own read, so it shows and fails apart from the summary. */}
+      <SetupGuideCard />
       {/* Always mounted, so screen readers hear each change: loading, refreshing, and back to quiet. */}
       <p className="visually-hidden" role="status">
         {dashboard.isPending ? messages.loading : dashboard.isFetching ? messages.refreshing : ''}

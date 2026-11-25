@@ -16,10 +16,16 @@ const DASHBOARD = 'GET /api/admin/dashboard';
 const COUNTS = 'GET /api/admin/dashboard/counts';
 const ACTIVITY = 'GET /api/admin/activity';
 const NO_ACTIVITY = answer(200, { items: [], hasMore: false });
+/** UC-46: the setup guide's card reads on its own; here the store is complete, so it is one quiet line. */
+const GUIDE_DONE = answer(200, {
+  items: ['WHATSAPP', 'EMAIL', 'SIZE_GUIDES', 'PRODUCT_PHOTOS', 'INSTAGRAM', 'HOME_BANNER'].map((item) => ({
+    item, state: 'DONE', total: 0, names: [],
+  })),
+});
 
 /** Every test reads the recent activity too (its own read); empty unless the test says otherwise. */
 function stub(routes: Parameters<typeof stubApi>[0]) {
-  return stubApi({ [ACTIVITY]: NO_ACTIVITY, ...routes });
+  return stubApi({ [ACTIVITY]: NO_ACTIVITY, 'GET /api/admin/setup-guide': GUIDE_DONE, ...routes });
 }
 
 type Query = { params?: { query?: Record<string, unknown> } };

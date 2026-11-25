@@ -70,6 +70,10 @@ Lo que hoy está fijo en `storeContact.ts` (D-15 de E7) pasa a editarse desde el
 
 Cada cambio hecho desde el backoffice queda registrado: precios, stock, publicar u ocultar, estados de pedidos, cupones, reseñas, envíos, portada y datos de la tienda (y, cuando lleguen, reembolsos y cambios). Se guardan la fecha, la acción, sobre qué fue y qué cambió (antes y después), sin datos personales del comprador. Se ve en "Actividad", 50 por página, filtrable por tipo y fecha. Las filas no se editan ni se borran; se conservan 2 años.
 
+### CU-46 Guía de la tienda en el resumen (pedido del dueño, 2026-11-24)
+
+Arriba del resumen, la tarjeta "Tu tienda, lista": la chibi de la tienda, con una tablita en la mano, dice cuántas cosas están listas ("4 de 6 listos") y lista lo que falta según los datos de la tienda, cada cosa con por qué importa y un enlace a la pantalla que la resuelve: el número de WhatsApp (sin él no aparecen los botones para escribir), el email de contacto, las categorías con productos publicados y sin guía de talles (nombra hasta 5, cada una lleva a su guía), los productos publicados sin foto (nombra hasta 5, los más nuevos), Instagram y el banner de la portada. Instagram y el banner se pueden "Omitir" y "Volver a mostrar"; lo omitido se guarda en el servidor, así vale en el celular y en la computadora. Las otras cuatro no se omiten: son lo que una tienda necesita para funcionar. Sin pendientes, queda una línea "¡Tu tienda está lista!" con la chibi festejando. Omitir no se registra en la actividad: cambia lo que la guía le muestra al dueño, no la tienda. Es la primera parte de la guía del backoffice; los "?" de cada pantalla vienen después.
+
 ### Cambios a casos existentes
 
 - **CU-18:** buscar un pedido por número (`1001` o `#1001`), por nombre o email del comprador, y filtrar por rango de fechas además del estado. Botón "Imprimir remito" en el detalle: una página para imprimir con número de pedido, productos, talles, colores, cantidades, nombre, teléfono y dirección de envío, sin precios.

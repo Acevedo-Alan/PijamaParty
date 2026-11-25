@@ -49,6 +49,11 @@ class AdminWriteActivityTest {
         Map.entry("POST /api/admin/auth/enrollment",
             new Records(ActivityAction.ADMIN_SIGNED_IN, ActivityAction.SECOND_FACTOR_ENROLLED)),
         Map.entry("POST /api/admin/auth/logout", new Exempt("ends the session; changes nothing of the store")),
+        // UC-46: what the setup guide shows the owner, not the store, as the summary's 5-minute switch.
+        Map.entry("PUT /api/admin/setup-guide/omitted/{item}",
+            new Exempt("omits an item of the setup guide; changes nothing of the store")),
+        Map.entry("DELETE /api/admin/setup-guide/omitted/{item}",
+            new Exempt("shows an item of the setup guide again; changes nothing of the store")),
         // UC-05 and RNF-31.5.
         Map.entry("POST /api/admin/catalog/categories", new Records(ActivityAction.CATEGORY_CREATED)),
         Map.entry("PATCH /api/admin/catalog/categories/{id}", new Records(ActivityAction.CATEGORY_RENAMED)),

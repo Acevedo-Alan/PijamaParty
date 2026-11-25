@@ -145,6 +145,50 @@ export const esAdmin = {
       /** Under the customers, e.g. "3 nuevos este mes". */
       newCustomers: (count: number) => (count === 1 ? '1 nuevo este mes' : `${formatNumber(count)} nuevos este mes`),
     },
+    /** UC-46: "Tu tienda, lista", the store setup guide with the chibi. */
+    setupGuide: {
+      title: 'Tu tienda, lista',
+      /** How many of the items are done or omitted, e.g. "4 de 6 listos". */
+      ready: (ready: number, total: number) => `${formatNumber(ready)} de ${formatNumber(total)} listos`,
+      allDone: '¡Tu tienda está lista!',
+      loadError: 'No pudimos cargar la guía de tu tienda.',
+      saveError: 'No pudimos guardar el cambio.',
+      omit: 'Omitir',
+      /** The omit button's name for screen readers, with the item it omits. */
+      omitLabel: (item: string) => `Omitir «${item}»`,
+      showOmitted: (count: number) => `Ver omitidos (${formatNumber(count)})`,
+      hideOmitted: 'Ocultar omitidos',
+      showAgain: 'Volver a mostrar',
+      showAgainLabel: (item: string) => `Volver a mostrar «${item}»`,
+      /** After the names of an item, e.g. "y 2 más". */
+      more: (count: number) => `y ${formatNumber(count)} más`,
+      items: {
+        WHATSAPP: {
+          title: 'Cargá el número de WhatsApp',
+          why: 'Sin él, la tienda no muestra los botones para escribirte.',
+        },
+        EMAIL: {
+          title: 'Cargá el email de contacto',
+          why: 'Aparece en el pie de la tienda y en los emails a tus clientas.',
+        },
+        SIZE_GUIDES: {
+          title: 'Categorías sin guía de talles',
+          why: 'Sin guía, la ficha no muestra «Guía de talles».',
+        },
+        PRODUCT_PHOTOS: {
+          title: 'Productos publicados sin foto',
+          why: 'En la tienda se ven con un fondo de color en lugar de la foto.',
+        },
+        INSTAGRAM: {
+          title: 'Sumá tu Instagram',
+          why: 'Aparece en el pie y en el menú de la tienda.',
+        },
+        HOME_BANNER: {
+          title: 'Publicá el banner de la portada',
+          why: 'Es la franja de personajes de la portada.',
+        },
+      },
+    },
   },
   /** What the badge on "Pedidos" says to screen readers (T-E8-05). */
   paidWaiting: (count: number) =>

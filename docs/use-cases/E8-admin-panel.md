@@ -468,3 +468,56 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 
 **Design notes**
 - `AdminSearch` (`features/admin`): a native `dialog` like `AdminMenuPanel`, three TanStack queries (`enabled` from 2 characters, debounced 250 ms) over `fetchOrders`, `fetchProductSummaries` and `fetchCustomers` with their `q`; results are links. The header gets the search button, a "Ver tienda" link and the signed-in name with a sign-out button.
+
+---
+
+## UC-46 Store setup guide on the summary (2026-11-24, owner's request: tips with the chibi as a guide)
+
+**Actor:** Administrator · **Module:** `backoffice` (reads `settings` and `catalog`; owns the omitted items) · **Stage:** E8a
+
+The owner sets the store up alone, from a phone or a computer, and the back office does not say what is still missing: a store without a WhatsApp number shows no WhatsApp buttons, a category without a size guide shows no "Guía de talles", a published product without photos shows a gradient. The summary gets a card, "Tu tienda, lista", where the store's chibi lists what is missing, read from the store's own data, each item leading to the screen that fixes it. It is the first part of the back-office guide; the "?" tips of each screen come later, as tasks of their own, and reuse the server-side choice of this one.
+
+**Preconditions:** the administrator is signed in (UC-04).
+
+**Main flow**
+1. The administrator opens `/admin`.
+2. The system shows, at the top of the summary, the card "Tu tienda, lista" with the chibi, how many items are done ("4 de 6 listos") and each pending item with its reason and a link to fix it.
+3. The administrator follows a link, fixes the item and comes back: the item is done.
+
+**Alternative flows**
+- **Omit:** an item the store may not need (Instagram, the banner) has "Omitir". It leaves the pending list and counts as done; the card then offers "Ver omitidos (N)", which lists them, each with "Volver a mostrar". The choice is kept on the server, so it holds on the owner's phone and computer.
+- **All done:** with nothing pending, the chibi celebrates and the card shrinks to one line, "¡Tu tienda está lista!", keeping "Ver omitidos (N)" when there are some.
+- **The guide cannot be read:** only the card says so, with "Reintentar"; the rest of the summary is a read of its own (UC-33) and is not affected. A failed "Omitir" or "Volver a mostrar" leaves the item where it was and says "No pudimos guardar el cambio."
+
+**Business rules**
+- **The items,** in this order, each done or pending from the data at the moment of the read:
+  1. `WHATSAPP`, "Cargá el número de WhatsApp": "Sin él, la tienda no muestra los botones para escribirte." Done when "Datos de la tienda" has the number (UC-36). Link: `/admin/datos-de-la-tienda`.
+  2. `EMAIL`, "Cargá el email de contacto": "Aparece en el pie de la tienda y en los emails a tus clientas." Done with the email (UC-36). Same link.
+  3. `SIZE_GUIDES`, "Categorías sin guía de talles": "Sin guía, la ficha no muestra «Guía de talles»." Done when every active category with at least one published product has a size guide (RNF-31.5). Pending, it names up to 5 of those categories in the categories' order, each linking to its guide (`/admin/categorias/{id}/guia-de-talles`), and "y N más" to `/admin/categorias` when there are more.
+  4. `PRODUCT_PHOTOS`, "Productos publicados sin foto": "En la tienda se ven con un fondo de color en lugar de la foto." Done when every published product has at least one photo. Pending, it names up to 5 of them, newest first, each linking to its edit page (`/admin/productos/{id}`), and "y N más" to `/admin/productos`.
+  5. `INSTAGRAM`, "Sumá tu Instagram": "Aparece en el pie y en el menú de la tienda." Done with the Instagram link (UC-36). Link: `/admin/datos-de-la-tienda`.
+  6. `HOME_BANNER`, "Publicá el banner de la portada": "Es la franja de personajes de la portada." Done while the banner is published (UC-32). Link: `/admin/portada`.
+- **Omitting** is allowed for `INSTAGRAM` and `HOME_BANNER` only: the other four are what a working store needs (the buttons to write, the footer's contact, the size guides and the photos), so they stay until done. An omitted item that becomes done stays omitted until shown again; shown again, it is pending or done by its data.
+- "N de 6 listos" counts done and omitted items together.
+- **Not in the activity log (UC-37):** omitting or showing again changes what the guide shows the owner, not the store, as the summary's 5-minute switch does not either. Nothing of it reaches logs or analytics; no personal data is involved.
+- **The chibi** (the shared `Chibi`, T-E7-48) is decorative (`aria-hidden`): mood `idle`, pose `guide` (holding a small clipboard) while something is pending; mood `success`, pose `guide`, when nothing is. 96 px on the card, 48 px on the one-line card. Under reduced motion it stays still.
+
+**Acceptance criteria**
+- Given a store without a WhatsApp number, when the summary opens, then "Tu tienda, lista" shows "Cargá el número de WhatsApp" linking to "Datos de la tienda"; once the number is saved, it is done.
+- Given the active categories "Pijamas" (with a size guide and a published product), "Ropa de casa" (without one, with a published product) and "Batas" (without one and without published products), when the summary opens, then the size guide item names only "Ropa de casa", linking to its guide.
+- Given 7 published products without photos, when the summary opens, then the item names the 5 newest and "y 2 más" links to the product list; a hidden product without photos does not count.
+- Given the banner hidden, when "Omitir" is pressed on its item, then it leaves the list, "N de 6 listos" counts it, and after signing in on another device it is still omitted.
+- Given an omitted item, when "Volver a mostrar" is pressed, then it shows again as pending or done by its data.
+- Given the API asked to omit `WHATSAPP`, `EMAIL`, `SIZE_GUIDES` or `PRODUCT_PHOTOS`, then it answers `409` and nothing is stored; an unknown item is `400`.
+- Given the same item omitted twice, then both answers are `204` and one row is stored.
+- Given everything done, when the summary opens, then the card is one line, "¡Tu tienda está lista!", with the chibi celebrating.
+- Given the guide failing and the summary not, when the summary opens, then only the card shows the error with "Reintentar".
+- Given a customer session, when it calls the guide's endpoints, then it gets `403`; an anonymous caller gets `401`.
+
+**Design notes**
+- **Inbound ports (`backoffice.application`):** `GetSetupGuide` (`Query(actor)`; `Shown(SetupGuide)` or `Forbidden`), `OmitSetupItem` (`Command(actor, item)`; `Omitted`, `NotOmittable` or `Forbidden`) and `ShowSetupItem` (`Command(actor, item)`; `Shown` or `Forbidden`). Showing an item that was not omitted is `Shown` too.
+- **Domain (`backoffice.domain`):** `SetupItem` (the six items in order, and whether each may be omitted) and `SetupGuide.from(facts, omitted)`, which decides each item's state (`DONE`, `PENDING`, `OMITTED`) and keeps the names and the total of the two items that name things. Pure, unit tested.
+- **Outbound ports:** `StoreContactFacts` (has WhatsApp, email, Instagram) over `settings.api.StoreContact`; `CatalogSetupFacts` over a new `catalog.api.CatalogSetup` (`categoriesWithoutSizeGuide(limit)` and `publishedProductsWithoutPhoto(limit)`, each the first names, as id and name in the order above, and the total; and `homeBannerPublished()`), constant SQL over the catalog tables; `LoadOmittedSetupItems` and `SaveOmittedSetupItems` (read and write apart) over table `setup_guide_omission` (V46: `item` text primary key with a check on the two omittable items, `omitted_at`). One row per item: the store has one administrator (D-E8-01). No personal data, so no Row Level Security; it joins the public list of `RowLevelSecurityCoverageTest` with that reason. Omitting is `INSERT … ON CONFLICT DO NOTHING`, showing again a `DELETE`.
+- **Endpoints:** `GET /api/admin/setup-guide` → `200` `{ items: [{ item, state, total, names: [{ id, name }] }] }` (`total` and `names` empty but for the two items that name things); `PUT /api/admin/setup-guide/omitted/{item}` → `204`, or `409` problem for an item that may not be omitted; `DELETE /api/admin/setup-guide/omitted/{item}` → `204`; an `{item}` outside the enum is `400`. OpenAPI is updated. The admin endpoints' session and CSRF rules apply as to the others.
+- **Page:** `SetupGuideCard` in `features/admin`, first on `DashboardPage`, its own TanStack query (`['admin', 'setup-guide']`), invalidated after omitting or showing again and when the summary's "Actualizar" reads again. The chibi is a `LazyChibi`. One column on a phone (RNF-26).
+- **Chibi:** a new pose `guide`: a small clipboard with two ticked lines in the right hand (`Held` `clipboard`), drawn like the key and the bag of T-E7-47 and T-E7-49.

@@ -14,18 +14,24 @@ export type ChibiMood = 'idle' | 'text' | 'password' | 'peek' | 'waiting' | 'err
  * wonders with a question mark on "Recuperar contraseña" and holds a key on "Elegir contraseña nueva"; on the paid
  * order little stars fall around it, and in the empty cart it hugs a pillow (T-E7-48); a search without results gives
  * it a magnifier, the 404 page an open map, and "Mis pedidos" without orders an empty little bag (T-E7-49); while a
- * payment is awaited, three little stars orbit over its head (T-E7-50).
+ * payment is awaited, three little stars orbit over its head (T-E7-50); as the back office's guide it holds a small
+ * clipboard with two ticked lines (UC-46).
  */
 export type ChibiPose =
-  'signIn' | 'register' | 'recover' | 'reset' | 'paid' | 'cart' | 'search' | 'lost' | 'orders' | 'paying';
+  'signIn' | 'register' | 'recover' | 'reset' | 'paid' | 'cart' | 'search' | 'lost' | 'orders' | 'paying' | 'guide';
 
 /** The poses with a "?" over its head. */
 const WONDERING: readonly ChibiPose[] = ['recover', 'search', 'lost'];
 
 /** What the right hand holds, drawn before the mitten so the hand grips it, and moving with the hand. */
-type Held = 'key' | 'magnifier' | 'bag';
+type Held = 'key' | 'magnifier' | 'bag' | 'clipboard';
 
-const HELD_BY_POSE: Partial<Record<ChibiPose, Held>> = { reset: 'key', search: 'magnifier', orders: 'bag' };
+const HELD_BY_POSE: Partial<Record<ChibiPose, Held>> = {
+  reset: 'key',
+  search: 'magnifier',
+  orders: 'bag',
+  guide: 'clipboard',
+};
 
 function HeldThing({ held }: { held: Held }) {
   switch (held) {
@@ -50,6 +56,16 @@ function HeldThing({ held }: { held: Held }) {
         <g className="chibi-bag">
           <path className="chibi-bag-handle" d="M142 158c0-14 20-14 20 0" />
           <path className="chibi-bag-body" d="M130 158h44l-4 34h-36z" />
+        </g>
+      );
+    case 'clipboard':
+      return (
+        <g className="chibi-clipboard">
+          <rect className="chibi-clipboard-board" x="140" y="104" width="34" height="44" rx="4" />
+          <rect className="chibi-clipboard-paper" x="145" y="112" width="24" height="31" rx="1.5" />
+          <rect className="chibi-clipboard-clip" x="150" y="100" width="14" height="8" rx="2" />
+          <path className="chibi-clipboard-tick" d="M148 121l2.5 2.5 4-5M148 133l2.5 2.5 4-5" />
+          <path className="chibi-clipboard-line" d="M158 121h8M158 133h8" />
         </g>
       );
   }

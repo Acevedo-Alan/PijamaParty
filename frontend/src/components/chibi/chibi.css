@@ -125,6 +125,47 @@
   stroke-width: 2.4;
 }
 
+/* UC-46: the back office's guide holds a small clipboard: a board, its paper, a gold clip and two ticked lines. */
+.chibi-clipboard-board,
+.chibi-clipboard-paper,
+.chibi-clipboard-clip {
+  stroke: var(--chibi-line);
+  stroke-linejoin: round;
+}
+
+.chibi-clipboard-board {
+  fill: var(--chibi-hair);
+  stroke-width: 2.8;
+}
+
+.chibi-clipboard-paper {
+  fill: var(--chibi-map);
+  stroke-width: 1.4;
+}
+
+.chibi-clipboard-clip {
+  fill: var(--chibi-key);
+  stroke-width: 2;
+}
+
+.chibi-clipboard-tick,
+.chibi-clipboard-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chibi-clipboard-tick {
+  stroke: var(--accent);
+  stroke-width: 2.4;
+}
+
+.chibi-clipboard-line {
+  stroke: var(--chibi-line);
+  stroke-width: 1.8;
+  opacity: 0.45;
+}
+
 /* The question mark of "Recuperar contraseña", a search without results and the 404, over its head. */
 .chibi-wonder {
   fill: var(--chibi-doze);

@@ -65,6 +65,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/setup-guide/omitted/{item}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Omits an item the store may do without (INSTAGRAM, HOME_BANNER); idempotent */
+        put: operations["omit"];
+        post?: never;
+        /** Shows an omitted item again; idempotent */
+        delete: operations["show"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/orders/{id}/shipment-tracking-number": {
         parameters: {
             query?: never;
@@ -1667,6 +1685,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/setup-guide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store setup guide: each item in order, done, pending or omitted */
+        get: operations["get_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/reviews": {
         parameters: {
             query?: never;
@@ -1715,7 +1750,7 @@ export interface paths {
             cookie?: never;
         };
         /** An order with its buyer, address, lines, amounts, next statuses, withdrawal and alerts */
-        get: operations["get_5"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1732,7 +1767,7 @@ export interface paths {
             cookie?: never;
         };
         /** The summary: what to do today, the sales of a period, the chart, low stock, best sellers, recent orders and the totals */
-        get: operations["get_6"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1749,7 +1784,7 @@ export interface paths {
             cookie?: never;
         };
         /** The counts of the back-office menu: the PAID orders waiting to be prepared */
-        get: operations["get_7"];
+        get: operations["get_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2837,6 +2872,23 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        SetupGuideResponse: {
+            items?: components["schemas"]["SetupItemResponse"][];
+        };
+        SetupItemResponse: {
+            /** @enum {string} */
+            item?: "WHATSAPP" | "EMAIL" | "SIZE_GUIDES" | "PRODUCT_PHOTOS" | "INSTAGRAM" | "HOME_BANNER";
+            /** @enum {string} */
+            state?: "DONE" | "PENDING" | "OMITTED";
+            /** Format: int64 */
+            total?: number;
+            names?: components["schemas"]["SetupNameResponse"][];
+        };
+        SetupNameResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+        };
         ModerationPageResponse: {
             items?: components["schemas"]["ModeratedReviewResponse"][];
             hasMore?: boolean;
@@ -3437,6 +3489,95 @@ export interface operations {
             };
             /** @description Threshold out of range */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    omit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item: "WHATSAPP" | "EMAIL" | "SIZE_GUIDES" | "PRODUCT_PHOTOS" | "INSTAGRAM" | "HOME_BANNER";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Omitted, now or before */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description Not an item of the guide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description An item a working store needs, which stays until done */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    show: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item: "WHATSAPP" | "EMAIL" | "SIZE_GUIDES" | "PRODUCT_PHOTOS" | "INSTAGRAM" | "HOME_BANNER";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Shown, or it was not omitted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description Not an item of the guide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7661,6 +7802,35 @@ export interface operations {
             };
         };
     };
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The guide */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupGuideResponse"];
+                };
+            };
+            /** @description Not the administrator */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     list_4: {
         parameters: {
             query?: {
@@ -7746,7 +7916,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -7786,7 +7956,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: {
                 /** @description The chart by the last 30 days or the last 12 months */
@@ -7833,7 +8003,7 @@ export interface operations {
             };
         };
     };
-    get_7: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;
