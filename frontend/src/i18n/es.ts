@@ -579,7 +579,8 @@ export const es = {
   /** UC-30 (T-E7-03, D-09): "Contactanos" at the end of the home page, links only. */
   contact: {
     title: 'Contactanos',
-    text: 'Escribinos para resolver dudas o finalizar tu pedido de forma personalizada.',
+    /** A question to the store: the purchase happens on the page (T-E7-75). */
+    text: 'Escribinos y te ayudamos a elegir el talle, el color o lo que necesites.',
     /** T-E7-75: a question to the store, not a second way to buy. */
     whatsApp: 'Escribinos por WhatsApp',
     /** T-E7-27: the name of the floating button. */
