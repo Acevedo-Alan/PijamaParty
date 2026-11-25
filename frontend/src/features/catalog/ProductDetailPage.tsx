@@ -52,6 +52,15 @@ function StockNote({ available, soldOutColor }: { available: number | undefined;
   if (available === undefined) {
     return null;
   }
+  if (available === 1) {
+    // T-E7-77: the last unit is worth noticing, without an alert; the dot is decoration.
+    return (
+      <span className="stock-last">
+        <span className="stock-dot" aria-hidden="true" />
+        {es.product.available(1)}
+      </span>
+    );
+  }
   return <>{available > 0 ? es.product.available(available) : es.product.noStock}</>;
 }
 

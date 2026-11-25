@@ -241,6 +241,34 @@ describe('product detail (UC-03)', () => {
     expect(screen.getByRole('status')).toHaveTextContent(es.product.available(3));
   });
 
+  it('given one unit left of the only size, when the product page opens, then the stock line says it is the last one after a dot for the eyes only (T-E7-77)', async () => {
+    stubDetail(answer(200, productDetail({
+      sizes: ['2'],
+      colors: ['Rosa'],
+      variants: [detailVariant('2', 'Rosa', 1)],
+    })));
+    renderRoute('/producto/luna');
+
+    const line = await screen.findByText(es.product.available(1));
+    expect(line).toHaveTextContent('Última unidad disponible');
+    expect(line.closest('[role="status"]')).not.toBeNull();
+    expect(line.querySelector('.stock-dot')).toHaveAttribute('aria-hidden', 'true');
+    expect(productDetailCss).toMatch(/\.stock-last \{[^}]*color: var\(--accent-text\);/);
+    expect(productDetailCss).toMatch(/\.stock-dot \{[^}]*background: var\(--accent\);/);
+  });
+
+  it('given "Consultar por WhatsApp", when its styles are read, then it is a pill with a soft border and the WhatsApp drawing (T-E7-77)', async () => {
+    setStoreContact({ whatsAppNumber: '5493424000000' });
+    stubDetail(answer(200, productDetail()));
+    renderRoute('/producto/luna');
+
+    await userEvent.click(await screen.findByRole('radio', { name: 'Rosa' }));
+
+    const ask = screen.getByRole('link', { name: es.product.whatsAppAskLabel });
+    expect(ask.querySelector('svg.whatsapp-glyph')).toHaveAttribute('aria-hidden', 'true');
+    expect(productDetailCss).toMatch(/\.pdp-whatsapp \{[^}]*border: 1px solid var\(--line\);[^}]*border-radius: 999px;/);
+  });
+
   it('given a color sold out in every size, when it is picked after pressing the buy button, then there is nothing to add, the stock note says why and no size is asked for (T-E7-36)', async () => {
     stubDetail(answer(200, productDetail({
       sizes: ['S', 'M'],

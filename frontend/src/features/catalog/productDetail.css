@@ -194,6 +194,23 @@
   color: var(--ink-soft);
 }
 
+/* T-E7-77: the last unit, in the brand's wine after a small rose dot. */
+.stock-last {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.stock-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
 /*
  * The add button (E7 motion): a pill of 52 px with a faint light edge on top and a soft shadow. Pressed, it sinks to
  * 0.97 (120 ms). Done (120 to 350 ms), its first face slides up and away while the second comes up from below with a
@@ -583,15 +600,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   min-height: 48px;
-  padding: 10px 16px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-m);
+  padding: 10px 20px;
+  /* T-E7-77: a pill like the add button, its border softer so it does not compete with it. */
+  border: 1px solid var(--line);
+  border-radius: 999px;
   background: var(--surface);
   color: var(--accent-text);
   font-weight: 600;
   text-align: center;
   text-decoration: none;
+}
+
+.pdp-whatsapp .whatsapp-glyph {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 @media (hover: hover) {

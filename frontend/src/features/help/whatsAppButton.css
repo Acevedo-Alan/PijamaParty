@@ -34,17 +34,6 @@
   height: 30px;
 }
 
-.whatsapp-bubble {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-  stroke-linejoin: round;
-}
-
-.whatsapp-phone {
-  fill: currentColor;
-}
-
 /* Its space stays free: keyboard focus scrolls clear of it (WCAG 2.4.11), and the footer ends above it. */
 html:has(.whatsapp-button) {
   scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));

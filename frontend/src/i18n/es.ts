@@ -185,7 +185,7 @@ export const es = {
     /** The name of a size or color without stock, e.g. "Celeste, agotado". */
     soldOutOption: (value: string) => `${value}, agotado`,
     /** The exact available stock of the picked size and color (UC-03). */
-    available: (count: number) => (count === 1 ? 'Queda 1 disponible' : `Hay ${String(count)} disponibles`),
+    available: (count: number) => (count === 1 ? 'Última unidad disponible' : `Hay ${String(count)} disponibles`),
     noStock: 'Sin stock en este talle y color',
     /** T-E7-36: a picked color sold out in every size. */
     noStockInColor: 'Sin stock en este color',

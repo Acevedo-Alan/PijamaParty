@@ -1,6 +1,7 @@
 import { es } from '../../i18n/es.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { whatsAppUrl } from '../help/storeContact.ts';
+import { WhatsAppGlyph } from '../help/WhatsAppGlyph.tsx';
 import { useStoreContact } from '../help/useStoreContact.ts';
 
 interface ProductWhatsAppProps {
@@ -14,7 +15,8 @@ interface ProductWhatsAppProps {
 /**
  * UC-03: "Consultar por WhatsApp" under the add button, for a picked variant with stock (the parent decides when).
  * A question to the business, not another way to buy: the message names the product, the picks, the price and the
- * product's address, nothing about the visitor (R-05). Nothing without the store's number (UC-36).
+ * product's address, nothing about the visitor (R-05). A pill like the add button, with the store's WhatsApp drawing
+ * (T-E7-77). Nothing without the store's number (UC-36).
  */
 export function ProductWhatsApp({ name, slug, size, color, priceCents }: ProductWhatsAppProps) {
   const number = useStoreContact().whatsAppNumber;
@@ -31,6 +33,7 @@ export function ProductWhatsApp({ name, slug, size, color, priceCents }: Product
       rel="noopener noreferrer"
       aria-label={es.product.whatsAppAskLabel}
     >
+      <WhatsAppGlyph />
       {es.product.whatsAppAsk}
     </a>
   );

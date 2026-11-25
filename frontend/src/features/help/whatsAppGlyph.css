@@ -1,0 +1,11 @@
+/* The store's WhatsApp drawing (T-E7-27, T-E7-77): it takes the color of the text around it. */
+.whatsapp-bubble {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linejoin: round;
+}
+
+.whatsapp-phone {
+  fill: currentColor;
+}
