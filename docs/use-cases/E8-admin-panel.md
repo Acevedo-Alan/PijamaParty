@@ -521,3 +521,42 @@ The owner sets the store up alone, from a phone or a computer, and the back offi
 - **Endpoints:** `GET /api/admin/setup-guide` → `200` `{ items: [{ item, state, total, names: [{ id, name }] }] }` (`total` and `names` empty but for the two items that name things); `PUT /api/admin/setup-guide/omitted/{item}` → `204`, or `409` problem for an item that may not be omitted; `DELETE /api/admin/setup-guide/omitted/{item}` → `204`; an `{item}` outside the enum is `400`. OpenAPI is updated. The admin endpoints' session and CSRF rules apply as to the others.
 - **Page:** `SetupGuideCard` in `features/admin`, first on `DashboardPage`, its own TanStack query (`['admin', 'setup-guide']`), invalidated after omitting or showing again and when the summary's "Actualizar" reads again. The chibi is a `LazyChibi`. One column on a phone (RNF-26).
 - **Chibi:** a new pose `guide`: a small clipboard with two ticked lines in the right hand (`Held` `clipboard`), drawn like the key and the bag of T-E7-47 and T-E7-49.
+
+## UC-47 Screen help with the chibi (2026-11-25, owner's request: tips with the chibi as a guide, second part)
+
+**Actor:** Administrator · **Module:** none (frontend only: static texts, nothing read or stored on the server) · **Stage:** E8
+
+**Preconditions:** the administrator is signed in (UC-04).
+
+**Main flow**
+1. On any of the 13 screens of the back-office menu, a "?" button sits right after the screen's title.
+2. The administrator presses it: a small card opens under it with the store's chibi (pose `guide`, mood `idle`), the screen's name and two or three short lines on how that screen works.
+3. "Entendido", Escape, a press outside the card or pressing "?" again closes it.
+
+**Business rules**
+- The lines only say what the screen does, as its use cases define it; they promise nothing else.
+- Static: the same lines for every administrator, in `esAdmin.ts`; nothing is remembered (the one-time tips are a later part).
+- One card open at a time; it never covers the menu and fits a 320 px phone.
+
+**Screens and lines**
+- **Resumen** (UC-33): "Para hacer hoy" gathers what is waiting: paid orders to prepare, unresolved withdrawals, reviews to moderate. Every count is a link to its screen, already filtered. Pick the period to see its sales and how much they changed.
+- **Pedidos** (UC-18): A paid order waits for you: "Preparar", then "Marcar como enviado" with the tracking number, and at the end "Marcar como entregado". Cancelling a paid order, you choose whether its stock comes back. Money is refunded from the MercadoPago or MODO panel.
+- **Arrepentimientos** (UC-29): Every request comes with its procedure code and its order. "Fuera de término" is only a notice: you decide. Arrange the return (the store pays it), cancel the order, refund from the payment provider and mark it resolved.
+- **Clientes** (UC-34): The registered customers, newest first; search by name or email. Open one to see their data and their orders.
+- **Productos** (UC-06): Pick the sizes and colors: one variant per combination, each with its price. Photos are converted and resized by themselves. A hidden product is not shown in the store.
+- **Categorías** (UC-05): Create, rename, reorder or deactivate categories. A category with products cannot be deleted: deactivate it. Each one has its size guide, shown on its products' pages.
+- **Stock** (UC-07): Every active variant with its units; adjust by adding or subtracting, with a reason. Purchases take their units by themselves: adjust only what changes outside the store. The low-stock threshold is set in "Datos de la tienda".
+- **Cupones** (UC-11): A coupon is a percentage or a fixed amount, with optional dates, maximum uses and minimum purchase. Deactivate it to pause it without losing its uses.
+- **Reseñas** (UC-25): New reviews wait for your approval before showing in the store. Approving shows it and counts it in the average; rejecting hides it. If the customer edits it, it goes back to pending.
+- **Portada** (UC-32): The characters banner of the home page: photo, title, text and button. Save your changes, check the preview, then publish. Hiding it takes it off the home page without deleting it.
+- **Envíos** (UC-12): One cost per province; a province without a cost has no shipping. $0 is free shipping to that province. Free shipping from an amount compares with the subtotal after the discount.
+- **Datos de la tienda** (UC-36): What you enter here shows in the store: WhatsApp, email, hours, address and networks. The announcement is the strip on top of the store; empty, it shows the free shipping. The low-stock threshold decides which variants the summary warns about.
+- **Actividad** (UC-37): Every change made in the back office is written down here, newest first. Filter by type and date.
+
+**Acceptance criteria**
+- Given the Pedidos screen, when "?" is pressed, then a card with the chibi and the Pedidos lines opens under it, "?" reports it expanded, and "Entendido" closes it and gives the focus back to "?".
+- Given the card open, when Escape is pressed or the page is pressed outside it, then it closes.
+- Given each of the 13 screens of the menu, when it opens, then its title is followed by its own "?", named "Ayuda: {screen}", and the title keeps its name.
+
+**Design notes**
+- **Component:** `ScreenTitle` in `features/admin` renders the `h1` and `ScreenHelp`, the "?" (a 44 px ghost icon button, `aria-expanded`, `aria-controls`) and the card (a disclosure, not a dialog: the focus stays on "?" and Tab reaches the card next; absolutely placed under the title, `min(360px, 100vw - 32px)` wide). The chibi is `LazyChibi`, so its chunk loads only when a card opens.

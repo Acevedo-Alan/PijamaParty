@@ -4,6 +4,7 @@ import { es } from '../../i18n/es.ts';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { centsToPesosInput, parsePesos } from './adminInput.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import { replaceZones, setFreeShippingThreshold, type Province, type ShippingConfiguration } from './shippingApi.ts';
@@ -188,7 +189,7 @@ export function ShippingPage() {
   return (
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
-      <h1>{messages.title}</h1>
+      <ScreenTitle screen="shipping">{messages.title}</ScreenTitle>
       {shipping.isPending && <p role="status">{esAdmin.loading}</p>}
       {shipping.isError && (
         <div role="alert">

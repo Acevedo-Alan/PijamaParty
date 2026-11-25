@@ -6,6 +6,7 @@ import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
 import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { formatDate } from '../../i18n/formatDate.ts';
 import { fetchCustomers, type CustomerListFilter } from './customersApi.ts';
 import { listReturn } from './listReturn.ts';
@@ -82,7 +83,7 @@ export function CustomersPage() {
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
-        <h1>{messages.title}</h1>
+        <ScreenTitle screen="customers">{messages.title}</ScreenTitle>
       </div>
       <FilterBar aria-label={messages.filters} onSubmit={submit}>
         <Field

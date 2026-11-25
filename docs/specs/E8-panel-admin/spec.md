@@ -74,6 +74,10 @@ Cada cambio hecho desde el backoffice queda registrado: precios, stock, publicar
 
 Arriba del resumen, la tarjeta "Tu tienda, lista": la chibi de la tienda, con una tablita en la mano, dice cuántas cosas están listas ("4 de 6 listos") y lista lo que falta según los datos de la tienda, cada cosa con por qué importa y un enlace a la pantalla que la resuelve: el número de WhatsApp (sin él no aparecen los botones para escribir), el email de contacto, las categorías con productos publicados y sin guía de talles (nombra hasta 5, cada una lleva a su guía), los productos publicados sin foto (nombra hasta 5, los más nuevos), Instagram y el banner de la portada. Instagram y el banner se pueden "Omitir" y "Volver a mostrar"; lo omitido se guarda en el servidor, así vale en el celular y en la computadora. Las otras cuatro no se omiten: son lo que una tienda necesita para funcionar. Sin pendientes, queda una línea "¡Tu tienda está lista!" con la chibi festejando. Omitir no se registra en la actividad: cambia lo que la guía le muestra al dueño, no la tienda. Es la primera parte de la guía del backoffice; los "?" de cada pantalla vienen después.
 
+### CU-47 Ayuda de cada pantalla con la chibi (pedido del dueño, 2026-11-25)
+
+En cada una de las 13 pantallas del menú del backoffice, junto al título, un botón "?" abre una tarjetita con la chibi y dos o tres líneas sobre cómo funciona esa pantalla (por ejemplo, en Pedidos: un pedido pagado se prepara, se marca como enviado con el número de seguimiento y después como entregado). Se cierra con "Entendido", con Escape o tocando afuera. Los textos son fijos y solo cuentan lo que la pantalla hace; no se guarda nada.
+
 ### Cambios a casos existentes
 
 - **CU-18:** buscar un pedido por número (`1001` o `#1001`), por nombre o email del comprador, y filtrar por rango de fechas además del estado. Botón "Imprimir remito" en el detalle: una página para imprimir con número de pedido, productos, talles, colores, cantidades, nombre, teléfono y dirección de envío, sin precios.

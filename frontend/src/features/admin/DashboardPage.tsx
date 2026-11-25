@@ -28,6 +28,7 @@ import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import { Switch } from '../../components/ui/Switch.tsx';
 import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { formatDateTime, formatDayMonth, formatTime, storeDay } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { fetchActivity } from './activityApi.ts';
@@ -777,7 +778,7 @@ export function DashboardPage() {
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1>{messages.title}</h1>
+          <ScreenTitle screen="summary">{messages.title}</ScreenTitle>
           <p className="m-0 text-sm text-muted-foreground">{messages.intro}</p>
         </div>
         <div className="flex flex-wrap items-start gap-x-4 gap-y-2">

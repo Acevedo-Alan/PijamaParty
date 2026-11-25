@@ -3,6 +3,7 @@ import { useId, useState, type SubmitEvent } from 'react';
 import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel, FieldTextarea } from '../../components/ui/Field.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { CharacterBannerView, homeBannerKey } from '../catalog/CharacterBanner.tsx';
 import '../catalog/catalog.css';
 import { newIdempotencyKey } from './adminSession.ts';
@@ -278,7 +279,7 @@ export function HomeBannerPage() {
   return (
     <>
       <title>{`${messages.pageTitle} | ${esAdmin.title}`}</title>
-      <h1>{messages.pageTitle}</h1>
+      <ScreenTitle screen="home">{messages.pageTitle}</ScreenTitle>
       <p className="field-hint">{messages.intro}</p>
       {found.isPending && <p role="status">{esAdmin.loading}</p>}
       {found.isError && (

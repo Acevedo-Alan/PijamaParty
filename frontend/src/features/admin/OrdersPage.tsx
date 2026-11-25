@@ -7,6 +7,7 @@ import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
 import { es } from '../../i18n/es.ts';
 import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { WORKLOAD_COUNTS_KEY } from './dashboardApi.ts';
@@ -110,7 +111,7 @@ export function OrdersPage() {
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
-        <h1>{messages.title}</h1>
+        <ScreenTitle screen="orders">{messages.title}</ScreenTitle>
       </div>
       <FilterBar aria-label={messages.filters} onSubmit={submit}>
         <Field

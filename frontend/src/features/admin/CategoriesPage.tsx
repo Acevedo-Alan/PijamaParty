@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button.tsx';
 import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import {
   createCategory,
   deleteCategory,
@@ -235,7 +236,7 @@ export function CategoriesPage() {
   return (
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
-      <h1>{messages.title}</h1>
+      <ScreenTitle screen="categories">{messages.title}</ScreenTitle>
       <form className="admin-form inline-form" onSubmit={(event) => void create(event)}>
         <Field className="flex-[1_1_200px]">
           <FieldLabel>{messages.newName}</FieldLabel>

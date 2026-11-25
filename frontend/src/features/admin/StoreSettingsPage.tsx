@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Field, FieldInput, FieldLabel } from '../../components/ui/Field.tsx';
 import { es } from '../../i18n/es.ts';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { useShippingRates } from '../help/useShippingRates.ts';
 import { STORE_CONTACT_KEY } from '../help/useStoreContact.ts';
@@ -212,7 +213,7 @@ export function StoreSettingsPage() {
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="flex flex-col gap-1">
-        <h1>{messages.title}</h1>
+        <ScreenTitle screen="storeSettings">{messages.title}</ScreenTitle>
         <p className="m-0 text-sm text-muted-foreground">{messages.intro}</p>
       </div>
       {found.isPending && <p role="status">{esAdmin.loading}</p>}

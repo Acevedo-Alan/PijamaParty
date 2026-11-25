@@ -3,6 +3,7 @@ import { useId, useState } from 'react';
 import { Button } from '../../components/ui/Button.tsx';
 import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { formatMoney } from '../../i18n/formatMoney.ts';
 import { CouponForm } from './CouponForm.tsx';
 import {
@@ -193,7 +194,7 @@ export function CouponsPage() {
   return (
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
-      <h1>{messages.title}</h1>
+      <ScreenTitle screen="coupons">{messages.title}</ScreenTitle>
       <section className="admin-section" aria-labelledby={newTitleId}>
         <h2 id={newTitleId}>{messages.newCoupon}</h2>
         <CouponForm

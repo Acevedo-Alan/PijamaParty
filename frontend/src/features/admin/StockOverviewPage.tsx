@@ -6,6 +6,7 @@ import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
 import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { parseQuantity } from './adminInput.ts';
 import { newIdempotencyKey } from './adminSession.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
@@ -350,7 +351,7 @@ export function StockOverviewPage() {
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
-        <h1>{messages.title}</h1>
+        <ScreenTitle screen="stock">{messages.title}</ScreenTitle>
       </div>
       <p className="admin-lead">{messages.lead}</p>
       <FilterBar aria-label={messages.filters} onSubmit={submit}>

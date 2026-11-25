@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/Button.tsx';
 import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import { Feedback, type Notice } from './Feedback.tsx';
 import {
@@ -79,7 +80,7 @@ export function ReviewsPage() {
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
-        <h1>{messages.title}</h1>
+        <ScreenTitle screen="reviews">{messages.title}</ScreenTitle>
       </div>
       <div className="admin-tabs" role="group" aria-label={messages.tabs}>
         {REVIEW_STATUSES.map((value) => (

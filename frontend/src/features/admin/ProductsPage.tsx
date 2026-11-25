@@ -6,6 +6,7 @@ import { Field, FieldInput, FieldLabel, FieldSelect } from '../../components/ui/
 import { FilterBar, FilterBarActions } from '../../components/ui/FilterBar.tsx';
 import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { fetchProductSummaries, PRODUCT_STATES, PRODUCT_STOCKS, type ProductListFilter } from './productsApi.ts';
 import { listReturn } from './listReturn.ts';
 import { isUuid, MAX_PRODUCT_SEARCH as MAX_SEARCH, validProductSearch as validSearch } from './productSearch.ts';
@@ -85,7 +86,7 @@ export function ProductsPage() {
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
-        <h1>{messages.title}</h1>
+        <ScreenTitle screen="products">{messages.title}</ScreenTitle>
         <Link to="/admin/productos/nuevo" state={opened} className="btn">
           {messages.create}
         </Link>

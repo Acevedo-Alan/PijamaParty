@@ -1062,4 +1062,73 @@ export const esAdmin = {
     /** UC-07: adds back the units of the last saved subtraction. */
     undo: (units: number) => `Deshacer (sumar ${formatNumber(units)})`,
   },
+  /** UC-47 (T-E8-31): the "?" after each screen's title, with the chibi and two or three lines on the screen. */
+  screenHelp: {
+    open: (screen: string) => `Ayuda: ${screen}`,
+    close: 'Entendido',
+    screens: {
+      summary: [
+        '"Para hacer hoy" junta lo que te espera: pedidos pagados por preparar, arrepentimientos sin resolver y reseñas por moderar.',
+        'Cada número es un enlace a su pantalla, ya filtrada.',
+        'Elegí el período para ver sus ventas y cuánto cambiaron.',
+      ],
+      orders: [
+        'Un pedido pagado te espera: "Preparar", después "Marcar como enviado" con el número de seguimiento y al final "Marcar como entregado".',
+        'Al cancelar un pedido pagado elegís si su stock vuelve.',
+        'El dinero se devuelve desde el panel de MercadoPago o de MODO.',
+      ],
+      withdrawals: [
+        'Cada pedido llega con su código de trámite y su pedido.',
+        '"Fuera de término" es solo un aviso: decidís vos.',
+        'Coordiná la devolución (la paga la tienda), cancelá el pedido, devolvé el dinero desde el medio de pago y marcalo como resuelto.',
+      ],
+      customers: [
+        'Las clientas y clientes registrados, de los más nuevos a los más viejos; buscá por nombre o email.',
+        'Abrí uno para ver sus datos y sus pedidos.',
+      ],
+      products: [
+        'Elegí los talles y los colores: se arma una variante por combinación, cada una con su precio.',
+        'Las fotos se convierten y se achican solas.',
+        'Un producto oculto no se ve en la tienda.',
+      ],
+      categories: [
+        'Creá, renombrá, ordená o desactivá categorías.',
+        'Una categoría con productos no se puede borrar: desactivala.',
+        'Cada una tiene su guía de talles, que se ve en la ficha de sus productos.',
+      ],
+      stock: [
+        'Cada variante activa con sus unidades: ajustá sumando o restando, con un motivo.',
+        'Las compras descuentan solas: ajustá solo lo que cambie fuera de la tienda.',
+        'El umbral de stock bajo se elige en "Datos de la tienda".',
+      ],
+      coupons: [
+        'Un cupón es un porcentaje o un monto fijo, con fechas, usos máximos y compra mínima si querés.',
+        'Desactivalo para pausarlo sin perder sus usos.',
+      ],
+      reviews: [
+        'Las reseñas nuevas esperan tu aprobación antes de verse en la tienda.',
+        'Aprobar la muestra y la suma al promedio; rechazar la oculta.',
+        'Si la clienta la edita, vuelve a pendiente.',
+      ],
+      home: [
+        'El banner de personajes de la portada: foto, título, texto y botón.',
+        'Guardá los cambios, mirá la vista previa y después publicá.',
+        'Ocultarlo lo saca de la portada sin borrarlo.',
+      ],
+      shipping: [
+        'Un costo por provincia; una provincia sin costo no tiene envío.',
+        '$0 es envío gratis a esa provincia.',
+        'El envío gratis desde un monto se compara con el subtotal después del descuento.',
+      ],
+      storeSettings: [
+        'Lo que cargues acá se ve en la tienda: WhatsApp, email, horarios, dirección y redes.',
+        'El anuncio es la cinta de arriba de la tienda; vacío, muestra el envío gratis.',
+        'El umbral de stock bajo decide de qué variantes te avisa el resumen.',
+      ],
+      activity: [
+        'Cada cambio hecho en el panel queda anotado acá, de lo más nuevo a lo más viejo.',
+        'Filtrá por tipo y por fecha.',
+      ],
+    },
+  },
 } as const;

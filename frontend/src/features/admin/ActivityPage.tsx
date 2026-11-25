@@ -5,6 +5,7 @@ import { FilterBar } from '../../components/ui/FilterBar.tsx';
 import { es } from '../../i18n/es.ts';
 import { ListSkeleton } from '../../components/ui/Skeleton.tsx';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { ScreenTitle } from './ScreenTitle.tsx';
 import { formatDateTime } from '../../i18n/formatDate.ts';
 import {
   ACTIVITY_AREAS,
@@ -78,7 +79,7 @@ export function ActivityPage() {
     <>
       <title>{`${messages.title} | ${esAdmin.title}`}</title>
       <div className="admin-title-row">
-        <h1>{messages.title}</h1>
+        <ScreenTitle screen="activity">{messages.title}</ScreenTitle>
       </div>
       {/* The filters apply as they change; the shared bar links the period's error to the dates (T-E8-14). */}
       <FilterBar

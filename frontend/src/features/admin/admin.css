@@ -197,6 +197,39 @@
   font-size: 24px;
 }
 
+/* UC-47: the title and its "?"; the help card opens under them, over the page, as wide as a phone allows. */
+.screen-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.screen-title h1 {
+  margin: 0;
+}
+
+.screen-help-card {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.screen-help-card[hidden] {
+  display: none;
+}
+
 
 .admin-title-row {
   display: flex;
