@@ -6,6 +6,7 @@ import { es } from "../../i18n/es.ts";
 import { whatsAppUrl } from "../help/storeContact.ts";
 import { useStoreContact } from "../help/useStoreContact.ts";
 import type { OrderStatus, TrackedOrder } from "./orderTrackingApi.ts";
+import { PaidCelebration } from "./PaidCelebration.tsx";
 
 /** The states of an order already paid (UC-14, GLOSSARY.md), in the order the order goes through them. */
 export const PAID_STEPS = [
@@ -141,7 +142,8 @@ function CopyNumber({ number }: { number: number }) {
 /**
  * T-E7-44: a paid order thanks the buyer; the line under the heading follows the order's state. T-E7-48: the store's
  * chibi celebrates it, with the check as a seal at its side; the check draws itself once (CSS, not under reduced
- * motion). Both are decorative: the heading says it.
+ * motion). Both are decorative: the heading says it. T-E7-78: the first time this browser sees the order in PAID, stars
+ * and moons burst from behind the chibi.
  */
 export function PaidHeader({
   order,
@@ -153,6 +155,7 @@ export function PaidHeader({
   return (
     <header className="tracking-paid">
       <div className="tracking-paid-chibi">
+        {status === "PAID" && <PaidCelebration number={order.number} />}
         <Chibi mood="success" pose="paid" />
         <svg
           className="tracking-paid-check"

@@ -243,8 +243,24 @@
 }
 
 .tracking-paid-chibi .chibi {
+  position: relative;
   width: 100%;
   height: 100%;
+}
+
+/* T-E7-78: the stars and moons start behind the chibi, at its middle, and never take a click. */
+.paid-celebration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.paid-celebration-piece {
+  position: absolute;
+  top: calc(50% - 11px);
+  left: calc(50% - 11px);
+  fill: currentColor;
+  opacity: 0;
 }
 
 /*

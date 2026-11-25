@@ -5,8 +5,10 @@ import { api } from "../../api/client.ts";
 import type { components } from "../../api/schema.d.ts";
 import { es } from "../../i18n/es.ts";
 import { answer, headerRead, withHeader } from "../../test/catalogApi.ts";
+import { forgetMotionPreference, preferReducedMotion } from "../../test/reducedMotion.ts";
 import { renderRoute } from "../../test/renderRoute.tsx";
 import { clearStoreContact, setStoreContact } from "../../test/storeContact.ts";
+import ordersCss from "./orders.css?raw";
 import { goToPayment } from "./redirect.ts";
 
 vi.mock("./redirect.ts", () => ({ goToPayment: vi.fn() }));
@@ -616,6 +618,72 @@ describe("the purchase confirmation (T-E7-44)", () => {
       "aria-hidden",
       "true",
     );
+  });
+
+  describe("the purchase celebration (T-E7-78)", () => {
+    afterEach(() => {
+      forgetMotionPreference();
+    });
+
+    /** The burst behind the chibi of the paid header, once the page shows the order. */
+    async function burst() {
+      const heading = await screen.findByRole("heading", {
+        level: 1,
+        name: es.tracking.paid.thanks("Alan"),
+      });
+      return heading.parentElement?.querySelector(
+        ".tracking-paid-chibi .paid-celebration",
+      );
+    }
+
+    it("given an order in PAID never shown in this browser, when the page opens, then stars and moons burst from behind the chibi, hidden from screen readers", async () => {
+      stubOrder(answer(200, paidOrder()));
+
+      renderRoute(`/pedido/${TOKEN}`);
+
+      const celebration = await burst();
+      expect(celebration).toHaveAttribute("aria-hidden", "true");
+      expect(celebration?.querySelectorAll("svg")).toHaveLength(14);
+      // Behind the chibi: it comes first, so the drawing paints over it.
+      expect(celebration?.nextElementSibling).toHaveClass("chibi");
+    });
+
+    it("given the same order opened again in this browser, when the page opens, then there is no burst", async () => {
+      stubOrder(answer(200, paidOrder()), answer(200, paidOrder()));
+      const first = renderRoute(`/pedido/${TOKEN}`);
+      expect(await burst()).not.toBeNull();
+      first.unmount();
+
+      renderRoute(`/pedido/${TOKEN}`);
+
+      expect(await burst()).toBeNull();
+    });
+
+    it("given an order already in PREPARING, when the page opens, then there is no burst", async () => {
+      stubOrder(answer(200, paidOrder({ status: "PREPARING" })));
+
+      renderRoute(`/pedido/${TOKEN}`);
+
+      expect(await burst()).toBeNull();
+    });
+
+    it("given reduced motion, when a paid order opens, then there is no burst and the chibi still celebrates", async () => {
+      preferReducedMotion(true);
+      stubOrder(answer(200, paidOrder()));
+
+      renderRoute(`/pedido/${TOKEN}`);
+
+      expect(await burst()).toBeNull();
+      expect(document.querySelector(".tracking-paid-chibi svg.chibi")).toHaveAttribute(
+        "data-mood",
+        "success",
+      );
+    });
+
+    it("given the burst, when its styles are read, then it starts at the chibi's middle and never takes a click", () => {
+      expect(ordersCss).toMatch(/\.paid-celebration \{[^}]*pointer-events: none;/);
+      expect(ordersCss).toMatch(/\.paid-celebration-piece \{[^}]*position: absolute;/);
+    });
   });
 
   it('given a paid order of "alan", when the page opens, then it thanks the buyer with the order number and "Pagado" as the current step', async () => {
