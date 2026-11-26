@@ -35,7 +35,7 @@ Decididas con el dueño el 2026-10-19 y anotadas en `00-dominio-y-reglas.md`, sa
 | D-12 | Íconos de confianza de la ficha | Decidido | "Envío gratis desde $X" solo cuando hay umbral (CU-12) y "Pagá con MercadoPago". **"Primer cambio sin cargo" no se muestra:** no es una política confirmada. |
 | D-13 | Nombre y apellido en el checkout | Decidido | **Dos campos, "Nombre" y "Apellido"**, en el checkout, la API y el pedido (cambia lo decidido en CU-13; ver "Cambios a CU-13"). El saludo de los correos usa el nombre tal cual se cargó, también los compuestos ("María José"). |
 | D-14 | Carrusel de la portada | Decidido | Hasta 3 imágenes. **Pasan solas cada 4 segundos, con botón de pausa** (WCAG 2.2.2) y sin movimiento con `prefers-reduced-motion`. |
-| D-15 | Materiales del negocio | Pendiente del negocio | El negocio entrega el logo, las fotos del carrusel (hasta 3), las 3 de "Elegí para quién", la primera foto del banner de personajes (después la cambia desde el backoffice), el email y el WhatsApp de contacto y los enlaces de Instagram y TikTok. Sin ellas, cada lugar muestra el fondo degradado del prototipo. Recibido el 2026-10-23: el logo. El rótulo recortado va en el encabezado (fondo transparente, sin los pedacitos de personajes de las esquinas, 48 px de alto); la ilustración completa es la primera foto del banner de personajes y se sube desde "Portada". Recibido el 2026-10-28: el WhatsApp, +54 9 342 530-4507. Recibido el 2026-10-29: el Instagram, https://www.instagram.com/pijamaparty.zzz/. |
+| D-15 | Materiales del negocio | Pendiente del negocio | El negocio entrega el logo, las fotos del carrusel (hasta 3), las 3 de "Elegí para quién", la primera foto del banner de personajes (después la cambia desde el backoffice), el email y el WhatsApp de contacto y los enlaces de Instagram y TikTok. Sin ellas, cada lugar muestra el fondo degradado del prototipo. Recibido el 2026-10-23: el logo. El rótulo recortado va en el encabezado (fondo transparente, sin los pedacitos de personajes de las esquinas, 48 px de alto); la ilustración completa es la primera foto del banner de personajes y se sube desde "Portada". Recibido el 2026-10-28: el WhatsApp, +54 9 342 530-4507. Recibido el 2026-10-29: el Instagram, https://www.instagram.com/pijamaparty.zzz/. Recibido el 2026-11-26: la primera foto del carrusel, una familia en pijama sobre una cama (T-E7-81). |
 | D-16 | Animaciones | Decidido | **Con la librería Motion** (`motion`, para React), cargada de forma diferida para no demorar la primera carga, sobre los tokens de la sección "Animaciones". |
 | D-17 | Tipografía | Decidido | **Inter** en lugar de Quicksand, en títulos y textos, en la tienda y el backoffice (el dueño, 2026-10-24). Alojada en la tienda, nunca desde Google Fonts. |
 
@@ -146,6 +146,7 @@ La chibi le dio a la tienda una voz de pijamada japonesa; estos tres toques la l
 - El banner de personajes ocupa todo el ancho de la página como una franja, con su contenido al ancho de la página, como en el prototipo.
 - El listado de una categoría (`/categoria/{slug}`) no muestra las secciones de la portada.
 - "Descubrí la colección" es un contorno bordado (T-E7-57): sin relleno, con un borde blanco fino y, por dentro, una costura de puntadas blancas, como el ruedo de un pijama. El texto va en mayúsculas espaciadas, en blanco y más liviano que antes. Con mouse, al pasar por encima se rellena de blanco, el texto y las puntadas pasan a oscuro y la flecha avanza un poco; con movimiento reducido, la flecha no se mueve.
+- **La primera foto, bien a la vista (T-E7-81):** en el celular el texto de bienvenida ocupa casi el 70 % del alto del carrusel, así que el velo oscuro sigue igual hasta ahí y arriba se aclara hasta desaparecer, sobre las caras de la foto. En la computadora el velo es apenas más oscuro del lado del texto. La línea de arriba del título ("Nueva colección · Santa Fe") pasa de durazno a blanco, como el resto del texto, porque en durazno no se leía bien sobre una foto. En la computadora una foto vertical se ve solo en una franja: cada imagen puede elegir cuál, y la de la familia muestra las caras.
 
 **Criterios de aceptación**
 - Dada la portada en un celular, cuando carga, entonces se ven el carrusel, el banner de personajes, "Elegí para quién", la grilla, la barra de beneficios y el contacto, en ese orden, y el pie con el botón de arrepentimiento.
@@ -154,6 +155,8 @@ La chibi le dio a la tienda una voz de pijamada japonesa; estos tres toques la l
 - Dado el carrusel pasando solo, cuando se toca pausa, entonces se detiene.
 - Dados inicio, listado, ficha y checkout, cuando se miden con Lighthouse, entonces siguen cumpliendo RNF-11 y RNF-31.4.
 - Dada la portada, cuando carga, entonces no hay un bloque aparte del botón de arrepentimiento: está en el pie.
+- Dada la primera foto del carrusel, cuando se abre la portada en un celular o en una computadora, entonces todo el texto de bienvenida se lee con contraste suficiente (4,5:1) sobre la foto (T-E7-81).
+- Dada la portada en una computadora, cuando se ve la foto de la familia, entonces se ven sus caras y no solo la cama (T-E7-81).
 
 ## CU-31 Encabezado, menú y pie
 

@@ -1,5 +1,5 @@
 import { m } from 'motion/react';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { preload } from 'react-dom';
 import { useActionMotion } from '../../components/motion/useActionMotion.ts';
 import { usePrefersReducedMotion } from '../../components/motion/usePrefersReducedMotion.ts';
@@ -197,6 +197,9 @@ export function HeroCarousel({ onDiscover, slides = HERO_SLIDES }: HeroCarouselP
                 srcSet={photo.srcSet}
                 sizes={HERO_SIZES}
                 alt={photo.alt}
+                style={
+                  photo.wideFocus === undefined ? undefined : ({ '--wide-focus': photo.wideFocus } as CSSProperties)
+                }
                 loading={index === 0 ? 'eager' : 'lazy'}
                 fetchPriority={index === 0 ? 'high' : 'auto'}
                 decoding="async"

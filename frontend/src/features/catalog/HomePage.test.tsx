@@ -290,10 +290,31 @@ describe('welcome carousel (UC-30, D-14)', () => {
       ['eager', 'high'],
       ['lazy', 'auto'],
     ]);
-    expect(document.head.querySelector('link[rel="preload"][as="image"]')).toHaveAttribute(
-      'imagesrcset',
-      '/assets/uno-640.webp 640w',
+    expect(
+      document.head.querySelector('link[rel="preload"][as="image"][imagesrcset="/assets/uno-640.webp 640w"]'),
+    ).toBeInTheDocument();
+    expect(document.head.querySelector('link[rel="preload"][imagesrcset*="dos-640"]')).not.toBeInTheDocument();
+  });
+
+  it('given a photo with its own band for wide screens, when shown, then only that photo carries it', () => {
+    const photo = (name: string, wideFocus?: string) => ({
+      src: `/assets/${name}-640.webp`,
+      srcSet: `/assets/${name}-640.webp 640w`,
+      alt: name,
+      ...(wideFocus === undefined ? {} : { wideFocus }),
+    });
+    render(
+      <HeroCarousel
+        onDiscover={vi.fn()}
+        slides={[
+          { tone: 'hero', photo: photo('uno', '18%') },
+          { tone: 'rose', photo: photo('dos') },
+        ]}
+      />,
     );
+
+    expect(screen.getByRole('img', { name: 'uno' }).style.getPropertyValue('--wide-focus')).toBe('18%');
+    expect(screen.getByRole('img', { hidden: true, name: 'dos' }).style.getPropertyValue('--wide-focus')).toBe('');
   });
 });
 

@@ -87,6 +87,10 @@ export const es = {
       showSlide: (position: number, total: number) => `Ver imagen ${String(position)} de ${String(total)}`,
       pause: 'Pausar carrusel',
       resume: 'Reanudar carrusel',
+      /** The alternative texts of the slides' photos (D-15). */
+      photos: {
+        family: 'Una familia en pijama se ríe sentada en una cama.',
+      },
     },
     eyebrow: 'Nueva colección · Santa Fe',
     title: 'Noches suaves, mañanas con calma',
