@@ -38,6 +38,9 @@ export const ProductCard = memo(function ProductCard({
 }) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
   const { slug, name, image, secondImage, fromPriceCents, priceVaries, soldOut, colors, sizes, isNew } = product;
+  // T-E7-79: one label per card, so they never stack; "Agotado" wins over "Nuevo".
+  const label = soldOut ? 'sold-out' : isNew ? 'new' : null;
+  const labelText = soldOut ? es.catalog.soldOut : es.catalog.isNew;
   const swipeable = image !== null && secondImage !== null && view === 'grid';
   const [shown, setShown] = useState(0);
   // The second photo is requested on touch devices only once a finger touches this card's photo (T-E7-32).
@@ -96,21 +99,19 @@ export const ProductCard = memo(function ProductCard({
             <span className={shown === 1 ? 'on' : undefined} />
           </span>
         )}
-        {view === 'grid' && (isNew || soldOut) && (
+        {view === 'grid' && label !== null && (
           <div className="card-badges">
-            {isNew && <span className="badge new">{es.catalog.isNew}</span>}
-            {soldOut && <span className="badge sold-out">{es.catalog.soldOut}</span>}
+            <span className={`badge ${label}`}>{labelText}</span>
           </div>
         )}
       </div>
-      {(colors.length > 0 || sizes.length > 0 || (view === 'list' && (isNew || soldOut))) && (
+      {(colors.length > 0 || sizes.length > 0 || (view === 'list' && label !== null)) && (
         <div className="card-meta">
           {view === 'list' ? (
             // T-E7-70: on a 96 px thumbnail the label would hide the print, so it is a word beside the colors.
             <div className="card-meta-start">
               <ColorSwatches colors={colors} />
-              {isNew && <span className="card-tag new">{es.catalog.isNew}</span>}
-              {soldOut && <span className="card-tag sold-out">{es.catalog.soldOut}</span>}
+              {label !== null && <span className={`card-tag ${label}`}>{labelText}</span>}
             </div>
           ) : (
             <ColorSwatches colors={colors} />

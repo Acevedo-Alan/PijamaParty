@@ -449,6 +449,22 @@ describe('grid or list view (T-E7-06, changes to UC-01)', () => {
     expect(within(soldOut).getByText(es.catalog.soldOut)).toHaveClass('card-tag');
   });
 
+  it('given a product both new and sold out, when listed in the grid or the list, then its card says only "Agotado" (T-E7-79)', async () => {
+    stubCatalogApi({ listings: [listed([product('ultimo', { isNew: true, soldOut: true })])] });
+
+    renderRoute('/categoria/pijamas');
+
+    const card = await screen.findByRole('link', { name: /Pijama ultimo/i });
+    expect(card.querySelectorAll('.badge')).toHaveLength(1);
+    expect(within(card).getByText(es.catalog.soldOut)).toHaveClass('badge', 'sold-out');
+    expect(within(card).queryByText(es.catalog.isNew)).not.toBeInTheDocument();
+
+    await userEvent.click(toggle().getByRole('button', { name: es.catalog.listView }));
+
+    expect(within(card).getByText(es.catalog.soldOut)).toHaveClass('card-tag', 'sold-out');
+    expect(within(card).queryByText(es.catalog.isNew)).not.toBeInTheDocument();
+  });
+
   it('given the list, when a card shows, then a decorative chevron ends its row after the price (T-E7-70)', async () => {
     stubCatalogApi({ listings: [listed([product('rosa')])] });
     renderRoute('/categoria/pijamas');
