@@ -90,6 +90,8 @@ export const es = {
       /** The alternative texts of the slides' photos (D-15). */
       photos: {
         family: 'Una familia en pijama se ríe sentada en una cama.',
+        popcorn: 'Una mamá y su hija en pijamas cortos y medias largas comparten pochoclos sobre la cama.',
+        fort: 'Tres chicos en pijama se ríen dentro de un fuerte de sábanas con lucecitas.',
       },
     },
     eyebrow: 'Nueva colección · Santa Fe',

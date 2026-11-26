@@ -2,6 +2,16 @@ import family640 from '../../assets/home/hero-family-640.webp';
 import family896 from '../../assets/home/hero-family-896.webp';
 import familyWide1280 from '../../assets/home/hero-family-wide-1280.webp';
 import familyWide1920 from '../../assets/home/hero-family-wide-1920.webp';
+import fort640 from '../../assets/home/hero-fort-640.webp';
+import fort1280 from '../../assets/home/hero-fort-1280.webp';
+import fort1792 from '../../assets/home/hero-fort-1792.webp';
+import fortWide1280 from '../../assets/home/hero-fort-wide-1280.webp';
+import fortWide1920 from '../../assets/home/hero-fort-wide-1920.webp';
+import popcorn640 from '../../assets/home/hero-popcorn-640.webp';
+import popcorn1280 from '../../assets/home/hero-popcorn-1280.webp';
+import popcorn1792 from '../../assets/home/hero-popcorn-1792.webp';
+import popcornWide1280 from '../../assets/home/hero-popcorn-wide-1280.webp';
+import popcornWide1920 from '../../assets/home/hero-popcorn-wide-1920.webp';
 import { es } from '../../i18n/es.ts';
 import type { Audience } from './listingCriteria.ts';
 
@@ -46,11 +56,27 @@ const FAMILY_PHOTO: HomePhoto = {
   wide: { src: familyWide1280, srcSet: `${familyWide1280} 1280w, ${familyWide1920} 1920w` },
 };
 
-/** Up to 3 slides (D-14). The second and third photos are still pending (D-15): those slides show their gradient. */
+/** The second slide: a mother and daughter in short summer pajamas and patterned knee socks, sharing popcorn. */
+const POPCORN_PHOTO: HomePhoto = {
+  src: popcorn640,
+  srcSet: `${popcorn640} 640w, ${popcorn1280} 1280w, ${popcorn1792} 1792w`,
+  alt: es.home.carousel.photos.popcorn,
+  wide: { src: popcornWide1280, srcSet: `${popcornWide1280} 1280w, ${popcornWide1920} 1920w` },
+};
+
+/** The third slide: three children in printed pajamas and a wearable blanket inside a blanket fort. */
+const FORT_PHOTO: HomePhoto = {
+  src: fort640,
+  srcSet: `${fort640} 640w, ${fort1280} 1280w, ${fort1792} 1792w`,
+  alt: es.home.carousel.photos.fort,
+  wide: { src: fortWide1280, srcSet: `${fortWide1280} 1280w, ${fortWide1920} 1920w` },
+};
+
+/** Up to 3 slides (D-14), each with its photo (D-15). */
 export const HERO_SLIDES: readonly HeroSlide[] = [
   { tone: 'hero', photo: FAMILY_PHOTO },
-  { tone: 'rose' },
-  { tone: 'peach' },
+  { tone: 'rose', photo: POPCORN_PHOTO },
+  { tone: 'peach', photo: FORT_PHOTO },
 ];
 
 /** "Elegí para quién" (UC-30), in the prototype's order; the photos are pending as the carousel's are (D-15). */

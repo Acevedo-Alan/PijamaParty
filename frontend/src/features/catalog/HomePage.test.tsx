@@ -285,6 +285,9 @@ describe('welcome carousel (UC-30, D-14)', () => {
       />,
     );
 
+    // The second photo is not even in the page until the first has loaded: it would be fetched beside it.
+    expect(screen.queryByRole('img', { hidden: true, name: 'dos' })).not.toBeInTheDocument();
+    fireEvent.load(screen.getByRole('img', { name: 'uno' }));
     const images = [screen.getByRole('img', { name: 'uno' }), screen.getByRole('img', { hidden: true, name: 'dos' })];
     expect(images.map((image) => [image.getAttribute('loading'), image.getAttribute('fetchpriority')])).toEqual([
       ['eager', 'high'],
@@ -318,6 +321,7 @@ describe('welcome carousel (UC-30, D-14)', () => {
         screen.getByRole('img', { hidden: true, name }).closest('picture')?.querySelectorAll('source') ?? [],
       ).map((source) => [source.getAttribute('media'), source.getAttribute('srcset')]);
     expect(sources('tres')).toEqual([['(min-width: 700px)', '/assets/tres-wide-1280.webp 1280w']]);
+    fireEvent.load(screen.getByRole('img', { name: 'tres' }));
     expect(sources('cuatro')).toEqual([]);
     const preloaded = (srcSet: string) =>
       document.head.querySelector(`link[rel="preload"][as="image"][imagesrcset="${srcSet}"]`)?.getAttribute('media');
@@ -343,7 +347,27 @@ describe('welcome carousel (UC-30, D-14)', () => {
     );
 
     expect(screen.getByRole('img', { name: 'uno' }).style.getPropertyValue('--wide-focus')).toBe('18%');
+    fireEvent.load(screen.getByRole('img', { name: 'uno' }));
     expect(screen.getByRole('img', { hidden: true, name: 'dos' }).style.getPropertyValue('--wide-focus')).toBe('');
+  });
+
+  it('given the first photo still loading, when the second slide is chosen, then its photo comes with it', async () => {
+    const photo = (name: string) => ({ src: `/assets/${name}-640.webp`, srcSet: `/assets/${name}-640.webp 640w`, alt: name });
+    render(
+      <HeroCarousel
+        onDiscover={vi.fn()}
+        slides={[
+          { tone: 'hero', photo: photo('uno') },
+          { tone: 'rose', photo: photo('dos') },
+          { tone: 'peach', photo: photo('tres') },
+        ]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: es.home.carousel.showSlide(2, 3) }));
+
+    expect(screen.getByRole('img', { name: 'dos' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { hidden: true, name: 'tres' })).not.toBeInTheDocument();
   });
 });
 

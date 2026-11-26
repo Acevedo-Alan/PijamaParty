@@ -88,6 +88,15 @@ interface HeroCarouselProps {
  */
 export function HeroCarousel({ onDiscover, slides = HERO_SLIDES }: HeroCarouselProps) {
   const [current, setCurrent] = useState(0);
+  /**
+   * The other slides' photos are added once the first has loaded: they sit on screen, only transparent, so a lazy
+   * image would still be fetched at once, beside the page's largest paint (RNF-11). A slide shown before that brings
+   * its photo with it.
+   */
+  const [firstLoaded, setFirstLoaded] = useState(() => slides[0]?.photo === undefined);
+  const showOthers = () => {
+    setFirstLoaded(true);
+  };
   const [paused, setPaused] = useState(false);
   // HIG and WCAG 2.2.2: it waits while it is used, pressed or not seen (UC-30).
   const [focused, setFocused] = useState(false);
@@ -211,7 +220,7 @@ export function HeroCarousel({ onDiscover, slides = HERO_SLIDES }: HeroCarouselP
             aria-label={es.home.carousel.slide(index + 1, total)}
             aria-hidden={index !== current}
           >
-            {photo !== undefined && (
+            {photo !== undefined && (index === 0 || index === current || firstLoaded) && (
               <picture>
                 {photo.wide !== undefined && <source media={WIDE_MEDIA} srcSet={photo.wide.srcSet} sizes={HERO_SIZES} />}
                 <img
@@ -225,6 +234,7 @@ export function HeroCarousel({ onDiscover, slides = HERO_SLIDES }: HeroCarouselP
                   loading={index === 0 ? 'eager' : 'lazy'}
                   fetchPriority={index === 0 ? 'high' : 'auto'}
                   decoding="async"
+                  {...(index === 0 ? { onLoad: showOthers, onError: showOthers } : {})}
                 />
               </picture>
             )}
