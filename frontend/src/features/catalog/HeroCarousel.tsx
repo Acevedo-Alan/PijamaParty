@@ -13,6 +13,9 @@ import { useSwipe } from './useSwipe.ts';
 export const SLIDE_MS = 4000;
 
 const HERO_SIZES = '100vw';
+/** From 700 px the carousel is wide (home.css): a slide's wide photo replaces its portrait one there (T-E7-82). */
+const WIDE_MEDIA = '(min-width: 700px)';
+const NARROW_MEDIA = '(max-width: 699.98px)';
 /** A focus this soon after a press on the carousel is the press's: a phone focuses the tapped dot after the lift. */
 const PRESS_FOCUS_MS = 1000;
 /** The welcome text enters once, its lines 80 ms apart (E7 motion). */
@@ -109,7 +112,24 @@ export function HeroCarousel({ onDiscover, slides = HERO_SLIDES }: HeroCarouselP
   const entrance = [useEntrance(0), useEntrance(1), useEntrance(2)] as const;
 
   if (first !== undefined) {
-    preload(first.src, { as: 'image', imageSrcSet: first.srcSet, imageSizes: HERO_SIZES, fetchPriority: 'high' });
+    // With a wide photo, each screen preloads only the photo it shows.
+    const wide = first.wide;
+    preload(first.src, {
+      as: 'image',
+      imageSrcSet: first.srcSet,
+      imageSizes: HERO_SIZES,
+      fetchPriority: 'high',
+      ...(wide === undefined ? {} : { media: NARROW_MEDIA }),
+    });
+    if (wide !== undefined) {
+      preload(wide.src, {
+        as: 'image',
+        imageSrcSet: wide.srcSet,
+        imageSizes: HERO_SIZES,
+        fetchPriority: 'high',
+        media: WIDE_MEDIA,
+      });
+    }
   }
 
   useEffect(() => {
@@ -192,18 +212,21 @@ export function HeroCarousel({ onDiscover, slides = HERO_SLIDES }: HeroCarouselP
             aria-hidden={index !== current}
           >
             {photo !== undefined && (
-              <img
-                src={photo.src}
-                srcSet={photo.srcSet}
-                sizes={HERO_SIZES}
-                alt={photo.alt}
-                style={
-                  photo.wideFocus === undefined ? undefined : ({ '--wide-focus': photo.wideFocus } as CSSProperties)
-                }
-                loading={index === 0 ? 'eager' : 'lazy'}
-                fetchPriority={index === 0 ? 'high' : 'auto'}
-                decoding="async"
-              />
+              <picture>
+                {photo.wide !== undefined && <source media={WIDE_MEDIA} srcSet={photo.wide.srcSet} sizes={HERO_SIZES} />}
+                <img
+                  src={photo.src}
+                  srcSet={photo.srcSet}
+                  sizes={HERO_SIZES}
+                  alt={photo.alt}
+                  style={
+                    photo.wideFocus === undefined ? undefined : ({ '--wide-focus': photo.wideFocus } as CSSProperties)
+                  }
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={index === 0 ? 'high' : 'auto'}
+                  decoding="async"
+                />
+              </picture>
             )}
           </div>
         ))}

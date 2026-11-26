@@ -1,5 +1,7 @@
 import family640 from '../../assets/home/hero-family-640.webp';
 import family896 from '../../assets/home/hero-family-896.webp';
+import familyWide1280 from '../../assets/home/hero-family-wide-1280.webp';
+import familyWide1920 from '../../assets/home/hero-family-wide-1920.webp';
 import { es } from '../../i18n/es.ts';
 import type { Audience } from './listingCriteria.ts';
 
@@ -16,6 +18,8 @@ export interface HomePhoto {
    * percentage from its top ("20%" keeps a band near the top). Without it, the band is near the middle.
    */
   wideFocus?: string;
+  /** The same scene composed for wide screens, shown instead from 700 px (T-E7-82). */
+  wide?: { src: string; srcSet: string };
 }
 
 /** The prototype's gradient backgrounds, shown where a photo is missing (D-15). */
@@ -39,8 +43,7 @@ const FAMILY_PHOTO: HomePhoto = {
   src: family640,
   srcSet: `${family640} 640w, ${family896} 896w`,
   alt: es.home.carousel.photos.family,
-  // The faces are in the photo's upper half.
-  wideFocus: '18%',
+  wide: { src: familyWide1280, srcSet: `${familyWide1280} 1280w, ${familyWide1920} 1920w` },
 };
 
 /** Up to 3 slides (D-14). The second and third photos are still pending (D-15): those slides show their gradient. */

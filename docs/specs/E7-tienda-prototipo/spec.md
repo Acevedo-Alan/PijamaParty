@@ -146,7 +146,8 @@ La chibi le dio a la tienda una voz de pijamada japonesa; estos tres toques la l
 - El banner de personajes ocupa todo el ancho de la página como una franja, con su contenido al ancho de la página, como en el prototipo.
 - El listado de una categoría (`/categoria/{slug}`) no muestra las secciones de la portada.
 - "Descubrí la colección" es un contorno bordado (T-E7-57): sin relleno, con un borde blanco fino y, por dentro, una costura de puntadas blancas, como el ruedo de un pijama. El texto va en mayúsculas espaciadas, en blanco y más liviano que antes. Con mouse, al pasar por encima se rellena de blanco, el texto y las puntadas pasan a oscuro y la flecha avanza un poco; con movimiento reducido, la flecha no se mueve.
-- **La primera foto, bien a la vista (T-E7-81):** en el celular el texto de bienvenida ocupa casi el 70 % del alto del carrusel, así que el velo oscuro sigue igual hasta ahí y arriba se aclara hasta desaparecer, sobre las caras de la foto. En la computadora el velo es apenas más oscuro del lado del texto. La línea de arriba del título ("Nueva colección · Santa Fe") pasa de durazno a blanco, como el resto del texto, porque en durazno no se leía bien sobre una foto. En la computadora una foto vertical se ve solo en una franja: cada imagen puede elegir cuál, y la de la familia muestra las caras.
+- **La primera foto, bien a la vista (T-E7-81):** en el celular el texto de bienvenida ocupa casi el 70 % del alto del carrusel, así que el velo oscuro sigue igual hasta ahí y arriba se aclara hasta desaparecer, sobre las caras de la foto. En la computadora el velo es apenas más oscuro del lado del texto. La línea de arriba del título ("Nueva colección · Santa Fe") pasa de durazno a blanco, como el resto del texto, porque en durazno no se leía bien sobre una foto. En la computadora una foto vertical se ve solo en una franja: cada imagen puede elegir cuál.
+- **Una foto propia para la computadora (T-E7-82):** cada imagen del carrusel puede tener una segunda foto, horizontal, de la misma escena, con las personas a la derecha y el lado del texto despejado. La computadora muestra esa y el celular la vertical; cada uno descarga solo la suya. La de la familia tiene las dos.
 
 **Criterios de aceptación**
 - Dada la portada en un celular, cuando carga, entonces se ven el carrusel, el banner de personajes, "Elegí para quién", la grilla, la barra de beneficios y el contacto, en ese orden, y el pie con el botón de arrepentimiento.
@@ -156,7 +157,7 @@ La chibi le dio a la tienda una voz de pijamada japonesa; estos tres toques la l
 - Dados inicio, listado, ficha y checkout, cuando se miden con Lighthouse, entonces siguen cumpliendo RNF-11 y RNF-31.4.
 - Dada la portada, cuando carga, entonces no hay un bloque aparte del botón de arrepentimiento: está en el pie.
 - Dada la primera foto del carrusel, cuando se abre la portada en un celular o en una computadora, entonces todo el texto de bienvenida se lee con contraste suficiente (4,5:1) sobre la foto (T-E7-81).
-- Dada la portada en una computadora, cuando se ve la foto de la familia, entonces se ven sus caras y no solo la cama (T-E7-81).
+- Dada la portada en una computadora, cuando se ve la foto de la familia, entonces se ve su versión horizontal, con las caras y el texto sobre el lado despejado; en el celular, la vertical (T-E7-81, T-E7-82).
 
 ## CU-31 Encabezado, menú y pie
 

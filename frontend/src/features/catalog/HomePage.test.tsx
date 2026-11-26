@@ -296,6 +296,35 @@ describe('welcome carousel (UC-30, D-14)', () => {
     expect(document.head.querySelector('link[rel="preload"][imagesrcset*="dos-640"]')).not.toBeInTheDocument();
   });
 
+  it('given a first slide with a wide photo and a second without, when shown, then only the first offers it from 700 px and each of its photos is preloaded for its own screens', () => {
+    const photo = (name: string, wide: boolean) => ({
+      src: `/assets/${name}-640.webp`,
+      srcSet: `/assets/${name}-640.webp 640w`,
+      alt: name,
+      ...(wide ? { wide: { src: `/assets/${name}-wide-1280.webp`, srcSet: `/assets/${name}-wide-1280.webp 1280w` } } : {}),
+    });
+    render(
+      <HeroCarousel
+        onDiscover={vi.fn()}
+        slides={[
+          { tone: 'hero', photo: photo('tres', true) },
+          { tone: 'rose', photo: photo('cuatro', false) },
+        ]}
+      />,
+    );
+
+    const sources = (name: string) =>
+      Array.from(
+        screen.getByRole('img', { hidden: true, name }).closest('picture')?.querySelectorAll('source') ?? [],
+      ).map((source) => [source.getAttribute('media'), source.getAttribute('srcset')]);
+    expect(sources('tres')).toEqual([['(min-width: 700px)', '/assets/tres-wide-1280.webp 1280w']]);
+    expect(sources('cuatro')).toEqual([]);
+    const preloaded = (srcSet: string) =>
+      document.head.querySelector(`link[rel="preload"][as="image"][imagesrcset="${srcSet}"]`)?.getAttribute('media');
+    expect(preloaded('/assets/tres-640.webp 640w')).toBe('(max-width: 699.98px)');
+    expect(preloaded('/assets/tres-wide-1280.webp 1280w')).toBe('(min-width: 700px)');
+  });
+
   it('given a photo with its own band for wide screens, when shown, then only that photo carries it', () => {
     const photo = (name: string, wideFocus?: string) => ({
       src: `/assets/${name}-640.webp`,
