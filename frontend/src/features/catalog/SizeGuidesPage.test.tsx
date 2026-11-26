@@ -39,16 +39,15 @@ describe('size guide page (UC-31, T-E7-29)', () => {
 
     const women = within(await screen.findByRole('region', { name: 'Pijamas de mujer' }));
     const table = within(women.getByRole('region', { name: messages.tableOf('Pijamas de mujer') }));
-    expect(table.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
-      es.product.size,
-      'Busto (cm)',
-      'Cintura (cm)',
-    ]);
+    // T-E7-80: the unit once, above the table, and the names without it.
+    expect(table.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([es.product.size, 'Busto', 'Cintura']);
+    expect(women.getByText(es.product.allInCentimeters)).toBeInTheDocument();
     expect(table.getAllByRole('rowheader').map((cell) => cell.textContent)).toEqual(['M', 'S']);
     expect(table.getAllByRole('row')[2]).toHaveTextContent(`S83–87${es.product.noMeasure}`);
     expect(women.getByText('Medí sobre la ropa interior.')).toBeInTheDocument();
     const kids = within(screen.getByRole('region', { name: 'Pijamas de niños' }));
     expect(kids.getByRole('cell', { name: '4 años' })).toBeInTheDocument();
+    expect(kids.queryByText(es.product.allInCentimeters)).toBeNull();
     expect(within(screen.getByRole('main')).getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
       'Pijamas de mujer',
       'Pijamas de niños',

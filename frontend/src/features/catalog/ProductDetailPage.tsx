@@ -267,7 +267,7 @@ function ProductDetailView({ product }: { product: ProductDetail }) {
           selection={selection}
           showMissing={showMissing}
           nudge={nudge}
-          sizeGuide={product.sizeGuide !== null && <SizeGuideLink guide={product.sizeGuide} />}
+          sizeGuide={product.sizeGuide !== null && <SizeGuideLink guide={product.sizeGuide} sizes={product.sizes} />}
           onPickSize={(size) => {
             pick({ ...selection, size });
           }}

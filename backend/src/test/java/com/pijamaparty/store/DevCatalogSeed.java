@@ -264,17 +264,22 @@ class DevCatalogSeed {
 
     /** RNF-31.5: the guides of the back office, per category. Kigurumis has none, so its pages show no link. */
     private static final Map<String, SizeGuideForm> SIZE_GUIDES = Map.of(
-        "Pijamas", new SizeGuideForm(List.of("Busto (cm)", "Cintura (cm)", "Cadera (cm)", "Largo pantalón (cm)"),
+        // T-E7-80: adults' letters and kids' numbers in one guide; the product page shows only a product's own rows
+        // and leaves out the columns empty in them ("Edad" for adults, "Largo pantalón" for kids).
+        "Pijamas", new SizeGuideForm(List.of("Edad", "Pecho (cm)", "Cintura (cm)", "Cadera (cm)", "Largo pantalón (cm)"),
             List.of(
-                new RowForm("S", List.of("84–88", "64–68", "90–94", "98")),
-                new RowForm("M", List.of("89–93", "69–73", "95–99", "100")),
-                new RowForm("L", List.of("94–99", "74–79", "100–105", "102")),
-                new RowForm("XL", List.of("100–105", "80–85", "106–111", "104")),
-                new RowForm("XXL", List.of("106–112", "86–92", "112–118", "106")),
-                new RowForm("4", List.of("56", "54", "60", "")),
-                new RowForm("6", List.of("60", "56", "64", "")),
-                new RowForm("8", List.of("64", "58", "68", "")),
-                new RowForm("10", List.of("68", "61", "73", ""))),
+                new RowForm("S", List.of("", "84–88", "64–68", "90–94", "98")),
+                new RowForm("M", List.of("", "89–93", "69–73", "95–99", "100")),
+                new RowForm("L", List.of("", "94–99", "74–79", "100–105", "102")),
+                new RowForm("XL", List.of("", "100–105", "80–85", "106–111", "104")),
+                new RowForm("XXL", List.of("", "106–112", "86–92", "112–118", "106")),
+                new RowForm("4", List.of("3–4 años", "56", "54", "60", "")),
+                new RowForm("6", List.of("5–6 años", "60", "56", "64", "")),
+                new RowForm("8", List.of("7–8 años", "64", "58", "68", "")),
+                new RowForm("10", List.of("9–10 años", "68", "61", "73", "")),
+                new RowForm("12", List.of("11–12 años", "72", "64", "78", "")),
+                new RowForm("14", List.of("13–14 años", "77", "67", "83", "")),
+                new RowForm("16", List.of("15–16 años", "82", "70", "88", ""))),
             "Medidas del cuerpo, no de la prenda. Si estás entre dos talles, elegí el más grande."),
         "Camisones", new SizeGuideForm(List.of("Busto (cm)", "Cadera (cm)", "Largo (cm)"),
             List.of(

@@ -465,6 +465,8 @@ describe('size guide on the product page (RNF-31.5)', () => {
 
   it('given a category with a guide, when one of its products opens, then the guide shows the columns, the rows in order and the note', async () => {
     stubDetail(answer(200, productDetail({
+      sizes: ['S', 'M'],
+      variants: [detailVariant('S', 'Rosa', 3), detailVariant('M', 'Rosa', 3)],
       sizeGuide: {
         columns: ['Busto (cm)', 'Cintura (cm)'],
         rows: [
@@ -484,11 +486,13 @@ describe('size guide on the product page (RNF-31.5)', () => {
     await userEvent.click(link);
     const dialog = within(screen.getByRole('dialog', { name: es.product.sizeGuide }));
     const table = within(dialog.getByRole('table'));
+    // T-E7-80: " (cm)" leaves the names for one line above the table.
     expect(table.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
       es.product.size,
-      'Busto (cm)',
-      'Cintura (cm)',
+      'Busto',
+      'Cintura',
     ]);
+    expect(dialog.getByText(es.product.allInCentimeters)).toBeInTheDocument();
     expect(table.getAllByRole('rowheader').map((cell) => cell.textContent)).toEqual(['M', 'S']);
     const small = table.getAllByRole('row')[2];
     expect(small === undefined ? [] : within(small).getAllByRole('cell').map((cell) => cell.textContent)).toEqual([
@@ -503,6 +507,60 @@ describe('size guide on the product page (RNF-31.5)', () => {
       expect(screen.queryByRole('dialog', { name: es.product.sizeGuide })).not.toBeInTheDocument();
     });
     expect(link).toHaveFocus();
+  });
+
+  /** A guide of adults' letters and kids' numbers: "Edad" only for kids, "Largo pantalón" only for adults. */
+  const MIXED = {
+    columns: ['Edad', 'Pecho (cm)', 'Largo pantalón (cm)'],
+    rows: [
+      { size: 'S', values: ['', '84–88', '98'] },
+      { size: 'M', values: ['', '89–93', '100'] },
+      { size: '4', values: ['3–4 años', '56', ''] },
+      { size: '6', values: ['5–6 años', '60', ''] },
+    ],
+    note: null,
+  };
+
+  async function openGuide() {
+    await userEvent.click(await screen.findByRole('button', { name: es.product.sizeGuide }));
+    return within(within(screen.getByRole('dialog', { name: es.product.sizeGuide })).getByRole('table'));
+  }
+
+  it('given a kids’ product in 6 and 4 and a guide with adults too, when its guide opens, then only its rows and columns with values show (T-E7-80)', async () => {
+    stubDetail(answer(200, productDetail({
+      sizes: ['6', '4'],
+      variants: [detailVariant('6', 'Rosa', 3), detailVariant('4', 'Rosa', 3)],
+      sizeGuide: MIXED,
+    })));
+    renderRoute('/producto/luna');
+
+    const table = await openGuide();
+
+    expect(table.getAllByRole('rowheader').map((cell) => cell.textContent)).toEqual(['4', '6']);
+    expect(table.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([es.product.size, 'Edad', 'Pecho']);
+    expect(table.getByRole('cell', { name: '3–4 años' })).toBeInTheDocument();
+  });
+
+  it('given a product in sizes the guide does not list, when its guide opens, then every row shows (T-E7-80)', async () => {
+    stubDetail(answer(200, productDetail({ sizes: ['Único'], variants: [detailVariant('Único', 'Rosa', 3)], sizeGuide: MIXED })));
+    renderRoute('/producto/luna');
+
+    const table = await openGuide();
+
+    expect(table.getAllByRole('rowheader').map((cell) => cell.textContent)).toEqual(['S', 'M', '4', '6']);
+    expect(table.getAllByRole('columnheader')).toHaveLength(4);
+  });
+
+  it('given sizes loaded as 14, 16, 4, when the product page opens, then the sizes read 4, 14, 16 (T-E7-80)', async () => {
+    stubDetail(answer(200, productDetail({
+      sizes: ['14', '16', '4'],
+      variants: [detailVariant('14', 'Rosa', 3), detailVariant('16', 'Rosa', 3), detailVariant('4', 'Rosa', 3)],
+    })));
+    renderRoute('/producto/luna');
+
+    const sizes = within(await screen.findByRole('group', { name: es.product.size }));
+
+    expect(sizes.getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual(['4', '14', '16']);
   });
 
   it('given a category without a guide, when one of its products opens, then no size guide link is shown', async () => {

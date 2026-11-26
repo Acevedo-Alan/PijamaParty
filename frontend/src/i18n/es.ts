@@ -212,6 +212,8 @@ export const es = {
     sizeGuideTable: 'Tabla de talles',
     /** A blank value of the size guide. */
     noMeasure: '–',
+    /** T-E7-80: under the guide's title, instead of " (cm)" after every column. */
+    allInCentimeters: 'Todas las medidas están en centímetros.',
     /** E7: the collapsed sections below the add button. */
     composition: 'Composición',
     returns: 'Cambios y devoluciones',

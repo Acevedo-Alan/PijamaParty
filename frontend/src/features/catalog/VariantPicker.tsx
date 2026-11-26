@@ -2,6 +2,7 @@ import { useId, type ReactNode, type Ref } from 'react';
 import { es } from '../../i18n/es.ts';
 import { colorTone } from './colorTones.ts';
 import { displaySize } from './displayText.ts';
+import { sortBySize } from './sizeGroups.ts';
 import type { DetailVariant } from './productDetailApi.ts';
 import { isColorSoldOut, isSizeAvailable, type Selection } from './variantSelection.ts';
 
@@ -195,7 +196,8 @@ export function VariantPicker({
           {sizeGuide}
         </legend>
         <div className="chips">
-          {sizes.map((size) => {
+          {/* T-E7-80: in the sizes' natural order, as the cards read them (4, 6 … 16, not the load order). */}
+          {sortBySize(sizes, (size) => size).map((size) => {
             const available = isSizeAvailable(variants, size, selection.color);
             return (
               <SizeOption

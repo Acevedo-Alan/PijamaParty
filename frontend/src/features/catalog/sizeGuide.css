@@ -24,13 +24,50 @@
   font-weight: 700;
 }
 
+/* T-E7-80: the size column stands out, bold on the page's cream, and the rows stripe very lightly so the eye keeps
+   its line from left to right. */
 .size-guide-table tbody th {
-  font-weight: 600;
+  padding-left: 10px;
+  background: var(--bg);
+  font-weight: 700;
 }
 
-.size-guide-note {
-  margin-top: 10px;
-  font-size: 13px;
+.size-guide-table thead th:first-child {
+  padding-left: 10px;
+}
+
+.size-guide-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+/* T-E7-80: "Todas las medidas están en centímetros." once, instead of " (cm)" after every column. */
+.size-guide-unit {
+  margin: 0 0 8px;
+  font-size: 12px;
   color: var(--ink-soft);
+}
+
+/* T-E7-80: the note avoids returns, so it is a callout: a cream box with a ruler. */
+.size-guide-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 13px;
+  color: var(--ink);
   white-space: pre-line;
+}
+
+.size-guide-note svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: -1px;
+  fill: none;
+  stroke: var(--accent-text);
+  stroke-width: 1.6;
+  stroke-linecap: round;
 }
