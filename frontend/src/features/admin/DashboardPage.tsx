@@ -11,8 +11,6 @@ import {
   Plus,
   RefreshCw,
   Settings,
-  ShoppingBag,
-  Ticket,
   TrendingDown,
   TrendingUp,
   type LucideIcon,
@@ -410,26 +408,12 @@ function ChartBlock({ chart, requested, loading, onKind, order }: ChartBlockProp
 /** The screen's one primary action and its two secondary ones, in the top row (D-E8-12, UC-33 2026-11-06). */
 function QuickActions() {
   return (
-    <nav aria-label={messages.quick.title} className="flex flex-wrap items-center gap-2">
-      <Button asChild variant="primary">
-        <Link to="/admin/productos/nuevo">
-          <Plus aria-hidden="true" />
-          {messages.quick.newProduct}
-        </Link>
-      </Button>
-      <Button asChild variant="secondary">
-        <Link to="/admin/cupones">
-          <Ticket aria-hidden="true" />
-          {messages.quick.coupons}
-        </Link>
-      </Button>
-      <Button asChild variant="secondary">
-        <Link to="/admin/pedidos">
-          <ShoppingBag aria-hidden="true" />
-          {messages.quick.orders}
-        </Link>
-      </Button>
-    </nav>
+    <Button asChild variant="primary">
+      <Link to="/admin/productos/nuevo">
+        <Plus aria-hidden="true" />
+        {messages.quick.newProduct}
+      </Link>
+    </Button>
   );
 }
 
@@ -781,10 +765,16 @@ export function DashboardPage() {
           <ScreenTitle screen="summary">{messages.title}</ScreenTitle>
           <p className="m-0 text-sm text-muted-foreground">{messages.intro}</p>
         </div>
-        <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <QuickActions />
-          <div className="flex items-start gap-1">
-            <div className="flex flex-col items-center gap-0.5">
+          {/* T-E8-32: the time on the row, before "Actualizar", so the row keeps one height. */}
+          <div className="flex items-center gap-2">
+            {dashboard.data !== undefined && (
+              <p className="m-0 text-xs text-muted-foreground tabular-nums">
+                {messages.updatedAt(formatTime(new Date(dashboard.dataUpdatedAt)))}
+              </p>
+            )}
+            <div className="flex items-center gap-1">
               {/* Focusable while it reads (aria-disabled), so a keyboard does not lose its place. */}
               <Button
                 variant="secondary"
@@ -800,14 +790,9 @@ export function DashboardPage() {
                 <RefreshCw aria-hidden="true" className={cn(fetching && 'motion-safe:animate-spin')} />
                 {messages.refresh}
               </Button>
-              {dashboard.data !== undefined && (
-                <p className="m-0 text-xs text-muted-foreground tabular-nums">
-                  {messages.updatedAt(formatTime(new Date(dashboard.dataUpdatedAt)))}
-                </p>
-              )}
+              {/* The 5-minute interval tucked into an options menu attached to the button (2026-11-06) */}
+              <RefreshOptions autoRefresh={autoRefresh} onAutoRefresh={setAutoRefresh} />
             </div>
-            {/* The 5-minute interval tucked into an options menu attached to the button (2026-11-06) */}
-            <RefreshOptions autoRefresh={autoRefresh} onAutoRefresh={setAutoRefresh} />
           </div>
         </div>
       </div>

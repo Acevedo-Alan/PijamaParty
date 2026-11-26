@@ -71,7 +71,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 - **Payment methods:** deferred until E3b adds MODO; until then every payment is MercadoPago, and the block would only say 100 %.
 - The figures are read when the page opens and when the period changes. "Actualizar" reads them again. "Actualizar cada 5 minutos", a switch off by default and remembered in that browser, reads them every 5 minutes while the page is visible; a refresh keeps everything in place (D-E8-12).
 - The time of the last read, "Actualizado a las HH:MM", is small text directly under "Actualizar"; the 5-minute switch sits in a small options menu (gear) attached to that button (2026-11-06), so the row holds one button.
-- **Quick actions** (D-E8-12, moved on 2026-11-06): "Nuevo producto" (the new product form, the screen's one primary action), "Cupones" and "Ver pedidos", in the top row of the page beside the refresh controls, not in a block further down.
+- **Quick actions** (D-E8-12, moved on 2026-11-06; T-E8-32): only "Nuevo producto" (the new product form, the screen's one primary action), in the top row of the page beside the refresh controls. "Cupones" and "Ver pedidos" are gone: the side menu already has them one press away. "Actualizado a las HH:MM" sits on the same row, before "Actualizar", so the row keeps one height.
 
 **Acceptance criteria**
 - Given an administrator who signs in, when the back office opens, then it shows the summary, not the product list; `/admin` shows it too.
@@ -447,7 +447,7 @@ E8 has three phases (see the Spanish spec). This file covers **E8a**. E8b (owner
 
 **Main flow**
 1. The back office uses the whole width of the window: the side menu is flush with the left edge and the page fills the rest, up to a readable maximum width on very wide screens.
-2. The top bar (from 860 px) holds, on the right, the search, "Ver tienda" (the live storefront, same tab) and who is signed in with "Cerrar sesión". Under 860 px the menu panel keeps its own entries.
+2. The top bar (from 860 px) holds the search, starting where the page's content starts (after the side menu's column), and on the right "Ver tienda" (the live storefront, same tab) and who is signed in: a pill with a round avatar of their initials and their name (T-E8-32). "Cerrar sesión" is only at the foot of the side menu, apart from "Ver tienda", so it is not pressed by mistake. Under 860 px the menu panel keeps its own entries.
 3. The administrator presses Ctrl+K (Cmd+K on Mac) or the search button: a dialog opens with a search box. Typing 2 or more characters (100 at most) searches orders, products and customers at once; each group shows its first 5 matches.
 4. Choosing a match opens its page: the order, the product's form or the customer's profile. Escape closes the dialog and focus returns to where it was.
 
@@ -521,6 +521,19 @@ The owner sets the store up alone, from a phone or a computer, and the back offi
 - **Endpoints:** `GET /api/admin/setup-guide` → `200` `{ items: [{ item, state, total, names: [{ id, name }] }] }` (`total` and `names` empty but for the two items that name things); `PUT /api/admin/setup-guide/omitted/{item}` → `204`, or `409` problem for an item that may not be omitted; `DELETE /api/admin/setup-guide/omitted/{item}` → `204`; an `{item}` outside the enum is `400`. OpenAPI is updated. The admin endpoints' session and CSRF rules apply as to the others.
 - **Page:** `SetupGuideCard` in `features/admin`, first on `DashboardPage`, its own TanStack query (`['admin', 'setup-guide']`), invalidated after omitting or showing again and when the summary's "Actualizar" reads again. The chibi is a `LazyChibi`. One column on a phone (RNF-26).
 - **Chibi:** a new pose `guide`: a small clipboard with two ticked lines in the right hand (`Held` `clipboard`), drawn like the key and the bag of T-E7-47 and T-E7-49.
+
+### UC-46 changes of T-E8-32 (2026-11-25, owner's review of the summary)
+
+The card took the summary's whole first screen, so the day's figures were out of sight. From T-E8-32:
+- **Collapsed by default:** one line with the chibi (pose `guide`), "Terminá de configurar tu tienda", "{ready} de {total}" and a thin progress bar, and "Ver pasos" (`aria-expanded`) on the right; the summary's blocks show right below it. The browser remembers whether it was left open (a per-browser convenience; without storage it starts collapsed).
+- **Expanded:** all six items as rows of one pattern: a state mark on the left (a filled `--success` circle with a tick when done, an empty circle when pending, a dashed circle when omitted; decorative, the row says its state for screen readers), the title and its reason in the middle, and the actions on the right: pending, a secondary link button to where it is fixed ("Configurar"; "Configurar guías" for size guides, "Cargar fotos" for photos), and "Omitir" for the two omittable items; omitted, "Volver a mostrar"; done, nothing. The separate "Ver omitidos" list is gone.
+- **No names:** an item about categories or products shows only how many, in its title ("Productos publicados sin foto (286)"); nobody fixes 286 products from the summary, and its button leads to the list. The API still answers the first names, unused by this page.
+- **Title:** "Terminá de configurar tu tienda" while something is pending (not "Tu tienda, lista", which contradicted "2 de 6"); with everything done or omitted, the one line "¡Tu tienda está lista!" with the chibi celebrating, as before.
+
+**Acceptance criteria (T-E8-32)**
+- Given 2 of 6 items ready, when the summary opens, then the card is one line with "Terminá de configurar tu tienda", "2 de 6" and a progress bar at 2 of 6, and its items are hidden behind "Ver pasos".
+- Given the card expanded and 286 published products without a photo, when it is read, then that row says "(286)", names no product, and its "Cargar fotos" leads to `/admin/productos`; a done item shows its tick and no action.
+- Given the banner omitted, when the card is expanded, then its row shows it omitted with "Volver a mostrar".
 
 ## UC-47 Screen help with the chibi (2026-11-25, owner's request: tips with the chibi as a guide, second part)
 

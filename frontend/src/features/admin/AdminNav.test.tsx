@@ -76,6 +76,21 @@ describe('back-office navigation (E8a, T-E8-05)', () => {
     expect(menu.getByText(esAdmin.owner)).toBeInTheDocument();
   });
 
+  it('given the top bar, when it shows, then who is signed in is a pill with the initials, and "Cerrar sesión" is only in the side menu (T-E8-32)', async () => {
+    stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: counts(0), [ACTIVITY]: answer(200, { items: [], hasMore: false }) });
+    renderRoute('/admin/actividad');
+    await sideMenu();
+
+    const header = document.querySelector<HTMLElement>('.admin-header');
+    const who = header?.querySelector('.admin-header-who');
+    expect(who).toHaveTextContent('Dueña');
+    expect(who?.querySelector('.admin-header-initials')).toHaveTextContent('D');
+    expect(who?.querySelector('.admin-header-initials')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(header as HTMLElement).queryByRole('button', { name: esAdmin.signOut, hidden: true })).toBeNull();
+    // The search comes before the right-hand tools, so it can start where the content does.
+    expect(header?.querySelector('.admin-header-search + .admin-header-tools')).not.toBeNull();
+  });
+
   it('given /admin/actividad, when the menu shows, then "Actividad" is marked as the current page', async () => {
     stubApi({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: counts(0), [ACTIVITY]: answer(200, { items: [], hasMore: false }) });
     renderRoute('/admin/actividad');

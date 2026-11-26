@@ -45,7 +45,8 @@ export const esAdmin = {
     updatedAt: (time: string) => `Actualizado a las ${time}`,
     autoRefresh: 'Actualizar cada 5 minutos',
     refreshOptions: 'Opciones de actualización',
-    quick: { title: 'Accesos rápidos', newProduct: 'Nuevo producto', coupons: 'Cupones', orders: 'Ver pedidos' },
+    /** T-E8-32: only the screen's primary action; Cupones and Pedidos are in the side menu. */
+    quick: { newProduct: 'Nuevo producto' },
     todo: {
       title: 'Para hacer hoy',
       /** The three levels of D-E8-12, most urgent first. */
@@ -147,21 +148,25 @@ export const esAdmin = {
     },
     /** UC-46: "Tu tienda, lista", the store setup guide with the chibi. */
     setupGuide: {
-      title: 'Tu tienda, lista',
+      /** T-E8-32: while something is pending; with nothing pending the card says allDone. */
+      title: 'Terminá de configurar tu tienda',
       /** How many of the items are done or omitted, e.g. "4 de 6 listos". */
       ready: (ready: number, total: number) => `${formatNumber(ready)} de ${formatNumber(total)} listos`,
+      showSteps: 'Ver pasos',
+      hideSteps: 'Ocultar pasos',
+      /** What a row's mark means, for screen readers (T-E8-32). */
+      states: { DONE: 'Listo', PENDING: 'Pendiente', OMITTED: 'Omitido' },
+      configure: 'Configurar',
+      /** A row's button name for screen readers: its visible words, then the item. */
+      actionLabel: (action: string, item: string) => `${action}: ${item}`,
       allDone: '¡Tu tienda está lista!',
       loadError: 'No pudimos cargar la guía de tu tienda.',
       saveError: 'No pudimos guardar el cambio.',
       omit: 'Omitir',
       /** The omit button's name for screen readers, with the item it omits. */
       omitLabel: (item: string) => `Omitir «${item}»`,
-      showOmitted: (count: number) => `Ver omitidos (${formatNumber(count)})`,
-      hideOmitted: 'Ocultar omitidos',
       showAgain: 'Volver a mostrar',
       showAgainLabel: (item: string) => `Volver a mostrar «${item}»`,
-      /** After the names of an item, e.g. "y 2 más". */
-      more: (count: number) => `y ${formatNumber(count)} más`,
       items: {
         WHATSAPP: {
           title: 'Cargá el número de WhatsApp',
@@ -174,10 +179,12 @@ export const esAdmin = {
         SIZE_GUIDES: {
           title: 'Categorías sin guía de talles',
           why: 'Sin guía, la ficha no muestra «Guía de talles».',
+          action: 'Configurar guías',
         },
         PRODUCT_PHOTOS: {
           title: 'Productos publicados sin foto',
           why: 'En la tienda se ven con un fondo de color en lugar de la foto.',
+          action: 'Cargar fotos',
         },
         INSTAGRAM: {
           title: 'Sumá tu Instagram',

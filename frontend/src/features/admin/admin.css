@@ -230,6 +230,33 @@
   display: none;
 }
 
+/* T-E8-32: the setup guide's progress, a thin bar in the store's rose. */
+.setup-progress {
+  flex: 1;
+  max-width: 240px;
+  height: 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--admin-muted);
+  appearance: none;
+}
+
+.setup-progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--admin-muted);
+}
+
+.setup-progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.setup-progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--accent);
+}
+
 
 .admin-title-row {
   display: flex;
@@ -845,6 +872,11 @@
   margin-left: auto;
 }
 
+/* T-E8-32: on a phone the search sits at the right; from 860 px it starts where the content does. */
+.admin-header-search {
+  margin-left: auto;
+}
+
 .admin-header-link,
 .admin-header-who {
   display: none;
@@ -892,10 +924,35 @@
   font-size: 12px;
 }
 
+/* T-E8-32: who is signed in, a pill with the initials in a rose circle and the name. */
 .admin-header-who {
-  color: var(--ink-soft);
+  align-items: center;
+  gap: 8px;
+  max-width: 16rem;
+  min-height: 40px;
+  padding: 0 14px 0 4px;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background: var(--admin-muted);
+  color: var(--ink);
   font-size: 14px;
-  max-width: 14rem;
+}
+
+.admin-header-initials {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--rose-soft);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-header-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -907,7 +964,17 @@
   }
 
   .admin-header-who {
-    display: block;
+    display: inline-flex;
+  }
+
+  /* The brand takes the side menu's column, so the search starts with the page's content (240 + 32 - 24 px). */
+  .admin-brand {
+    flex: 0 0 248px;
+    margin: 0;
+  }
+
+  .admin-header-search {
+    margin-left: 0;
   }
 
   .admin-search-btn kbd {

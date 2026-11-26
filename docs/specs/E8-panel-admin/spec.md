@@ -74,6 +74,12 @@ Cada cambio hecho desde el backoffice queda registrado: precios, stock, publicar
 
 Arriba del resumen, la tarjeta "Tu tienda, lista": la chibi de la tienda, con una tablita en la mano, dice cuántas cosas están listas ("4 de 6 listos") y lista lo que falta según los datos de la tienda, cada cosa con por qué importa y un enlace a la pantalla que la resuelve: el número de WhatsApp (sin él no aparecen los botones para escribir), el email de contacto, las categorías con productos publicados y sin guía de talles (nombra hasta 5, cada una lleva a su guía), los productos publicados sin foto (nombra hasta 5, los más nuevos), Instagram y el banner de la portada. Instagram y el banner se pueden "Omitir" y "Volver a mostrar"; lo omitido se guarda en el servidor, así vale en el celular y en la computadora. Las otras cuatro no se omiten: son lo que una tienda necesita para funcionar. Sin pendientes, queda una línea "¡Tu tienda está lista!" con la chibi festejando. Omitir no se registra en la actividad: cambia lo que la guía le muestra al dueño, no la tienda. Es la primera parte de la guía del backoffice; los "?" de cada pantalla vienen después.
 
+### Revisión del resumen (pedido del dueño, 2026-11-25)
+
+- "Tu tienda, lista" pasa a "Terminá de configurar tu tienda" y arranca cerrada: una sola línea con la chibi, "2 de 6", una barra de progreso fina y "Ver pasos"; así las cifras del día se ven al entrar. Abierta, cada paso es una fila igual: un círculo de estado (tilde si está listo), el título con su explicación y a la derecha el botón para resolverlo ("Configurar", "Configurar guías", "Cargar fotos") y "Omitir" donde se puede. Ya no lista nombres de productos o categorías: solo cuántos faltan.
+- Arriba del resumen queda solo "Nuevo producto" (Cupones y Ver pedidos ya están en el menú) y "Actualizado a las …" en la misma fila que "Actualizar".
+- En la barra de arriba, el nombre de quien ingresó va en una píldora con sus iniciales; "Cerrar sesión" queda solo al pie del menú lateral, y la búsqueda arranca donde empieza el contenido.
+
 ### CU-47 Ayuda de cada pantalla con la chibi (pedido del dueño, 2026-11-25)
 
 En cada una de las 13 pantallas del menú del backoffice, junto al título, un botón "?" abre una tarjetita con la chibi y dos o tres líneas sobre cómo funciona esa pantalla (por ejemplo, en Pedidos: un pedido pagado se prepara, se marca como enviado con el número de seguimiento y después como entregado). Se cierra con "Entendido", con Escape o tocando afuera. Los textos son fijos y solo cuentan lo que la pantalla hace; no se guarda nada.

@@ -135,19 +135,19 @@ describe('the back-office summary (UC-33, T-E8-13)', () => {
     expect(await screen.findByText(/^Actualizado a las \d{2}:\d{2}$/)).toBeInTheDocument();
   });
 
-  it('given the summary, when it shows, then the quick actions are in the top row and the time of the read is under "Actualizar" (2026-11-06)', async () => {
+  it('given the summary, when it shows, then the top row has only "Nuevo producto" and the time of the read sits on the row of "Actualizar" (T-E8-32)', async () => {
     stub({ 'GET /api/admin/auth/me': signedIn, [COUNTS]: answer(200, { paidOrders: 2 }),
       [DASHBOARD]: answer(200, dashboard()) });
     renderRoute('/admin');
     await screen.findByRole('region', { name: messages.todo.title });
 
-    const quick = screen.getByRole('navigation', { name: messages.quick.title });
-    expect(within(quick).getByRole('link', { name: messages.quick.newProduct })).toHaveAttribute('href', '/admin/productos/nuevo');
-    expect(within(quick).getByRole('link', { name: messages.quick.coupons })).toHaveAttribute('href', '/admin/cupones');
-    expect(within(quick).getByRole('link', { name: messages.quick.orders })).toHaveAttribute('href', '/admin/pedidos');
-    expect(screen.queryByRole('region', { name: messages.quick.title })).not.toBeInTheDocument();
+    const main = within(screen.getByRole('main'));
+    expect(main.getByRole('link', { name: messages.quick.newProduct })).toHaveAttribute('href', '/admin/productos/nuevo');
+    // Cupones and Pedidos are one press away in the side menu.
+    expect(main.queryByRole('link', { name: 'Cupones' })).not.toBeInTheDocument();
+    expect(main.queryByRole('link', { name: 'Ver pedidos' })).not.toBeInTheDocument();
     const refresh = screen.getByRole('button', { name: messages.refresh });
-    expect(refresh.parentElement).toHaveTextContent(/Actualizado a las \d{2}:\d{2}/);
+    expect(refresh.parentElement?.parentElement).toHaveTextContent(/Actualizado a las \d{2}:\d{2}/);
     expect(screen.getByRole('switch', { name: messages.autoRefresh }).closest('details')).not.toBeNull();
   });
 

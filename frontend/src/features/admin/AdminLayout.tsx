@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { LogOut, Store } from 'lucide-react';
+import { Store } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { esAdmin } from '../../i18n/esAdmin.ts';
+import { initials } from '../account/useCustomer.ts';
 import { leaveAnalyticsBehind } from '../analytics/analytics.ts';
 import { NoIndex } from '../seo/NoIndex.tsx';
 import { AdminMenuPanel } from './AdminMenuPanel.tsx';
@@ -123,25 +124,22 @@ export function AdminLayout() {
         <div className="admin-header-inner">
           <AdminMenuPanel {...signOutProps} />
           <p className="admin-brand">{esAdmin.title}</p>
-          {/* UC-39: the top bar's tools: search (Ctrl+K), the live store, who is signed in */}
-          <div className="admin-header-tools">
+          {/* UC-39, T-E8-32: the search where the content starts; the live store and who is signed in on the right.
+              "Cerrar sesión" is at the foot of the side menu only, away from "Ver tienda". */}
+          <div className="admin-header-search">
             <AdminSearch />
+          </div>
+          <div className="admin-header-tools">
             <Link to="/" className="admin-header-link">
               <Store aria-hidden="true" />
               <span>{esAdmin.viewStore}</span>
             </Link>
-            <span className="admin-header-who">{session.data.administrator.name}</span>
-            <button
-              type="button"
-              className="admin-header-link"
-              disabled={leave.isPending}
-              onClick={() => {
-                leave.mutate();
-              }}
-            >
-              <LogOut aria-hidden="true" />
-              <span>{esAdmin.signOut}</span>
-            </button>
+            <span className="admin-header-who">
+              <span className="admin-header-initials" aria-hidden="true">
+                {initials(session.data.administrator.name)}
+              </span>
+              <span className="admin-header-name">{session.data.administrator.name}</span>
+            </span>
           </div>
         </div>
       </header>

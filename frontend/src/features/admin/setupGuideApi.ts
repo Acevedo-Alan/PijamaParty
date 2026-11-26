@@ -19,8 +19,6 @@ export interface SetupEntry {
   state: SetupState;
   /** How many categories or products the item is about while pending; 0 for the other items. */
   total: number;
-  /** The first of them, at most 5. */
-  names: { id: string; name: string }[];
 }
 
 function isItem(value: unknown): value is SetupItem {
@@ -39,8 +37,8 @@ export async function fetchSetupGuide(signal?: AbortSignal): Promise<SetupEntry[
       ? [{
           item: entry.item,
           state: entry.state ?? 'PENDING',
+          // T-E8-32: the page shows only how many; the first names the API sends are not used.
           total: entry.total ?? 0,
-          names: (entry.names ?? []).map((name) => ({ id: name.id ?? '', name: name.name ?? '' })),
         }]
       : [],
   );
