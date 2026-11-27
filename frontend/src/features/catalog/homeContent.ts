@@ -1,3 +1,9 @@
+import kids640 from '../../assets/home/audience-kids-640.webp';
+import kids1280 from '../../assets/home/audience-kids-1280.webp';
+import men640 from '../../assets/home/audience-men-640.webp';
+import men1280 from '../../assets/home/audience-men-1280.webp';
+import women640 from '../../assets/home/audience-women-640.webp';
+import women1280 from '../../assets/home/audience-women-1280.webp';
 import family640 from '../../assets/home/hero-family-640.webp';
 import family896 from '../../assets/home/hero-family-896.webp';
 import familyWide1280 from '../../assets/home/hero-family-wide-1280.webp';
@@ -79,9 +85,14 @@ export const HERO_SLIDES: readonly HeroSlide[] = [
   { tone: 'peach', photo: FORT_PHOTO },
 ];
 
-/** "Elegí para quién" (UC-30), in the prototype's order; the photos are pending as the carousel's are (D-15). */
+/** An audience card's photo (T-E7-86), 4:5: decorative, the card's name says who it is for. */
+function audiencePhoto(small: string, large: string): HomePhoto {
+  return { src: small, srcSet: `${small} 640w, ${large} 1280w`, alt: '' };
+}
+
+/** "Elegí para quién" (UC-30), in the prototype's order, each with its photo (D-15): one series, the same bedroom. */
 export const AUDIENCE_CARDS: readonly AudienceCard[] = [
-  { audience: 'WOMEN', tone: 'rose' },
-  { audience: 'MEN', tone: 'cream' },
-  { audience: 'KIDS', tone: 'peach' },
+  { audience: 'WOMEN', tone: 'rose', photo: audiencePhoto(women640, women1280) },
+  { audience: 'MEN', tone: 'cream', photo: audiencePhoto(men640, men1280) },
+  { audience: 'KIDS', tone: 'peach', photo: audiencePhoto(kids640, kids1280) },
 ];
