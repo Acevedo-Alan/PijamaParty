@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { es } from '../../i18n/es.ts';
@@ -80,12 +80,115 @@ describe('home page (UC-30)', () => {
 
     renderRoute('/');
 
-    const links = within(screen.getByRole('region', { name: es.home.audienceTitle })).getAllByRole('link');
-    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+    const audience = within(screen.getByRole('region', { name: es.home.audienceTitle }));
+    expect(audience.getAllByRole('link')).toHaveLength(3);
+    for (const [name, href] of [
       ['Mujer', '/?publico=mujer'],
       ['Hombre', '/?publico=hombre'],
       ['Niños', '/?publico=infantil'],
-    ]);
+    ] as const) {
+      // Named by the audience alone: "Ver colección" and the arrow are hidden from screen readers (T-E7-84).
+      expect(audience.getByRole('link', { name })).toHaveAttribute('href', href);
+    }
+  });
+
+  describe('the audience cards\' counts and indicators (T-E7-85)', () => {
+    /** Replaces IntersectionObserver; the returned function tells every observer its target is near the screen. */
+    function stubIntersections() {
+      const callbacks: IntersectionObserverCallback[] = [];
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          constructor(callback: IntersectionObserverCallback) {
+            callbacks.push(callback);
+          }
+
+          observe() {
+            // The test reports the intersections.
+          }
+
+          disconnect() {
+            // Nothing to release.
+          }
+        },
+      );
+      return () => {
+        act(() => {
+          for (const callback of callbacks) {
+            callback([{ isIntersecting: true }] as never, {} as never);
+          }
+        });
+      };
+    }
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    const card = (name: string) =>
+      within(screen.getByRole('region', { name: es.home.audienceTitle })).getByRole('link', { name });
+
+    it('given 48 products for women, none for men and 7 for kids, when the cards come near the screen, then women and kids say how many, as the description of each link, men say nothing, and each carries an arrow', async () => {
+      const intersect = stubIntersections();
+      const api = stubCatalogApi({ listings: [listed([])], audienceTotals: { WOMEN: 48, MEN: 0, KIDS: 7 } });
+      renderRoute('/');
+
+      // Not asked for before the cards come near the screen: never in the first load (RNF-11).
+      expect(card('Mujer').querySelector('.audience-more')).toHaveTextContent('');
+      expect(card('Mujer')).not.toHaveAttribute('aria-describedby');
+      expect(api.mock.calls.filter(([, init]) => (init as { params?: { query?: { audience?: unknown } } } | undefined)?.params?.query?.audience)).toHaveLength(0);
+
+      intersect();
+
+      await waitFor(() => {
+        expect(card('Mujer')).toHaveAccessibleDescription('48 productos');
+      });
+      // None for men: the line stays empty and the link has no description.
+      expect(card('Hombre').querySelector('.audience-more')).toHaveTextContent('');
+      expect(card('Hombre')).not.toHaveAttribute('aria-describedby');
+      expect(card('Niños')).toHaveAccessibleDescription('7 productos');
+      for (const name of ['Mujer', 'Hombre', 'Niños']) {
+        expect(card(name).querySelector('.audience-arrow')).toHaveAttribute('aria-hidden', 'true');
+      }
+    });
+
+    it('given the phone\'s sideways row, when it is scrolled to the second card and then to its end, then the indicator follows', () => {
+      stubCatalogApi({ listings: [listed([])] });
+      renderRoute('/');
+      const row = document.querySelector<HTMLElement>('.audience-grid');
+      if (row === null) {
+        throw new Error('No audience row');
+      }
+      const cards = Array.from(row.children) as HTMLElement[];
+      // jsdom lays nothing out: a 375 px row of 245 px cards 12 px apart, 20 px in.
+      cards.forEach((item, index) => {
+        Object.defineProperty(item, 'offsetLeft', { value: 20 + index * 257, configurable: true });
+      });
+      Object.defineProperty(row, 'clientWidth', { value: 375, configurable: true });
+      Object.defineProperty(row, 'scrollWidth', { value: 811, configurable: true });
+      const active = () =>
+        Array.from(document.querySelectorAll('.audience-dots span')).findIndex((dot) => dot.classList.contains('active'));
+      expect(active()).toBe(0);
+
+      row.scrollLeft = 257;
+      fireEvent.scroll(row);
+      expect(active()).toBe(1);
+
+      row.scrollLeft = 436;
+      fireEvent.scroll(row);
+      expect(active()).toBe(2);
+    });
+  });
+
+  it('given the audience cards, when their styles are read, then they are 4:5 and slide sideways on phones, three in a row from 700 px (T-E7-84)', () => {
+    // The phone's rules are the ones outside any media query: not indented.
+    expect(/^\.audience-card \{[^}]*aspect-ratio: 4 \/ 5;/m.exec(homeCss)).not.toBeNull();
+    expect(/^\.audience-grid \{[^}]*grid-auto-columns: 70%;[^}]*scroll-snap-type: x mandatory;/m.exec(homeCss)).not.toBeNull();
+    expect(
+      /@media \(min-width: 700px\) \{\s*\.audience-grid \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);[^}]*overflow: visible;/.exec(
+        homeCss,
+      ),
+    ).not.toBeNull();
   });
 
   it('given "Descubrí la colección", when pressed, then the page scrolls to "Todos los productos" and moves the focus to its heading', async () => {

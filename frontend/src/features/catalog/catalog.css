@@ -4,9 +4,10 @@
   padding-bottom: 70px;
 }
 
+/* D-17, T-E7-84: section titles in the editorial serif; everything functional stays in Inter */
 .section-title {
-  font-family: var(--ff-display);
-  font-weight: 500;
+  font-family: var(--ff-editorial);
+  font-weight: 600;
   font-size: 26px;
   margin-bottom: 24px;
 }

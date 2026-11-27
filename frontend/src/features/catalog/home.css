@@ -306,23 +306,50 @@
   scroll-margin-top: 72px;
 }
 
-/* "Elegí para quién": three cards in a row, 3:4 on phones and 5:4 from 700 px */
+/* "Elegí para quién" (T-E7-84): 4:5 cards. On phones a row that slides sideways to the screen's edges, each card 70 %
+   wide so the next one peeks at the right; from 700 px the three side by side. */
 .audience-grid {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-auto-flow: column;
+  grid-auto-columns: 70%;
+  gap: 12px;
+  margin-inline: -20px;
+  padding: 0 20px 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 20px;
+  scrollbar-width: none;
+}
+
+.audience-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.audience-grid li {
+  scroll-snap-align: start;
 }
 
 .audience-card {
   position: relative;
   isolation: isolate;
   display: block;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 4 / 5;
   overflow: hidden;
   border-radius: var(--radius-m);
   color: var(--on-accent);
   text-decoration: none;
+}
+
+/* The card's tone as an inner layer, so it zooms as a photo does while the photos are pending (D-15) */
+.audience-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background: inherit;
+  transition: transform var(--dur-slow) var(--ease-out);
 }
 
 .audience-card img {
@@ -340,40 +367,147 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  /* The lower half darkens enough for white text on any photo or gradient; the top stays light */
+  /* T-E7-84, T-E7-85: only the lower part, in a deep warm brown, darkens for the white text; the tone or photo above
+     stays clean. It fades through eased stops, so no band shows where it starts. The text has a fixed height, so on a
+     small card the veil reaches at least 156 px. */
+  --veil: max(45%, 156px);
   background: linear-gradient(
     0deg,
-    rgba(74, 58, 58, 0.85),
-    rgba(74, 58, 58, 0.6) 30%,
-    rgba(74, 58, 58, 0.2) 55%,
-    rgba(74, 58, 58, 0) 75%
+    rgba(61, 34, 38, 0.85),
+    rgba(61, 34, 38, 0.8) calc(var(--veil) * 0.2),
+    rgba(61, 34, 38, 0.7) calc(var(--veil) * 0.38),
+    rgba(61, 34, 38, 0.55) calc(var(--veil) * 0.52),
+    rgba(61, 34, 38, 0.38) calc(var(--veil) * 0.64),
+    rgba(61, 34, 38, 0.22) calc(var(--veil) * 0.75),
+    rgba(61, 34, 38, 0.1) calc(var(--veil) * 0.85),
+    rgba(61, 34, 38, 0.03) calc(var(--veil) * 0.93),
+    rgba(61, 34, 38, 0) var(--veil)
   );
 }
 
-.audience-card span {
+.audience-text {
   position: absolute;
-  left: 12px;
-  bottom: 14px;
-  font-family: var(--ff-display);
-  font-size: 21px;
+  left: 16px;
+  right: 68px;
+  bottom: 16px;
+  display: grid;
+  gap: 4px;
+  text-shadow: 0 1px 3px rgba(61, 34, 38, 0.5);
+}
+
+.audience-name {
+  font-family: var(--ff-editorial);
+  font-size: 26px;
   font-weight: 600;
-  line-height: 1.1;
-  text-shadow: 0 1px 3px rgba(74, 58, 58, 0.5);
+  line-height: 1.05;
+}
+
+/* The count (T-E7-85); empty while it loads, keeping its line so nothing moves when it arrives */
+.audience-more {
+  min-height: 1.3em;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+/* The store's round shapes: a white circle with the arrow, as the pills elsewhere */
+.audience-arrow {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  isolation: isolate;
+  /* T-E7-85: at rest a light translucent circle, so it does not compete with the name; white on hover */
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--on-accent);
+}
+
+/* The white fill of the hover, a layer that fades in (D-16: only opacity and transform move) */
+.audience-arrow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--on-accent);
+  opacity: 0;
+}
+
+.audience-arrow svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Phones: which card of the sideways row is in view (T-E7-85), a pill for that one */
+.audience-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.audience-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--line-strong);
+  opacity: 0.4;
+}
+
+.audience-dots span.active {
+  width: 20px;
+  background: var(--accent);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .audience-dots span {
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
 }
 
 @media (min-width: 700px) {
   .audience-grid {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
+    margin-inline: 0;
+    padding: 0;
+    overflow: visible;
   }
 
-  .audience-card {
-    aspect-ratio: 5 / 4;
+  .audience-dots {
+    display: none;
   }
 
-  .audience-card span {
+  .audience-text {
     left: 22px;
+    bottom: 22px;
+  }
+
+  .audience-name {
+    font-size: clamp(26px, 2.8vw, 34px);
+  }
+
+  .audience-more {
+    font-size: 14px;
+  }
+
+  .audience-arrow {
+    right: 20px;
     bottom: 20px;
-    font-size: clamp(24px, 3vw, 36px);
+    width: 44px;
+    height: 44px;
   }
 }
 
@@ -384,7 +518,32 @@
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .audience-card:hover img {
-    transform: scale(1.03);
+  /* Only the photo zooms: the card and its rounded corners stay (overflow: hidden); the arrow fills white and moves */
+  .audience-arrow {
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+
+  .audience-arrow::before {
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+
+  .audience-card:hover img,
+  .audience-card:hover::before {
+    transform: scale(1.05);
+  }
+
+  .audience-card:hover .audience-arrow {
+    transform: translateX(4px);
+  }
+}
+
+/* The white fill on hover, also without motion (it then shows at once): the arrow turns --ink over it */
+@media (hover: hover) {
+  .audience-card:hover .audience-arrow {
+    color: var(--ink);
+  }
+
+  .audience-card:hover .audience-arrow::before {
+    opacity: 1;
   }
 }

@@ -164,10 +164,13 @@ header.site[data-scrolled]::before {
     pointer-events: none;
   }
 
-  /* The bar gives way to the pill, but the strip above it (the row's 6 px move plus the pill's 6 px inset) stays solid
-     and fades out over the pill's top 12 px, so nothing peeks over the pill and its sides stay see-through (T-E7-75). */
+  /* The bar gives way to the pill, but the header's whole height stays the page's color from edge to edge of the screen
+     and fades out over 16 px below it, so nothing peeks over the pill or beside it (T-E7-75, T-E7-85). The pill keeps
+     its line and shadow, so it still floats. */
   header.site[data-scrolled]::before {
-    background: linear-gradient(to bottom, var(--bg) 0 12px, transparent 24px);
+    bottom: -16px;
+    /* no-repeat: the layer keeps its 1 px transparent border, where a repeated gradient would draw a solid line */
+    background: linear-gradient(to bottom, var(--bg) 0 64px, transparent 80px) no-repeat;
     backdrop-filter: none;
     border-bottom-color: transparent;
   }

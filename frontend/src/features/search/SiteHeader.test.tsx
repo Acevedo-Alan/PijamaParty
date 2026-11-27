@@ -402,13 +402,17 @@ describe('header on scroll (T-E7-15, T-E7-16, UC-31)', () => {
     vi.restoreAllMocks();
   });
 
-  it('given the pill header, when the page scrolls under it, then the strip above the pill stays the page color and fades out over its top (T-E7-75)', () => {
-    // jsdom draws nothing: the strip is the scrolled header's background layer. The pill's top is 12 px down (the
-    // row's 6 px move plus the pill's 6 px inset), so the solid part has to reach it.
-    const strip = /header\.site\[data-scrolled\]::before \{\s*background: linear-gradient\(to bottom, var\(--bg\) 0 (\d+)px, transparent (\d+)px\);/.exec(searchCss);
+  it('given the pill header, when the page scrolls under it, then the whole header height stays the page color from edge to edge and fades out below it (T-E7-75, T-E7-85)', () => {
+    // jsdom draws nothing: the strip is the scrolled header's background layer, as wide as the header (the screen).
+    // The pill ends at the header's 64 px (the row's 6 px move plus the pill's 6 px inset), so the solid part has to
+    // reach it, and the fade happens below, in the layer's own extension.
+    const strip =
+      /header\.site\[data-scrolled\]::before \{\s*bottom: -(\d+)px;\s*\s*\/\*[^*]*\*\/\s*background: linear-gradient\(to bottom, var\(--bg\) 0 (\d+)px, transparent (\d+)px\) no-repeat;/.exec(
+        searchCss,
+      );
     expect(strip).not.toBeNull();
-    expect(Number(strip?.[1])).toBeGreaterThanOrEqual(12);
-    expect(Number(strip?.[2])).toBeGreaterThan(Number(strip?.[1]));
+    expect(Number(strip?.[2])).toBeGreaterThanOrEqual(64);
+    expect(Number(strip?.[3])).toBe(64 + Number(strip?.[1]));
   });
 
   /** jsdom does not scroll: the position is set and the event sent, as the browser does. */

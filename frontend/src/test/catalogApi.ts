@@ -90,6 +90,11 @@ interface CatalogAnswers {
   paymentProviders?: unknown;
   /** Answer of GET /api/catalog/size-guides (T-E7-29): none unless told. */
   sizeGuides?: unknown;
+  /**
+   * The totals of the listings filtered by one audience (T-E7-85, the home's audience counts), by audience: such a
+   * listing is then answered with that total instead of taking its turn in `listings`.
+   */
+  audienceTotals?: Partial<Record<string, number>>;
 }
 
 /** Serves the catalog GET calls by path, so the listing and the filter options can load in any order. */
@@ -103,9 +108,15 @@ export function stubCatalogApi({
   shippingRates = NO_SHIPPING_RATES,
   paymentProviders = MERCADOPAGO_ONLY,
   sizeGuides = answer(200, { items: [] }),
+  audienceTotals,
 }: CatalogAnswers): MockInstance {
   const queue = [...listings];
-  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string, init?: { params?: { query?: { q?: string } } }) => {
+  return vi.spyOn(api, 'GET').mockImplementation(withHeader((path: string, init?: { params?: { query?: { q?: string; audience?: string[] } } }) => {
+    const audiences = init?.params?.query?.audience;
+    const total = audiences?.length === 1 ? audienceTotals?.[audiences[0] ?? ''] : undefined;
+    if (path === '/api/catalog/products' && total !== undefined) {
+      return Promise.resolve(listed([], false, total));
+    }
     if (path === '/api/catalog/filters') {
       return Promise.resolve(filters);
     }

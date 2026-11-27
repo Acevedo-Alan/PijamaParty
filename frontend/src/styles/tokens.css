@@ -145,6 +145,8 @@
   /* Typography: Inter 500-700 (D-17; Quicksand before, T-E6-02), self-hosted with @fontsource, never from Google Fonts */
   --ff-display: 'Inter', sans-serif;
   --ff-body: 'Inter', sans-serif;
+  /* Section titles and the audience cards' names (D-17, T-E7-84): Fraunces 600, a warm editorial serif, self-hosted */
+  --ff-editorial: 'Fraunces', Georgia, serif;
   /* The sizes on a product card (T-E7-35): Open Sans 500, self-hosted the same way */
   --ff-sizes: 'Open Sans', sans-serif;
   /* The account area (T-E7-63): Poppins 500-600 for headings, Open Sans 400-700 for text, loaded by its chunk only */
